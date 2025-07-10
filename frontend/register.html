@@ -72,6 +72,9 @@
                                             <button type="button" class="btn btn-primary" id="step1Button">
                                                 Continuar <i class="fas fa-arrow-right ms-2"></i>
                                             </button>
+                                            <button type="button" class="btn btn-danger ms-2" onclick="document.getElementById('step1').classList.add('d-none'); document.getElementById('step2').classList.remove('d-none');">
+                                                Debug: Ir al paso 2
+                                            </button>
                                         </div>
                                     </div>
                                     
@@ -235,10 +238,6 @@
     <!-- Configuración y servicios -->
     <script src="js/api-config.js"></script>
     <script src="js/auth-service.js"></script>
-    <script>
-        // Crear instancia del servicio de autenticación
-        const authService = new AuthService();
-    </script>
     
     <script>
         // Configuración de toastr
@@ -254,25 +253,52 @@
             window.location.href = 'dashboard.html';
         }
         
-        // Agregar event listeners para los botones
+        // Agregar event listeners para los botones y código de depuración
         document.addEventListener('DOMContentLoaded', function() {
-            // Botones de avance
-            document.getElementById('step1Button').addEventListener('click', function() {
-                nextStep(1, 2);
+            console.log('DOM completamente cargado, configurando event listeners');
+            
+            // Verificar si los elementos existen
+            const step1Button = document.getElementById('step1Button');
+            const step2Button = document.getElementById('step2Button');
+            const backToStep1Button = document.getElementById('backToStep1Button');
+            const backToStep2Button = document.getElementById('backToStep2Button');
+            
+            console.log('Botones encontrados:', {
+                step1Button: !!step1Button,
+                step2Button: !!step2Button,
+                backToStep1Button: !!backToStep1Button,
+                backToStep2Button: !!backToStep2Button
             });
             
-            document.getElementById('step2Button').addEventListener('click', function() {
-                nextStep(2, 3);
-            });
+            // Botones de avance
+            if (step1Button) {
+                step1Button.addEventListener('click', function() {
+                    console.log('Botón step1 clickeado');
+                    nextStep(1, 2);
+                });
+            }
+            
+            if (step2Button) {
+                step2Button.addEventListener('click', function() {
+                    console.log('Botón step2 clickeado');
+                    nextStep(2, 3);
+                });
+            }
             
             // Botones de retroceso
-            document.getElementById('backToStep1Button').addEventListener('click', function() {
-                prevStep(2, 1);
-            });
+            if (backToStep1Button) {
+                backToStep1Button.addEventListener('click', function() {
+                    console.log('Botón backToStep1 clickeado');
+                    prevStep(2, 1);
+                });
+            }
             
-            document.getElementById('backToStep2Button').addEventListener('click', function() {
-                prevStep(3, 2);
-            });
+            if (backToStep2Button) {
+                backToStep2Button.addEventListener('click', function() {
+                    console.log('Botón backToStep2 clickeado');
+                    prevStep(3, 2);
+                });
+            }
         });
         
         // Form navigation functions
