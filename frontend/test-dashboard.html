@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard - IA Receptionist</title>
+</head>
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h2>Configurar Token de Prueba</h2>
+        <p>Haz clic en el botón para configurar un token temporal y acceder al dashboard:</p>
+        <button onclick="setupTestToken()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            Configurar Token y Abrir Dashboard
+        </button>
+        <br><br>
+        <p><small>Esto configurará un token temporal en localStorage para poder probar el dashboard sin backend.</small></p>
+    </div>
+
+    <script>
+        function setupTestToken() {
+            // Crear un token JWT simulado para pruebas
+            const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgVXNlciIsImVtYWlsIjoidGVzdEB0ZXN0LmNvbSIsImNvbXBhbnkiOiJUZXN0IENvbXBhbnkiLCJpYXQiOjE1MTYyMzkwMjJ9.test-signature';
+            
+            // Configurar datos de usuario simulados
+            const testUser = {
+                id: '1',
+                name: 'Usuario de Prueba',
+                email: 'test@test.com',
+                company: 'Empresa de Prueba'
+            };
+            
+            // Guardar en localStorage
+            localStorage.setItem('authToken', testToken);
+            localStorage.setItem('user', JSON.stringify(testUser));
+            
+            // Mostrar confirmación
+            alert('Token configurado correctamente. Ahora puedes acceder al dashboard.');
+            
+            // Redirigir al dashboard
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>

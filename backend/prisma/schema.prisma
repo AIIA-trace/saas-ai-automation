@@ -1,0 +1,158 @@
+// Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id                    Int            @id @default(autoincrement())
+  email                 String         @unique
+  password              String
+  companyName           String
+  contactName           String
+  phone                 String?
+  apiKey                String?        @unique
+  role                  String         @default("client")
+  isActive              Boolean        @default(true)
+  avatar                String?
+  timezone              String         @default("UTC")
+  language              String         @default("es")
+  industry              String?
+  stripeCustomerId      String?        @unique
+  subscriptionStatus    String         @default("trial") // trial, active, past_due, cancelled
+  subscriptionExpiresAt DateTime?
+  trialEndDate          DateTime?
+  twilioNumbers         TwilioNumber[]
+  callLogs             CallLog[]
+  emailLogs            EmailLog[]
+  analytics            Analytics[]
+  notifications        Notification[]
+  botConfig            Json?          // Configuración del bot de voz
+  emailConfig          Json?          // Configuración del manejo de emails
+  companyInfo          Json?          // Información de la empresa
+  notificationConfig   Json?          // Configuración de notificaciones
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([email])
+  @@index([subscriptionStatus])
+  @@index([subscriptionExpiresAt])
+  @@index([apiKey])
+}
+
+model TwilioNumber {
+  id              Int      @id @default(autoincrement())
+  clientId        Int
+  client          Client   @relation(fields: [clientId], references: [id])
+  phoneNumber     String   @unique
+  twilioSid       String   @unique
+  friendlyName    String?
+  status          String   @default("active") // active, inactive
+  originalNumber  String?  // Número original del cliente que está siendo redirigido
+  region          String?
+  capabilities    String?  // voice, sms, mms capabilities (JSON string)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([phoneNumber])
+  @@index([status])
+}
+
+model CallLog {
+  id                Int      @id @default(autoincrement())
+  clientId          Int
+  client            Client   @relation(fields: [clientId], references: [id])
+  twilioCallSid     String   @unique
+  callerNumber      String
+  callerName        String?
+  callStatus        String
+  callDuration      Int?
+  recordingUrl      String?
+  transcription     String?
+  aiSummary         String?
+  aiClassification  String?
+  urgencyLevel      String?  // low, medium, high
+  callPurpose       String?
+  contactInfo       String?  // Información de contacto extraída (JSON string)
+  notificationSent  Boolean  @default(false)
+  notifiedTo        String?  // Lista de notificados (comma separated)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([twilioCallSid])
+  @@index([callerNumber])
+  @@index([createdAt])
+  @@index([aiClassification])
+}
+
+model EmailLog {
+  id              Int      @id @default(autoincrement())
+  clientId        Int
+  client          Client   @relation(fields: [clientId], references: [id])
+  messageId       String   @unique
+  fromAddress     String
+  fromName        String?
+  toAddress       String
+  subject         String
+  bodyPlain       String?
+  bodyHtml        String?
+  attachments     String?  // Array de URLs o metadatos de adjuntos (JSON string)
+  aiSummary       String?
+  aiClassification String?
+  forwardedTo     String?  // Lista de destinatarios (comma separated)
+  responseStatus  String?  // sent, failed, none
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([messageId])
+  @@index([createdAt])
+  @@index([fromAddress])
+}
+
+model Analytics {
+  id                Int      @id @default(autoincrement())
+  clientId          Int
+  client            Client   @relation(fields: [clientId], references: [id])
+  date              DateTime
+  totalCalls        Int      @default(0)
+  totalEmails       Int      @default(0)
+  missedCalls       Int      @default(0)
+  answeredCalls     Int      @default(0)
+  avgCallDuration   Float    @default(0)
+  emailsResponded   Int      @default(0)
+  emailsForwarded   Int      @default(0)
+  topCallCategories String?  // JSON string
+  topEmailCategories String? // JSON string
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([clientId, date])
+  @@index([clientId, date])
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  client      Client   @relation(fields: [clientId], references: [id])
+  type        String   // email, sms, app
+  status      String   // sent, pending, failed
+  recipient   String
+  subject     String?
+  content     String
+  metadata    String?  // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([type])
+  @@index([status])
+}

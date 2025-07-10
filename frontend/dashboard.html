@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - IA Receptionist</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="d-flex" id="wrapper">
+        <!-- Sidebar -->
+        <div class="bg-dark text-white" id="sidebar-wrapper">
+            <div class="sidebar-heading py-4 text-center">
+                <i class="fas fa-robot me-2"></i>IA Receptionist
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="#overview" class="list-group-item list-group-item-action bg-dark text-white active" data-bs-toggle="tab">
+                    <i class="fas fa-tachometer-alt me-2"></i> Panel General
+                </a>
+                <a href="#bot-config" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                    <i class="fas fa-phone-alt me-2"></i> Bot de Llamadas
+                </a>
+                <a href="#email-config" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                    <i class="fas fa-envelope me-2"></i> Gestión de Emails
+                </a>
+                <!-- Dynamic Sector-Specific Sections -->
+                <div id="sector-specific-menu">
+                    <!-- Will be populated dynamically based on company configuration -->
+                </div>
+                
+                <a href="#notifications" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                    <i class="fas fa-bell me-2"></i> Notificaciones
+                </a>
+                <a href="#logs" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                    <i class="fas fa-list me-2"></i> Registros
+                </a>
+                <a href="#account" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                    <i class="fas fa-user-cog me-2"></i> Cuenta
+                </a>
+                <a href="#billing" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                    <i class="fas fa-credit-card me-2"></i> Facturación
+                </a>
+            </div>
+        </div>
+
+        <!-- Page content wrapper -->
+        <div id="page-content-wrapper" class="bg-light">
+            <!-- Top navigation -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+                <div class="container-fluid">
+                    <button class="btn btn-link" id="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="ms-auto d-flex align-items-center">
+                        <span class="badge bg-success me-3">Plan: <span id="user-plan">Profesional</span></span>
+                        <div class="dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i>
+                                <span id="user-name">Usuario</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#account" data-bs-toggle="tab">Mi perfil</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="logout-btn">Cerrar sesión</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Page content -->
+            <div class="container-fluid py-4">
+                <div class="tab-content">
+                    <!-- Tab content will be added in separate parts -->
+                    <div class="tab-pane fade show active" id="overview">
+                        <!-- Dynamic overview content will be loaded by overview.js -->
+                    </div>
+                    
+                    <!-- Dynamic Sector-Specific Tabs -->
+                    <div id="sector-specific-tabs">
+                        <!-- Will be populated dynamically based on company configuration -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para detalles de pedido -->
+    <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderDetailsModalLabel">Detalles del Pedido</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="order-details-content">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2">Cargando detalles...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-success" id="btn-complete-order">Completar Pedido</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para detalles de reserva -->
+    <div class="modal fade" id="reservationDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles de Reserva</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="reservation-details-content"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirm-reservation">Confirmar Reserva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para detalles de cita -->
+    <div class="modal fade" id="appointmentDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles de la Cita</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="appointment-details-content"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-success" id="btn-complete-appointment">Completar Cita</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para añadir/editar servicio -->
+    <div class="modal fade" id="serviceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="serviceModalLabel">Añadir Servicio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="serviceForm">
+                        <input type="hidden" id="serviceId" value="">
+                        <div class="mb-3">
+                            <label for="serviceName" class="form-label">Nombre del Servicio</label>
+                            <input type="text" class="form-control" id="serviceName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="serviceDescription" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="serviceDescription" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="servicePrice" class="form-label">Precio (€)</label>
+                                <input type="number" class="form-control" id="servicePrice" step="0.01" min="0" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="serviceDuration" class="form-label">Duración (min)</label>
+                                <input type="number" class="form-control" id="serviceDuration" min="5" step="5" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-save-service">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para reponer inventario -->
+    <div class="modal fade" id="restockModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reponer Inventario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="restockForm">
+                        <input type="hidden" id="productId" value="">
+                        <div class="mb-3">
+                            <label for="productName" class="form-label">Producto</label>
+                            <input type="text" class="form-control" id="productName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="currentStock" class="form-label">Stock Actual</label>
+                            <input type="number" class="form-control" id="currentStock" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="addStock" class="form-label">Cantidad a Añadir</label>
+                            <input type="number" class="form-control" id="addStock" min="1" value="1" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-save-restock">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor para notificaciones toast -->
+    <div id="toast-container" class="position-fixed bottom-0 end-0 p-3"></div>
+
+    <!-- Dependencias JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    
+    <!-- Servicios de autenticación y configuración API -->
+    <script src="js/api-config.js"></script>
+    <script src="js/auth-service.js"></script>
+    <script src="js/route-protection.js"></script>
+    
+    <!-- Dashboard modules -->
+    <script src="js/overview.js"></script>
+    <script src="js/bot-config.js"></script>
+    <script src="js/voice-config.js"></script>
+    <script src="js/script-config.js"></script>
+    <script src="js/transfer-config.js"></script>
+    <script src="js/email-config.js"></script>
+    
+    <!-- Dynamic Dashboard Initialization -->
+    <script src="js/dashboard-dynamic.js"></script>
+    
+    <script>
+        // Configuración de toastr
+        toastr.options = {
+            closeButton: true,
+            progressBar: true,
+            positionClass: "toast-top-right",
+            timeOut: 5000
+        };
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // La verificación de autenticación ya la realiza route-protection.js
+            
+            // Toggle sidebar
+            document.getElementById("menu-toggle").addEventListener("click", function(e) {
+                e.preventDefault();
+                document.getElementById("wrapper").classList.toggle("toggled");
+            });
+            
+            // Logout functionality usando el servicio de autenticación centralizado
+            document.getElementById("logout-btn").addEventListener("click", function(e) {
+                e.preventDefault();
+                authService.logout();
+                toastr.success('Has cerrado sesión correctamente', '¡Hasta pronto!');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1000);
+            });
+            
+            // Cargar datos del usuario usando el servicio de autenticación
+            loadUserData();
+        });
+        
+        // Cargar datos del usuario desde la API usando el servicio de autenticación
+        function loadUserData() {
+            authService.getCurrentUser()
+                .then(userData => {
+                    // Actualizar la UI con los datos del usuario
+                    document.getElementById('user-name').textContent = userData.companyName || 'Usuario';
+                    document.getElementById('user-plan').textContent = userData.subscription?.planType || 'Básico';
+                    
+                    // Cargar las secciones del dashboard
+                    loadDashboardOverview(userData);
+                })
+                .catch(error => {
+                    console.error('Error cargando datos del usuario:', error);
+                    
+                    // Mostrar mensaje de error al usuario
+                    toastr.error(
+                        'No se pudieron cargar tus datos. Por favor, recarga la página o contacta con soporte.', 
+                        'Error de conexión'
+                    );
+                    
+                    // Ocultar indicadores de carga
+                    document.getElementById('loading-overview')?.classList.add('d-none');
+                });
+        }
+        
+        function loadDashboardOverview(userData) {
+            // Ocultar indicadores de carga
+            document.getElementById('loading-overview')?.classList.add('d-none');
+            
+            // Cargar componentes del dashboard
+            // Estos serán implementados en sus respectivos módulos
+            // y se encargarán de cargar los datos específicos
+        }
+    </script>
+</body>
+</html>
