@@ -76,14 +76,28 @@ app.get('/', (req, res) => {
   });
 });
 
-// Servir index.html para cualquier ruta que no sea API o webhook (para SPA)
+// Servir archivos HTML específicos o index.html para rutas no API
 app.get('*', (req, res, next) => {
   // Si la ruta empieza con /api o /webhooks, continuar al siguiente middleware
   if (req.path.startsWith('/api') || req.path.startsWith('/webhooks')) {
     return next();
   }
   
-  // Si no, servir el index.html del frontend
+  // Comprobar si existe un archivo HTML específico para la ruta solicitada
+  const requestedPage = req.path.endsWith('.html') 
+    ? req.path 
+    : req.path === '/' 
+      ? '/index.html' 
+      : `${req.path}.html`;
+      
+  const htmlFilePath = path.join(frontendDir, requestedPage);
+  
+  // Verificar si el archivo existe
+  if (fs.existsSync(htmlFilePath)) {
+    return res.sendFile(htmlFilePath);
+  }
+  
+  // Si no existe un archivo específico, servir index.html (para SPA)
   res.sendFile(path.join(frontendDir, 'index.html'));
 });
 
