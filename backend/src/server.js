@@ -99,8 +99,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-// Iniciar servidor
-const server = app.listen(PORT, async () => {
+// Iniciar servidor - Escuchar en 0.0.0.0 para que Render pueda detectar el puerto
+const server = app.listen(PORT, '0.0.0.0', async () => {
   try {
     // Verificar conexión con base de datos
     await prisma.$connect();
