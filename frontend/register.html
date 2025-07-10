@@ -69,11 +69,8 @@
                                         </div>
                                         
                                         <div class="d-flex justify-content-end mt-4">
-                                            <button type="button" class="btn btn-primary" id="step1Button">
+                                            <button type="button" class="btn btn-primary" onclick="nextStep(1, 2)">
                                                 Continuar <i class="fas fa-arrow-right ms-2"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-danger ms-2" onclick="document.getElementById('step1').classList.add('d-none'); document.getElementById('step2').classList.remove('d-none');">
-                                                Debug: Ir al paso 2
                                             </button>
                                         </div>
                                     </div>
@@ -99,10 +96,10 @@
                                         </div>
                                         
                                         <div class="d-flex justify-content-between mt-4">
-                                            <button type="button" class="btn btn-outline-secondary" id="backToStep1Button">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="prevStep(2, 1)">
                                                 <i class="fas fa-arrow-left me-2"></i> Atrás
                                             </button>
-                                            <button type="button" class="btn btn-primary" id="step2Button">
+                                            <button type="button" class="btn btn-primary" onclick="nextStep(2, 3)">
                                                 Continuar <i class="fas fa-arrow-right ms-2"></i>
                                             </button>
                                         </div>
@@ -182,7 +179,7 @@
                                         </div>
                                         
                                         <div class="d-flex justify-content-between mt-4">
-                                            <button type="button" class="btn btn-outline-secondary" id="backToStep2Button">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="prevStep(3, 2)">
                                                 <i class="fas fa-arrow-left me-2"></i> Atrás
                                             </button>
                                             <button type="submit" class="btn btn-primary" id="registerButton">
@@ -253,52 +250,9 @@
             window.location.href = 'dashboard.html';
         }
         
-        // Agregar event listeners para los botones y código de depuración
+        // Verificar autenticación al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM completamente cargado, configurando event listeners');
-            
-            // Verificar si los elementos existen
-            const step1Button = document.getElementById('step1Button');
-            const step2Button = document.getElementById('step2Button');
-            const backToStep1Button = document.getElementById('backToStep1Button');
-            const backToStep2Button = document.getElementById('backToStep2Button');
-            
-            console.log('Botones encontrados:', {
-                step1Button: !!step1Button,
-                step2Button: !!step2Button,
-                backToStep1Button: !!backToStep1Button,
-                backToStep2Button: !!backToStep2Button
-            });
-            
-            // Botones de avance
-            if (step1Button) {
-                step1Button.addEventListener('click', function() {
-                    console.log('Botón step1 clickeado');
-                    nextStep(1, 2);
-                });
-            }
-            
-            if (step2Button) {
-                step2Button.addEventListener('click', function() {
-                    console.log('Botón step2 clickeado');
-                    nextStep(2, 3);
-                });
-            }
-            
-            // Botones de retroceso
-            if (backToStep1Button) {
-                backToStep1Button.addEventListener('click', function() {
-                    console.log('Botón backToStep1 clickeado');
-                    prevStep(2, 1);
-                });
-            }
-            
-            if (backToStep2Button) {
-                backToStep2Button.addEventListener('click', function() {
-                    console.log('Botón backToStep2 clickeado');
-                    prevStep(3, 2);
-                });
-            }
+            console.log('DOM completamente cargado');
         });
         
         // Form navigation functions
