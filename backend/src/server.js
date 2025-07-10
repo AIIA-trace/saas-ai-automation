@@ -39,17 +39,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Configuración de seguridad básica (personalizada para permitir frames en desarrollo)
-if (process.env.NODE_ENV === 'production') {
-  app.use(helmet());
-} else {
-  app.use(
-    helmet({
-      contentSecurityPolicy: false,
-      frameguard: false
-    })
-  );
-}
+// Configuración de seguridad básica (personalizada para permitir JavaScript inline)
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    frameguard: false
+  })
+);
 
 // Logging
 app.use(morgan('combined', { stream: { write: message => logger.http(message.trim()) } }));
