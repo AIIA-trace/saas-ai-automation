@@ -1,5 +1,10 @@
 const express = require('express');
 const router = express.Router();
+
+// Health check endpoint para Render
+router.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const twilioService = require('../services/twilioService');
