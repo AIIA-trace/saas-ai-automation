@@ -110,8 +110,9 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
     logger.info(`Servidor corriendo en ${host}`);
     
     // Mensaje específico para que Render detecte que el servidor está listo
-    console.log(`🚀 Server listening on port ${PORT}`);
-    console.log(`Server is ready to handle requests!`);
+    const renderPort = process.env.PORT || PORT;
+    console.log(`🚀 Server listening on port ${renderPort}`);
+    console.log(`Server is ready to handle requests on port ${renderPort}!`);
   } catch (error) {
     logger.error('Error conectando a la base de datos:', error);
     process.exit(1);
