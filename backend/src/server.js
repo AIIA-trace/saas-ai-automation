@@ -15,7 +15,7 @@ const webhooksRouter = require('./routes/webhooks');
 
 // Inicialización de Express
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000; // Render usa PORT internamente
 
 // Crear directorios necesarios
 const logsDir = path.join(__dirname, '../logs');
@@ -90,8 +90,8 @@ const server = app.listen(PORT, async () => {
     await prisma.$connect();
     logger.info('Conexión a base de datos exitosa');
     
-    const host = process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL || 'producción' : 'http://localhost';
-    logger.info(`Servidor corriendo en ${host}:${PORT}`);
+    const host = process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL || 'https://saas-ai-automation.onrender.com' : `http://localhost:${PORT}`;
+    logger.info(`Servidor corriendo en ${host}`);
   } catch (error) {
     logger.error('Error conectando a la base de datos:', error);
     process.exit(1);
