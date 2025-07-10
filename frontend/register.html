@@ -69,7 +69,7 @@
                                         </div>
                                         
                                         <div class="d-flex justify-content-end mt-4">
-                                            <button type="button" class="btn btn-primary" onclick="nextStep(1, 2)">
+                                            <button type="button" class="btn btn-primary" id="step1Button">
                                                 Continuar <i class="fas fa-arrow-right ms-2"></i>
                                             </button>
                                         </div>
@@ -96,10 +96,10 @@
                                         </div>
                                         
                                         <div class="d-flex justify-content-between mt-4">
-                                            <button type="button" class="btn btn-outline-secondary" onclick="prevStep(2, 1)">
+                                            <button type="button" class="btn btn-outline-secondary" id="backToStep1Button">
                                                 <i class="fas fa-arrow-left me-2"></i> Atrás
                                             </button>
-                                            <button type="button" class="btn btn-primary" onclick="nextStep(2, 3)">
+                                            <button type="button" class="btn btn-primary" id="step2Button">
                                                 Continuar <i class="fas fa-arrow-right ms-2"></i>
                                             </button>
                                         </div>
@@ -179,7 +179,7 @@
                                         </div>
                                         
                                         <div class="d-flex justify-content-between mt-4">
-                                            <button type="button" class="btn btn-outline-secondary" onclick="prevStep(3, 2)">
+                                            <button type="button" class="btn btn-outline-secondary" id="backToStep2Button">
                                                 <i class="fas fa-arrow-left me-2"></i> Atrás
                                             </button>
                                             <button type="submit" class="btn btn-primary" id="registerButton">
@@ -253,6 +253,27 @@
         if (authService.isAuthenticated()) {
             window.location.href = 'dashboard.html';
         }
+        
+        // Agregar event listeners para los botones
+        document.addEventListener('DOMContentLoaded', function() {
+            // Botones de avance
+            document.getElementById('step1Button').addEventListener('click', function() {
+                nextStep(1, 2);
+            });
+            
+            document.getElementById('step2Button').addEventListener('click', function() {
+                nextStep(2, 3);
+            });
+            
+            // Botones de retroceso
+            document.getElementById('backToStep1Button').addEventListener('click', function() {
+                prevStep(2, 1);
+            });
+            
+            document.getElementById('backToStep2Button').addEventListener('click', function() {
+                prevStep(3, 2);
+            });
+        });
         
         // Form navigation functions
         function nextStep(current, next) {
