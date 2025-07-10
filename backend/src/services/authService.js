@@ -51,7 +51,7 @@ class AuthService {
   // Registrar un nuevo cliente
   async registerClient(clientData) {
     try {
-      const { email, password, companyName, contactPhone } = clientData;
+      const { email, password, companyName, companyDescription, contactPhone, plan } = clientData;
       
       // Verificar si ya existe un cliente con ese email
       const existingClient = await prisma.client.findUnique({
@@ -93,6 +93,9 @@ class AuthService {
         classificationRules: []
       };
       
+      // Determinar el estado de suscripción basado en el plan seleccionado
+      const subscriptionStatus = plan ? plan : 'trial';
+      
       // Crear el cliente en la base de datos
       const client = await prisma.client.create({
         data: {
@@ -104,11 +107,12 @@ class AuthService {
           apiKey,
           role: 'client',
           isActive: true,
-          subscriptionStatus: 'trial',
+          subscriptionStatus: subscriptionStatus,
           trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           botConfig: defaultBotConfig,
           emailConfig: defaultEmailConfig,
-          notificationConfig: defaultNotificationConfig
+          notificationConfig: defaultNotificationConfig,
+          companyInfo: companyDescription ? { description: companyDescription } : null
         }
       });
       
