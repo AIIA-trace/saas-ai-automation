@@ -100,7 +100,7 @@ class RouteGuard {
         localStorage.setItem('redirectAfterLogin', currentUrl);
         
         // Redirigir al login
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
     }
 }
 
