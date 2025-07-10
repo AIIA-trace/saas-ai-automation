@@ -4,7 +4,9 @@
 
 const API_CONFIG = {
   // URL base de la API - Cambiar según entorno
-  BASE_URL: 'http://localhost:3000',
+  BASE_URL: window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
+    ? 'http://localhost:10000'
+    : 'https://saas-ai-automation.onrender.com',
   
   // Endpoints de autenticación
   AUTH: {
