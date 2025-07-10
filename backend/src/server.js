@@ -108,6 +108,10 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
     
     const host = process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL || 'https://saas-ai-automation.onrender.com' : `http://localhost:${PORT}`;
     logger.info(`Servidor corriendo en ${host}`);
+    
+    // Mensaje específico para que Render detecte que el servidor está listo
+    console.log(`🚀 Server listening on port ${PORT}`);
+    console.log(`Server is ready to handle requests!`);
   } catch (error) {
     logger.error('Error conectando a la base de datos:', error);
     process.exit(1);
