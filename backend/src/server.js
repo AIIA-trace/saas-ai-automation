@@ -57,6 +57,11 @@ app.use(morgan('combined', { stream: { write: message => logger.http(message.tri
 // Servir archivos estáticos
 app.use(express.static(publicDir));
 
+// Servir archivos del frontend
+const frontendDir = path.join(__dirname, '../../frontend');
+app.use(express.static(frontendDir));
+logger.info(`Sirviendo frontend desde: ${frontendDir}`);
+
 // Rutas principales
 app.use('/api/auth', authRouter);
 app.use('/api', apiRouter);
@@ -71,7 +76,18 @@ app.get('/', (req, res) => {
   });
 });
 
-// Capturar rutas no encontradas
+// Servir index.html para cualquier ruta que no sea API o webhook (para SPA)
+app.get('*', (req, res, next) => {
+  // Si la ruta empieza con /api o /webhooks, continuar al siguiente middleware
+  if (req.path.startsWith('/api') || req.path.startsWith('/webhooks')) {
+    return next();
+  }
+  
+  // Si no, servir el index.html del frontend
+  res.sendFile(path.join(frontendDir, 'index.html'));
+});
+
+// Capturar rutas API no encontradas
 app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
