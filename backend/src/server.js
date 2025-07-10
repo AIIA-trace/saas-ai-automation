@@ -90,7 +90,8 @@ const server = app.listen(PORT, async () => {
     await prisma.$connect();
     logger.info('Conexión a base de datos exitosa');
     
-    logger.info(`Servidor corriendo en http://localhost:${PORT}`);
+    const host = process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL || 'producción' : 'http://localhost';
+    logger.info(`Servidor corriendo en ${host}:${PORT}`);
   } catch (error) {
     logger.error('Error conectando a la base de datos:', error);
     process.exit(1);
