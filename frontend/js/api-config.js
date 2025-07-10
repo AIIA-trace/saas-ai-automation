@@ -10,11 +10,11 @@ const API_CONFIG = {
   
   // Endpoints de autenticación
   AUTH: {
-    REGISTER: '/auth/register',
-    LOGIN: '/auth/login',
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    RESET_PASSWORD: '/auth/reset-password',
-    ME: '/auth/me'
+    REGISTER: '/api/auth/register',
+    LOGIN: '/api/auth/login',
+    FORGOT_PASSWORD: '/api/auth/forgot-password',
+    RESET_PASSWORD: '/api/auth/reset-password',
+    ME: '/api/auth/me'
   },
   
   // Endpoints específicos por sector
