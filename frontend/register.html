@@ -338,10 +338,22 @@
                 showStep(2);
             });
             
+            // Event listener directo al botón de registro (backup)
+            document.getElementById('registerButton').addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Click directo en botón de registro');
+                handleRegistration();
+            });
+            
             // Envío del formulario
             document.getElementById('registrationForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                console.log('Enviando formulario...');
+                console.log('Enviando formulario via submit...');
+                handleRegistration();
+            });
+            
+            function handleRegistration() {
+                console.log('Manejando registro...');
                 
                 // Verificar términos
                 if (!document.getElementById('termsCheck').checked) {
@@ -395,7 +407,7 @@
                         registerButton.disabled = false;
                         registerButton.innerHTML = 'Crear cuenta <i class="fas fa-user-plus ms-2"></i>';
                     });
-            });
+            }
         });
         
         // Redireccionar si ya está autenticado
