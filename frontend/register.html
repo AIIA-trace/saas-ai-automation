@@ -251,41 +251,132 @@
             positionClass: "toast-top-right",
             timeOut: 5000
         };
-        
         // Variables globales
         let currentStep = 1;
+        let authService;
+        
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM cargado, inicializando...');
+            
+            // Inicializar servicio de autenticación
+            authService = new AuthService();
+            console.log('AuthService inicializado:', authService);
+            
+            // Mostrar primer paso
+            showStep(1);
+            
+            // Configurar event listeners
+            setupEventListeners();
+        });
         
         // Funciones de navegación
         function showStep(stepNumber) {
-            // Ocultar todos los pasos
-            document.getElementById('step1').style.display = 'none';
-            document.getElementById('step2').style.display = 'none';
-            document.getElementById('step3').style.display = 'none';
-            
-            // Mostrar el paso actual
-            document.getElementById('step' + stepNumber).style.display = 'block';
-            currentStep = stepNumber;
-            
             console.log('Mostrando paso:', stepNumber);
+            
+            // Ocultar todos los pasos
+            for (let i = 1; i <= 3; i++) {
+                const step = document.getElementById(`step${i}`);
+                if (step) {
+                    step.style.display = 'none';
+                }
+                
+                // Actualizar indicadores
+                const indicator = document.getElementById(`stepIndicator${i}`);
+                if (indicator) {
+                    indicator.classList.remove('active', 'completed');
+                    if (i < stepNumber) {
+                        indicator.classList.add('completed');
+                    } else if (i === stepNumber) {
+                        indicator.classList.add('active');
+                    }
+                }
+            }
+            
+            // Mostrar paso actual
+            const currentStepElement = document.getElementById(`step${stepNumber}`);
+            if (currentStepElement) {
+                currentStepElement.style.display = 'block';
+                currentStep = stepNumber;
+            }
         }
         
+        // Configurar todos los event listeners
+        function setupEventListeners() {
+            console.log('Configurando event listeners...');
+            
+            // Botón continuar paso 1
+            const continueStep1 = document.getElementById('continueStep1');
+            if (continueStep1) {
+                continueStep1.addEventListener('click', function() {
+                    console.log('Click continuar paso 1');
+                    if (validateStep1()) {
+                        showStep(2);
+                    }
+                });
+            }
+            
+            // Botón continuar paso 2
+            const continueStep2 = document.getElementById('continueStep2');
+            if (continueStep2) {
+                continueStep2.addEventListener('click', function() {
+                    console.log('Click continuar paso 2');
+                    if (validateStep2()) {
+                        showStep(3);
+                    }
+                });
+            }
+            
+            // Botones atrás
+            const backStep2 = document.getElementById('backStep2');
+            if (backStep2) {
+                backStep2.addEventListener('click', () => showStep(1));
+            }
+            
+            const backStep3 = document.getElementById('backStep3');
+            if (backStep3) {
+                backStep3.addEventListener('click', () => showStep(2));
+            }
+            
+            // Botón de registro
+            const registerButton = document.getElementById('registerButton');
+            if (registerButton) {
+                registerButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Click botón registro');
+                    handleRegistration();
+                });
+            }
+            
+            // Formulario
+            const form = document.getElementById('registrationForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    console.log('Submit formulario');
+                    handleRegistration();
+                });
+            }
+        }
+        
+        // Validaciones
         function validateStep1() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             
             if (!email || !password || !confirmPassword) {
-                toastr.error('Completa todos los campos obligatorios', 'Validación');
+                toastr.error('Todos los campos son obligatorios');
                 return false;
             }
             
             if (password !== confirmPassword) {
-                toastr.error('Las contraseñas no coinciden', 'Validación');
+                toastr.error('Las contraseñas no coinciden');
                 return false;
             }
             
             if (password.length < 8) {
-                toastr.error('La contraseña debe tener al menos 8 caracteres', 'Validación');
+                toastr.error('La contraseña debe tener al menos 8 caracteres');
                 return false;
             }
             
@@ -294,125 +385,78 @@
         
         function validateStep2() {
             const companyName = document.getElementById('companyName').value.trim();
+            const companyDescription = document.getElementById('companyDescription').value.trim();
+            const contactPhone = document.getElementById('contactPhone').value.trim();
             
-            if (!companyName) {
-                toastr.error('Ingresa el nombre de la empresa', 'Validación');
+            if (!companyName || !companyDescription || !contactPhone) {
+                toastr.error('Todos los campos son obligatorios');
                 return false;
             }
             
             return true;
         }
         
-        // Event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM cargado, configurando eventos...');
+        // Manejar registro
+        function handleRegistration() {
+            console.log('Iniciando proceso de registro...');
             
-            // Mostrar el primer paso al cargar
-            showStep(1);
-            
-            // Botón continuar paso 1
-            document.getElementById('continueStep1').addEventListener('click', function() {
-                console.log('Click en continuar paso 1');
-                if (validateStep1()) {
-                    showStep(2);
-                }
-            });
-            
-            // Botón continuar paso 2
-            document.getElementById('continueStep2').addEventListener('click', function() {
-                console.log('Click en continuar paso 2');
-                if (validateStep2()) {
-                    showStep(3);
-                }
-            });
-            
-            // Botón atrás paso 2
-            document.getElementById('backStep2').addEventListener('click', function() {
-                console.log('Click en atrás paso 2');
-                showStep(1);
-            });
-            
-            // Botón atrás paso 3
-            document.getElementById('backStep3').addEventListener('click', function() {
-                console.log('Click en atrás paso 3');
-                showStep(2);
-            });
-            
-            // Event listener directo al botón de registro (backup)
-            document.getElementById('registerButton').addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('Click directo en botón de registro');
-                handleRegistration();
-            });
-            
-            // Envío del formulario
-            document.getElementById('registrationForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                console.log('Enviando formulario via submit...');
-                handleRegistration();
-            });
-            
-            function handleRegistration() {
-                console.log('Manejando registro...');
-                
-                // Verificar términos
-                if (!document.getElementById('termsCheck').checked) {
-                    toastr.error('Debes aceptar los términos y condiciones', 'Validación');
-                    return;
-                }
-                
-                // Recopilar datos
-                const userData = {
-                    email: document.getElementById('email').value.trim(),
-                    password: document.getElementById('password').value,
-                    companyName: document.getElementById('companyName').value.trim(),
-                    companyDescription: document.getElementById('companyDescription').value.trim(),
-                    contactPhone: document.getElementById('contactPhone').value.trim(),
-                    plan: document.querySelector('input[name="plan"]:checked').value
-                };
-                
-                console.log('Datos del usuario:', userData);
-                
-                // Verificar que authService esté disponible
-                if (!authService) {
-                    console.error('authService no está disponible');
-                    toastr.error('Error de configuración', 'Error');
-                    return;
-                }
-                
-                // Deshabilitar botón
-                const registerButton = document.getElementById('registerButton');
-                registerButton.disabled = true;
-                registerButton.innerHTML = 'Creando cuenta... <i class="fas fa-spinner fa-spin ms-2"></i>';
-                
-                console.log('Iniciando registro con authService...');
-                
-                // Registrar usuario
-                authService.register(userData)
-                    .then(data => {
-                        console.log('Registro exitoso:', data);
-                        toastr.success('Cuenta creada correctamente', '¡Bienvenido!');
-                        
-                        console.log('Redirigiendo a dashboard en 2 segundos...');
-                        setTimeout(() => {
-                            console.log('Ejecutando redirección...');
-                            window.location.href = '/dashboard.html';
-                        }, 2000);
-                    })
-                    .catch(error => {
-                        console.error('Error en registro:', error);
-                        toastr.error(error.message || 'Error en el registro', 'Error');
-                        
-                        // Rehabilitar botón
-                        registerButton.disabled = false;
-                        registerButton.innerHTML = 'Crear cuenta <i class="fas fa-user-plus ms-2"></i>';
-                    });
+            // Verificar términos
+            const termsCheck = document.getElementById('termsCheck');
+            if (!termsCheck || !termsCheck.checked) {
+                toastr.error('Debes aceptar los términos y condiciones');
+                return;
             }
-        });
-        
-        // Redireccionar si ya está autenticado
-        if (authService && authService.isAuthenticated()) {
-            window.location.href = 'dashboard.html';
+            
+            // Verificar plan seleccionado
+            const planSelected = document.querySelector('input[name="plan"]:checked');
+            if (!planSelected) {
+                toastr.error('Debes seleccionar un plan');
+                return;
+            }
+            
+            // Recopilar datos
+            const userData = {
+                email: document.getElementById('email').value.trim(),
+                password: document.getElementById('password').value,
+                companyName: document.getElementById('companyName').value.trim(),
+                companyDescription: document.getElementById('companyDescription').value.trim(),
+                contactPhone: document.getElementById('contactPhone').value.trim(),
+                plan: planSelected.value
+            };
+            
+            console.log('Datos del usuario:', userData);
+            
+            // Verificar authService
+            if (!authService) {
+                console.error('AuthService no disponible');
+                toastr.error('Error de configuración');
+                return;
+            }
+            
+            // Deshabilitar botón
+            const registerButton = document.getElementById('registerButton');
+            registerButton.disabled = true;
+            registerButton.innerHTML = 'Creando cuenta... <i class="fas fa-spinner fa-spin ms-2"></i>';
+            
+            // Realizar registro
+            authService.register(userData)
+                .then(data => {
+                    console.log('Registro exitoso:', data);
+                    toastr.success('Cuenta creada correctamente', '¡Bienvenido!');
+                    
+                    setTimeout(() => {
+                        console.log('Redirigiendo a dashboard...');
+                        window.location.href = '/dashboard.html';
+                    }, 2000);
+                })
+                .catch(error => {
+                    console.error('Error en registro:', error);
+                    toastr.error(error.message || 'Error en el registro');
+                    
+                    // Rehabilitar botón
+                    registerButton.disabled = false;
+                    registerButton.innerHTML = 'Crear cuenta <i class="fas fa-user-plus ms-2"></i>';
+                });
         }
     </script>
 </body>
