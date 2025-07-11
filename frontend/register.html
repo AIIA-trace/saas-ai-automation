@@ -307,6 +307,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM cargado, configurando eventos...');
             
+            // Mostrar el primer paso al cargar
+            showStep(1);
+            
             // Botón continuar paso 1
             document.getElementById('continueStep1').addEventListener('click', function() {
                 console.log('Click en continuar paso 1');
@@ -358,10 +361,19 @@
                 
                 console.log('Datos del usuario:', userData);
                 
+                // Verificar que authService esté disponible
+                if (!authService) {
+                    console.error('authService no está disponible');
+                    toastr.error('Error de configuración', 'Error');
+                    return;
+                }
+                
                 // Deshabilitar botón
                 const registerButton = document.getElementById('registerButton');
                 registerButton.disabled = true;
                 registerButton.innerHTML = 'Creando cuenta... <i class="fas fa-spinner fa-spin ms-2"></i>';
+                
+                console.log('Iniciando registro con authService...');
                 
                 // Registrar usuario
                 authService.register(userData)
@@ -369,9 +381,11 @@
                         console.log('Registro exitoso:', data);
                         toastr.success('Cuenta creada correctamente', '¡Bienvenido!');
                         
+                        console.log('Redirigiendo a dashboard en 2 segundos...');
                         setTimeout(() => {
-                            window.location.href = 'dashboard.html';
-                        }, 1000);
+                            console.log('Ejecutando redirección...');
+                            window.location.href = '/dashboard.html';
+                        }, 2000);
                     })
                     .catch(error => {
                         console.error('Error en registro:', error);
