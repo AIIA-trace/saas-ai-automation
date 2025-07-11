@@ -294,8 +294,9 @@
             
             console.log('Datos del usuario:', userData);
             
+            // Usar la instancia global de authService
             if (!authService) {
-                console.error('AuthService no disponible');
+                console.error('AuthService no disponible globalmente');
                 toastr.error('Error de configuración');
                 return;
             }
@@ -329,10 +330,8 @@
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM cargado - Inicializando...');
-            
-            // Inicializar AuthService
-            authService = new AuthService();
-            console.log('AuthService inicializado');
+            console.log('API_CONFIG disponible:', typeof API_CONFIG !== 'undefined');
+            console.log('AuthService disponible:', typeof authService !== 'undefined');
             
             // Mostrar primer paso
             showStep(1);
