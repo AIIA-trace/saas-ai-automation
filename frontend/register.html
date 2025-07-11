@@ -5,23 +5,124 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro - IA Receptionist</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn {
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-2px);
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10px;
+            font-weight: bold;
+            color: #6c757d;
+        }
+        
+        .step.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .step.completed {
+            background: #28a745;
+            color: white;
+        }
+    </style>
 </head>
 <body class="bg-light">
-    <div class="container-fluid">
-        <div class="row min-vh-100">
-            <div class="col-lg-6 d-flex align-items-center justify-content-center">
-                <div class="w-100" style="max-width: 500px;">
-                    <div class="card shadow">
-                        <div class="card-header bg-primary text-white text-center">
-                            <h3 class="mb-0">Crea tu cuenta</h3>
-                            <p class="mb-0">Prueba gratuita por 14 días, sin tarjeta de crédito</p>
+    <!-- Header -->
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-robot me-2"></i>IA Receptionist
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="index.html">Inicio</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-light text-primary ms-3" href="login.html">Iniciar sesión</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Registration Form -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <!-- Step Indicator -->
+                    <div class="step-indicator">
+                        <div class="step active" id="stepIndicator1">1</div>
+                        <div class="step" id="stepIndicator2">2</div>
+                        <div class="step" id="stepIndicator3">3</div>
+                    </div>
+                    
+                    <div class="card shadow-lg border-0 rounded-lg">
+                        <div class="card-header bg-white text-center py-4">
+                            <h2 class="mb-0">Crea tu cuenta</h2>
+                            <p class="text-muted">Prueba gratuita por 14 días, sin tarjeta de crédito</p>
                         </div>
-                        <div class="card-body p-4">
+                        <div class="card-body p-4 p-md-5">
                             <form id="registrationForm">
-                                <!-- Step 1: Account Information -->
-                                <div id="step1">
+                                <div class="row">
+                                    <!-- Step 1: Account Information -->
+                                    <div class="col-12" id="step1">
                                     <h4 class="mb-4">1. Información de la cuenta</h4>
                                     
                                     <div class="mb-3">
@@ -47,8 +148,8 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Step 2: Company Information -->
-                                <div id="step2" style="display: none;">
+                                    <!-- Step 2: Company Information -->
+                                    <div class="col-12" id="step2" style="display: none;">
                                     <h4 class="mb-4">2. Información de la empresa</h4>
                                     
                                     <div class="mb-3">
@@ -76,8 +177,8 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Step 3: Plan Selection -->
-                                <div id="step3" style="display: none;">
+                                    <!-- Step 3: Plan Selection -->
+                                    <div class="col-12" id="step3" style="display: none;">
                                     <h4 class="mb-4">3. Selecciona tu plan</h4>
                                     
                                     <div class="row mb-4">
@@ -130,15 +231,8 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="col-lg-6 bg-primary d-none d-lg-flex align-items-center justify-content-center text-white">
-                <div class="text-center">
-                    <h2 class="mb-4">IA Receptionist</h2>
-                    <p class="lead">Automatización inteligente de comunicaciones para empresas de todos los tamaños.</p>
-                </div>
-            </div>
         </div>
-    </div>
+    </section>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

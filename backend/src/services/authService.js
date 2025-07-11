@@ -51,14 +51,17 @@ class AuthService {
   // Registrar un nuevo cliente
   async registerClient(clientData) {
     try {
+      logger.info(`Iniciando registro de cliente: ${JSON.stringify(clientData, null, 2)}`);
       const { email, password, companyName, companyDescription, contactPhone, plan } = clientData;
       
       // Verificar si ya existe un cliente con ese email
+      logger.info(`Verificando si existe cliente con email: ${email}`);
       const existingClient = await prisma.client.findUnique({
         where: { email }
       });
       
       if (existingClient) {
+        logger.warn(`Cliente ya existe con email: ${email}`);
         return { 
           success: false, 
           error: 'Ya existe un cliente con ese email' 
@@ -66,62 +69,48 @@ class AuthService {
       }
       
       // Generar hash de la contraseña
+      logger.info('Generando hash de contraseña...');
       const hashedPassword = await this.hashPassword(password);
       
       // Generar API key única
+      logger.info('Generando API key...');
       const apiKey = crypto.randomBytes(32).toString('hex');
       
-      // Crear configuraciones por defecto como objetos JSON
-      const defaultBotConfig = {
-        welcomeMessage: "Gracias por llamar. Esta llamada será grabada para mejorar nuestro servicio.",
-        confirmationMessage: "Gracias por la información. Alguien se pondrá en contacto con usted a la brevedad.",
-        voiceId: process.env.ELEVENLABS_VOICE_ID || 'default',
-        language: "es-ES",
-        dtmfOptions: []
-      };
-      
-      const defaultEmailConfig = {
-        forwardingRules: [],
-        defaultRecipients: [email],
-        autoReply: true,
-        autoReplyMessage: "Gracias por su email. Lo hemos recibido y será atendido a la brevedad."
-      };
-      
-      const defaultNotificationConfig = {
-        defaultRecipients: [email],
-        urgencyRules: {},
-        classificationRules: []
-      };
-      
       // Determinar el estado de suscripción basado en el plan seleccionado
-      const subscriptionStatus = plan ? plan : 'trial';
+      const subscriptionStatus = plan || 'trial';
+      logger.info(`Plan seleccionado: ${subscriptionStatus}`);
+      
+      // Crear datos del cliente de forma simplificada
+      const clientData = {
+        email,
+        password: hashedPassword,
+        companyName,
+        contactName: companyName,
+        phone: contactPhone || null,
+        apiKey,
+        role: 'client',
+        isActive: true,
+        subscriptionStatus: subscriptionStatus,
+        trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+      };
+      
+      logger.info(`Creando cliente con datos: ${JSON.stringify(clientData, null, 2)}`);
       
       // Crear el cliente en la base de datos
       const client = await prisma.client.create({
-        data: {
-          email,
-          password: hashedPassword,
-          companyName,
-          contactName: companyName,
-          phone: contactPhone,
-          apiKey,
-          role: 'client',
-          isActive: true,
-          subscriptionStatus: subscriptionStatus,
-          trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-          botConfig: defaultBotConfig,
-          emailConfig: defaultEmailConfig,
-          notificationConfig: defaultNotificationConfig,
-          companyInfo: companyDescription ? { description: companyDescription } : null
-        }
+        data: clientData
       });
       
+      logger.info(`Cliente creado exitosamente con ID: ${client.id}`);
+      
       // Generar token
+      logger.info('Generando token JWT...');
       const token = await this.generateToken(client);
       
       // No devolver datos sensibles
       const { password: _, apiKey: __, ...safeClient } = client;
       
+      logger.info('Registro completado exitosamente');
       return {
         success: true,
         client: safeClient,
@@ -129,9 +118,10 @@ class AuthService {
       };
     } catch (error) {
       logger.error(`Error registrando cliente: ${error.message}`);
+      logger.error(`Stack trace: ${error.stack}`);
       return {
         success: false,
-        error: 'Error al registrar el cliente'
+        error: `Error al registrar el cliente: ${error.message}`
       };
     }
   }
