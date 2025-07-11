@@ -2,8 +2,7 @@
  * Servicio de autenticación para gestionar todas las operaciones de auth con el backend
  */
 
-// Importar configuración de API
-const API_CONFIG = typeof require !== 'undefined' ? require('./api-config') : window.API_CONFIG;
+// API_CONFIG debe estar disponible globalmente
 
 class AuthService {
   /**
