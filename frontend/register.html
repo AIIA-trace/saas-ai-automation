@@ -311,10 +311,16 @@
                     console.log('Registro exitoso:', data);
                     toastr.success('¡Cuenta creada correctamente!');
                     
+                    // Verificar inmediatamente que el token se guardó
+                    console.log('Registro exitoso, verificando token...');
+                    console.log('Token guardado:', localStorage.getItem('auth_token'));
+                    console.log('Datos usuario:', localStorage.getItem('user_data'));
+                    
                     setTimeout(() => {
                         console.log('Redirigiendo a dashboard...');
-                        window.location.href = '/dashboard.html';
-                    }, 2000);
+                        console.log('Token antes de redirección:', !!localStorage.getItem('auth_token'));
+                        window.location.href = 'dashboard.html';
+                    }, 1000);
                 })
                 .catch(error => {
                     console.error('Error en registro:', error);

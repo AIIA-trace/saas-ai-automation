@@ -59,8 +59,14 @@ class RouteGuard {
      * Inicializa la protección de rutas
      */
     initialize() {
+        console.log('=== ROUTE PROTECTION DEBUG ===');
+        console.log('Ruta actual:', this.currentPath);
+        console.log('Requiere autenticación:', this.requiresAuth());
+        
         // Solo verificamos autenticación si la ruta requiere autenticación
         if (this.requiresAuth()) {
+            console.log('Verificando autenticación...');
+            
             // Si el servicio de autenticación no está disponible
             if (typeof authService === 'undefined') {
                 console.error('El servicio de autenticación no está disponible');
@@ -68,6 +74,10 @@ class RouteGuard {
                 this.redirectToLogin();
                 return;
             }
+            
+            console.log('AuthService disponible');
+            console.log('Token en localStorage:', !!localStorage.getItem('auth_token'));
+            console.log('isAuthenticated():', authService.isAuthenticated());
             
             // Verificar si el usuario está autenticado
             if (!authService.isAuthenticated()) {
