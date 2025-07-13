@@ -80,25 +80,25 @@ class AuthService {
       const subscriptionStatus = plan || 'trial';
       logger.info(`Plan seleccionado: ${subscriptionStatus}`);
       
-      // Crear datos del cliente de forma simplificada
-      const newClientData = {
-        email,
-        password: hashedPassword,
-        companyName,
-        contactName: companyName,
-        phone: contactPhone || null,
-        apiKey,
-        role: 'client',
-        isActive: true,
-        subscriptionStatus: subscriptionStatus,
-        trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-      };
+      // Fecha de fin de prueba (14 días desde ahora)
+      const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
       
-      logger.info(`Creando cliente con datos: ${JSON.stringify(newClientData, null, 2)}`);
-      
-      // Crear el cliente en la base de datos
+      // Crear el cliente en la base de datos con los campos correctos según el esquema
+      logger.info('Creando cliente en la base de datos...');
       const client = await prisma.client.create({
-        data: newClientData
+        data: {
+          email,
+          password: hashedPassword,
+          companyName,
+          contactName: companyName,
+          phone: contactPhone || null,
+          apiKey,
+          role: 'client',
+          isActive: true,
+          subscriptionStatus,
+          trialEndDate,
+          subscriptionExpiresAt: trialEndDate // Usar el mismo valor para ambos campos
+        }
       });
       
       logger.info(`Cliente creado exitosamente con ID: ${client.id}`);
