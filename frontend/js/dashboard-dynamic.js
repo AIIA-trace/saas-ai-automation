@@ -1118,6 +1118,25 @@ function adaptOtherContext(config) {
             return;
         }
         
+        // Añadir elementos al menú lateral
+        const sectorSpecificMenu = document.getElementById('sector-specific-menu');
+        if (sectorSpecificMenu) {
+            console.log('Añadiendo elementos al menú lateral para sector "otro"');
+            sectorSpecificMenu.innerHTML = `
+                <a href="#projects" class="list-group-item list-group-item-action bg-dark text-white" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" role="tab" aria-controls="projects" aria-selected="false">
+                    <i class="fas fa-project-diagram me-2"></i> Proyectos
+                </a>
+                <a href="#tasks" class="list-group-item list-group-item-action bg-dark text-white" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" role="tab" aria-controls="tasks" aria-selected="false">
+                    <i class="fas fa-tasks me-2"></i> Tareas
+                </a>
+                <a href="#clients" class="list-group-item list-group-item-action bg-dark text-white" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients" role="tab" aria-controls="clients" aria-selected="false">
+                    <i class="fas fa-users me-2"></i> Clientes
+                </a>
+            `;
+        } else {
+            console.error('No se encontró el contenedor del menú lateral específico del sector');
+        }
+        
         // Añadir botón de recarga y limpieza de caché en la parte superior
         const dashboardHeader = document.querySelector('.dashboard-header');
         if (dashboardHeader) {
