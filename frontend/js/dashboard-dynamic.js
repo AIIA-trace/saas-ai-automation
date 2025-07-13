@@ -568,6 +568,147 @@ function updateDashboardTitle(companyName) {
 }
 
 /**
+ * Actualiza la vista general de la empresa en el dashboard
+ * @param {Object} config - Configuración de la empresa
+ */
+function updateCompanyOverview(config) {
+    console.log('Actualizando vista general de la empresa:', config);
+    
+    // Actualizar nombre de la empresa en elementos específicos
+    const companyNameElements = document.querySelectorAll('[data-company-name]');
+    companyNameElements.forEach(element => {
+        element.textContent = config.companyName || 'Mi Empresa';
+    });
+    
+    // Actualizar información de contacto si existe
+    if (config.contactName) {
+        const contactElements = document.querySelectorAll('[data-contact-name]');
+        contactElements.forEach(element => {
+            element.textContent = config.contactName;
+        });
+    }
+    
+    // Actualizar teléfono si existe
+    if (config.phone) {
+        const phoneElements = document.querySelectorAll('[data-company-phone]');
+        phoneElements.forEach(element => {
+            element.textContent = config.phone;
+        });
+    }
+    
+    // Actualizar email si existe
+    if (config.email) {
+        const emailElements = document.querySelectorAll('[data-company-email]');
+        emailElements.forEach(element => {
+            element.textContent = config.email;
+        });
+    }
+    
+    // Actualizar sector empresarial
+    if (config.businessSector || config.sector) {
+        const sectorElements = document.querySelectorAll('[data-business-sector]');
+        sectorElements.forEach(element => {
+            element.textContent = config.businessSector || config.sector;
+        });
+    }
+}
+
+/**
+ * Adapta las opciones del menú según la configuración de la empresa
+ * @param {Object} config - Configuración de la empresa
+ */
+function adaptMenuOptions(config) {
+    console.log('Adaptando opciones del menú:', config);
+    
+    // Por ahora, las opciones del menú son estáticas
+    // En el futuro se pueden personalizar según el sector o configuración
+    
+    // Ejemplo: Ocultar/mostrar opciones según el plan del usuario
+    if (config.plan && config.plan === 'basic') {
+        // Ocultar funciones premium
+        const premiumElements = document.querySelectorAll('[data-premium="true"]');
+        premiumElements.forEach(element => {
+            element.style.display = 'none';
+        });
+    }
+    
+    // Ejemplo: Personalizar menú según permisos
+    if (config.role && config.role === 'admin') {
+        // Mostrar opciones de administrador
+        const adminElements = document.querySelectorAll('[data-admin="true"]');
+        adminElements.forEach(element => {
+            element.style.display = 'block';
+        });
+    }
+}
+
+/**
+ * Carga la configuración del bot
+ * @param {Object} botConfig - Configuración del bot
+ */
+function loadBotConfiguration(botConfig) {
+    console.log('Cargando configuración del bot:', botConfig);
+    
+    if (!botConfig) {
+        console.log('No hay configuración de bot disponible');
+        return;
+    }
+    
+    // Aquí se cargaría la configuración del bot
+    // Por ahora solo logueamos para MVP
+    try {
+        const parsedConfig = typeof botConfig === 'string' ? JSON.parse(botConfig) : botConfig;
+        console.log('Configuración del bot parseada:', parsedConfig);
+    } catch (error) {
+        console.warn('Error al parsear configuración del bot:', error);
+    }
+}
+
+/**
+ * Carga la configuración de email
+ * @param {Object} emailConfig - Configuración de email
+ */
+function loadEmailConfiguration(emailConfig) {
+    console.log('Cargando configuración de email:', emailConfig);
+    
+    if (!emailConfig) {
+        console.log('No hay configuración de email disponible');
+        return;
+    }
+    
+    // Aquí se cargaría la configuración de email
+    // Por ahora solo logueamos para MVP
+    try {
+        const parsedConfig = typeof emailConfig === 'string' ? JSON.parse(emailConfig) : emailConfig;
+        console.log('Configuración de email parseada:', parsedConfig);
+    } catch (error) {
+        console.warn('Error al parsear configuración de email:', error);
+    }
+}
+
+/**
+ * Carga la configuración de notificaciones
+ * @param {Object} notificationConfig - Configuración de notificaciones
+ */
+function loadNotificationConfiguration(notificationConfig) {
+    console.log('Cargando configuración de notificaciones:', notificationConfig);
+    
+    if (!notificationConfig) {
+        console.log('No hay configuración de notificaciones disponible');
+        return;
+    }
+    
+    // Aquí se cargaría la configuración de notificaciones
+    // Por ahora solo logueamos para MVP
+    try {
+        const parsedConfig = typeof notificationConfig === 'string' ? JSON.parse(notificationConfig) : notificationConfig;
+        console.log('Configuración de notificaciones parseada:', parsedConfig);
+    } catch (error) {
+        console.warn('Error al parsear configuración de notificaciones:', error);
+    }
+}
+
+/**
  * Adapta el dashboard según la configuración
  * @param {Object} config - Configuración de la empresa
  */
