@@ -15,14 +15,14 @@
             <div class="sidebar-heading py-4 text-center">
                 <i class="fas fa-robot me-2"></i>IA Receptionist
             </div>
-            <div class="list-group list-group-flush">
-                <a href="#overview" class="list-group-item list-group-item-action bg-dark text-white active" data-bs-toggle="tab">
+            <div class="list-group list-group-flush" role="tablist" aria-orientation="vertical">
+                <a href="#overview" class="list-group-item list-group-item-action bg-dark text-white active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" role="tab" aria-controls="overview" aria-selected="true">
                     <i class="fas fa-tachometer-alt me-2"></i> Panel General
                 </a>
-                <a href="#bot-config" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                <a href="#bot-config" class="list-group-item list-group-item-action bg-dark text-white" id="bot-config-tab" data-bs-toggle="tab" data-bs-target="#bot-config" role="tab" aria-controls="bot-config" aria-selected="false">
                     <i class="fas fa-phone-alt me-2"></i> Bot de Llamadas
                 </a>
-                <a href="#email-config" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                <a href="#email-config" class="list-group-item list-group-item-action bg-dark text-white" id="email-config-tab" data-bs-toggle="tab" data-bs-target="#email-config" role="tab" aria-controls="email-config" aria-selected="false">
                     <i class="fas fa-envelope me-2"></i> Gestión de Emails
                 </a>
                 <!-- Dynamic Sector-Specific Sections -->
@@ -30,16 +30,16 @@
                     <!-- Will be populated dynamically based on company configuration -->
                 </div>
                 
-                <a href="#notifications" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                <a href="#notifications" class="list-group-item list-group-item-action bg-dark text-white" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" role="tab" aria-controls="notifications" aria-selected="false">
                     <i class="fas fa-bell me-2"></i> Notificaciones
                 </a>
-                <a href="#logs" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                <a href="#logs" class="list-group-item list-group-item-action bg-dark text-white" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" role="tab" aria-controls="logs" aria-selected="false">
                     <i class="fas fa-list me-2"></i> Registros
                 </a>
-                <a href="#account" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                <a href="#account" class="list-group-item list-group-item-action bg-dark text-white" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" role="tab" aria-controls="account" aria-selected="false">
                     <i class="fas fa-user-cog me-2"></i> Cuenta
                 </a>
-                <a href="#billing" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
+                <a href="#billing" class="list-group-item list-group-item-action bg-dark text-white" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" role="tab" aria-controls="billing" aria-selected="false">
                     <i class="fas fa-credit-card me-2"></i> Facturación
                 </a>
             </div>
@@ -72,10 +72,34 @@
 
             <!-- Page content -->
             <div class="container-fluid py-4">
-                <div class="tab-content">
+                <div class="tab-content" id="dashboardTabContent">
                     <!-- Tab content will be added in separate parts -->
-                    <div class="tab-pane fade show active" id="overview">
+                    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
                         <!-- Dynamic overview content will be loaded by overview.js -->
+                    </div>
+                    
+                    <div class="tab-pane fade" id="bot-config" role="tabpanel" aria-labelledby="bot-config-tab">
+                        <!-- Bot config content -->
+                    </div>
+                    
+                    <div class="tab-pane fade" id="email-config" role="tabpanel" aria-labelledby="email-config-tab">
+                        <!-- Email config content -->
+                    </div>
+                    
+                    <div class="tab-pane fade" id="notifications" role="tabpanel" aria-labelledby="notifications-tab">
+                        <!-- Notifications content -->
+                    </div>
+                    
+                    <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+                        <!-- Logs content -->
+                    </div>
+                    
+                    <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
+                        <!-- Account content -->
+                    </div>
+                    
+                    <div class="tab-pane fade" id="billing" role="tabpanel" aria-labelledby="billing-tab">
+                        <!-- Billing content -->
                     </div>
                     
                     <!-- Dynamic Sector-Specific Tabs -->
@@ -237,6 +261,9 @@
     <script src="js/script-config.js"></script>
     <script src="js/transfer-config.js"></script>
     <script src="js/email-config.js"></script>
+    
+    <!-- Navegación del menú lateral -->
+    <script src="js/menu-navigation.js"></script>
     
     <!-- Dynamic Dashboard Initialization -->
     <script src="js/dashboard-dynamic.js"></script>

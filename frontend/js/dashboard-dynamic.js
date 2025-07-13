@@ -1304,49 +1304,70 @@ function loadOtherData(config) {
         }
         
         // Función para cargar datos con manejo de errores y reintentos
-        async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos de timeout
-                
-                const response = await fetch(url, {
-                    ...options,
-                    signal: controller.signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        // Token inválido, redirigir al login
-                        localStorage.removeItem('auth_token');
-                        toastr.error('Tu sesión ha expirado', 'Error');
-                        setTimeout(() => {
-                            window.location.href = 'login.html';
-                        }, 2000);
-                        throw new Error('Sesión expirada');
+        async function fetchWithRetry(url, options, retries = 3, delay = 1000, timeout = 10000) {
+            let lastError;
+            
+            // Añadir headers para evitar caché
+            if (!options.headers) {
+                options.headers = {};
+            }
+            options.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+            options.headers['Pragma'] = 'no-cache';
+            options.headers['Expires'] = '0';
+            
+            for (let i = 0; i < retries; i++) {
+                try {
+                    // Crear un controlador de aborto para el timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), timeout);
+                    
+                    // Añadir la señal al controlador a las opciones
+                    const fetchOptions = {
+                        ...options,
+                        signal: controller.signal
+                    };
+                    
+                    console.log(`Intento ${i + 1} de fetch a: ${url}`);
+                    const response = await fetch(url, fetchOptions);
+                    
+                    // Limpiar el timeout
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            // Token inválido, redirigir al login
+                            localStorage.removeItem('auth_token');
+                            toastr.error('Tu sesión ha expirado', 'Error');
+                            setTimeout(() => {
+                                window.location.href = 'login.html';
+                            }, 2000);
+                            throw new Error('Sesión expirada');
+                        }
+                        
+                        throw new Error(`Error ${response.status}: ${response.statusText}`);
                     }
                     
-                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    return response;
+                } catch (error) {
+                    console.warn(`Intento ${i + 1} fallido: ${error.message}`);
+                    lastError = error;
+                    
+                    // Si es un error de timeout (abort), mostrar mensaje específico
+                    if (error.name === 'AbortError') {
+                        console.error('Timeout al cargar datos');
+                        toastr.warning('La conexión está tardando demasiado. Reintentando...', 'Timeout');
+                    } else {
+                        console.error('Error al cargar datos:', error);
+                    }
+                    
+                    // Esperar antes del siguiente intento
+                    if (i < retries - 1) { // Solo esperar si vamos a hacer otro intento
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
                 }
-                
-                return response;
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    console.error('Timeout al cargar datos');
-                    toastr.warning('La conexión está tardando demasiado. Reintentando...', 'Timeout');
-                } else {
-                    console.error('Error al cargar datos:', error);
-                }
-                
-                if (retries > 0) {
-                    console.log(`Reintentando en ${delay}ms. Intentos restantes: ${retries}`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    return fetchWithRetry(url, options, retries - 1, delay * 2);
-                }
-                
-                throw error;
             }
+            
+            throw lastError;
         }
         
         // Cargar proyectos
@@ -1359,18 +1380,36 @@ function loadOtherData(config) {
                 </div>
             `;
             
-            // Intentar cargar proyectos desde la API
-            fetchWithRetry(
-                API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.PROJECTS, clientId)),
-                {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+            // Intentar cargar proyectos desde la API con un timeout de 10 segundos
+            const projectsPromise = new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Timeout al cargar proyectos'));
+                }, 10000);
+                
+                fetchWithRetry(
+                    API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.PROJECTS, clientId)),
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache, no-store'
+                        }
                     }
-                }
-            )
-            .then(response => response.json())
+                )
+                .then(response => {
+                    clearTimeout(timeoutId);
+                    if (!response.ok) {
+                        throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => resolve(data))
+                .catch(error => reject(error));
+            });
+            
+            // Usar Promise.race para manejar timeout
+            projectsPromise
             .then(data => {
                 console.log('Proyectos cargados:', data);
                 
@@ -1392,13 +1431,14 @@ function loadOtherData(config) {
                     
                     projectsHTML += '</div>';
                     projectsContainer.innerHTML = projectsHTML;
+                    toastr.success('Proyectos cargados correctamente', 'Éxito');
                 } else {
                     // Mostrar mensaje de no hay proyectos
                     projectsContainer.innerHTML = `
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>No hay proyectos</strong><br>
-                            No se encontraron proyectos activos. Crea un nuevo proyecto para comenzar.
+                            No tienes proyectos activos actualmente.
                         </div>
                     `;
                 }
