@@ -1493,6 +1493,13 @@ function adaptOtherContext(config) {
                 </div>
             `;
             
+            // Mostrar el contenedor de navegación de pestañas
+            const navTabsContainer = document.getElementById('sector-nav-tabs-container');
+            if (navTabsContainer) {
+                navTabsContainer.classList.remove('d-none');
+                console.log('Contenedor de navegación de pestañas mostrado');
+            }
+            
             // Activar la primera pestaña
             const navTabs = document.getElementById('sector-nav-tabs');
             if (navTabs) {
