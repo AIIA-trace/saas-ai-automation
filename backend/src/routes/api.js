@@ -58,10 +58,7 @@ router.get('/config', authenticate, async (req, res) => {
     const clientConfig = await prisma.client.findUnique({
       where: { id: req.client.id },
       include: {
-        emailConfig: true,
-        botConfig: true,
         twilioNumbers: true,
-        notificationConfig: true,
       }
     });
     

@@ -111,10 +111,16 @@ router.get('/me', authenticate, async (req, res) => {
     const client = await prisma.client.findUnique({
       where: { id: req.client.id },
       include: {
-        botConfig: true,
-        emailConfig: true,
-        notificationConfig: true,
         twilioNumbers: true,
+        notifications: true,
+        emailLogs: {
+          take: 10,
+          orderBy: { createdAt: 'desc' }
+        },
+        callLogs: {
+          take: 10,
+          orderBy: { createdAt: 'desc' }
+        }
       }
     });
     
