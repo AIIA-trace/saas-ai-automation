@@ -1282,12 +1282,46 @@ function loadOtherData(config) {
     console.log('Configuración recibida:', config);
     
     try {
-        // Verificar que tenemos el ID del cliente
-        const clientId = config.clientId || config.id;
+        // Obtener ID del cliente de diferentes fuentes posibles
+        let clientId = config.clientId || config.id;
+        
+        // Si no hay ID en la configuración, intentar obtenerlo de localStorage
         if (!clientId) {
-            console.error('No se encontró ID de cliente en la configuración');
-            toastr.error('Error al cargar datos: ID de cliente no encontrado', 'Error');
-            return;
+            console.warn('No se encontró ID de cliente en la configuración directa, buscando en otras fuentes...');
+            
+            // Intentar obtener de user_data en localStorage
+            try {
+                const userData = localStorage.getItem('user_data');
+                if (userData) {
+                    const parsedUserData = JSON.parse(userData);
+                    clientId = parsedUserData.id || parsedUserData.clientId || parsedUserData.userId;
+                    console.log('ID de cliente obtenido de user_data:', clientId);
+                }
+            } catch (e) {
+                console.error('Error al parsear user_data:', e);
+            }
+            
+            // Intentar obtener de companyConfig en localStorage
+            if (!clientId) {
+                try {
+                    const companyConfig = localStorage.getItem('companyConfig');
+                    if (companyConfig) {
+                        const parsedConfig = JSON.parse(companyConfig);
+                        clientId = parsedConfig.id || parsedConfig.clientId || parsedConfig.userId;
+                        console.log('ID de cliente obtenido de companyConfig:', clientId);
+                    }
+                } catch (e) {
+                    console.error('Error al parsear companyConfig:', e);
+                }
+            }
+            
+            // Si aún no hay ID, usar un valor por defecto para desarrollo
+            if (!clientId) {
+                // Usar un ID de cliente por defecto para desarrollo
+                clientId = '1'; // ID por defecto para pruebas
+                console.warn('Usando ID de cliente por defecto para desarrollo:', clientId);
+                toastr.warning('Usando ID de cliente por defecto para desarrollo', 'Advertencia');
+            }
         }
         
         console.log('ID de cliente:', clientId);
