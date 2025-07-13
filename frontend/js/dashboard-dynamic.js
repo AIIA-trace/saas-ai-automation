@@ -545,6 +545,29 @@ function redirectToSetup() {
 }
 
 /**
+ * Actualiza el título del dashboard con el nombre de la empresa
+ * @param {string} companyName - Nombre de la empresa
+ */
+function updateDashboardTitle(companyName) {
+    console.log('Actualizando título del dashboard:', companyName);
+    
+    // Actualizar el título en el header
+    const titleElement = document.querySelector('.navbar-brand');
+    if (titleElement) {
+        titleElement.textContent = companyName;
+    }
+    
+    // Actualizar el título de la página
+    document.title = `${companyName} - Dashboard`;
+    
+    // Actualizar cualquier otro elemento que muestre el nombre de la empresa
+    const companyNameElements = document.querySelectorAll('.company-name');
+    companyNameElements.forEach(element => {
+        element.textContent = companyName;
+    });
+}
+
+/**
  * Adapta el dashboard según la configuración
  * @param {Object} config - Configuración de la empresa
  */
