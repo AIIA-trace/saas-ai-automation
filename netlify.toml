@@ -4,7 +4,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://aiia-saas-backend.onrender.com/api/:splat"
+  to = "https://saas-ai-automation.onrender.com/api/:splat"
   status = 200
   force = true
 

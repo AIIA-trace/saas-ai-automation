@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración Empresarial - IA Receptionist</title>
+    <title>Company Setup - IA Receptionist</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -23,16 +23,34 @@
             </a>
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text">
-                    <i class="fas fa-cog me-1"></i>Configuración Empresarial
+                    <i class="fas fa-cog me-1"></i>Company Setup
                 </span>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="container-fluid py-4">
-        <div id="company-setup-container">
-            <!-- Content will be loaded by JavaScript -->
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h4 class="mb-0"><i class="fas fa-building me-2"></i>Company Setup</h4>
+                        <p class="text-muted mb-0">Complete your company information to customize your AI assistant</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- El contenido del wizard será generado dinámicamente por JavaScript -->
+                        <div id="setup-wizard">
+                            <!-- Aquí se renderizará el contenido del wizard -->
+                        </div>
+                        
+                        <form id="companySetupForm" style="display:none;">
+                            <!-- Este formulario se usa para enviar los datos al final -->
+                            <input type="hidden" name="formSubmitted" value="true">
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -5,6 +5,78 @@
 // API_CONFIG debe estar disponible globalmente
 
 class AuthService {
+  constructor() {
+    // Máximo número de reintentos para peticiones fallidas
+    this.maxRetries = 3;
+    // Tiempo base para backoff exponencial (ms)
+    this.baseRetryDelay = 1000;
+    // Flag para indicar si el backend está despertando
+    this.isWakingUp = false;
+  }
+  
+  /**
+   * Realiza una petición con reintentos automáticos
+   * @param {string} url - URL de la petición
+   * @param {Object} options - Opciones de fetch
+   * @returns {Promise<Response>} Respuesta de la petición
+   */
+  async fetchWithRetry(url, options, retryCount = 0) {
+    try {
+      // Si es el primer intento, mostrar mensaje de carga
+      if (retryCount === 0) {
+        console.log(`Enviando petición a ${url}...`);
+      } else {
+        console.log(`Reintentando petición (${retryCount}/${this.maxRetries})...`);
+        // Si estamos reintentando, es posible que el backend esté despertando
+        if (!this.isWakingUp) {
+          this.isWakingUp = true;
+          toastr.info('Conectando con el servidor... Esto puede tardar unos segundos si el servidor estaba inactivo.', 'Espere por favor', {
+            timeOut: 10000,
+            extendedTimeOut: 5000,
+            progressBar: true
+          });
+        }
+      }
+      
+      // Añadir timeout a la petición
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos de timeout
+      
+      const enhancedOptions = {
+        ...options,
+        signal: controller.signal
+      };
+      
+      const response = await fetch(url, enhancedOptions);
+      clearTimeout(timeoutId);
+      
+      // Si el backend estaba despertando y ahora responde, resetear el flag
+      if (this.isWakingUp && response.ok) {
+        this.isWakingUp = false;
+        toastr.success('Conexión establecida con el servidor', 'Conectado');
+      }
+      
+      return response;
+    } catch (error) {
+      // Si es un error de timeout o conexión y no hemos superado los reintentos
+      if ((error.name === 'AbortError' || error.name === 'TypeError') && retryCount < this.maxRetries) {
+        // Calcular tiempo de espera con backoff exponencial
+        const delay = this.baseRetryDelay * Math.pow(2, retryCount);
+        console.log(`Error de conexión. Reintentando en ${delay}ms...`);
+        
+        // Esperar antes de reintentar
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Reintentar la petición
+        return this.fetchWithRetry(url, options, retryCount + 1);
+      }
+      
+      // Si hemos agotado los reintentos o es otro tipo de error
+      console.error('Error en la petición después de reintentos:', error);
+      throw error;
+    }
+  }
+  
   /**
    * Registra un nuevo usuario en el sistema
    * @param {Object} userData - Datos del usuario a registrar
@@ -12,7 +84,7 @@ class AuthService {
    */
   async register(userData) {
     try {
-      const response = await fetch(API_CONFIG.getFullUrl(API_CONFIG.AUTH.REGISTER), {
+      const response = await this.fetchWithRetry(API_CONFIG.getFullUrl(API_CONFIG.AUTH.REGISTER), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -47,7 +119,18 @@ class AuthService {
    */
   async login(email, password) {
     try {
-      const response = await fetch(API_CONFIG.getFullUrl(API_CONFIG.AUTH.LOGIN), {
+      console.log('Iniciando proceso de login...');
+      
+      // Verificar que API_CONFIG está disponible
+      if (!window.API_CONFIG) {
+        console.error('API_CONFIG no está disponible');
+        toastr.error('Error de configuración: API_CONFIG no disponible', 'Error');
+        throw new Error('API_CONFIG no está disponible');
+      }
+      
+      console.log('URL de login:', API_CONFIG.getFullUrl(API_CONFIG.AUTH.LOGIN));
+      
+      const response = await this.fetchWithRetry(API_CONFIG.getFullUrl(API_CONFIG.AUTH.LOGIN), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -55,21 +138,41 @@ class AuthService {
         body: JSON.stringify({ email, password })
       });
       
-      const data = await response.json();
+      console.log('Respuesta recibida. Status:', response.status);
+      
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Error al parsear respuesta JSON:', parseError);
+        console.log('Respuesta recibida (texto):', responseText);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
       
       if (!response.ok) {
+        console.error('Error en respuesta:', data);
         throw new Error(data.error || 'Error en el inicio de sesión');
       }
+      
+      console.log('Login exitoso. Guardando token...');
       
       // Guardar token y datos de usuario en localStorage
       if (data.token) {
         localStorage.setItem('auth_token', data.token);
-        localStorage.setItem('user_data', JSON.stringify(data.client));
+        if (data.client) {
+          localStorage.setItem('user_data', JSON.stringify(data.client));
+        }
+        console.log('Token guardado correctamente');
+      } else {
+        console.warn('No se recibió token en la respuesta');
       }
       
       return data;
     } catch (error) {
       console.error('Error en login:', error);
+      toastr.error(error.message || 'Error al conectar con el servidor', 'Error de inicio de sesión');
       throw error;
     }
   }
@@ -81,7 +184,7 @@ class AuthService {
    */
   async requestPasswordReset(email) {
     try {
-      const response = await fetch(API_CONFIG.getFullUrl(API_CONFIG.AUTH.FORGOT_PASSWORD), {
+      const response = await this.fetchWithRetry(API_CONFIG.getFullUrl(API_CONFIG.AUTH.FORGOT_PASSWORD), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -89,7 +192,15 @@ class AuthService {
         body: JSON.stringify({ email })
       });
       
-      const data = await response.json();
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Error al parsear respuesta JSON:', parseError);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
       
       if (!response.ok) {
         throw new Error(data.error || 'Error en la solicitud de recuperación');
@@ -97,7 +208,58 @@ class AuthService {
       
       return data;
     } catch (error) {
-      console.error('Error solicitando reset de contraseña:', error);
+      console.error('Error en recuperación de contraseña:', error);
+      toastr.error(error.message || 'Error al conectar con el servidor', 'Error');
+      throw error;
+    }
+  }
+  
+  /**
+   * Obtiene el perfil del usuario actual
+   * @returns {Promise<Object>} Datos del perfil
+   */
+  async getProfile() {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
+      
+      const response = await this.fetchWithRetry(API_CONFIG.getFullUrl(API_CONFIG.AUTH.ME), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Error al parsear respuesta JSON:', parseError);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
+      
+      if (!response.ok) {
+        // Si el token es inválido, limpiar localStorage
+        if (response.status === 401) {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
+        }
+        throw new Error(data.error || 'Error al obtener el perfil');
+      }
+      
+      // Actualizar datos de usuario en localStorage
+      if (data.client) {
+        localStorage.setItem('user_data', JSON.stringify(data.client));
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error al obtener perfil:', error);
       throw error;
     }
   }

@@ -1,6 +1,6 @@
 /**
  * Professional Company Setup Module
- * Handles dynamic company configuration based on business sector
+ * Handles company configuration and onboarding
  */
 
 class CompanySetup {
@@ -8,65 +8,90 @@ class CompanySetup {
         this.currentStep = 1;
         this.totalSteps = 5;
         this.formData = {};
-        this.init();
-    }
-
-    init() {
-        this.renderSetupWizard();
-        this.loadStep(1);
     }
 
     /**
-     * Render the main setup wizard structure
+     * Initialize the setup process
+     */
+    init() {
+        console.log('Initializing company setup...');
+        
+        // Check if user is authenticated
+        if (!authService || !authService.isAuthenticated()) {
+            console.error('Authentication service not available or user not authenticated');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        // Render initial setup
+        this.renderSetupWizard();
+        
+        // Setup event listeners
+        this.setupEventListeners();
+        
+        // Load any saved form data
+        this.loadFormData();
+        
+        console.log('Company setup initialized successfully');
+    }
+
+    /**
+     * Setup all event listeners for the form
+     */
+    setupEventListeners() {
+        console.log('Setting up event listeners');
+        
+        // Navigation buttons
+        document.getElementById('prev-btn')?.addEventListener('click', () => this.previousStep());
+        document.getElementById('next-btn')?.addEventListener('click', () => this.nextStep());
+        
+        // Form submission
+        document.getElementById('companySetupForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.finishSetup();
+        });
+    }
+
+    /**
+     * Render the setup wizard with progress steps
      */
     renderSetupWizard() {
-        const container = document.getElementById('company-setup-container');
-        container.innerHTML = `
-            <div class="row">
-                <!-- Progress Sidebar -->
-                <div class="col-lg-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0">
-                                <i class="fas fa-list-check me-2"></i>Progreso de Configuración
-                            </h6>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="setup-progress">
-                                ${this.generateProgressSteps()}
-                            </div>
-                        </div>
+        const wizardContainer = document.getElementById('setup-wizard');
+        if (wizardContainer) {
+            wizardContainer.innerHTML = `
+                <div class="setup-header mb-4">
+                    <h3>Configuración de la Empresa</h3>
+                    <p class="text-muted">Completa los siguientes pasos para configurar tu sistema</p>
+                </div>
+                
+                <div class="progress-steps mb-4">
+                    ${this.generateProgressSteps()}
+                </div>
+                
+                <div class="step-counter mb-2">
+                    <small class="text-muted" id="step-counter">Paso ${this.currentStep} de ${this.totalSteps}</small>
+                </div>
+                
+                <div class="step-content card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4" id="step-title"></h4>
+                        <div id="step-content"></div>
                     </div>
                 </div>
-
-                <!-- Main Content -->
-                <div class="col-lg-9">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0" id="step-title">Configuración Empresarial</h5>
-                                <span class="badge bg-primary" id="step-counter">Paso 1 de ${this.totalSteps}</span>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div id="step-content">
-                                <!-- Step content will be loaded here -->
-                            </div>
-                        </div>
-                        <div class="card-footer bg-white">
-                            <div class="d-flex justify-content-between">
-                                <button class="btn btn-outline-secondary" id="prev-btn" onclick="companySetup.previousStep()" disabled>
-                                    <i class="fas fa-arrow-left me-2"></i>Anterior
-                                </button>
-                                <button class="btn btn-primary" id="next-btn" onclick="companySetup.nextStep()">
-                                    Siguiente<i class="fas fa-arrow-right ms-2"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                
+                <div class="step-actions mt-4">
+                    <button id="prev-btn" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Anterior
+                    </button>
+                    <button id="next-btn" class="btn btn-primary">
+                        Siguiente<i class="fas fa-arrow-right ms-2"></i>
+                    </button>
                 </div>
-            </div>
-        `;
+            `;
+            
+            // Load current step content
+            this.loadStep(this.currentStep);
+        }
     }
 
     /**
@@ -531,17 +556,31 @@ class CompanySetup {
     }
 
     /**
-     * Update progress and buttons
+     * Update progress indicators
      */
     updateProgress() {
-        this.renderSetupWizard();
+        // Update progress steps
+        const progressStepsContainer = document.querySelector('.progress-steps');
+        if (progressStepsContainer) {
+            progressStepsContainer.innerHTML = this.generateProgressSteps();
+        }
+        
+        // Update step counter
+        const stepCounter = document.getElementById('step-counter');
+        if (stepCounter) {
+            stepCounter.textContent = `Paso ${this.currentStep} de ${this.totalSteps}`;
+        }
     }
 
     updateButtons() {
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
-
-        prevBtn.disabled = this.currentStep === 1;
+        
+        if (this.currentStep === 1) {
+            prevBtn.style.display = 'none';
+        } else {
+            prevBtn.style.display = 'inline-block';
+        }
         
         if (this.currentStep === this.totalSteps) {
             nextBtn.style.display = 'none';
@@ -550,53 +589,7 @@ class CompanySetup {
             nextBtn.innerHTML = 'Siguiente<i class="fas fa-arrow-right ms-2"></i>';
         }
     }
-
-    /**
-     * Validation and data handling
-     */
-    validateCurrentStep() {
-        // Basic validation - can be expanded
-        const requiredFields = document.querySelectorAll('[required]');
-        let isValid = true;
-
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                field.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                field.classList.remove('is-invalid');
-            }
-        });
-
-        return isValid;
-    }
-
-    saveCurrentStep() {
-        // Save current step data to formData object
-        const inputs = document.querySelectorAll('input, select, textarea');
-        inputs.forEach(input => {
-            if (input.type === 'checkbox') {
-                this.formData[input.id] = input.checked;
-            } else {
-                this.formData[input.id] = input.value;
-            }
-        });
-    }
-
-    loadFormData() {
-        // Load saved data into form fields
-        Object.keys(this.formData).forEach(key => {
-            const element = document.getElementById(key);
-            if (element) {
-                if (element.type === 'checkbox') {
-                    element.checked = this.formData[key];
-                } else {
-                    element.value = this.formData[key];
-                }
-            }
-        });
-    }
-
+    
     /**
      * FAQ management
      */
@@ -623,26 +616,288 @@ class CompanySetup {
     }
 
     /**
+     * Validation and data handling
+     */
+    validateCurrentStep() {
+        let isValid = true;
+        
+        // Step-specific validation
+        switch(this.currentStep) {
+            case 1: // Basic Information
+                isValid = this.validateBasicInfoStep();
+                break;
+            case 2: // Sector
+                isValid = this.validateSectorStep();
+                break;
+            case 3: // AI Configuration
+                isValid = this.validateAIConfigStep();
+                break;
+            case 4: // Integrations
+                isValid = this.validateIntegrationsStep();
+                break;
+            case 5: // Final
+                isValid = this.validateFinalStep();
+                break;
+        }
+        
+        return isValid;
+    }
+    
+    /**
+     * Validate basic info step
+     */
+    validateBasicInfoStep() {
+        let isValid = true;
+        
+        // Validate company name
+        const companyName = document.getElementById('companyName');
+        if (companyName && !companyName.value.trim()) {
+            companyName.classList.add('is-invalid');
+            isValid = false;
+            toastr.error('Por favor ingresa el nombre de la empresa');
+        } else if (companyName) {
+            companyName.classList.remove('is-invalid');
+        }
+        
+        // Validate industry
+        const industry = document.getElementById('industry');
+        if (industry && !industry.value) {
+            industry.classList.add('is-invalid');
+            isValid = false;
+            toastr.error('Por favor selecciona una industria');
+        } else if (industry) {
+            industry.classList.remove('is-invalid');
+        }
+        
+        return isValid;
+    }
+    
+    /**
+     * Validate sector step
+     */
+    validateSectorStep() {
+        // Basic validation for required fields
+        const requiredFields = document.querySelectorAll('#step-content [required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+                toastr.error(`Por favor completa el campo ${field.name || 'requerido'}`);
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        return isValid;
+    }
+    
+    /**
+     * Validate AI config step
+     */
+    validateAIConfigStep() {
+        let isValid = true;
+        
+        // Validate bot name
+        const botName = document.getElementById('botName');
+        if (botName && !botName.value.trim()) {
+            botName.classList.add('is-invalid');
+            isValid = false;
+            toastr.error('Por favor ingresa un nombre para tu asistente AI');
+        } else if (botName) {
+            botName.classList.remove('is-invalid');
+        }
+        
+        return isValid;
+    }
+    
+    /**
+     * Validate integrations step
+     */
+    validateIntegrationsStep() {
+        // For integrations, we'll just do basic required field validation
+        const requiredFields = document.querySelectorAll('#step-content [required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+                toastr.error(`Por favor completa el campo ${field.name || 'requerido'}`);
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        return isValid;
+    }
+    
+    /**
+     * Validate final step
+     */
+    validateFinalStep() {
+        // For the final step, we'll check if phone setup is selected
+        const phoneSetup = document.getElementById('phoneSetup');
+        let isValid = true;
+        
+        if (phoneSetup && !phoneSetup.value) {
+            phoneSetup.classList.add('is-invalid');
+            isValid = false;
+            toastr.error('Por favor selecciona una opción para la configuración del teléfono');
+        } else if (phoneSetup) {
+            phoneSetup.classList.remove('is-invalid');
+        }
+        
+        return isValid;
+    }
+    
+    /**
+     * Save current step data
+     */
+    saveCurrentStep() {
+        // Save current step data to formData object
+        const inputs = document.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            if (input.type === 'checkbox') {
+                this.formData[input.id] = input.checked;
+            } else {
+                this.formData[input.id] = input.value;
+            }
+        });
+        
+        // Save to localStorage for persistence between sessions
+        try {
+            localStorage.setItem('companySetupData', JSON.stringify(this.formData));
+            console.log('Form data saved to localStorage:', this.formData);
+        } catch (error) {
+            console.error('Error saving form data to localStorage:', error);
+        }
+    }
+    
+    /**
+     * Load saved form data
+     */
+    loadFormData() {
+        // Try to load data from localStorage first
+        try {
+            const savedData = localStorage.getItem('companySetupData');
+            if (savedData) {
+                this.formData = {...this.formData, ...JSON.parse(savedData)};
+                console.log('Form data loaded from localStorage:', this.formData);
+            }
+        } catch (error) {
+            console.error('Error loading form data from localStorage:', error);
+        }
+        
+        // Load saved data into form fields
+        Object.keys(this.formData).forEach(key => {
+            const element = document.getElementById(key);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = this.formData[key];
+                } else {
+                    element.value = this.formData[key];
+                }
+            }
+        });
+    }
+
+    /**
      * Finish setup
      */
     async finishSetup() {
         this.saveCurrentStep();
         
         try {
-            // Save configuration to localStorage and/or API
+            // Save configuration to localStorage
             localStorage.setItem('companyConfig', JSON.stringify(this.formData));
+            
+            // Verificar que authService y API_CONFIG estén disponibles
+            if (!window.authService) {
+                console.error('AuthService no está disponible');
+                this.showErrorMessage('Error: Servicio de autenticación no disponible');
+                return;
+            }
+            
+            if (!window.API_CONFIG) {
+                console.error('API_CONFIG no está disponible');
+                this.showErrorMessage('Error: Configuración de API no disponible');
+                return;
+            }
+            
+            console.log('Enviando configuración al servidor...');
+            
+            // Enviar datos al backend a través de la API
+            const response = await fetch(API_CONFIG.getFullUrl('/api/config'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                },
+                body: JSON.stringify(this.formData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al guardar la configuración');
+            }
+            
+            const data = await response.json();
+            console.log('Configuración guardada exitosamente:', data);
+            
+            // Verificar que los datos se han guardado correctamente
+            await this.verifyConfigSaved();
             
             // Show success message
             this.showSuccessMessage();
             
             // Redirect to dashboard after 2 seconds
+            console.log('Redirigiendo al dashboard en 2 segundos...');
             setTimeout(() => {
                 window.location.href = 'dashboard.html';
             }, 2000);
             
         } catch (error) {
             console.error('Error saving configuration:', error);
-            this.showErrorMessage('Error al guardar la configuración. Inténtalo de nuevo.');
+            this.showErrorMessage(`Error al guardar la configuración: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Verify that configuration was saved to database
+     */
+    async verifyConfigSaved() {
+        try {
+            console.log('Verificando que la configuración se ha guardado correctamente...');
+            
+            // Obtener perfil de usuario para verificar que incluye la configuración
+            const response = await fetch(API_CONFIG.getFullUrl('/api/profile'), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('No se pudo verificar la configuración guardada');
+            }
+            
+            const profile = await response.json();
+            console.log('Perfil obtenido:', profile);
+            
+            // Verificar que el perfil incluye la configuración
+            if (!profile.client || !profile.client.botConfig) {
+                console.warn('La configuración no se ha guardado correctamente en la base de datos');
+                return false;
+            }
+            
+            console.log('Configuración verificada correctamente en la base de datos');
+            return true;
+            
+        } catch (error) {
+            console.error('Error verificando configuración:', error);
+            return false;
         }
     }
 
@@ -672,6 +927,8 @@ class CompanySetup {
 }
 
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing company setup');
     window.companySetup = new CompanySetup();
+    window.companySetup.init();
 });

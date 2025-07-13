@@ -105,6 +105,20 @@
                                 </div>
                                 
                                 <div class="mb-3">
+                                    <label for="businessSector" class="form-label">Sector empresarial</label>
+                                    <select class="form-select" id="businessSector" required>
+                                        <option value="" selected disabled>Selecciona un sector</option>
+                                        <option value="retail">Comercio (Retail)</option>
+                                        <option value="restaurant">Restaurante</option>
+                                        <option value="beauty">Belleza</option>
+                                        <option value="legal">Legal</option>
+                                        <option value="healthcare">Salud</option>
+                                        <option value="real estate">Inmobiliaria</option>
+                                        <option value="generic">Otro</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
                                     <label for="contactPhone" class="form-label">Teléfono</label>
                                     <input type="tel" class="form-control" id="contactPhone" required>
                                 </div>
@@ -260,9 +274,10 @@
         function validateStep2() {
             const companyName = document.getElementById('companyName').value.trim();
             const companyDescription = document.getElementById('companyDescription').value.trim();
+            const businessSector = document.getElementById('businessSector').value;
             const contactPhone = document.getElementById('contactPhone').value.trim();
             
-            if (!companyName || !companyDescription || !contactPhone) {
+            if (!companyName || !companyDescription || !businessSector || !contactPhone) {
                 toastr.error('Completa todos los campos');
                 return false;
             }
@@ -287,6 +302,7 @@
                 password: document.getElementById('password').value,
                 companyName: document.getElementById('companyName').value.trim(),
                 companyDescription: document.getElementById('companyDescription').value.trim(),
+                businessSector: document.getElementById('businessSector').value,
                 contactPhone: document.getElementById('contactPhone').value.trim(),
                 plan: document.querySelector('input[name="plan"]:checked').value
             };

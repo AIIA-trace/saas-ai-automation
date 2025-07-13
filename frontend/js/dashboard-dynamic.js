@@ -1107,30 +1107,30 @@ function adaptRetailContext(config) {
  * @param {Object} config - Configuración de la empresa
  */
 function adaptOtherContext(config) {
-    console.log('=== ADAPTANDO CONTEXTO PARA SECTOR "OTRO" ===');
+    console.log('=== ADAPTANDO CONTEXTO PARA AGENTE DE IA ===');
     console.log('Configuración recibida:', config);
     
     try {
-        // Crear las pestañas dinámicas para el sector "otro"
+        // Crear las pestañas dinámicas para el agente de IA
         const tabsContainer = document.getElementById('sector-specific-tabs');
         if (!tabsContainer) {
             console.error('No se encontró el contenedor de pestañas específicas del sector');
             return;
         }
         
-        // Añadir elementos al menú lateral
+        // Añadir elementos al menú lateral relevantes para un agente de IA
         const sectorSpecificMenu = document.getElementById('sector-specific-menu');
         if (sectorSpecificMenu) {
-            console.log('Añadiendo elementos al menú lateral para sector "otro"');
+            console.log('Añadiendo elementos al menú lateral para agente de IA');
             sectorSpecificMenu.innerHTML = `
-                <a href="#projects" class="list-group-item list-group-item-action bg-dark text-white" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" role="tab" aria-controls="projects" aria-selected="false">
-                    <i class="fas fa-project-diagram me-2"></i> Proyectos
+                <a href="#call-analytics" class="list-group-item list-group-item-action bg-dark text-white" id="call-analytics-tab" data-bs-toggle="tab" data-bs-target="#call-analytics" role="tab" aria-controls="call-analytics" aria-selected="false">
+                    <i class="fas fa-chart-line me-2"></i> Análisis de Llamadas
                 </a>
-                <a href="#tasks" class="list-group-item list-group-item-action bg-dark text-white" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" role="tab" aria-controls="tasks" aria-selected="false">
-                    <i class="fas fa-tasks me-2"></i> Tareas
+                <a href="#email-analytics" class="list-group-item list-group-item-action bg-dark text-white" id="email-analytics-tab" data-bs-toggle="tab" data-bs-target="#email-analytics" role="tab" aria-controls="email-analytics" aria-selected="false">
+                    <i class="fas fa-envelope-open-text me-2"></i> Análisis de Emails
                 </a>
-                <a href="#clients" class="list-group-item list-group-item-action bg-dark text-white" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients" role="tab" aria-controls="clients" aria-selected="false">
-                    <i class="fas fa-users me-2"></i> Clientes
+                <a href="#ai-training" class="list-group-item list-group-item-action bg-dark text-white" id="ai-training-tab" data-bs-toggle="tab" data-bs-target="#ai-training" role="tab" aria-controls="ai-training" aria-selected="false">
+                    <i class="fas fa-brain me-2"></i> Entrenamiento IA
                 </a>
             `;
         } else {
@@ -1161,72 +1161,163 @@ function adaptOtherContext(config) {
         // Definir las pestañas para el sector "otro"
         setTimeout(() => {
             tabsContainer.innerHTML = `
-                <!-- Pestaña de Proyectos -->
-                <div class="tab-pane fade show active" id="projects">
+                <div class="tab-pane fade" id="call-analytics" role="tabpanel" aria-labelledby="call-analytics-tab">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2><i class="fas fa-project-diagram me-2"></i>Gestión de Proyectos</h2>
-                        <button class="btn btn-primary" id="new-project-btn">
-                            <i class="fas fa-plus me-2"></i>Nuevo Proyecto
+                        <h2><i class="fas fa-chart-line me-2"></i>Análisis de Llamadas</h2>
+                        <button class="btn btn-primary" id="export-call-data-btn">
+                            <i class="fas fa-file-export me-2"></i>Exportar Datos
                         </button>
                     </div>
                     
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0">Proyectos Activos</h5>
+                            <h5 class="mb-0">Métricas de Llamadas</h5>
                         </div>
                         <div class="card-body">
-                            <div id="active-projects">
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card bg-primary text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="total-calls">0</h3>
+                                            <p class="mb-0">Total Llamadas</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-success text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="successful-calls">0</h3>
+                                            <p class="mb-0">Exitosas</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-warning text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="avg-duration">0:00</h3>
+                                            <p class="mb-0">Duración Media</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-info text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="satisfaction-rate">0%</h3>
+                                            <p class="mb-0">Satisfacción</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="call-history-chart" style="height: 300px;">
                                 <div class="text-center py-3">
                                     <div class="spinner-border" role="status"></div>
-                                    <p class="mt-2 text-muted">Cargando proyectos...</p>
+                                    <p class="mt-2 text-muted">Cargando datos de llamadas...</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Pestaña de Tareas -->
-                <div class="tab-pane fade" id="tasks">
+                <div class="tab-pane fade" id="email-analytics" role="tabpanel" aria-labelledby="email-analytics-tab">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2><i class="fas fa-tasks me-2"></i>Gestión de Tareas</h2>
-                        <button class="btn btn-primary" id="new-task-btn">
-                            <i class="fas fa-plus me-2"></i>Nueva Tarea
+                        <h2><i class="fas fa-envelope-open-text me-2"></i>Análisis de Emails</h2>
+                        <button class="btn btn-primary" id="export-email-data-btn">
+                            <i class="fas fa-file-export me-2"></i>Exportar Datos
                         </button>
                     </div>
                     
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0">Tareas Pendientes</h5>
+                            <h5 class="mb-0">Métricas de Emails</h5>
                         </div>
                         <div class="card-body">
-                            <div id="pending-tasks">
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card bg-primary text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="total-emails">0</h3>
+                                            <p class="mb-0">Total Emails</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-success text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="response-rate">0%</h3>
+                                            <p class="mb-0">Tasa Respuesta</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-warning text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="avg-response-time">0h</h3>
+                                            <p class="mb-0">Tiempo Respuesta</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card bg-info text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="email-satisfaction">0%</h3>
+                                            <p class="mb-0">Satisfacción</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="email-history-chart" style="height: 300px;">
                                 <div class="text-center py-3">
                                     <div class="spinner-border" role="status"></div>
-                                    <p class="mt-2 text-muted">Cargando tareas...</p>
+                                    <p class="mt-2 text-muted">Cargando datos de emails...</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Pestaña de Clientes -->
-                <div class="tab-pane fade" id="clients">
+                <div class="tab-pane fade" id="ai-training" role="tabpanel" aria-labelledby="ai-training-tab">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2><i class="fas fa-users me-2"></i>Gestión de Clientes</h2>
-                        <button class="btn btn-primary" id="new-client-btn">
-                            <i class="fas fa-plus me-2"></i>Nuevo Cliente
+                        <h2><i class="fas fa-brain me-2"></i>Entrenamiento IA</h2>
+                        <button class="btn btn-primary" id="start-training-btn">
+                            <i class="fas fa-play me-2"></i>Iniciar Entrenamiento
                         </button>
                     </div>
                     
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0">Clientes Activos</h5>
+                            <h5 class="mb-0">Rendimiento del Modelo</h5>
                         </div>
                         <div class="card-body">
-                            <div id="active-clients">
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card bg-primary text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="model-accuracy">0%</h3>
+                                            <p class="mb-0">Precisión</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-success text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="training-samples">0</h3>
+                                            <p class="mb-0">Muestras Entrenamiento</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-info text-white">
+                                        <div class="card-body text-center">
+                                            <h3 id="last-training">Nunca</h3>
+                                            <p class="mb-0">Último Entrenamiento</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="training-progress">
                                 <div class="text-center py-3">
                                     <div class="spinner-border" role="status"></div>
-                                    <p class="mt-2 text-muted">Cargando clientes...</p>
+                                    <p class="mt-2 text-muted">Cargando datos de entrenamiento...</p>
                                 </div>
                             </div>
                         </div>
@@ -1240,11 +1331,11 @@ function adaptOtherContext(config) {
                 // Limpiar pestañas existentes
                 navTabs.innerHTML = '';
                 
-                // Añadir pestañas para el sector "otro"
+                // Añadir pestañas para el agente de IA
                 const tabs = [
-                    { id: 'projects', icon: 'project-diagram', text: 'Proyectos' },
-                    { id: 'tasks', icon: 'tasks', text: 'Tareas' },
-                    { id: 'clients', icon: 'users', text: 'Clientes' }
+                    { id: 'call-analytics', icon: 'chart-line', text: 'Análisis de Llamadas' },
+                    { id: 'email-analytics', icon: 'envelope-open-text', text: 'Análisis de Emails' },
+                    { id: 'ai-training', icon: 'brain', text: 'Entrenamiento IA' }
                 ];
                 
                 tabs.forEach((tab, index) => {
@@ -1252,7 +1343,7 @@ function adaptOtherContext(config) {
                     li.className = 'nav-item';
                     li.innerHTML = `
                         <a class="nav-link ${index === 0 ? 'active' : ''}" 
-                           id="${tab.id}-tab" 
+                           id="${tab.id}-nav-tab" 
                            data-bs-toggle="tab" 
                            href="#${tab.id}" 
                            role="tab">
@@ -1263,7 +1354,7 @@ function adaptOtherContext(config) {
                 });
                 
                 // Activar la primera pestaña
-                const firstTab = document.getElementById('projects');
+                const firstTab = document.getElementById('call-analytics');
                 if (firstTab) {
                     firstTab.classList.add('show', 'active');
                 }
@@ -1294,2603 +1385,215 @@ function adaptOtherContext(config) {
 }
 
 /**
- * Carga datos para el sector "otro"
+ * Carga datos para el agente de IA de llamadas y emails
+ * @param {Object} config - Configuración de la empresa
  */
-function loadOtherData(config) {
-    console.log('=== CARGANDO DATOS PARA SECTOR "OTRO" ===');
-    console.log('Configuración recibida:', config);
+async function loadOtherData(config) {
+    console.log('Cargando datos para agente de IA...');
     
     try {
-        // Obtener ID del cliente de diferentes fuentes posibles
-        let clientId = config.clientId || config.id;
+        // Simular un pequeño delay para mostrar el loading
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Si no hay ID en la configuración, intentar obtenerlo de localStorage
-        if (!clientId) {
-            console.warn('No se encontró ID de cliente en la configuración directa, buscando en otras fuentes...');
-            
-            // Intentar obtener de user_data en localStorage
-            try {
-                const userData = localStorage.getItem('user_data');
-                if (userData) {
-                    const parsedUserData = JSON.parse(userData);
-                    clientId = parsedUserData.id || parsedUserData.clientId || parsedUserData.userId;
-                    console.log('ID de cliente obtenido de user_data:', clientId);
-                }
-            } catch (e) {
-                console.error('Error al parsear user_data:', e);
-            }
-            
-            // Intentar obtener de companyConfig en localStorage
-            if (!clientId) {
-                try {
-                    const companyConfig = localStorage.getItem('companyConfig');
-                    if (companyConfig) {
-                        const parsedConfig = JSON.parse(companyConfig);
-                        clientId = parsedConfig.id || parsedConfig.clientId || parsedConfig.userId;
-                        console.log('ID de cliente obtenido de companyConfig:', clientId);
-                    }
-                } catch (e) {
-                    console.error('Error al parsear companyConfig:', e);
-                }
-            }
-            
-            // Si aún no hay ID, usar un valor por defecto para desarrollo
-            if (!clientId) {
-                // Usar un ID de cliente por defecto para desarrollo
-                clientId = '1'; // ID por defecto para pruebas
-                console.warn('Usando ID de cliente por defecto para desarrollo:', clientId);
-                toastr.warning('Usando ID de cliente por defecto para desarrollo', 'Advertencia');
-            }
-        }
+        // Cargar datos de ejemplo para análisis de llamadas
+        loadCallAnalyticsData();
         
-        console.log('ID de cliente:', clientId);
+        // Cargar datos de ejemplo para análisis de emails
+        loadEmailAnalyticsData();
         
-        // Obtener token de autenticación
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            console.error('No hay token de autenticación');
-            toastr.error('No hay sesión activa', 'Error');
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 2000);
-            return;
-        }
+        // Cargar datos de ejemplo para entrenamiento IA
+        loadAITrainingData();
         
-        // Función para cargar datos con manejo de errores y reintentos
-        async function fetchWithRetry(url, options, retries = 3, delay = 1000, timeout = 10000) {
-            let lastError;
-            
-            // Añadir headers para evitar caché
-            if (!options.headers) {
-                options.headers = {};
-            }
-            options.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-            options.headers['Pragma'] = 'no-cache';
-            options.headers['Expires'] = '0';
-            
-            for (let i = 0; i < retries; i++) {
-                try {
-                    // Crear un controlador de aborto para el timeout
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), timeout);
-                    
-                    // Añadir la señal al controlador a las opciones
-                    const fetchOptions = {
-                        ...options,
-                        signal: controller.signal
-                    };
-                    
-                    console.log(`Intento ${i + 1} de fetch a: ${url}`);
-                    const response = await fetch(url, fetchOptions);
-                    
-                    // Limpiar el timeout
-                    clearTimeout(timeoutId);
-                    
-                    if (!response.ok) {
-                        if (response.status === 401) {
-                            // Token inválido, redirigir al login
-                            localStorage.removeItem('auth_token');
-                            toastr.error('Tu sesión ha expirado', 'Error');
-                            setTimeout(() => {
-                                window.location.href = 'login.html';
-                            }, 2000);
-                            throw new Error('Sesión expirada');
-                        }
-                        
-                        throw new Error(`Error ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    return response;
-                } catch (error) {
-                    console.warn(`Intento ${i + 1} fallido: ${error.message}`);
-                    lastError = error;
-                    
-                    // Si es un error de timeout (abort), mostrar mensaje específico
-                    if (error.name === 'AbortError') {
-                        console.error('Timeout al cargar datos');
-                        toastr.warning('La conexión está tardando demasiado. Reintentando...', 'Timeout');
-                    } else {
-                        console.error('Error al cargar datos:', error);
-                    }
-                    
-                    // Esperar antes del siguiente intento
-                    if (i < retries - 1) { // Solo esperar si vamos a hacer otro intento
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    }
-                }
-            }
-            
-            throw lastError;
-        }
-        
-        // Cargar proyectos
-        const projectsContainer = document.getElementById('active-projects');
-        if (projectsContainer) {
-            projectsContainer.innerHTML = `
-                <div class="text-center py-3">
-                    <div class="spinner-border" role="status"></div>
-                    <p class="mt-2 text-muted">Cargando proyectos...</p>
-                </div>
-            `;
-            
-            // Intentar cargar proyectos desde la API con un timeout de 10 segundos
-            const projectsPromise = new Promise((resolve, reject) => {
-                const timeoutId = setTimeout(() => {
-                    reject(new Error('Timeout al cargar proyectos'));
-                }, 10000);
-                
-                fetchWithRetry(
-                    API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.PROJECTS, clientId)),
-                    {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                            'Cache-Control': 'no-cache, no-store'
-                        }
-                    }
-                )
-                .then(response => {
-                    clearTimeout(timeoutId);
-                    if (!response.ok) {
-                        throw new Error(`Error ${response.status}: ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => resolve(data))
-                .catch(error => reject(error));
-            });
-            
-            // Usar Promise.race para manejar timeout
-            projectsPromise
-            .then(data => {
-                console.log('Proyectos cargados:', data);
-                
-                if (data && data.length > 0) {
-                    // Mostrar proyectos reales
-                    let projectsHTML = '<div class="list-group">';
-                    
-                    data.forEach(project => {
-                        projectsHTML += `
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">${project.name || 'Proyecto sin nombre'}</h6>
-                                    <p class="text-muted small mb-0">${project.dueDate ? 'Fecha límite: ' + project.dueDate : 'Sin fecha límite'}</p>
-                                </div>
-                                <span class="badge bg-${getStatusBadge(project.status)} rounded-pill">${project.status || 'Pendiente'}</span>
-                            </div>
-                        `;
-                    });
-                    
-                    projectsHTML += '</div>';
-                    projectsContainer.innerHTML = projectsHTML;
-                    toastr.success('Proyectos cargados correctamente', 'Éxito');
-                } else {
-                    // Mostrar mensaje de no hay proyectos
-                    projectsContainer.innerHTML = `
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>No hay proyectos</strong><br>
-                            No tienes proyectos activos actualmente.
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                console.error('Error al cargar proyectos:', error);
-                
-                // Mostrar datos de ejemplo como fallback
-                projectsContainer.innerHTML = `
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Error al cargar datos</strong><br>
-                        No se pudieron cargar los proyectos desde el servidor. Mostrando datos de ejemplo.
-                        <div class="mt-2">
-                            <button class="btn btn-sm btn-outline-primary retry-projects">
-                                <i class="fas fa-sync-alt me-1"></i>Reintentar
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary ms-2 clear-cache">
-                                <i class="fas fa-broom me-1"></i>Limpiar caché
-                            </button>
-                        </div>
-                    </div>
-                    <div class="list-group">
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">Proyecto de ejemplo 1</h6>
-                                <p class="text-muted small mb-0">Fecha límite: 31/12/2025</p>
-                            </div>
-                            <span class="badge bg-primary rounded-pill">En progreso</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">Proyecto de ejemplo 2</h6>
-                                <p class="text-muted small mb-0">Fecha límite: 15/01/2026</p>
-                            </div>
-                            <span class="badge bg-warning rounded-pill">Pendiente</span>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        
-        // Cargar tareas
-        const tasksContainer = document.getElementById('pending-tasks');
-        if (tasksContainer) {
-            tasksContainer.innerHTML = `
-                <div class="text-center py-3">
-                    <div class="spinner-border" role="status"></div>
-                    <p class="mt-2 text-muted">Cargando tareas...</p>
-                </div>
-            `;
-            
-            // Intentar cargar tareas desde la API
-            fetchWithRetry(
-                API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.TASKS, clientId)),
-                {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            )
-            .then(response => response.json())
-            .then(data => {
-                console.log('Tareas cargadas:', data);
-                
-                if (data && data.length > 0) {
-                    // Mostrar tareas reales
-                    let tasksHTML = '<div class="list-group">';
-                    
-                    data.forEach(task => {
-                        tasksHTML += `
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">${task.name || 'Tarea sin nombre'}</h6>
-                                    <p class="text-muted small mb-0">Prioridad: ${task.priority || 'Media'}</p>
-                                </div>
-                                <span class="badge bg-${getPriorityBadge(task.priority)} rounded-pill">${task.status || 'Pendiente'}</span>
-                            </div>
-                        `;
-                    });
-                    
-                    tasksHTML += '</div>';
-                    tasksContainer.innerHTML = tasksHTML;
-                } else {
-                    // Mostrar mensaje de no hay tareas
-                    tasksContainer.innerHTML = `
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>No hay tareas</strong><br>
-                            No se encontraron tareas pendientes. Crea una nueva tarea para comenzar.
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                console.error('Error al cargar tareas:', error);
-                
-                // Mostrar datos de ejemplo como fallback
-                tasksContainer.innerHTML = `
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Error al cargar datos</strong><br>
-                        No se pudieron cargar las tareas desde el servidor. Mostrando datos de ejemplo.
-                        <div class="mt-2">
-                            <button class="btn btn-sm btn-outline-primary retry-tasks">
-                                <i class="fas fa-sync-alt me-1"></i>Reintentar
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary ms-2 clear-cache">
-                                <i class="fas fa-broom me-1"></i>Limpiar caché
-                            </button>
-                        </div>
-                    </div>
-                    <div class="list-group">
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">Tarea de ejemplo 1</h6>
-                                <p class="text-muted small mb-0">Prioridad: Alta</p>
-                            </div>
-                            <span class="badge bg-danger rounded-pill">Urgente</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">Tarea de ejemplo 2</h6>
-                                <p class="text-muted small mb-0">Prioridad: Media</p>
-                            </div>
-                            <span class="badge bg-warning rounded-pill">Pendiente</span>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        
-        // Cargar clientes
-        const clientsContainer = document.getElementById('active-clients');
-        if (clientsContainer) {
-            clientsContainer.innerHTML = `
-                <div class="text-center py-3">
-                    <div class="spinner-border" role="status"></div>
-                    <p class="mt-2 text-muted">Cargando clientes...</p>
-                </div>
-            `;
-            
-            // Intentar cargar clientes desde la API
-            fetchWithRetry(
-                API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.CLIENTS, clientId)),
-                {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            )
-            .then(response => response.json())
-            .then(data => {
-                console.log('Clientes cargados:', data);
-                
-                if (data && data.length > 0) {
-                    // Mostrar clientes reales
-                    let clientsHTML = '<div class="list-group">';
-                    
-                    data.forEach(client => {
-                        clientsHTML += `
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">${client.name || 'Cliente sin nombre'}</h6>
-                                    <p class="text-muted small mb-0">${client.email ? 'Email: ' + client.email : 'Sin email'}</p>
-                                </div>
-                                <span class="badge bg-${client.active ? 'success' : 'secondary'} rounded-pill">${client.active ? 'Activo' : 'Inactivo'}</span>
-                            </div>
-                        `;
-                    });
-                    
-                    clientsHTML += '</div>';
-                    clientsContainer.innerHTML = clientsHTML;
-                } else {
-                    // Mostrar mensaje de no hay clientes
-                    clientsContainer.innerHTML = `
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>No hay clientes</strong><br>
-                            No se encontraron clientes activos. Crea un nuevo cliente para comenzar.
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                console.error('Error al cargar clientes:', error);
-                
-                // Mostrar datos de ejemplo como fallback
-                clientsContainer.innerHTML = `
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Error al cargar datos</strong><br>
-                        No se pudieron cargar los clientes desde el servidor. Mostrando datos de ejemplo.
-                        <div class="mt-2">
-                            <button class="btn btn-sm btn-outline-primary retry-clients">
-                                <i class="fas fa-sync-alt me-1"></i>Reintentar
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary ms-2 clear-cache">
-                                <i class="fas fa-broom me-1"></i>Limpiar caché
-                            </button>
-                        </div>
-                    </div>
-                    <div class="list-group">
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">Cliente de ejemplo 1</h6>
-                                <p class="text-muted small mb-0">Email: cliente1@ejemplo.com</p>
-                            </div>
-                            <span class="badge bg-success rounded-pill">Activo</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">Cliente de ejemplo 2</h6>
-                                <p class="text-muted small mb-0">Email: cliente2@ejemplo.com</p>
-                            </div>
-                            <span class="badge bg-success rounded-pill">Activo</span>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        
-        // Funciones auxiliares para determinar el color de los badges
-        function getStatusBadge(status) {
-            if (!status) return 'secondary';
-            
-            status = status.toLowerCase();
-            
-            switch(status) {
-                case 'en progreso':
-                case 'in progress':
-                    return 'primary';
-                case 'completado':
-                case 'completed':
-                    return 'success';
-                case 'pendiente':
-                case 'pending':
-                    return 'warning';
-                case 'cancelado':
-                case 'cancelled':
-                    return 'danger';
-                default:
-                    return 'secondary';
-            }
-        }
-        
-        function getPriorityBadge(priority) {
-            if (!priority) return 'secondary';
-            
-            priority = priority.toLowerCase();
-            
-            switch(priority) {
-                case 'alta':
-                case 'high':
-                    return 'danger';
-                case 'media':
-                case 'medium':
-                    return 'warning';
-                case 'baja':
-                case 'low':
-                    return 'info';
-                default:
-                    return 'secondary';
-            }
-        }
-        
-        // Configurar botones
-        setTimeout(() => {
-            const newProjectBtn = document.getElementById('new-project-btn');
-            if (newProjectBtn) {
-                newProjectBtn.addEventListener('click', () => {
-                    toastr.info('Funcionalidad en desarrollo', 'Próximamente');
-                });
-            }
-            
-            const newTaskBtn = document.getElementById('new-task-btn');
-            if (newTaskBtn) {
-                newTaskBtn.addEventListener('click', () => {
-                    toastr.info('Funcionalidad en desarrollo', 'Próximamente');
-                });
-            }
-            
-            const newClientBtn = document.getElementById('new-client-btn');
-            if (newClientBtn) {
-                newClientBtn.addEventListener('click', () => {
-                    toastr.info('Funcionalidad en desarrollo', 'Próximamente');
-                });
-            }
-        }, 1500);
-        
-        // Configurar event listeners para botones de reintento y limpieza de caché
-        setTimeout(() => {
-            // Botones de reintento para proyectos
-            const retryProjectsButtons = document.querySelectorAll('.retry-projects');
-            retryProjectsButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    console.log('Reintentando carga de proyectos...');
-                    const projectsContainer = document.getElementById('active-projects');
-                    if (projectsContainer) {
-                        projectsContainer.innerHTML = `
-                            <div class="text-center py-3">
-                                <div class="spinner-border" role="status"></div>
-                                <p class="mt-2 text-muted">Cargando proyectos...</p>
-                            </div>
-                        `;
-                        
-                        // Recargar solo los proyectos
-                        fetchWithRetry(
-                            API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.PROJECTS, clientId)),
-                            {
-                                method: 'GET',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json',
-                                    'Cache-Control': 'no-cache, no-store'
-                                }
-                            }
-                        )
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Proyectos recargados:', data);
-                            toastr.success('Proyectos actualizados correctamente', 'Éxito');
-                            
-                            // Actualizar la vista con los datos recargados
-                            if (data && data.length > 0) {
-                                let projectsHTML = '<div class="list-group">';
-                                
-                                data.forEach(project => {
-                                    projectsHTML += `
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1">${project.name || 'Proyecto sin nombre'}</h6>
-                                                <p class="text-muted small mb-0">${project.dueDate ? 'Fecha límite: ' + project.dueDate : 'Sin fecha límite'}</p>
-                                            </div>
-                                            <span class="badge bg-${getStatusBadge(project.status)} rounded-pill">${project.status || 'Pendiente'}</span>
-                                        </div>
-                                    `;
-                                });
-                                
-                                projectsHTML += '</div>';
-                                projectsContainer.innerHTML = projectsHTML;
-                            } else {
-                                projectsContainer.innerHTML = `
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        <strong>No hay proyectos</strong><br>
-                                        No se encontraron proyectos activos. Crea un nuevo proyecto para comenzar.
-                                    </div>
-                                `;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error al recargar proyectos:', error);
-                            toastr.error('No se pudieron recargar los proyectos', 'Error');
-                            
-                            // Mostrar mensaje de error
-                            projectsContainer.innerHTML = `
-                                <div class="alert alert-danger">
-                                    <i class="fas fa-exclamation-circle me-2"></i>
-                                    <strong>Error de conexión</strong><br>
-                                    No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.
-                                    <div class="mt-2">
-                                        <button class="btn btn-sm btn-outline-primary retry-projects">
-                                            <i class="fas fa-sync-alt me-1"></i>Reintentar
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                            
-                            // Reconfigurar el botón de reintento
-                            const newRetryButton = projectsContainer.querySelector('.retry-projects');
-                            if (newRetryButton) {
-                                newRetryButton.addEventListener('click', () => {
-                                    const retryEvent = new Event('click');
-                                    button.dispatchEvent(retryEvent);
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-            
-            // Botones de reintento para tareas
-            const retryTasksButtons = document.querySelectorAll('.retry-tasks');
-            retryTasksButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    console.log('Reintentando carga de tareas...');
-                    const tasksContainer = document.getElementById('pending-tasks');
-                    if (tasksContainer) {
-                        tasksContainer.innerHTML = `
-                            <div class="text-center py-3">
-                                <div class="spinner-border" role="status"></div>
-                                <p class="mt-2 text-muted">Cargando tareas...</p>
-                            </div>
-                        `;
-                        
-                        // Recargar solo las tareas
-                        fetchWithRetry(
-                            API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.TASKS, clientId)),
-                            {
-                                method: 'GET',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json',
-                                    'Cache-Control': 'no-cache, no-store'
-                                }
-                            }
-                        )
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Tareas recargadas:', data);
-                            toastr.success('Tareas actualizadas correctamente', 'Éxito');
-                            
-                            // Actualizar la vista con los datos recargados
-                            if (data && data.length > 0) {
-                                let tasksHTML = '<div class="list-group">';
-                                
-                                data.forEach(task => {
-                                    tasksHTML += `
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1">${task.name || 'Tarea sin nombre'}</h6>
-                                                <p class="text-muted small mb-0">Prioridad: ${task.priority || 'Media'}</p>
-                                            </div>
-                                            <span class="badge bg-${getPriorityBadge(task.priority)} rounded-pill">${task.status || 'Pendiente'}</span>
-                                        </div>
-                                    `;
-                                });
-                                
-                                tasksHTML += '</div>';
-                                tasksContainer.innerHTML = tasksHTML;
-                            } else {
-                                tasksContainer.innerHTML = `
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        <strong>No hay tareas</strong><br>
-                                        No se encontraron tareas pendientes. Crea una nueva tarea para comenzar.
-                                    </div>
-                                `;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error al recargar tareas:', error);
-                            toastr.error('No se pudieron recargar las tareas', 'Error');
-                        });
-                    }
-                });
-            });
-            
-            // Botones de reintento para clientes
-            const retryClientsButtons = document.querySelectorAll('.retry-clients');
-            retryClientsButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    console.log('Reintentando carga de clientes...');
-                    const clientsContainer = document.getElementById('active-clients');
-                    if (clientsContainer) {
-                        clientsContainer.innerHTML = `
-                            <div class="text-center py-3">
-                                <div class="spinner-border" role="status"></div>
-                                <p class="mt-2 text-muted">Cargando clientes...</p>
-                            </div>
-                        `;
-                        
-                        // Recargar solo los clientes
-                        fetchWithRetry(
-                            API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.CLIENTS, clientId)),
-                            {
-                                method: 'GET',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json',
-                                    'Cache-Control': 'no-cache, no-store'
-                                }
-                            }
-                        )
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Clientes recargados:', data);
-                            toastr.success('Clientes actualizados correctamente', 'Éxito');
-                            
-                            // Actualizar la vista con los datos recargados
-                            if (data && data.length > 0) {
-                                let clientsHTML = '<div class="list-group">';
-                                
-                                data.forEach(client => {
-                                    clientsHTML += `
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1">${client.name || 'Cliente sin nombre'}</h6>
-                                                <p class="text-muted small mb-0">${client.email ? 'Email: ' + client.email : 'Sin email'}</p>
-                                            </div>
-                                            <span class="badge bg-${client.active ? 'success' : 'secondary'} rounded-pill">${client.active ? 'Activo' : 'Inactivo'}</span>
-                                        </div>
-                                    `;
-                                });
-                                
-                                clientsHTML += '</div>';
-                                clientsContainer.innerHTML = clientsHTML;
-                            } else {
-                                clientsContainer.innerHTML = `
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        <strong>No hay clientes</strong><br>
-                                        No se encontraron clientes activos. Crea un nuevo cliente para comenzar.
-                                    </div>
-                                `;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error al recargar clientes:', error);
-                            toastr.error('No se pudieron recargar los clientes', 'Error');
-                        });
-                    }
-                });
-            });
-            
-            // Botones de limpieza de caché
-            const clearCacheButtons = document.querySelectorAll('.clear-cache');
-            clearCacheButtons.forEach(button => {
-                button.addEventListener('click', clearCacheAndReload);
-            });
-        }, 2000);
-        
-        console.log('Carga de datos para sector "otro" completada con éxito');
-    } catch (error) {
-        console.error('Error al cargar datos para sector "otro":', error);
-        console.error('Detalle del error:', error.stack);
-        toastr.error('Error al cargar datos', 'Error');
-    }
-}
-
-/**
- * Adapta el contenido para caso genérico
- */
-function adaptGenericContext(config) {
-    // Crear las pestañas dinámicas para caso genérico
-    const tabsContainer = document.getElementById('sector-specific-tabs');
-    if (!tabsContainer) return;
-    
-    tabsContainer.innerHTML = `
-        <div class="tab-pane fade" id="tasks">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-tasks me-2"></i>Gestión de Tareas</h2>
-                <button class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>Nueva Tarea
-                </button>
-            </div>
-            
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Tareas Pendientes</h5>
-                </div>
-                <div class="card-body">
-                    <div id="pending-tasks">
-                        <div class="text-center py-3">
-                            <div class="spinner-border" role="status"></div>
-                            <p class="mt-2 text-muted">Cargando tareas...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Cargar datos desde la API
-    loadGenericData(config);
-}
-
-/**
- * Carga datos para restaurantes desde API
- */
-function loadRestaurantData(config) {
-    const clientId = config.clientId;
-    
-    // Cargar pedidos activos
-    const ordersContainer = document.getElementById('active-orders');
-    if (ordersContainer) {
-        // Realizar petición a la API
-        fetch(`/api/clients/${clientId}/orders/active`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Error al cargar los pedidos');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.orders && data.orders.length > 0) {
-                    // Renderizar pedidos
-                    let ordersHTML = '<div class="table-responsive"><table class="table table-hover">';
-                    ordersHTML += '<thead><tr><th>ID</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>';
-                    ordersHTML += '<tbody>';
-                    
-                    data.orders.forEach(order => {
-                        ordersHTML += `
-                            <tr>
-                                <td>#${order.id}</td>
-                                <td>${order.clientName}</td>
-                                <td>${order.items.length} items</td>
-                                <td>${order.total.toFixed(2)} €</td>
-                                <td><span class="badge bg-${getStatusBadgeClass(order.status)}">${order.status}</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="viewOrderDetails(${order.id})">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-success" onclick="updateOrderStatus(${order.id})">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    
-                    ordersHTML += '</tbody></table></div>';
-                    ordersContainer.innerHTML = ordersHTML;
-                } else {
-                    // Mostrar mensaje de no hay pedidos
-                    ordersContainer.innerHTML = `
-                        <div class="text-center py-4">
-                            <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">No hay pedidos activos en este momento.</p>
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                // Mostrar mensaje de error
-                ordersContainer.innerHTML = `
-                    <div class="alert alert-danger" role="alert">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Error al cargar los pedidos: ${error.message}
-                    </div>
-                    <button class="btn btn-outline-primary mt-2" onclick="loadRestaurantData(${JSON.stringify(config)})">
-                        <i class="fas fa-sync-alt me-2"></i>Reintentar
-                    </button>
-                `;
-                console.error('Error:', error);
-            });
-    }
-    
-    // Cargar reservas de hoy
-    const reservationsContainer = document.getElementById('todays-reservations');
-    if (reservationsContainer) {
-        fetch(`/api/clients/${clientId}/reservations/today`)
-            .then(response => response.ok ? response.json() : Promise.reject('Error al cargar reservas'))
-            .then(data => {
-                if (data.reservations && data.reservations.length > 0) {
-                    let html = generarTablaReservas(data.reservations);
-                    reservationsContainer.innerHTML = html;
-                } else {
-                    reservationsContainer.innerHTML = `
-                        <div class="text-center py-4">
-                            <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">No hay reservas para hoy.</p>
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                mostrarError(reservationsContainer, error, 'reservas', () => loadRestaurantData(config));
-            });
-    }
-}
-
-/**
- * Carga datos para peluquería/estética desde API
- */
-function loadBeautyData(config) {
-    const clientId = config.clientId;
-    
-    // Cargar citas de hoy
-    const appointmentsContainer = document.getElementById('todays-appointments');
-    if (appointmentsContainer) {
-        fetch(`/api/clients/${clientId}/appointments/today`)
-            .then(response => response.ok ? response.json() : Promise.reject('Error al cargar citas'))
-            .then(data => {
-                if (data.appointments && data.appointments.length > 0) {
-                    let html = generarTablaCitas(data.appointments);
-                    appointmentsContainer.innerHTML = html;
-                } else {
-                    appointmentsContainer.innerHTML = `
-                        <div class="text-center py-4">
-                            <i class="fas fa-calendar-check fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">No hay citas programadas para hoy.</p>
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                mostrarError(appointmentsContainer, error, 'citas', () => loadBeautyData(config));
-            });
-    }
-    
-    // Cargar servicios
-    const servicesContainer = document.getElementById('service-catalog');
-    if (servicesContainer) {
-        fetch(`/api/clients/${clientId}/services`)
-            .then(response => response.ok ? response.json() : Promise.reject('Error al cargar servicios'))
-            .then(data => {
-                if (data.services && data.services.length > 0) {
-                    // Renderizar servicios en tarjetas
-                    let html = '<div class="row">';
-                    
-                    data.services.forEach(service => {
-                        html += `
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100">
-                                    <div class="card-body">
-                                        <h5 class="card-title">${service.name}</h5>
-                                        <p class="card-text">${service.description || 'Sin descripción'}</p>
-                                        <p class="card-text text-primary fw-bold">${service.price.toFixed(2)} €</p>
-                                        <p class="card-text"><small class="text-muted">Duración: ${service.duration} min.</small></p>
-                                    </div>
-                                    <div class="card-footer bg-white">
-                                        <button class="btn btn-sm btn-outline-primary" onclick="editService(${service.id})">
-                                            <i class="fas fa-edit me-1"></i> Editar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    html += '</div>';
-                    servicesContainer.innerHTML = html;
-                } else {
-                    servicesContainer.innerHTML = `
-                        <div class="text-center py-4">
-                            <i class="fas fa-cut fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">No hay servicios configurados.</p>
-                            <button class="btn btn-primary mt-2" onclick="addNewService()">
-                                <i class="fas fa-plus me-2"></i>Añadir Servicio
-                            </button>
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                mostrarError(servicesContainer, error, 'servicios', () => loadBeautyData(config));
-            });
-    }
-}
-
-/**
- * Carga datos para comercio/tienda desde API
- */
-function loadRetailData(config) {
-    console.log('=== CARGANDO DATOS PARA SECTOR RETAIL ===');
-    
-    // Verificar que tenemos un ID de cliente válido
-    const clientId = config.id || config.clientId;
-    if (!clientId) {
-        console.error('ERROR: No se encontró ID de cliente en la configuración');
-        console.log('Configuración recibida:', config);
-        toastr.error('Error al cargar datos: ID de cliente no encontrado', 'Error');
-        return;
-    }
-    
-    console.log('ID de cliente:', clientId);
-    
-    // Cargar productos con stock bajo
-    const lowStockContainer = document.getElementById('low-stock-products');
-    if (lowStockContainer) {
-        console.log('Cargando productos con stock bajo...');
-        
-        // Mostrar mensaje de carga
-        lowStockContainer.innerHTML = `
-            <div class="text-center py-3">
-                <div class="spinner-border" role="status"></div>
-                <p class="mt-2 text-muted">Cargando inventario...</p>
-            </div>
-        `;
-        
-        // Construir URL de la API
-        const apiUrl = API_CONFIG.getFullUrl(`/api/clients/${clientId}/inventory/low-stock`);
-        console.log('URL de API para inventario:', apiUrl);
-        
-        // Obtener token de autenticación
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            console.error('No hay token de autenticación para cargar datos de inventario');
-            mostrarError(lowStockContainer, 'No hay sesión activa', 'inventario', null);
-            return;
-        }
-        
-        // Realizar petición a la API
-        fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => {
-            console.log('Respuesta de API de inventario recibida. Status:', response.status);
-            
-            if (!response.ok) {
-                if (response.status === 401) {
-                    console.error('Error de autenticación (401) al cargar inventario');
-                    throw new Error('Sesión expirada');
-                }
-                
-                if (response.status === 404) {
-                    console.warn('No se encontraron datos de inventario (404)');
-                    // Mostrar datos de ejemplo para desarrollo/testing
-                    return { products: [] };
-                }
-                
-                throw new Error(`Error al cargar inventario: ${response.status}`);
-            }
-            
-            return response.json();
-        })
-        .then(data => {
-            console.log('Datos de inventario recibidos:', data);
-            
-            if (data.products && data.products.length > 0) {
-                console.log(`Se encontraron ${data.products.length} productos con stock bajo`);
-                
-                // Renderizar productos
-                let html = '<div class="table-responsive"><table class="table">';
-                html += '<thead><tr><th>Producto</th><th>Stock Actual</th><th>Stock Mínimo</th><th>Acciones</th></tr></thead>';
-                html += '<tbody>';
-                
-                data.products.forEach(product => {
-                    const stockClass = product.currentStock <= product.criticalStock ? 'text-danger fw-bold' : 'text-warning';
-                    
-                    html += `
-                        <tr>
-                            <td>${product.name}</td>
-                            <td class="${stockClass}">${product.currentStock} unidades</td>
-                            <td>${product.minimumStock} unidades</td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" onclick="restockProduct(${product.id})">
-                                    <i class="fas fa-plus me-1"></i> Reponer
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                html += '</tbody></table></div>';
-                lowStockContainer.innerHTML = html;
-                console.log('Tabla de inventario renderizada correctamente');
-            } else {
-                console.log('No hay productos con stock bajo');
-                lowStockContainer.innerHTML = `
-                    <div class="text-center py-4">
-                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                        <p class="text-muted">No hay productos con stock bajo actualmente.</p>
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error al cargar datos de inventario:', error);
-            mostrarError(lowStockContainer, error.message || 'Error al cargar inventario', 'inventario', () => loadRetailData(config));
-        });
-    } else {
-        console.warn('No se encontró el contenedor para productos con stock bajo');
-    }
-    
-    // Cargar ventas recientes
-    const recentSalesContainer = document.getElementById('recent-sales');
-    if (recentSalesContainer) {
-        console.log('Cargando ventas recientes...');
-        
-        // Mostrar mensaje de carga
-        recentSalesContainer.innerHTML = `
-            <div class="text-center py-3">
-                <div class="spinner-border" role="status"></div>
-                <p class="mt-2 text-muted">Cargando ventas...</p>
-            </div>
-        `;
-        
-        // Construir URL de la API
-        const apiUrl = API_CONFIG.getFullUrl(`/api/clients/${clientId}/sales/recent`);
-        console.log('URL de API para ventas:', apiUrl);
-        
-        // Obtener token de autenticación
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            console.error('No hay token de autenticación para cargar datos de ventas');
-            mostrarError(recentSalesContainer, 'No hay sesión activa', 'ventas', null);
-            return;
-        }
-        
-        // Realizar petición a la API
-        fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => {
-            console.log('Respuesta de API de ventas recibida. Status:', response.status);
-            
-            if (!response.ok) {
-                if (response.status === 401) {
-                    console.error('Error de autenticación (401) al cargar ventas');
-                    throw new Error('Sesión expirada');
-                }
-                
-                if (response.status === 404) {
-                    console.warn('No se encontraron datos de ventas (404)');
-                    // Mostrar datos de ejemplo para desarrollo/testing
-                    return { sales: [] };
-                }
-                
-                throw new Error(`Error al cargar ventas: ${response.status}`);
-            }
-            
-            return response.json();
-        })
-        .then(data => {
-            console.log('Datos de ventas recibidos:', data);
-            
-            if (data.sales && data.sales.length > 0) {
-                console.log(`Se encontraron ${data.sales.length} ventas recientes`);
-                
-                // Renderizar ventas recientes
-                try {
-                    let html = generarTablaVentas(data.sales);
-                    recentSalesContainer.innerHTML = html;
-                    console.log('Tabla de ventas renderizada correctamente');
-                } catch (renderError) {
-                    console.error('Error al renderizar tabla de ventas:', renderError);
-                    recentSalesContainer.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Error al mostrar las ventas: ${renderError.message}
-                        </div>
-                    `;
-                }
-            } else {
-                console.log('No hay ventas recientes');
-                recentSalesContainer.innerHTML = `
-                    <div class="text-center py-4">
-                        <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No hay ventas recientes.</p>
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error al cargar datos de ventas:', error);
-            mostrarError(recentSalesContainer, error.message || 'Error al cargar ventas', 'ventas', () => loadRetailData(config));
-        });
-    } else {
-        console.warn('No se encontró el contenedor para ventas recientes');
-    }
-    
-    console.log('Carga de datos para retail iniciada correctamente');
-}
-
-/**
- * Carga datos para caso genérico desde API
- */
-function loadGenericData(config) {
-    const clientId = config.clientId;
-    
-    // Cargar tareas pendientes
-    const tasksContainer = document.getElementById('pending-tasks');
-    if (tasksContainer) {
-        fetch(`/api/clients/${clientId}/tasks/pending`)
-            .then(response => response.ok ? response.json() : Promise.reject('Error al cargar tareas'))
-            .then(data => {
-                if (data.tasks && data.tasks.length > 0) {
-                    // Renderizar tareas
-                    let html = '<ul class="list-group">';
-                    
-                    data.tasks.forEach(task => {
-                        // Determinar clase según prioridad
-                        let priorityClass = '';
-                        let priorityIcon = '';
-                        
-                        switch (task.priority) {
-                            case 'high':
-                                priorityClass = 'border-danger';
-                                priorityIcon = '<i class="fas fa-exclamation-circle text-danger me-2"></i>';
-                                break;
-                            case 'medium':
-                                priorityClass = 'border-warning';
-                                priorityIcon = '<i class="fas fa-exclamation-triangle text-warning me-2"></i>';
-                                break;
-                            default:
-                                priorityClass = '';
-                                priorityIcon = '<i class="fas fa-info-circle text-info me-2"></i>';
-                        }
-                        
-                        html += `
-                            <li class="list-group-item ${priorityClass}">
-                                <div class="d-flex w-100 justify-content-between align-items-center">
-                                    <div>
-                                        ${priorityIcon}
-                                        <span class="fw-bold">${task.title}</span>
-                                        <p class="mb-1 text-muted small">${task.description || ''}</p>
-                                    </div>
-                                    <div>
-                                        <button class="btn btn-sm btn-outline-success" onclick="completeTask(${task.id})">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </li>
-                        `;
-                    });
-                    
-                    html += '</ul>';
-                    tasksContainer.innerHTML = html;
-                } else {
-                    tasksContainer.innerHTML = `
-                        <div class="text-center py-4">
-                            <i class="fas fa-clipboard-check fa-3x text-success mb-3"></i>
-                            <p class="text-muted">No hay tareas pendientes.</p>
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                mostrarError(tasksContainer, error, 'tareas', () => loadGenericData(config));
-            });
-    }
-}
-
-/**
- * Carga datos legales desde la API
- */
-function loadLegalData(config) {
-    console.log('Cargando datos legales para:', config.companyName);
-    const clientId = config.clientId || config.id;
-    
-    // Cargar casos activos
-    const activeCasesContainer = document.getElementById('active-cases');
-    if (activeCasesContainer) {
-        // Intentar cargar desde la API si está disponible
-        if (clientId) {
-            fetch(`/api/clients/${clientId}/legal/cases`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error al cargar casos legales');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data && data.cases && data.cases.length > 0) {
-                        renderLegalCases(data.cases, activeCasesContainer);
-                    } else {
-                        // Mostrar datos de ejemplo si no hay datos reales
-                        renderExampleLegalCases(activeCasesContainer);
-                    }
-                })
-                .catch(error => {
-                    console.warn('Error al cargar casos legales:', error);
-                    // Mostrar datos de ejemplo en caso de error
-                    renderExampleLegalCases(activeCasesContainer);
-                });
-        } else {
-            // Mostrar datos de ejemplo si no hay ID de cliente
-            renderExampleLegalCases(activeCasesContainer);
-        }
-    }
-    
-    // Cargar documentos recientes
-    const recentDocumentsContainer = document.getElementById('recent-documents');
-    if (recentDocumentsContainer) {
-        // Intentar cargar desde la API si está disponible
-        if (clientId) {
-            fetch(`/api/clients/${clientId}/legal/documents`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error al cargar documentos legales');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data && data.documents && data.documents.length > 0) {
-                        renderLegalDocuments(data.documents, recentDocumentsContainer);
-                    } else {
-                        // Mostrar datos de ejemplo si no hay datos reales
-                        renderExampleLegalDocuments(recentDocumentsContainer);
-                    }
-                })
-                .catch(error => {
-                    console.warn('Error al cargar documentos legales:', error);
-                    // Mostrar datos de ejemplo en caso de error
-                    renderExampleLegalDocuments(recentDocumentsContainer);
-                });
-        } else {
-            // Mostrar datos de ejemplo si no hay ID de cliente
-            renderExampleLegalDocuments(recentDocumentsContainer);
-        }
-    }
-}
-
-/**
- * Renderiza casos legales de ejemplo
- */
-function renderExampleLegalCases(container) {
-    container.innerHTML = `
-        <ul class="list-group">
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold">Caso #2023-05</span>
-                    <p class="mb-1 text-muted small">Demanda por incumplimiento de contrato</p>
-                </div>
-                <span class="badge bg-primary rounded-pill">Activo</span>
-            </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold">Caso #2023-08</span>
-                    <p class="mb-1 text-muted small">Asesoramiento legal corporativo</p>
-                </div>
-                <span class="badge bg-warning text-dark rounded-pill">Pendiente</span>
-            </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold">Caso #2023-12</span>
-                    <p class="mb-1 text-muted small">Revisión de documentación</p>
-                </div>
-                <span class="badge bg-info rounded-pill">En revisión</span>
-            </li>
-        </ul>
-    `;
-}
-
-/**
- * Renderiza documentos legales de ejemplo
- */
-function renderExampleLegalDocuments(container) {
-    container.innerHTML = `
-        <ul class="list-group">
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas fa-file-pdf me-2 text-danger"></i>
-                    <span class="fw-bold">Contrato_Servicios.pdf</span>
-                </div>
-                <div>
-                    <span class="badge bg-light text-dark me-2">10/07/2025</span>
-                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-download"></i></button>
-                </div>
-            </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas fa-file-word me-2 text-primary"></i>
-                    <span class="fw-bold">Demanda_Inicial.docx</span>
-                </div>
-                <div>
-                    <span class="badge bg-light text-dark me-2">05/07/2025</span>
-                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-download"></i></button>
-                </div>
-            </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas fa-file-excel me-2 text-success"></i>
-                    <span class="fw-bold">Gastos_Caso.xlsx</span>
-                </div>
-                <div>
-                    <span class="badge bg-light text-dark me-2">01/07/2025</span>
-                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-download"></i></button>
-                </div>
-            </li>
-        </ul>
-    `;
-}
-
-/**
- * Renderiza casos legales reales
- */
-function renderLegalCases(cases, container) {
-    let html = '<ul class="list-group">';
-    
-    cases.forEach(legalCase => {
-        // Determinar clase según estado
-        let badgeClass = '';
-        switch (legalCase.status.toLowerCase()) {
-            case 'active':
-            case 'activo':
-                badgeClass = 'bg-primary';
-                break;
-            case 'pending':
-            case 'pendiente':
-                badgeClass = 'bg-warning text-dark';
-                break;
-            case 'review':
-            case 'revisión':
-                badgeClass = 'bg-info';
-                break;
-            case 'closed':
-            case 'cerrado':
-                badgeClass = 'bg-secondary';
-                break;
-            default:
-                badgeClass = 'bg-light text-dark';
-        }
-        
-        html += `
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold">${legalCase.caseNumber || legalCase.id}</span>
-                    <p class="mb-1 text-muted small">${legalCase.description || legalCase.title}</p>
-                </div>
-                <span class="badge ${badgeClass} rounded-pill">${legalCase.status}</span>
-            </li>
-        `;
-    });
-    
-    html += '</ul>';
-    container.innerHTML = html;
-}
-
-/**
- * Renderiza documentos legales reales
- */
-function renderLegalDocuments(documents, container) {
-    let html = '<ul class="list-group">';
-    
-    documents.forEach(doc => {
-        // Determinar icono según tipo de documento
-        let iconClass = '';
-        let iconColor = '';
-        
-        const fileExt = doc.fileName ? doc.fileName.split('.').pop().toLowerCase() : '';
-        
-        switch (fileExt) {
-            case 'pdf':
-                iconClass = 'fa-file-pdf';
-                iconColor = 'text-danger';
-                break;
-            case 'doc':
-            case 'docx':
-                iconClass = 'fa-file-word';
-                iconColor = 'text-primary';
-                break;
-            case 'xls':
-            case 'xlsx':
-                iconClass = 'fa-file-excel';
-                iconColor = 'text-success';
-                break;
-            case 'ppt':
-            case 'pptx':
-                iconClass = 'fa-file-powerpoint';
-                iconColor = 'text-warning';
-                break;
-            default:
-                iconClass = 'fa-file';
-                iconColor = 'text-secondary';
-        }
-        
-        // Formatear fecha
-        const date = doc.date ? new Date(doc.date) : new Date();
-        const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-        
-        html += `
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas ${iconClass} me-2 ${iconColor}"></i>
-                    <span class="fw-bold">${doc.fileName || doc.title}</span>
-                </div>
-                <div>
-                    <span class="badge bg-light text-dark me-2">${formattedDate}</span>
-                    <button class="btn btn-sm btn-outline-primary" onclick="downloadDocument('${doc.id}')"><i class="fas fa-download"></i></button>
-                </div>
-            </li>
-        `;
-    });
-    
-    html += '</ul>';
-    container.innerHTML = html;
-}
-
-/**
- * Carga datos de salud desde la API
- */
-function loadHealthcareData(config) {
-    console.log('Cargando datos de salud para:', config.companyName);
-    const clientId = config.clientId || config.id;
-    
-    // Cargar citas de hoy
-    const todayAppointmentsContainer = document.getElementById('today-appointments');
-    if (todayAppointmentsContainer) {
-        // Intentar cargar desde la API si está disponible
-        if (clientId) {
-            fetch(`/api/clients/${clientId}/healthcare/appointments/today`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error al cargar citas de hoy');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data && data.appointments && data.appointments.length > 0) {
-                        renderHealthcareAppointments(data.appointments, todayAppointmentsContainer);
-                    } else {
-                        // Mostrar datos de ejemplo si no hay datos reales
-                        renderExampleHealthcareAppointments(todayAppointmentsContainer);
-                    }
-                })
-                .catch(error => {
-                    console.warn('Error al cargar citas de hoy:', error);
-                    // Mostrar datos de ejemplo en caso de error
-                    renderExampleHealthcareAppointments(todayAppointmentsContainer);
-                });
-        } else {
-            // Mostrar datos de ejemplo si no hay ID de cliente
-            renderExampleHealthcareAppointments(todayAppointmentsContainer);
-        }
-    }
-    
-    // Cargar pacientes recientes
-    const recentPatientsContainer = document.getElementById('recent-patients');
-    if (recentPatientsContainer) {
-        // Intentar cargar desde la API si está disponible
-        if (clientId) {
-            fetch(`/api/clients/${clientId}/healthcare/patients/recent`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error al cargar pacientes recientes');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data && data.patients && data.patients.length > 0) {
-                        renderHealthcarePatients(data.patients, recentPatientsContainer);
-                    } else {
-                        // Mostrar datos de ejemplo si no hay datos reales
-                        renderExampleHealthcarePatients(recentPatientsContainer);
-                    }
-                })
-                .catch(error => {
-                    console.warn('Error al cargar pacientes recientes:', error);
-                    // Mostrar datos de ejemplo en caso de error
-                    renderExampleHealthcarePatients(recentPatientsContainer);
-                });
-        } else {
-            // Mostrar datos de ejemplo si no hay ID de cliente
-            renderExampleHealthcarePatients(recentPatientsContainer);
-        }
-    }
-}
-
-/**
- * Renderiza citas médicas de ejemplo
- */
-function renderExampleHealthcareAppointments(container) {
-    container.innerHTML = `
-        <ul class="list-group">
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold">09:00</span> - Juan Pérez
-                    <span class="badge bg-info text-white ms-2">Consulta</span>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-success me-1"><i class="fas fa-check"></i></button>
-                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-times"></i></button>
-                </div>
-            </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold">11:30</span> - María López
-                    <span class="badge bg-warning text-dark ms-2">Seguimiento</span>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-success me-1"><i class="fas fa-check"></i></button>
-                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-times"></i></button>
-                </div>
-            </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold">16:15</span> - Carlos Ruiz
-                    <span class="badge bg-danger text-white ms-2">Urgencia</span>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-success me-1"><i class="fas fa-check"></i></button>
-                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-times"></i></button>
-                </div>
-            </li>
-        </ul>
-    `;
-}
-
-/**
- * Renderiza pacientes recientes de ejemplo
- */
-function renderExampleHealthcarePatients(container) {
-    container.innerHTML = `
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Paciente</th>
-                        <th>Edad</th>
-                        <th>Última Visita</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Juan Pérez</td>
-                        <td>45</td>
-                        <td>10/07/2025</td>
-                        <td><span class="badge bg-success">Activo</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>María López</td>
-                        <td>32</td>
-                        <td>05/07/2025</td>
-                        <td><span class="badge bg-success">Activo</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Carlos Ruiz</td>
-                        <td>58</td>
-                        <td>13/07/2025</td>
-                        <td><span class="badge bg-warning">Seguimiento</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    `;
-}
-
-/**
- * Renderiza citas médicas reales
- */
-function renderHealthcareAppointments(appointments, container) {
-    let html = '<ul class="list-group">';
-    
-    appointments.forEach(appointment => {
-        // Determinar clase según tipo de cita
-        let badgeClass = '';
-        let badgeText = appointment.type || 'Consulta';
-        
-        switch (appointment.type ? appointment.type.toLowerCase() : '') {
-            case 'urgency':
-            case 'urgencia':
-                badgeClass = 'bg-danger text-white';
-                badgeText = 'Urgencia';
-                break;
-            case 'followup':
-            case 'seguimiento':
-                badgeClass = 'bg-warning text-dark';
-                badgeText = 'Seguimiento';
-                break;
-            case 'checkup':
-            case 'revisión':
-                badgeClass = 'bg-info text-white';
-                badgeText = 'Revisión';
-                break;
-            default:
-                badgeClass = 'bg-info text-white';
-                badgeText = 'Consulta';
-        }
-        
-        // Formatear hora
-        let time = '';
-        if (appointment.time) {
-            time = appointment.time;
-        } else if (appointment.date) {
-            const date = new Date(appointment.date);
-            time = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-        }
-        
-        html += `
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold">${time}</span> - ${appointment.patientName}
-                    <span class="badge ${badgeClass} ms-2">${badgeText}</span>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-success me-1" onclick="completeAppointment('${appointment.id}')"><i class="fas fa-check"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="cancelAppointment('${appointment.id}')"><i class="fas fa-times"></i></button>
-                </div>
-            </li>
-        `;
-    });
-    
-    html += '</ul>';
-    container.innerHTML = html;
-}
-
-/**
- * Renderiza pacientes reales
- */
-function renderHealthcarePatients(patients, container) {
-    let html = `
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Paciente</th>
-                        <th>Edad</th>
-                        <th>Última Visita</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-    
-    patients.forEach(patient => {
-        // Determinar estado del paciente
-        let statusClass = '';
-        let statusText = patient.status || 'Activo';
-        
-        switch (patient.status ? patient.status.toLowerCase() : '') {
-            case 'active':
-            case 'activo':
-                statusClass = 'bg-success';
-                statusText = 'Activo';
-                break;
-            case 'followup':
-            case 'seguimiento':
-                statusClass = 'bg-warning';
-                statusText = 'Seguimiento';
-                break;
-            case 'inactive':
-            case 'inactivo':
-                statusClass = 'bg-secondary';
-                statusText = 'Inactivo';
-                break;
-            default:
-                statusClass = 'bg-success';
-                statusText = 'Activo';
-        }
-        
-        // Formatear fecha de última visita
-        let lastVisit = '';
-        if (patient.lastVisit) {
-            const date = new Date(patient.lastVisit);
-            lastVisit = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-        }
-        
-        html += `
-            <tr>
-                <td>${patient.name}</td>
-                <td>${patient.age || '-'}</td>
-                <td>${lastVisit || '-'}</td>
-                <td><span class="badge ${statusClass}">${statusText}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewPatient('${patient.id}')"><i class="fas fa-eye"></i></button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    html += `
-                </tbody>
-            </table>
-        </div>
-    `;
-    
-    container.innerHTML = html;
-}
-
-/**
- * Carga datos inmobiliarios desde la API
- */
-function loadRealEstateData(config) {
-    console.log('Cargando datos inmobiliarios para:', config.companyName);
-    const clientId = config.clientId || config.id;
-    
-    // Cargar propiedades destacadas
-    const featuredPropertiesContainer = document.getElementById('featured-properties');
-    if (featuredPropertiesContainer) {
-        // Intentar cargar desde la API si está disponible
-        if (clientId) {
-            fetch(`/api/clients/${clientId}/realestate/properties/featured`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error al cargar propiedades destacadas');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data && data.properties && data.properties.length > 0) {
-                        renderRealEstateProperties(data.properties, featuredPropertiesContainer);
-                    } else {
-                        // Mostrar datos de ejemplo si no hay datos reales
-                        renderExampleRealEstateProperties(featuredPropertiesContainer);
-                    }
-                })
-                .catch(error => {
-                    console.warn('Error al cargar propiedades destacadas:', error);
-                    // Mostrar datos de ejemplo en caso de error
-                    renderExampleRealEstateProperties(featuredPropertiesContainer);
-                });
-        } else {
-            // Mostrar datos de ejemplo si no hay ID de cliente
-            renderExampleRealEstateProperties(featuredPropertiesContainer);
-        }
-    }
-    
-    // Cargar clientes potenciales
-    const potentialClientsContainer = document.getElementById('potential-clients');
-    if (potentialClientsContainer) {
-        // Intentar cargar desde la API si está disponible
-        if (clientId) {
-            fetch(`/api/clients/${clientId}/realestate/leads`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error al cargar clientes potenciales');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data && data.leads && data.leads.length > 0) {
-                        renderRealEstateLeads(data.leads, potentialClientsContainer);
-                    } else {
-                        // Mostrar datos de ejemplo si no hay datos reales
-                        renderExampleRealEstateLeads(potentialClientsContainer);
-                    }
-                })
-                .catch(error => {
-                    console.warn('Error al cargar clientes potenciales:', error);
-                    // Mostrar datos de ejemplo en caso de error
-                    renderExampleRealEstateLeads(potentialClientsContainer);
-                });
-        } else {
-            // Mostrar datos de ejemplo si no hay ID de cliente
-            renderExampleRealEstateLeads(potentialClientsContainer);
-        }
-    }
-}
-
-/**
- * Renderiza propiedades inmobiliarias de ejemplo
- */
-function renderExampleRealEstateProperties(container) {
-    container.innerHTML = `
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Propiedad">
-                    <div class="card-body">
-                        <h5 class="card-title">Apartamento en Centro</h5>
-                        <p class="card-text">2 hab, 1 baño, 75m²</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-success">En venta</span>
-                            <span class="fw-bold">€180,000</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i> Ver detalles</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Propiedad">
-                    <div class="card-body">
-                        <h5 class="card-title">Chalet en Zona Norte</h5>
-                        <p class="card-text">4 hab, 3 baños, 220m²</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-success">En venta</span>
-                            <span class="fw-bold">€350,000</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i> Ver detalles</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Propiedad">
-                    <div class="card-body">
-                        <h5 class="card-title">Estudio en Zona Universitaria</h5>
-                        <p class="card-text">1 hab, 1 baño, 45m²</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-info">En alquiler</span>
-                            <span class="fw-bold">€650/mes</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i> Ver detalles</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-/**
- * Renderiza clientes potenciales inmobiliarios de ejemplo
- */
-function renderExampleRealEstateLeads(container) {
-    container.innerHTML = `
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Interés</th>
-                        <th>Presupuesto</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <div>
-                                <span class="fw-bold">Ana Martínez</span>
-                                <div class="small text-muted">ana.martinez@email.com</div>
-                            </div>
-                        </td>
-                        <td>Apartamento 2 hab</td>
-                        <td>€150,000 - €200,000</td>
-                        <td><span class="badge bg-success">Activo</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
-                            <button class="btn btn-sm btn-outline-success"><i class="fas fa-phone"></i></button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div>
-                                <span class="fw-bold">Roberto Sánchez</span>
-                                <div class="small text-muted">roberto.sanchez@email.com</div>
-                            </div>
-                        </td>
-                        <td>Chalet 4+ hab</td>
-                        <td>€300,000 - €400,000</td>
-                        <td><span class="badge bg-warning">Pendiente</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
-                            <button class="btn btn-sm btn-outline-success"><i class="fas fa-phone"></i></button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div>
-                                <span class="fw-bold">Carmen López</span>
-                                <div class="small text-muted">carmen.lopez@email.com</div>
-                            </div>
-                        </td>
-                        <td>Local comercial</td>
-                        <td>€1,200 - €1,800/mes</td>
-                        <td><span class="badge bg-info">Nuevo</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
-                            <button class="btn btn-sm btn-outline-success"><i class="fas fa-phone"></i></button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    `;
-}
-
-/**
- * Renderiza propiedades inmobiliarias reales
- */
-function renderRealEstateProperties(properties, container) {
-    let html = '<div class="row">';
-    
-    properties.forEach(property => {
-        // Determinar tipo de propiedad (venta/alquiler)
-        let badgeClass = '';
-        let badgeText = '';
-        let priceText = '';
-        
-        if (property.forRent) {
-            badgeClass = 'bg-info';
-            badgeText = 'En alquiler';
-            priceText = `€${property.price || 0}/mes`;
-        } else {
-            badgeClass = 'bg-success';
-            badgeText = 'En venta';
-            priceText = `€${property.price || 0}`;
-        }
-        
-        // Formatear descripción de la propiedad
-        const rooms = property.rooms || 0;
-        const bathrooms = property.bathrooms || 0;
-        const area = property.area || 0;
-        const description = `${rooms} hab, ${bathrooms} baño${bathrooms !== 1 ? 's' : ''}, ${area}m²`;
-        
-        // Imagen por defecto si no hay
-        const imageUrl = property.imageUrl || 'https://via.placeholder.com/300x200';
-        
-        html += `
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <img src="${imageUrl}" class="card-img-top" alt="${property.title || 'Propiedad'}">
-                    <div class="card-body">
-                        <h5 class="card-title">${property.title || 'Propiedad sin título'}</h5>
-                        <p class="card-text">${description}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge ${badgeClass}">${badgeText}</span>
-                            <span class="fw-bold">${priceText}</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-sm btn-outline-primary" onclick="viewProperty('${property.id}')"><i class="fas fa-eye"></i> Ver detalles</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-/**
- * Renderiza clientes potenciales inmobiliarios reales
- */
-function renderRealEstateLeads(leads, container) {
-    let html = `
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Interés</th>
-                        <th>Presupuesto</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-    
-    leads.forEach(lead => {
-        // Determinar estado del cliente potencial
-        let statusClass = '';
-        let statusText = lead.status || 'Nuevo';
-        
-        switch (lead.status ? lead.status.toLowerCase() : '') {
-            case 'active':
-            case 'activo':
-                statusClass = 'bg-success';
-                statusText = 'Activo';
-                break;
-            case 'pending':
-            case 'pendiente':
-                statusClass = 'bg-warning';
-                statusText = 'Pendiente';
-                break;
-            case 'new':
-            case 'nuevo':
-                statusClass = 'bg-info';
-                statusText = 'Nuevo';
-                break;
-            case 'closed':
-            case 'cerrado':
-                statusClass = 'bg-secondary';
-                statusText = 'Cerrado';
-                break;
-            default:
-                statusClass = 'bg-info';
-                statusText = 'Nuevo';
-        }
-        
-        // Formatear presupuesto
-        let budget = '';
-        if (lead.budgetMin && lead.budgetMax) {
-            if (lead.forRent) {
-                budget = `€${lead.budgetMin} - €${lead.budgetMax}/mes`;
-            } else {
-                budget = `€${lead.budgetMin} - €${lead.budgetMax}`;
-            }
-        } else if (lead.budget) {
-            if (lead.forRent) {
-                budget = `€${lead.budget}/mes`;
-            } else {
-                budget = `€${lead.budget}`;
-            }
-        } else {
-            budget = 'No especificado';
-        }
-        
-        html += `
-            <tr>
-                <td>
-                    <div>
-                        <span class="fw-bold">${lead.name || 'Cliente sin nombre'}</span>
-                        <div class="small text-muted">${lead.email || ''}</div>
-                    </div>
-                </td>
-                <td>${lead.interest || 'No especificado'}</td>
-                <td>${budget}</td>
-                <td><span class="badge ${statusClass}">${statusText}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewLead('${lead.id}')"><i class="fas fa-eye"></i></button>
-                    <button class="btn btn-sm btn-outline-success" onclick="contactLead('${lead.id}')"><i class="fas fa-phone"></i></button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    html += `
-                </tbody>
-            </table>
-        </div>
-    `;
-    
-    container.innerHTML = html;
-}
-
-/**
- * Genera una tabla HTML para mostrar reservas
- */
-function generarTablaReservas(reservations) {
-    let html = '<div class="table-responsive"><table class="table table-hover">';
-    html += '<thead><tr><th>Hora</th><th>Cliente</th><th>Personas</th><th>Teléfono</th><th>Estado</th><th>Acciones</th></tr></thead>';
-    html += '<tbody>';
-    
-    reservations.forEach(reservation => {
-        html += `
-            <tr>
-                <td>${reservation.time}</td>
-                <td>${reservation.clientName}</td>
-                <td>${reservation.peopleCount}</td>
-                <td>${reservation.phone}</td>
-                <td><span class="badge bg-${getReservationBadgeClass(reservation.status)}">${reservation.status}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="viewReservationDetails(${reservation.id})">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-success" onclick="confirmReservation(${reservation.id})">
-                        <i class="fas fa-check"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    html += '</tbody></table></div>';
-    return html;
-}
-
-/**
- * Genera una tabla HTML para mostrar citas
- */
-function generarTablaCitas(appointments) {
-    let html = '<div class="table-responsive"><table class="table table-hover">';
-    html += '<thead><tr><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Duración</th><th>Estado</th><th>Acciones</th></tr></thead>';
-    html += '<tbody>';
-    
-    appointments.forEach(appointment => {
-        html += `
-            <tr>
-                <td>${appointment.time}</td>
-                <td>${appointment.clientName}</td>
-                <td>${appointment.serviceName}</td>
-                <td>${appointment.duration} min</td>
-                <td><span class="badge bg-${getAppointmentBadgeClass(appointment.status)}">${appointment.status}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="viewAppointmentDetails(${appointment.id})">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-success" onclick="completeAppointment(${appointment.id})">
-                        <i class="fas fa-check"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    html += '</tbody></table></div>';
-    return html;
-}
-
-/**
- * Genera una tabla HTML para mostrar ventas
- */
-function generarTablaVentas(sales) {
-    let html = '<div class="table-responsive"><table class="table table-hover">';
-    html += '<thead><tr><th>ID</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Total</th><th>Acciones</th></tr></thead>';
-    html += '<tbody>';
-    
-    sales.forEach(sale => {
-        html += `
-            <tr>
-                <td>#${sale.id}</td>
-                <td>${sale.date}</td>
-                <td>${sale.clientName || 'Cliente anónimo'}</td>
-                <td>${sale.itemCount} productos</td>
-                <td>${sale.total.toFixed(2)} €</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewSaleDetails(${sale.id})">
-                        <i class="fas fa-receipt"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    html += '</tbody></table></div>';
-    return html;
-}
-
-/**
- * Muestra un mensaje de error en un contenedor
- * @param {HTMLElement} container - Contenedor donde mostrar el error
- * @param {Error|string} error - Error o mensaje de error
- * @param {string} tipo - Tipo de contenido que falló (ej: 'inventario', 'ventas')
- * @param {Function|null} retryFunction - Función para reintentar la carga, o null si no hay reintento
- */
-function mostrarError(container, error, tipo, retryFunction) {
-    console.error(`Error al cargar ${tipo}:`, error);
-    
-    // Construir mensaje de error
-    let errorMessage = `
-        <div class="alert alert-danger" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            Error al cargar ${tipo}: ${error.message || error}
-        </div>
-    `;
-    
-    // Añadir botón de reintento solo si hay función de reintento
-    if (retryFunction && typeof retryFunction === 'function') {
-        errorMessage += `
-            <button class="btn btn-outline-primary mt-2" id="retry-${tipo}">
-                <i class="fas fa-sync-alt me-2"></i>Reintentar
-            </button>
-        `;
-    }
-    
-    // Actualizar contenido del contenedor
-    container.innerHTML = errorMessage;
-    
-    // Añadir event listener al botón de reintento si existe
-    if (retryFunction && typeof retryFunction === 'function') {
-        const retryButton = document.getElementById(`retry-${tipo}`);
-        if (retryButton) {
-            retryButton.addEventListener('click', () => {
-                console.log(`Reintentando carga de ${tipo}...`);
-                container.innerHTML = `
-                    <div class="text-center py-3">
-                        <div class="spinner-border" role="status"></div>
-                        <p class="mt-2 text-muted">Reintentando cargar ${tipo}...</p>
-                    </div>
-                `;
-                setTimeout(() => retryFunction(), 500);
-            });
-        }
-    }
-    
-    // Notificar al usuario
-    toastr.error(`Error al cargar ${tipo}. Consulta la consola para más detalles.`, 'Error');
-}
-
-/**
- * Devuelve la clase CSS para el badge según el estado del pedido
- */
-function getStatusBadgeClass(status) {
-    switch(status.toLowerCase()) {
-        case 'pending': return 'warning';
-        case 'preparing': return 'info';
-        case 'ready': return 'primary';
-        case 'delivered': return 'success';
-        case 'cancelled': return 'danger';
-        default: return 'secondary';
-    }
-}
-
-/**
- * Devuelve la clase CSS para el badge según el estado de la reserva
- */
-function getReservationBadgeClass(status) {
-    switch(status.toLowerCase()) {
-        case 'confirmed': return 'success';
-        case 'pending': return 'warning';
-        case 'cancelled': return 'danger';
-        case 'completed': return 'info';
-        default: return 'secondary';
-    }
-}
-
-/**
- * Devuelve la clase CSS para el badge según el estado de la cita
- */
-function getAppointmentBadgeClass(status) {
-    switch(status.toLowerCase()) {
-        case 'confirmed': return 'success';
-        case 'pending': return 'warning';
-        case 'cancelled': return 'danger';
-        case 'completed': return 'info';
-        case 'in_progress': return 'primary';
-        default: return 'secondary';
-    }
-}
-
-/**
- * Adapta opciones de menú según el sector empresarial
- */
-function adaptMenuOptions(config) {
-    const menuContainer = document.getElementById('sector-specific-menu');
-    if (!menuContainer) return;
-    
-    const sector = config.businessSector || 'generic';
-    let menuHTML = '';
-    
-    // Generar opciones de menú específicas por sector
-    switch(sector) {
-        case 'restaurant':
-            menuHTML = `
-                <a href="#orders" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
-                    <i class="fas fa-utensils me-2"></i> Pedidos
-                </a>
-                <a href="#reservations" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
-                    <i class="fas fa-calendar-alt me-2"></i> Reservas
-                </a>
-            `;
-            break;
-        case 'beauty':
-            menuHTML = `
-                <a href="#appointments" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
-                    <i class="fas fa-calendar-check me-2"></i> Citas
-                </a>
-                <a href="#services" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
-                    <i class="fas fa-cut me-2"></i> Servicios
-                </a>
-            `;
-            break;
-        case 'retail':
-            menuHTML = `
-                <a href="#inventory" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
-                    <i class="fas fa-boxes me-2"></i> Inventario
-                </a>
-                <a href="#sales" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab">
-                    <i class="fas fa-shopping-cart me-2"></i> Ventas
-                </a>
-            `;
-            break;
-    }
-    
-    menuContainer.innerHTML = menuHTML;
-}
-
-/**
- * Actualiza el título del dashboard
- */
-function updateDashboardTitle(companyName) {
-    const dashboardTitle = document.getElementById('dashboard-title');
-    if (dashboardTitle) {
-        dashboardTitle.textContent = `${companyName} - Dashboard`;
-    }
-    
-    const companyNameElement = document.getElementById('company-name');
-    if (companyNameElement) {
-        companyNameElement.textContent = companyName;
-    }
-}
-
-/**
- * Actualiza la información general de la empresa en el panel principal
- */
-function updateCompanyOverview(config) {
-    console.log('Actualizando información general de la empresa');
-    
-    const overviewContainer = document.getElementById('company-overview');
-    if (!overviewContainer) {
-        console.warn('No se encontró el contenedor de información general');
-        return;
-    }
-    
-    // Formatear la información de la empresa
-    const industry = config.industry || 'No especificada';
-    const employees = config.employees || 'No especificado';
-    const foundedYear = config.foundedYear || 'No especificado';
-    
-    // Crear HTML para la información general
-    const overviewHTML = `
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0"><i class="fas fa-building me-2"></i>Información de la Empresa</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Nombre:</strong> ${config.companyName || 'No especificado'}</p>
-                        <p><strong>Industria:</strong> ${industry}</p>
-                        <p><strong>Empleados:</strong> ${employees}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Fundada:</strong> ${foundedYear}</p>
-                        <p><strong>Sitio Web:</strong> ${config.website || 'No especificado'}</p>
-                        <p><strong>Email:</strong> ${config.email || 'No especificado'}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Actualizar el contenedor
-    overviewContainer.innerHTML = overviewHTML;
-}
-
-/**
- * Muestra un error de configuración en el dashboard
- */
-function showConfigurationError(message) {
-    const overviewContainer = document.getElementById('company-overview');
-    if (!overviewContainer) {
-        console.warn('No se encontró el contenedor de información general');
-        return;
-    }
-    
-    const errorHTML = `
-        <div class="alert alert-danger" role="alert">
-            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Error de Configuración</h4>
-            <p>${message}</p>
-            <hr>
-            <p class="mb-0">Por favor, completa la <a href="company-setup.html" class="alert-link">configuración inicial</a> para continuar.</p>
-        </div>
-    `;
-    
-    overviewContainer.innerHTML = errorHTML;
-    toastr.error(message, 'Error de Configuración');
-}
-
-/**
- * Carga la configuración del bot en el dashboard
- */
-function loadBotConfiguration(botConfig) {
-    console.log('Cargando configuración del bot:', botConfig);
-    
-    const botConfigContainer = document.getElementById('bot-config-content');
-    if (!botConfigContainer) {
-        console.warn('No se encontró el contenedor de configuración del bot');
-        return;
-    }
-    
-    try {
-        // Si botConfig es un string JSON, parsearlo
-        const config = typeof botConfig === 'string' ? JSON.parse(botConfig) : botConfig;
-        
-        // Crear HTML para la configuración del bot
-        const botHTML = `
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Configuración del Asistente AI</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <p><strong>Nombre del Bot:</strong> ${config.botName || 'Asistente AI'}</p>
-                            <p><strong>Personalidad:</strong> ${config.botPersonality || 'Profesional'}</p>
-                            <p><strong>Idioma:</strong> ${config.botLanguage || 'Español'}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Activo:</strong> ${config.botActive ? 'Sí' : 'No'}</p>
-                            <p><strong>Modo:</strong> ${config.botMode || 'Estándar'}</p>
-                            <p><strong>Último entrenamiento:</strong> ${config.lastTraining || 'No entrenado'}</p>
-                        </div>
-                    </div>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <button class="btn btn-primary" type="button">
-                            <i class="fas fa-cog me-2"></i>Editar Configuración
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Actualizar el contenedor
-        botConfigContainer.innerHTML = botHTML;
+        console.log('Datos del agente de IA cargados correctamente');
+        toastr.success('Dashboard cargado correctamente', 'Éxito');
         
     } catch (error) {
-        console.error('Error al cargar la configuración del bot:', error);
-        botConfigContainer.innerHTML = `
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                Error al cargar la configuración del bot. Por favor, revisa la configuración.
+        console.error('Error al cargar datos del agente de IA:', error);
+        toastr.error('Error al cargar los datos', 'Error');
+        
+        // Cargar datos de ejemplo como fallback
+        loadCallAnalyticsData();
+        loadEmailAnalyticsData();
+        loadAITrainingData();
+    }
+}
+
+/**
+ * Carga datos de ejemplo para análisis de llamadas
+ */
+function loadCallAnalyticsData() {
+    // Actualizar métricas de llamadas
+    const totalCalls = document.getElementById('total-calls');
+    const successfulCalls = document.getElementById('successful-calls');
+    const avgDuration = document.getElementById('avg-duration');
+    const satisfactionRate = document.getElementById('satisfaction-rate');
+    
+    if (totalCalls) totalCalls.textContent = '1,247';
+    if (successfulCalls) successfulCalls.textContent = '1,089';
+    if (avgDuration) avgDuration.textContent = '4:32';
+    if (satisfactionRate) satisfactionRate.textContent = '87%';
+    
+    // Actualizar gráfico de historial de llamadas
+    const callHistoryChart = document.getElementById('call-history-chart');
+    if (callHistoryChart) {
+        callHistoryChart.innerHTML = `
+            <div class="bg-light p-3 rounded">
+                <p class="text-center mb-3"><strong>Historial de llamadas - Últimos 7 días</strong></p>
+                <div class="d-flex justify-content-between align-items-end" style="height: 200px;">
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-primary rounded-top" style="width: 100%; height: 60%;"></div>
+                        <small class="mt-2">Lun</small>
+                        <small>45</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-primary rounded-top" style="width: 100%; height: 80%;"></div>
+                        <small class="mt-2">Mar</small>
+                        <small>62</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-primary rounded-top" style="width: 100%; height: 90%;"></div>
+                        <small class="mt-2">Mié</small>
+                        <small>71</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-primary rounded-top" style="width: 100%; height: 70%;"></div>
+                        <small class="mt-2">Jue</small>
+                        <small>53</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-primary rounded-top" style="width: 100%; height: 100%;"></div>
+                        <small class="mt-2">Vie</small>
+                        <small>89</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-primary rounded-top" style="width: 100%; height: 40%;"></div>
+                        <small class="mt-2">Sáb</small>
+                        <small>31</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-primary rounded-top" style="width: 100%; height: 30%;"></div>
+                        <small class="mt-2">Dom</small>
+                        <small>23</small>
+                    </div>
+                </div>
             </div>
         `;
     }
 }
 
 /**
- * Carga la configuración de email en el dashboard
+ * Carga datos de ejemplo para análisis de emails
  */
-function loadEmailConfiguration(emailConfig) {
-    console.log('Cargando configuración de email:', emailConfig);
+function loadEmailAnalyticsData() {
+    // Actualizar métricas de emails
+    const totalEmails = document.getElementById('total-emails');
+    const responseRate = document.getElementById('response-rate');
+    const avgResponseTime = document.getElementById('avg-response-time');
+    const emailSatisfaction = document.getElementById('email-satisfaction');
     
-    const emailConfigContainer = document.getElementById('email-config-content');
-    if (!emailConfigContainer) {
-        console.warn('No se encontró el contenedor de configuración de email');
-        return;
-    }
+    if (totalEmails) totalEmails.textContent = '2,341';
+    if (responseRate) responseRate.textContent = '94%';
+    if (avgResponseTime) avgResponseTime.textContent = '2.3h';
+    if (emailSatisfaction) emailSatisfaction.textContent = '91%';
     
-    try {
-        // Si emailConfig es un string JSON, parsearlo
-        const config = typeof emailConfig === 'string' ? JSON.parse(emailConfig) : emailConfig;
-        
-        // Crear HTML para la configuración de email
-        const emailHTML = `
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Configuración de Email</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <p><strong>Email Principal:</strong> ${config.primaryEmail || 'No configurado'}</p>
-                            <p><strong>Plantilla:</strong> ${config.emailTemplate || 'Estándar'}</p>
-                            <p><strong>Firma:</strong> ${config.emailSignature ? 'Configurada' : 'No configurada'}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Respuesta Automática:</strong> ${config.autoReply ? 'Activada' : 'Desactivada'}</p>
-                            <p><strong>Reenvío:</strong> ${config.forwardTo || 'No configurado'}</p>
-                            <p><strong>Integración:</strong> ${config.emailIntegration || 'No configurada'}</p>
-                        </div>
+    // Actualizar gráfico de historial de emails
+    const emailHistoryChart = document.getElementById('email-history-chart');
+    if (emailHistoryChart) {
+        emailHistoryChart.innerHTML = `
+            <div class="bg-light p-3 rounded">
+                <p class="text-center mb-3"><strong>Historial de emails - Últimos 7 días</strong></p>
+                <div class="d-flex justify-content-between align-items-end" style="height: 200px;">
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-success rounded-top" style="width: 100%; height: 70%;"></div>
+                        <small class="mt-2">Lun</small>
+                        <small>156</small>
                     </div>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <button class="btn btn-primary" type="button">
-                            <i class="fas fa-cog me-2"></i>Editar Configuración
-                        </button>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-success rounded-top" style="width: 100%; height: 85%;"></div>
+                        <small class="mt-2">Mar</small>
+                        <small>189</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-success rounded-top" style="width: 100%; height: 100%;"></div>
+                        <small class="mt-2">Mié</small>
+                        <small>234</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-success rounded-top" style="width: 100%; height: 80%;"></div>
+                        <small class="mt-2">Jue</small>
+                        <small>178</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-success rounded-top" style="width: 100%; height: 90%;"></div>
+                        <small class="mt-2">Vie</small>
+                        <small>201</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-success rounded-top" style="width: 100%; height: 60%;"></div>
+                        <small class="mt-2">Sáb</small>
+                        <small>134</small>
+                    </div>
+                    <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                        <div class="bg-success rounded-top" style="width: 100%; height: 50%;"></div>
+                        <small class="mt-2">Dom</small>
+                        <small>112</small>
                     </div>
                 </div>
-            </div>
-        `;
-        
-        // Actualizar el contenedor
-        emailConfigContainer.innerHTML = emailHTML;
-        
-    } catch (error) {
-        console.error('Error al cargar la configuración de email:', error);
-        emailConfigContainer.innerHTML = `
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                Error al cargar la configuración de email. Por favor, revisa la configuración.
             </div>
         `;
     }
 }
 
 /**
- * Carga la configuración de notificaciones en el dashboard
+ * Carga datos de ejemplo para entrenamiento IA
  */
-function loadNotificationConfiguration(notificationConfig) {
-    console.log('Cargando configuración de notificaciones:', notificationConfig);
+function loadAITrainingData() {
+    // Actualizar métricas de entrenamiento
+    const modelAccuracy = document.getElementById('model-accuracy');
+    const trainingSamples = document.getElementById('training-samples');
+    const lastTraining = document.getElementById('last-training');
     
-    const notificationConfigContainer = document.getElementById('notification-config-content');
-    if (!notificationConfigContainer) {
-        console.warn('No se encontró el contenedor de configuración de notificaciones');
-        return;
-    }
+    if (modelAccuracy) modelAccuracy.textContent = '92%';
+    if (trainingSamples) trainingSamples.textContent = '15,432';
+    if (lastTraining) lastTraining.textContent = 'Hace 2 días';
     
-    try {
-        // Si notificationConfig es un string JSON, parsearlo
-        const config = typeof notificationConfig === 'string' ? JSON.parse(notificationConfig) : notificationConfig;
-        
-        // Crear HTML para la configuración de notificaciones
-        const notificationHTML = `
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Configuración de Notificaciones</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <p><strong>Email:</strong> ${config.emailNotifications ? 'Activadas' : 'Desactivadas'}</p>
-                            <p><strong>SMS:</strong> ${config.smsNotifications ? 'Activadas' : 'Desactivadas'}</p>
-                            <p><strong>Push:</strong> ${config.pushNotifications ? 'Activadas' : 'Desactivadas'}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Frecuencia:</strong> ${config.notificationFrequency || 'Inmediata'}</p>
-                            <p><strong>Horario:</strong> ${config.notificationSchedule || 'Todo el día'}</p>
-                            <p><strong>Prioridad:</strong> ${config.notificationPriority || 'Normal'}</p>
-                        </div>
+    // Actualizar progreso de entrenamiento
+    const trainingProgress = document.getElementById('training-progress');
+    if (trainingProgress) {
+        trainingProgress.innerHTML = `
+            <div class="bg-light p-3 rounded">
+                <p class="text-center mb-3"><strong>Progreso del modelo</strong></p>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Precisión del modelo</span>
+                        <span>92%</span>
                     </div>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <button class="btn btn-primary" type="button">
-                            <i class="fas fa-cog me-2"></i>Editar Configuración
-                        </button>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" style="width: 92%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Datos de entrenamiento</span>
+                        <span>78%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-info" style="width: 78%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Validación cruzada</span>
+                        <span>85%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-warning" style="width: 85%"></div>
                     </div>
                 </div>
             </div>
         `;
-        
-        // Actualizar el contenedor
-        notificationConfigContainer.innerHTML = notificationHTML;
-        
-    } catch (error) {
-        console.error('Error al cargar la configuración de notificaciones:', error);
-        notificationConfigContainer.innerHTML = `
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                Error al cargar la configuración de notificaciones. Por favor, revisa la configuración.
-            </div>
-        `;
     }
-}}
+}
+
+// Cerrar la función principal initializeDynamicDashboard
+}
