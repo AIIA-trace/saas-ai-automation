@@ -11,42 +11,143 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Función para limpiar caché y forzar recarga de recursos
+ */
+function clearCacheAndReload() {
+    console.log('Limpiando caché y forzando recarga...');
+    
+    // Limpiar localStorage excepto token de autenticación
+    const authToken = localStorage.getItem('auth_token');
+    const userData = localStorage.getItem('user_data');
+    
+    localStorage.clear();
+    
+    // Restaurar token y datos de usuario
+    if (authToken) localStorage.setItem('auth_token', authToken);
+    if (userData) localStorage.setItem('user_data', userData);
+    
+    // Forzar recarga sin caché
+    window.location.reload(true);
+}
+
+/**
  * Inicializa el dashboard dinámico cargando la configuración de la empresa
  * y adaptando el contenido según el sector empresarial
  */
+/**
+ * Muestra un mensaje de error global en el dashboard
+ * @param {string} titulo - Título del error
+ * @param {string} mensaje - Mensaje detallado del error
+ * @param {Function|null} retryFunction - Función para reintentar, o null si no hay reintento
+ */
+function mostrarErrorGlobal(titulo, mensaje, retryFunction) {
+    console.error(`ERROR GLOBAL: ${titulo} - ${mensaje}`);
+    
+    // Mostrar notificación toast
+    toastr.error(mensaje, titulo);
+    
+    // Mostrar mensaje de error en el contenido principal
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'alert alert-danger';
+        
+        let htmlContent = `
+            <h4><i class="fas fa-exclamation-triangle me-2"></i>${titulo}</h4>
+            <p>${mensaje}</p>
+        `;
+        
+        // Añadir botón de reintento si hay función
+        if (retryFunction && typeof retryFunction === 'function') {
+            htmlContent += `
+                <button class="btn btn-primary retry-action">
+                    <i class="fas fa-sync-alt me-2"></i>Reintentar
+                </button>
+            `;
+        }
+        
+        errorMessage.innerHTML = htmlContent;
+        mainContent.prepend(errorMessage);
+        
+        // Configurar evento de reintento
+        if (retryFunction && typeof retryFunction === 'function') {
+            const retryButton = errorMessage.querySelector('.retry-action');
+            if (retryButton) {
+                retryButton.addEventListener('click', retryFunction);
+            }
+        }
+    }
+}
+
 function initializeDynamicDashboard() {
     console.log('=== INICIALIZANDO DASHBOARD DINÁMICO ===');
     console.log('Verificando token de autenticación...');
     
-    // Verificar que tenemos un token de autenticación
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-        console.error('No hay token de autenticación. Redirigiendo al login...');
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 1000);
+    // Verificar que API_CONFIG está disponible
+    if (typeof window.API_CONFIG === 'undefined') {
+        console.error('API_CONFIG no está disponible');
+        // Intentar cargar api-config.js dinámicamente
+        const script = document.createElement('script');
+        script.src = 'js/api-config.js';
+        script.onload = () => {
+            console.log('API_CONFIG cargado dinámicamente');
+            continueInitialization();
+        };
+        script.onerror = () => {
+            mostrarErrorGlobal('Error de configuración', 'No se pudo cargar la configuración de la API', () => {
+                window.location.reload();
+            });
+        };
+        document.head.appendChild(script);
         return;
     }
     
-    console.log('Token encontrado. Mostrando indicador de carga...');
+    continueInitialization();
     
-    // Mostrar indicador de carga
-    const loadingIndicator = document.getElementById('loading-overview');
-    if (loadingIndicator) {
-        loadingIndicator.classList.remove('d-none');
-    } else {
-        console.warn('No se encontró el indicador de carga (loading-overview)');
-    }
-    
-    // Mostrar mensaje de carga
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-        const loadingMessage = document.createElement('div');
-        loadingMessage.id = 'loading-message';
-        loadingMessage.className = 'alert alert-info text-center';
-        loadingMessage.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Cargando tu dashboard personalizado...';
-        mainContent.prepend(loadingMessage);
-    }
+    function continueInitialization() {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            console.error('No hay token de autenticación. Redirigiendo al login...');
+            mostrarErrorGlobal('No hay token de autenticación', 'Redirigiendo a la página de login...', () => {
+                window.location.href = 'login.html';
+            });
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+            return;
+        }
+        
+        // Cargar script de keep-alive para mantener el backend activo
+        if (!window.keepAliveLoaded) {
+            console.log('Cargando script de keep-alive...');
+            const keepAliveScript = document.createElement('script');
+            keepAliveScript.src = 'js/keep-alive.js';
+            keepAliveScript.onload = () => {
+                console.log('Script de keep-alive cargado correctamente');
+                window.keepAliveLoaded = true;
+            };
+            document.head.appendChild(keepAliveScript);
+        }
+        
+        console.log('Token encontrado. Mostrando indicador de carga...');
+        
+        // Mostrar indicador de carga
+        const loadingIndicator = document.getElementById('loading-overview');
+        if (loadingIndicator) {
+            loadingIndicator.classList.remove('d-none');
+        } else {
+            console.warn('No se encontró el indicador de carga (loading-overview)');
+        }
+        
+        // Mostrar mensaje de carga
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            const loadingMessage = document.createElement('div');
+            loadingMessage.id = 'loading-message';
+            loadingMessage.className = 'alert alert-info text-center';
+            loadingMessage.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Cargando tu dashboard personalizado...';
+            mainContent.prepend(loadingMessage);
+        }
     
     console.log('Obteniendo configuración de la empresa...');
     
@@ -135,11 +236,31 @@ async function getCompanyConfig() {
         console.log('=== INICIANDO CARGA DE CONFIGURACIÓN DE EMPRESA ===');
         console.log('Verificando dependencias...');
         
-        // Verificar que API_CONFIG y authService estén disponibles
-        if (!window.API_CONFIG) {
-            console.error('ERROR CRÍTICO: API_CONFIG no está disponible');
-            toastr.error('Error de configuración: API_CONFIG no disponible', 'Error');
-            throw new Error('Configuración de API no disponible');
+        // Verificar que API_CONFIG está disponible
+        if (typeof window.API_CONFIG === 'undefined') {
+            console.error('API_CONFIG no está disponible en window');
+            
+            // Intentar cargar API_CONFIG desde el script
+            const script = document.createElement('script');
+            script.src = '/js/api-config.js';
+            document.head.appendChild(script);
+            
+            // Esperar a que se cargue el script
+            await new Promise((resolve) => {
+                script.onload = resolve;
+                script.onerror = () => {
+                    console.error('No se pudo cargar api-config.js');
+                    toastr.error('Error de configuración: No se pudo cargar API_CONFIG', 'Error');
+                    resolve();
+                };
+            });
+            
+            // Verificar nuevamente
+            if (typeof window.API_CONFIG === 'undefined') {
+                console.error('API_CONFIG sigue sin estar disponible después de cargar el script');
+                toastr.error('Error de configuración: API_CONFIG no disponible', 'Error');
+                return null;
+            }
         } else {
             console.log('✓ API_CONFIG disponible');
             console.log('API Base URL:', API_CONFIG.apiBaseUrl);
@@ -169,16 +290,54 @@ async function getCompanyConfig() {
         }
         
         console.log('Obteniendo perfil de usuario desde la API...');
-        console.log('URL de la petición:', API_CONFIG.getFullUrl('/api/profile'));
+        console.log('URL de la petición:', API_CONFIG.getFullUrl(API_CONFIG.AUTH.ME));
         
-        // Obtener perfil de usuario que incluye la configuración de la empresa
-        const response = await fetch(API_CONFIG.getFullUrl('/api/profile'), {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+        // Intentar obtener la configuración desde la API
+        console.log('Obteniendo configuración desde API...');
+        console.log('URL:', window.API_CONFIG.getFullUrl(API_CONFIG.AUTH.ME));
+        
+        // Intentar cargar desde localStorage primero como fallback
+        let cachedConfig = null;
+        try {
+            const cachedConfigStr = localStorage.getItem('companyConfig');
+            if (cachedConfigStr) {
+                cachedConfig = JSON.parse(cachedConfigStr);
+                console.log('Configuración encontrada en cache:', cachedConfig);
             }
-        });
+        } catch (cacheError) {
+            console.warn('Error al cargar configuración desde cache:', cacheError);
+        }
+        
+        // Intentar obtener desde el backend con timeout
+        let response;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos de timeout
+            
+            response = await fetch(window.API_CONFIG.getFullUrl(API_CONFIG.AUTH.ME), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+        } catch (fetchError) {
+            console.error('Error de conexión al cargar configuración:', fetchError);
+            mostrarErrorGlobal('Error de conexión', 'No se pudo conectar con el servidor. Usando configuración local si está disponible.', () => {
+                window.location.reload();
+            });
+            
+            // Si tenemos configuración en cache, usarla como fallback
+            if (cachedConfig) {
+                console.log('Usando configuración de cache como fallback');
+                return cachedConfig;
+            }
+            
+            throw new Error('Error de conexión al cargar configuración');
+        }
         
         console.log('Respuesta recibida. Status:', response.status);
         
@@ -959,6 +1118,19 @@ function adaptOtherContext(config) {
             return;
         }
         
+        // Añadir botón de recarga y limpieza de caché en la parte superior
+        const dashboardHeader = document.querySelector('.dashboard-header');
+        if (dashboardHeader) {
+            const reloadButton = document.createElement('button');
+            reloadButton.className = 'btn btn-outline-secondary ms-2';
+            reloadButton.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Recargar datos';
+            reloadButton.title = 'Limpiar caché y recargar datos';
+            reloadButton.addEventListener('click', clearCacheAndReload);
+            
+            // Añadir el botón al final del header
+            dashboardHeader.appendChild(reloadButton);
+        }
+        
         // Mostrar mensaje de carga
         tabsContainer.innerHTML = `
             <div class="text-center py-3">
@@ -971,7 +1143,7 @@ function adaptOtherContext(config) {
         setTimeout(() => {
             tabsContainer.innerHTML = `
                 <!-- Pestaña de Proyectos -->
-                <div class="tab-pane fade" id="projects">
+                <div class="tab-pane fade show active" id="projects">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2><i class="fas fa-project-diagram me-2"></i>Gestión de Proyectos</h2>
                         <button class="btn btn-primary" id="new-project-btn">
@@ -1049,7 +1221,7 @@ function adaptOtherContext(config) {
                 // Limpiar pestañas existentes
                 navTabs.innerHTML = '';
                 
-                // Crear nuevas pestañas
+                // Añadir pestañas para el sector "otro"
                 const tabs = [
                     { id: 'projects', icon: 'project-diagram', text: 'Proyectos' },
                     { id: 'tasks', icon: 'tasks', text: 'Tareas' },
@@ -1107,17 +1279,147 @@ function adaptOtherContext(config) {
  */
 function loadOtherData(config) {
     console.log('=== CARGANDO DATOS PARA SECTOR "OTRO" ===');
+    console.log('Configuración recibida:', config);
     
     try {
-        // Cargar proyectos de ejemplo
+        // Verificar que tenemos el ID del cliente
+        const clientId = config.clientId || config.id;
+        if (!clientId) {
+            console.error('No se encontró ID de cliente en la configuración');
+            toastr.error('Error al cargar datos: ID de cliente no encontrado', 'Error');
+            return;
+        }
+        
+        console.log('ID de cliente:', clientId);
+        
+        // Obtener token de autenticación
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            console.error('No hay token de autenticación');
+            toastr.error('No hay sesión activa', 'Error');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+            return;
+        }
+        
+        // Función para cargar datos con manejo de errores y reintentos
+        async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos de timeout
+                
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Token inválido, redirigir al login
+                        localStorage.removeItem('auth_token');
+                        toastr.error('Tu sesión ha expirado', 'Error');
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 2000);
+                        throw new Error('Sesión expirada');
+                    }
+                    
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                
+                return response;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.error('Timeout al cargar datos');
+                    toastr.warning('La conexión está tardando demasiado. Reintentando...', 'Timeout');
+                } else {
+                    console.error('Error al cargar datos:', error);
+                }
+                
+                if (retries > 0) {
+                    console.log(`Reintentando en ${delay}ms. Intentos restantes: ${retries}`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(url, options, retries - 1, delay * 2);
+                }
+                
+                throw error;
+            }
+        }
+        
+        // Cargar proyectos
         const projectsContainer = document.getElementById('active-projects');
         if (projectsContainer) {
-            setTimeout(() => {
+            projectsContainer.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando proyectos...</p>
+                </div>
+            `;
+            
+            // Intentar cargar proyectos desde la API
+            fetchWithRetry(
+                API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.PROJECTS, clientId)),
+                {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            )
+            .then(response => response.json())
+            .then(data => {
+                console.log('Proyectos cargados:', data);
+                
+                if (data && data.length > 0) {
+                    // Mostrar proyectos reales
+                    let projectsHTML = '<div class="list-group">';
+                    
+                    data.forEach(project => {
+                        projectsHTML += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">${project.name || 'Proyecto sin nombre'}</h6>
+                                    <p class="text-muted small mb-0">${project.dueDate ? 'Fecha límite: ' + project.dueDate : 'Sin fecha límite'}</p>
+                                </div>
+                                <span class="badge bg-${getStatusBadge(project.status)} rounded-pill">${project.status || 'Pendiente'}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    projectsHTML += '</div>';
+                    projectsContainer.innerHTML = projectsHTML;
+                } else {
+                    // Mostrar mensaje de no hay proyectos
+                    projectsContainer.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No hay proyectos</strong><br>
+                            No se encontraron proyectos activos. Crea un nuevo proyecto para comenzar.
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar proyectos:', error);
+                
+                // Mostrar datos de ejemplo como fallback
                 projectsContainer.innerHTML = `
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Personalización pendiente</strong><br>
-                        Esta sección se personalizará según tus necesidades específicas.
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error al cargar datos</strong><br>
+                        No se pudieron cargar los proyectos desde el servidor. Mostrando datos de ejemplo.
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-primary retry-projects">
+                                <i class="fas fa-sync-alt me-1"></i>Reintentar
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary ms-2 clear-cache">
+                                <i class="fas fa-broom me-1"></i>Limpiar caché
+                            </button>
+                        </div>
                     </div>
                     <div class="list-group">
                         <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -1136,18 +1438,80 @@ function loadOtherData(config) {
                         </div>
                     </div>
                 `;
-            }, 800);
+            });
         }
         
-        // Cargar tareas de ejemplo
+        // Cargar tareas
         const tasksContainer = document.getElementById('pending-tasks');
         if (tasksContainer) {
-            setTimeout(() => {
+            tasksContainer.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando tareas...</p>
+                </div>
+            `;
+            
+            // Intentar cargar tareas desde la API
+            fetchWithRetry(
+                API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.TASKS, clientId)),
+                {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            )
+            .then(response => response.json())
+            .then(data => {
+                console.log('Tareas cargadas:', data);
+                
+                if (data && data.length > 0) {
+                    // Mostrar tareas reales
+                    let tasksHTML = '<div class="list-group">';
+                    
+                    data.forEach(task => {
+                        tasksHTML += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">${task.name || 'Tarea sin nombre'}</h6>
+                                    <p class="text-muted small mb-0">Prioridad: ${task.priority || 'Media'}</p>
+                                </div>
+                                <span class="badge bg-${getPriorityBadge(task.priority)} rounded-pill">${task.status || 'Pendiente'}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    tasksHTML += '</div>';
+                    tasksContainer.innerHTML = tasksHTML;
+                } else {
+                    // Mostrar mensaje de no hay tareas
+                    tasksContainer.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No hay tareas</strong><br>
+                            No se encontraron tareas pendientes. Crea una nueva tarea para comenzar.
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar tareas:', error);
+                
+                // Mostrar datos de ejemplo como fallback
                 tasksContainer.innerHTML = `
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Personalización pendiente</strong><br>
-                        Esta sección se personalizará según tus necesidades específicas.
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error al cargar datos</strong><br>
+                        No se pudieron cargar las tareas desde el servidor. Mostrando datos de ejemplo.
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-primary retry-tasks">
+                                <i class="fas fa-sync-alt me-1"></i>Reintentar
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary ms-2 clear-cache">
+                                <i class="fas fa-broom me-1"></i>Limpiar caché
+                            </button>
+                        </div>
                     </div>
                     <div class="list-group">
                         <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -1166,18 +1530,80 @@ function loadOtherData(config) {
                         </div>
                     </div>
                 `;
-            }, 1000);
+            });
         }
         
-        // Cargar clientes de ejemplo
+        // Cargar clientes
         const clientsContainer = document.getElementById('active-clients');
         if (clientsContainer) {
-            setTimeout(() => {
+            clientsContainer.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando clientes...</p>
+                </div>
+            `;
+            
+            // Intentar cargar clientes desde la API
+            fetchWithRetry(
+                API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.CLIENTS, clientId)),
+                {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            )
+            .then(response => response.json())
+            .then(data => {
+                console.log('Clientes cargados:', data);
+                
+                if (data && data.length > 0) {
+                    // Mostrar clientes reales
+                    let clientsHTML = '<div class="list-group">';
+                    
+                    data.forEach(client => {
+                        clientsHTML += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">${client.name || 'Cliente sin nombre'}</h6>
+                                    <p class="text-muted small mb-0">${client.email ? 'Email: ' + client.email : 'Sin email'}</p>
+                                </div>
+                                <span class="badge bg-${client.active ? 'success' : 'secondary'} rounded-pill">${client.active ? 'Activo' : 'Inactivo'}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    clientsHTML += '</div>';
+                    clientsContainer.innerHTML = clientsHTML;
+                } else {
+                    // Mostrar mensaje de no hay clientes
+                    clientsContainer.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No hay clientes</strong><br>
+                            No se encontraron clientes activos. Crea un nuevo cliente para comenzar.
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar clientes:', error);
+                
+                // Mostrar datos de ejemplo como fallback
                 clientsContainer.innerHTML = `
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Personalización pendiente</strong><br>
-                        Esta sección se personalizará según tus necesidades específicas.
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error al cargar datos</strong><br>
+                        No se pudieron cargar los clientes desde el servidor. Mostrando datos de ejemplo.
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-primary retry-clients">
+                                <i class="fas fa-sync-alt me-1"></i>Reintentar
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary ms-2 clear-cache">
+                                <i class="fas fa-broom me-1"></i>Limpiar caché
+                            </button>
+                        </div>
                     </div>
                     <div class="list-group">
                         <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -1196,7 +1622,51 @@ function loadOtherData(config) {
                         </div>
                     </div>
                 `;
-            }, 1200);
+            });
+        }
+        
+        // Funciones auxiliares para determinar el color de los badges
+        function getStatusBadge(status) {
+            if (!status) return 'secondary';
+            
+            status = status.toLowerCase();
+            
+            switch(status) {
+                case 'en progreso':
+                case 'in progress':
+                    return 'primary';
+                case 'completado':
+                case 'completed':
+                    return 'success';
+                case 'pendiente':
+                case 'pending':
+                    return 'warning';
+                case 'cancelado':
+                case 'cancelled':
+                    return 'danger';
+                default:
+                    return 'secondary';
+            }
+        }
+        
+        function getPriorityBadge(priority) {
+            if (!priority) return 'secondary';
+            
+            priority = priority.toLowerCase();
+            
+            switch(priority) {
+                case 'alta':
+                case 'high':
+                    return 'danger';
+                case 'media':
+                case 'medium':
+                    return 'warning';
+                case 'baja':
+                case 'low':
+                    return 'info';
+                default:
+                    return 'secondary';
+            }
         }
         
         // Configurar botones
@@ -1222,6 +1692,239 @@ function loadOtherData(config) {
                 });
             }
         }, 1500);
+        
+        // Configurar event listeners para botones de reintento y limpieza de caché
+        setTimeout(() => {
+            // Botones de reintento para proyectos
+            const retryProjectsButtons = document.querySelectorAll('.retry-projects');
+            retryProjectsButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    console.log('Reintentando carga de proyectos...');
+                    const projectsContainer = document.getElementById('active-projects');
+                    if (projectsContainer) {
+                        projectsContainer.innerHTML = `
+                            <div class="text-center py-3">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2 text-muted">Cargando proyectos...</p>
+                            </div>
+                        `;
+                        
+                        // Recargar solo los proyectos
+                        fetchWithRetry(
+                            API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.PROJECTS, clientId)),
+                            {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json',
+                                    'Cache-Control': 'no-cache, no-store'
+                                }
+                            }
+                        )
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Proyectos recargados:', data);
+                            toastr.success('Proyectos actualizados correctamente', 'Éxito');
+                            
+                            // Actualizar la vista con los datos recargados
+                            if (data && data.length > 0) {
+                                let projectsHTML = '<div class="list-group">';
+                                
+                                data.forEach(project => {
+                                    projectsHTML += `
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">${project.name || 'Proyecto sin nombre'}</h6>
+                                                <p class="text-muted small mb-0">${project.dueDate ? 'Fecha límite: ' + project.dueDate : 'Sin fecha límite'}</p>
+                                            </div>
+                                            <span class="badge bg-${getStatusBadge(project.status)} rounded-pill">${project.status || 'Pendiente'}</span>
+                                        </div>
+                                    `;
+                                });
+                                
+                                projectsHTML += '</div>';
+                                projectsContainer.innerHTML = projectsHTML;
+                            } else {
+                                projectsContainer.innerHTML = `
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>No hay proyectos</strong><br>
+                                        No se encontraron proyectos activos. Crea un nuevo proyecto para comenzar.
+                                    </div>
+                                `;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al recargar proyectos:', error);
+                            toastr.error('No se pudieron recargar los proyectos', 'Error');
+                            
+                            // Mostrar mensaje de error
+                            projectsContainer.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    <strong>Error de conexión</strong><br>
+                                    No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-primary retry-projects">
+                                            <i class="fas fa-sync-alt me-1"></i>Reintentar
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            // Reconfigurar el botón de reintento
+                            const newRetryButton = projectsContainer.querySelector('.retry-projects');
+                            if (newRetryButton) {
+                                newRetryButton.addEventListener('click', () => {
+                                    const retryEvent = new Event('click');
+                                    button.dispatchEvent(retryEvent);
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Botones de reintento para tareas
+            const retryTasksButtons = document.querySelectorAll('.retry-tasks');
+            retryTasksButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    console.log('Reintentando carga de tareas...');
+                    const tasksContainer = document.getElementById('pending-tasks');
+                    if (tasksContainer) {
+                        tasksContainer.innerHTML = `
+                            <div class="text-center py-3">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2 text-muted">Cargando tareas...</p>
+                            </div>
+                        `;
+                        
+                        // Recargar solo las tareas
+                        fetchWithRetry(
+                            API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.TASKS, clientId)),
+                            {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json',
+                                    'Cache-Control': 'no-cache, no-store'
+                                }
+                            }
+                        )
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Tareas recargadas:', data);
+                            toastr.success('Tareas actualizadas correctamente', 'Éxito');
+                            
+                            // Actualizar la vista con los datos recargados
+                            if (data && data.length > 0) {
+                                let tasksHTML = '<div class="list-group">';
+                                
+                                data.forEach(task => {
+                                    tasksHTML += `
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">${task.name || 'Tarea sin nombre'}</h6>
+                                                <p class="text-muted small mb-0">Prioridad: ${task.priority || 'Media'}</p>
+                                            </div>
+                                            <span class="badge bg-${getPriorityBadge(task.priority)} rounded-pill">${task.status || 'Pendiente'}</span>
+                                        </div>
+                                    `;
+                                });
+                                
+                                tasksHTML += '</div>';
+                                tasksContainer.innerHTML = tasksHTML;
+                            } else {
+                                tasksContainer.innerHTML = `
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>No hay tareas</strong><br>
+                                        No se encontraron tareas pendientes. Crea una nueva tarea para comenzar.
+                                    </div>
+                                `;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al recargar tareas:', error);
+                            toastr.error('No se pudieron recargar las tareas', 'Error');
+                        });
+                    }
+                });
+            });
+            
+            // Botones de reintento para clientes
+            const retryClientsButtons = document.querySelectorAll('.retry-clients');
+            retryClientsButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    console.log('Reintentando carga de clientes...');
+                    const clientsContainer = document.getElementById('active-clients');
+                    if (clientsContainer) {
+                        clientsContainer.innerHTML = `
+                            <div class="text-center py-3">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2 text-muted">Cargando clientes...</p>
+                            </div>
+                        `;
+                        
+                        // Recargar solo los clientes
+                        fetchWithRetry(
+                            API_CONFIG.getFullUrl(API_CONFIG.replaceClientId(API_CONFIG.OTHER.CLIENTS, clientId)),
+                            {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json',
+                                    'Cache-Control': 'no-cache, no-store'
+                                }
+                            }
+                        )
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Clientes recargados:', data);
+                            toastr.success('Clientes actualizados correctamente', 'Éxito');
+                            
+                            // Actualizar la vista con los datos recargados
+                            if (data && data.length > 0) {
+                                let clientsHTML = '<div class="list-group">';
+                                
+                                data.forEach(client => {
+                                    clientsHTML += `
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">${client.name || 'Cliente sin nombre'}</h6>
+                                                <p class="text-muted small mb-0">${client.email ? 'Email: ' + client.email : 'Sin email'}</p>
+                                            </div>
+                                            <span class="badge bg-${client.active ? 'success' : 'secondary'} rounded-pill">${client.active ? 'Activo' : 'Inactivo'}</span>
+                                        </div>
+                                    `;
+                                });
+                                
+                                clientsHTML += '</div>';
+                                clientsContainer.innerHTML = clientsHTML;
+                            } else {
+                                clientsContainer.innerHTML = `
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>No hay clientes</strong><br>
+                                        No se encontraron clientes activos. Crea un nuevo cliente para comenzar.
+                                    </div>
+                                `;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al recargar clientes:', error);
+                            toastr.error('No se pudieron recargar los clientes', 'Error');
+                        });
+                    }
+                });
+            });
+            
+            // Botones de limpieza de caché
+            const clearCacheButtons = document.querySelectorAll('.clear-cache');
+            clearCacheButtons.forEach(button => {
+                button.addEventListener('click', clearCacheAndReload);
+            });
+        }, 2000);
         
         console.log('Carga de datos para sector "otro" completada con éxito');
     } catch (error) {
@@ -3097,4 +3800,4 @@ function loadNotificationConfiguration(notificationConfig) {
             </div>
         `;
     }
-}
+}}
