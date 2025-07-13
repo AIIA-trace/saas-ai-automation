@@ -601,10 +601,14 @@ function adaptDashboard(config) {
 function adaptBusinessContext(config) {
     console.log('=== ADAPTANDO CONTEXTO EMPRESARIAL ===');
     
-    // Obtener el sector empresarial
-    let sector = config.businessSector || config.sector || 'generic';
+    // Obtener el sector empresarial - FORZAR AGENTE DE IA
+    let sector = config.businessSector || config.sector || 'otro';
     console.log('Sector empresarial encontrado:', sector);
     console.log('Tipo de dato del sector:', typeof sector);
+    
+    // FORZAR SECTOR "OTRO" PARA AGENTE DE IA
+    console.log('FORZANDO SECTOR "OTRO" PARA AGENTE DE IA');
+    sector = 'otro';
     
     // Asegurar que el sector sea una cadena de texto
     if (typeof sector !== 'string') {
