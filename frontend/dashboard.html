@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - IA Receptionist</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="css/dashboard-modern.css" rel="stylesheet">
     <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
@@ -30,16 +33,16 @@
                     <!-- Will be populated dynamically based on company configuration -->
                 </div>
                 
-                <a href="#notifications" class="list-group-item list-group-item-action bg-dark text-white" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" role="tab" aria-controls="notifications" aria-selected="false">
-                    <i class="fas fa-bell me-2"></i> Notificaciones
+                <a href="#calls-content" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab" data-bs-target="#calls-content" role="tab">
+                    <i class="fas fa-phone me-2"></i> Registro de Llamadas
                 </a>
-                <a href="#logs" class="list-group-item list-group-item-action bg-dark text-white" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" role="tab" aria-controls="logs" aria-selected="false">
-                    <i class="fas fa-list me-2"></i> Registros
+                <a href="#emails-content" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab" data-bs-target="#emails-content" role="tab">
+                    <i class="fas fa-envelope me-2"></i> Registro de Emails
                 </a>
-                <a href="#account" class="list-group-item list-group-item-action bg-dark text-white" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" role="tab" aria-controls="account" aria-selected="false">
-                    <i class="fas fa-user-cog me-2"></i> Cuenta
+                <a href="#call-bot-content" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab" data-bs-target="#call-bot-content" role="tab">
+                    <i class="fas fa-cogs me-2"></i> Configuración del Bot
                 </a>
-                <a href="#billing" class="list-group-item list-group-item-action bg-dark text-white" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" role="tab" aria-controls="billing" aria-selected="false">
+                <a href="#billing-content" class="list-group-item list-group-item-action bg-dark text-white" data-bs-toggle="tab" data-bs-target="#billing-content" role="tab">
                     <i class="fas fa-credit-card me-2"></i> Facturación
                 </a>
             </div>
@@ -50,8 +53,8 @@
             <!-- Top navigation -->
             <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
                 <div class="container-fluid">
-                    <!-- Botón hamburguesa oculto para MVP -->
-                    <button class="btn btn-link d-none" id="menu-toggle">
+                    <!-- Botón hamburguesa -->
+                    <button class="btn btn-link" id="menu-toggle">
                         <i class="fas fa-bars"></i>
                     </button>
                     <div class="ms-auto d-flex align-items-center">
@@ -62,7 +65,7 @@
                                 <span id="user-name">Usuario</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#account" data-bs-toggle="tab">Mi perfil</a></li>
+                                <li><a class="dropdown-item" href="#call-bot-content" data-bs-toggle="tab">Mi perfil</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="#" id="logout-btn">Cerrar sesión</a></li>
                             </ul>
@@ -81,39 +84,8 @@
                 </div>
                 
                 <div class="tab-content" id="dashboardTabContent">
-                    <!-- Tab content will be added in separate parts -->
-                    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
-                        <!-- Dynamic overview content will be loaded by overview.js -->
-                    </div>
-                    
-                    <div class="tab-pane fade" id="bot-config" role="tabpanel" aria-labelledby="bot-config-tab">
-                        <!-- Bot config content -->
-                    </div>
-                    
-                    <div class="tab-pane fade" id="email-config" role="tabpanel" aria-labelledby="email-config-tab">
-                        <!-- Email config content -->
-                    </div>
-                    
-                    <div class="tab-pane fade" id="notifications" role="tabpanel" aria-labelledby="notifications-tab">
-                        <!-- Notifications content -->
-                    </div>
-                    
-                    <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
-                        <!-- Logs content -->
-                    </div>
-                    
-                    <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
-                        <!-- Account content -->
-                    </div>
-                    
-                    <div class="tab-pane fade" id="billing" role="tabpanel" aria-labelledby="billing-tab">
-                        <!-- Billing content -->
-                    </div>
-                    
-                    <!-- Dynamic Sector-Specific Tabs -->
-                    <div id="sector-specific-tabs">
-                        <!-- Will be populated dynamically based on company configuration -->
-                    </div>
+                    <!-- Las pestañas dinámicas se insertarán aquí por JavaScript -->
+                </div>
                 </div>
             </div>
         </div>

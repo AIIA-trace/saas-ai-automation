@@ -45,29 +45,34 @@ function createSimpleTabs() {
     
     const tabsContainer = document.getElementById('sector-nav-tabs');
     if (!tabsContainer) {
-        console.error('❌ No se encontró el contenedor de pestañas');
+        console.error(' No se encontró el contenedor de pestañas');
         return;
     }
     
-    // Nueva estructura de 4 pestañas simplificadas (eliminadas duplicaciones)
+    // Crear pestañas dinámicamente con nueva estructura
     tabsContainer.innerHTML = `
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls" type="button" role="tab">
+            <button class="nav-link active" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls-content" type="button" role="tab" aria-controls="calls-content" aria-selected="true">
                 <i class="fas fa-phone me-2"></i>Registro de Llamadas
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="emails-tab" data-bs-toggle="tab" data-bs-target="#emails" type="button" role="tab">
-                <i class="fas fa-envelope me-2"></i>Registro de Emails
+            <button class="nav-link" id="emails-tab" data-bs-toggle="tab" data-bs-target="#emails-content" type="button" role="tab" aria-controls="emails-content" aria-selected="false">
+                <i class="fas fa-envelope me-2"></i>Gestión de Emails
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="call-bot-tab" data-bs-toggle="tab" data-bs-target="#call-bot" type="button" role="tab">
-                <i class="fas fa-cogs me-2"></i>Configuración del Bot
+            <button class="nav-link" id="call-bot-tab" data-bs-toggle="tab" data-bs-target="#call-bot-content" type="button" role="tab" aria-controls="call-bot-content" aria-selected="false">
+                <i class="fas fa-robot me-2"></i>Configuración del Bot
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button" role="tab">
+            <button class="nav-link" id="account-tab" data-bs-toggle="tab" data-bs-target="#account-content" type="button" role="tab" aria-controls="account-content" aria-selected="false">
+                <i class="fas fa-user-cog me-2"></i>Mi Cuenta
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing-content" type="button" role="tab" aria-controls="billing-content" aria-selected="false">
                 <i class="fas fa-credit-card me-2"></i>Facturación
             </button>
         </li>
@@ -85,16 +90,16 @@ function createSimpleTabs() {
 function createTabsContent() {
     console.log('📄 Creando contenido de las pestañas...');
     
-    const tabsContentContainer = document.getElementById('sector-specific-tabs');
+    const tabsContentContainer = document.getElementById('dashboardTabContent');
     if (!tabsContentContainer) {
         console.error('❌ No se encontró el contenedor de contenido');
         return;
     }
     
-    // Nueva estructura de 5 pestañas con espaciado reducido
+    // Estructura moderna con diseño limpio y unificado
     tabsContentContainer.innerHTML = `
         <!-- 1. Registro de Llamadas -->
-        <div class="tab-pane fade show active" id="calls-content" role="tabpanel">
+        <div class="tab-pane active" id="calls-content" role="tabpanel" aria-labelledby="calls-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <!-- Registro de Llamadas -->
                 <div class="row">
@@ -136,7 +141,7 @@ function createTabsContent() {
                                     </div>
                                 </div>
                                 
-                                <div class="table-responsive">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                                     <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
@@ -306,10 +311,10 @@ function createTabsContent() {
             </div>
         </div>
         
-        <!-- Análisis de Emails -->
-        <div class="tab-pane fade" id="emails-analysis" role="tabpanel">
+        <!-- 2. Registro de Emails -->
+        <div class="tab-pane" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
-                <!-- Clasificación Inteligente de Emails -->
+                <!-- Análisis de Emails -->
                 <div class="row">
                     <div class="col-12">
                         <div class="card border-0 shadow-sm">
@@ -357,7 +362,7 @@ function createTabsContent() {
                                     </div>
                                 </div>
                                 
-                                <div class="table-responsive">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                                     <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
@@ -737,23 +742,353 @@ function createTabsContent() {
             </div>
         </div>
         
-        <!-- Bot de Llamadas -->
-        <div class="tab-pane fade" id="call-bot" role="tabpanel">
-            <div class="container-fluid pt-2 pb-0">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-white border-bottom-0 py-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Configuración del Bot</h5>
-                                        <small class="text-muted">Configura los datos de tu empresa y ambos bots de IA (llamadas y emails)</small>
+        <!-- 3. Configuración Unificada del Bot -->
+        <div class="tab-pane" id="call-bot-content" role="tabpanel" aria-labelledby="call-bot-tab" tabindex="0">
+            <div class="container-fluid">
+                <!-- Datos de la Empresa -->
+                <div class="form-section">
+                    <h6><i class="fas fa-building me-2"></i>Datos de la Empresa</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="company_name">Nombre de la Empresa *</label>
+                                <input type="text" class="form-control" id="company_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="contact_email">Email de Contacto *</label>
+                                <input type="email" class="form-control" id="contact_email" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="main_phone">Teléfono Principal</label>
+                                <input type="tel" class="form-control" id="main_phone">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="website">Sitio Web</label>
+                                <input type="url" class="form-control" id="website" placeholder="https://">
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label class="form-label" for="address">Dirección</label>
+                                <input type="text" class="form-control" id="address">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label" for="industry">Sector *</label>
+                                <select class="form-select" id="industry" required>
+                                    <option value="">Seleccionar sector</option>
+                                    <option value="retail">Comercio/Retail</option>
+                                    <option value="restaurant">Restauración</option>
+                                    <option value="healthcare">Salud</option>
+                                    <option value="education">Educación</option>
+                                    <option value="services">Servicios</option>
+                                    <option value="technology">Tecnología</option>
+                                    <option value="other">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración General -->
+                <div class="form-section">
+                    <h6><i class="fas fa-globe me-2"></i>Configuración General</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label" for="primary_language">Idioma Principal</label>
+                                <select class="form-select" id="primary_language">
+                                    <option value="es">Español</option>
+                                    <option value="en">Inglés</option>
+                                    <option value="fr">Francés</option>
+                                    <option value="de">Alemán</option>
+                                    <option value="it">Italiano</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label" for="bot_personality">Personalidad del Bot</label>
+                                <select class="form-select" id="bot_personality">
+                                    <option value="professional">👔 Profesional</option>
+                                    <option value="friendly">😊 Amigable</option>
+                                    <option value="casual">😎 Casual</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label" for="timezone">Zona Horaria</label>
+                                <select class="form-select" id="timezone">
+                                    <option value="Europe/Madrid">Madrid (GMT+1)</option>
+                                    <option value="Europe/London">Londres (GMT+0)</option>
+                                    <option value="America/New_York">Nueva York (GMT-5)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Horarios de Atención (Unificado) -->
+                <div class="form-section">
+                    <h6><i class="fas fa-clock me-2"></i>Horarios de Atención</h6>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Estos horarios se aplicarán tanto para llamadas como para emails
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label" for="opening_time">Hora de Apertura</label>
+                                <input type="time" class="form-control" id="opening_time" value="09:00">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label" for="closing_time">Hora de Cierre</label>
+                                <input type="time" class="form-control" id="closing_time" value="18:00">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Días Laborables</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="monday" value="1" checked>
+                                        <label class="form-check-label" for="monday">Lun</label>
                                     </div>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-3 fw-medium" id="bot-status-text">Bot Activo</span>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="bot-master-switch" checked>
-                                            <label class="form-check-label" for="bot-master-switch">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="tuesday" value="2" checked>
+                                        <label class="form-check-label" for="tuesday">Mar</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="wednesday" value="3" checked>
+                                        <label class="form-check-label" for="wednesday">Mié</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="thursday" value="4" checked>
+                                        <label class="form-check-label" for="thursday">Jue</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="friday" value="5" checked>
+                                        <label class="form-check-label" for="friday">Vie</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="saturday" value="6">
+                                        <label class="form-check-label" for="saturday">Sáb</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="sunday" value="0">
+                                        <label class="form-check-label" for="sunday">Dom</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración de Llamadas -->
+                <div class="form-section">
+                    <h6><i class="fas fa-phone me-2"></i>Configuración de Llamadas</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="twilio_phone_number">Número de Teléfono Twilio</label>
+                                <input type="tel" class="form-control" id="twilio_phone_number" placeholder="+34 900 000 000">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="welcome_message">Mensaje de Bienvenida</label>
+                                <textarea class="form-control" id="welcome_message" rows="2" placeholder="Hola, gracias por llamar a {EMPRESA}. ¿En qué puedo ayudarte?"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración de Emails -->
+                <div class="form-section">
+                    <h6><i class="fas fa-envelope me-2"></i>Configuración de Emails</h6>
+                    
+                    <!-- Variables Disponibles -->
+                    <div class="template-variables">
+                        <h6>Variables Disponibles</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Variables de Cliente:</strong><br>
+                                <code>{NOMBRE_CLIENTE}</code> - Nombre del remitente<br>
+                                <code>{EMAIL_CLIENTE}</code> - Email del cliente<br>
+                                <code>{ASUNTO_ORIGINAL}</code> - Asunto del email
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Variables de Empresa:</strong><br>
+                                <code>{EMPRESA}</code> - Nombre de tu empresa<br>
+                                <code>{RESPUESTA_IA}</code> - Respuesta generada por IA<br>
+                                <code>{FIRMA}</code> - Tu firma personalizada
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="incoming_email">Email de Entrada</label>
+                                <input type="email" class="form-control" id="incoming_email" placeholder="info@miempresa.com">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="notification_email">Email para Notificaciones</label>
+                                <input type="email" class="form-control" id="notification_email" placeholder="admin@miempresa.com">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label" for="check_frequency">Frecuencia de Revisión</label>
+                                <select class="form-select" id="check_frequency">
+                                    <option value="5">Cada 5 minutos</option>
+                                    <option value="15">Cada 15 minutos</option>
+                                    <option value="30">Cada 30 minutos</option>
+                                    <option value="60">Cada hora</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label" for="confidence_level">Nivel de Confianza Mínimo</label>
+                                <select class="form-select" id="confidence_level">
+                                    <option value="0.7">70% - Conservador</option>
+                                    <option value="0.8">80% - Equilibrado</option>
+                                    <option value="0.9">90% - Estricto</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label" for="response_tone">Tono de Respuesta</label>
+                                <select class="form-select" id="response_tone">
+                                    <option value="professional">👔 Profesional</option>
+                                    <option value="friendly">😊 Amigable</option>
+                                    <option value="formal">🎩 Formal</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Firma del Email -->
+                    <div class="form-group">
+                        <label class="form-label" for="email_signature">Firma del Email</label>
+                        <textarea class="form-control" id="email_signature" rows="4" placeholder="Saludos cordiales,
+Equipo de {EMPRESA}
+Tel: +34 900 000 000
+Web: www.miempresa.com"></textarea>
+                    </div>
+                    
+                    <!-- Configuración Avanzada de IA -->
+                    <div class="advanced-config">
+                        <h6>Configuración Avanzada de IA</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="auto_priority" checked>
+                                    <label class="form-check-label" for="auto_priority">
+                                        Detectar automáticamente emails urgentes
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="include_context" checked>
+                                    <label class="form-check-label" for="include_context">
+                                        Incluir contexto del email original en la respuesta
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="auto_classify" checked>
+                                    <label class="form-check-label" for="auto_classify">
+                                        Clasificar automáticamente emails entrantes
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="require_approval">
+                                    <label class="form-check-label" for="require_approval">
+                                        Requerir aprobación antes de enviar respuestas IA
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="notify_urgent" checked>
+                                    <label class="form-check-label" for="notify_urgent">
+                                        Notificar emails urgentes inmediatamente
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="daily_summary" checked>
+                                    <label class="form-check-label" for="daily_summary">
+                                        Enviar resumen diario de actividad
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Archivos de Contexto (Unificado) -->
+                <div class="form-section">
+                    <h6><i class="fas fa-file-upload me-2"></i>Archivos de Contexto</h6>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Estos archivos serán utilizados por ambos bots (llamadas y emails) para proporcionar respuestas más precisas
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="inventory_file">Inventario/Stock</label>
+                                <input type="file" class="form-control" id="inventory_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                <small class="text-muted">Productos disponibles, stock actual</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="catalog_file">Catálogo de Productos</label>
+                                <input type="file" class="form-control" id="catalog_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                <small class="text-muted">Descripción detallada de productos/servicios</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="pricing_file">Lista de Precios</label>
+                                <input type="file" class="form-control" id="pricing_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                <small class="text-muted">Precios actualizados, ofertas especiales</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="info_file">Información General</label>
+                                <input type="file" class="form-control" id="info_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                <small class="text-muted">Políticas, horarios, información corporativa</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-primary" onclick="loadExistingData()">
+                        <i class="fas fa-sync-alt me-2"></i>Cargar Datos Existentes
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveUnifiedConfig()">
+                        <i class="fas fa-save me-2"></i>Guardar Configuración
+                    </button>
+                </div>
+            </div>
+        </div>
                                                 <i class="fas fa-power-off"></i>
                                             </label>
                                         </div>
@@ -1111,8 +1446,8 @@ function createTabsContent() {
             </div>
         </div>
         
-        <!-- Facturación -->
-        <div class="tab-pane fade" id="billing" role="tabpanel">
+        <!-- 4. Facturación -->
+        <div class="tab-pane" id="billing-content" role="tabpanel" aria-labelledby="billing-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <div class="row">
                     <div class="col-md-8">
@@ -1121,7 +1456,7 @@ function createTabsContent() {
                                 <h5 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Historial de Facturación</h5>
                             </div>
                             <div class="card-body p-0">
-                                <div class="table-responsive">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                                     <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
@@ -2749,6 +3084,29 @@ function setupAdditionalFeatures() {
     
     // Cargar datos del usuario
     loadUserData();
+    
+    // Configurar event listeners para las pestañas
+    setupTabEventListeners();
+}
+/**
+ * Configurar event listeners específicos para las pestañas
+ */
+function setupTabEventListeners() {
+    console.log('🔧 Configurando event listeners para pestañas Bootstrap nativas...');
+    
+    // Usar Bootstrap Tab nativo sin intervención manual
+    const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
+    
+    tabButtons.forEach(button => {
+        // Event listener para notificaciones (opcional)
+        button.addEventListener('shown.bs.tab', function(e) {
+            const targetId = this.getAttribute('data-bs-target');
+            console.log('✅ Pestaña Bootstrap activada:', targetId);
+            toastr.info(`Cambiando a ${this.textContent.trim()}`);
+        });
+    });
+    
+    console.log('✅ Event listeners de pestañas configurados');
 }
 
 /**
@@ -2821,4 +3179,316 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar dashboard
     adaptOtherContextSimple(defaultConfig);
+});
+
+/**
+ * Guardar configuración unificada del bot
+ */
+function saveUnifiedConfig() {
+    console.log('💾 Guardando configuración unificada del bot...');
+    
+    // Recopilar todos los datos del formulario
+    const config = {
+        // Datos de la empresa
+        company_name: document.getElementById('company_name')?.value || '',
+        contact_email: document.getElementById('contact_email')?.value || '',
+        main_phone: document.getElementById('main_phone')?.value || '',
+        website: document.getElementById('website')?.value || '',
+        address: document.getElementById('address')?.value || '',
+        industry: document.getElementById('industry')?.value || '',
+        
+        // Configuración general
+        primary_language: document.getElementById('primary_language')?.value || 'es',
+        bot_personality: document.getElementById('bot_personality')?.value || 'professional',
+        timezone: document.getElementById('timezone')?.value || 'Europe/Madrid',
+        
+        // Horarios (unificados)
+        opening_time: document.getElementById('opening_time')?.value || '09:00',
+        closing_time: document.getElementById('closing_time')?.value || '18:00',
+        working_days: {
+            monday: document.getElementById('monday')?.checked || false,
+            tuesday: document.getElementById('tuesday')?.checked || false,
+            wednesday: document.getElementById('wednesday')?.checked || false,
+            thursday: document.getElementById('thursday')?.checked || false,
+            friday: document.getElementById('friday')?.checked || false,
+            saturday: document.getElementById('saturday')?.checked || false,
+            sunday: document.getElementById('sunday')?.checked || false
+        },
+        
+        // Configuración de llamadas
+        twilio_phone_number: document.getElementById('twilio_phone_number')?.value || '',
+        welcome_message: document.getElementById('welcome_message')?.value || '',
+        
+        // Configuración de emails
+        incoming_email: document.getElementById('incoming_email')?.value || '',
+        notification_email: document.getElementById('notification_email')?.value || '',
+        check_frequency: parseInt(document.getElementById('check_frequency')?.value) || 15,
+        confidence_level: parseFloat(document.getElementById('confidence_level')?.value) || 0.8,
+        response_tone: document.getElementById('response_tone')?.value || 'professional',
+        email_signature: document.getElementById('email_signature')?.value || '',
+        
+        // Configuración avanzada de IA
+        auto_priority: document.getElementById('auto_priority')?.checked || false,
+        include_context: document.getElementById('include_context')?.checked || false,
+        auto_classify: document.getElementById('auto_classify')?.checked || false,
+        require_approval: document.getElementById('require_approval')?.checked || false,
+        notify_urgent: document.getElementById('notify_urgent')?.checked || false,
+        daily_summary: document.getElementById('daily_summary')?.checked || false,
+        
+        // Archivos de contexto
+        files: {
+            inventory: document.getElementById('inventory_file')?.files[0] || null,
+            catalog: document.getElementById('catalog_file')?.files[0] || null,
+            pricing: document.getElementById('pricing_file')?.files[0] || null,
+            info: document.getElementById('info_file')?.files[0] || null
+        }
+    };
+    
+    // Validar campos requeridos
+    const requiredFields = [
+        { field: 'company_name', name: 'Nombre de la Empresa' },
+        { field: 'contact_email', name: 'Email de Contacto' },
+        { field: 'industry', name: 'Sector' }
+    ];
+    
+    const missingFields = [];
+    requiredFields.forEach(({ field, name }) => {
+        if (!config[field] || config[field].trim() === '') {
+            missingFields.push(name);
+            document.getElementById(field)?.classList.add('is-invalid');
+        } else {
+            document.getElementById(field)?.classList.remove('is-invalid');
+        }
+    });
+    
+    // Validar formato de email
+    const emailFields = ['contact_email', 'incoming_email', 'notification_email'];
+    emailFields.forEach(field => {
+        const value = config[field];
+        if (value && !isValidEmail(value)) {
+            missingFields.push(`Formato de ${field.replace('_', ' ')} inválido`);
+            document.getElementById(field)?.classList.add('is-invalid');
+        } else if (value) {
+            document.getElementById(field)?.classList.remove('is-invalid');
+        }
+    });
+    
+    if (missingFields.length > 0) {
+        toastr.error(`Campos requeridos: ${missingFields.join(', ')}`, 'Error de Validación');
+        return;
+    }
+    
+    // Simular guardado
+    toastr.info('Guardando configuración...', 'Procesando');
+    
+    setTimeout(() => {
+        console.log('✅ Configuración guardada:', config);
+        
+        // Procesar archivos si existen
+        processContextFiles(config.files);
+        
+        toastr.success('Configuración guardada correctamente', '¡Éxito!');
+        
+        // Crear memoria de la configuración
+        createMemory({
+            Id: '',
+            Title: 'Configuración Unificada del Bot IA',
+            Content: `Configuración completa guardada: ${config.company_name} - Sector: ${config.industry} - Idioma: ${config.primary_language} - Personalidad: ${config.bot_personality}`,
+            CorpusNames: ['AIIA-trace/Agent'],
+            Tags: ['bot_config', 'unified_settings', 'email_config', 'call_config'],
+            Action: 'create',
+            UserTriggered: false
+        });
+        
+    }, 1500);
+}
+
+/**
+ * Cargar datos existentes en el formulario
+ */
+function loadExistingData() {
+    console.log('📥 Cargando datos existentes...');
+    
+    // Datos de ejemplo (en producción vendrían de la API)
+    const existingData = {
+        company_name: 'TechSolutions S.L.',
+        contact_email: 'info@techsolutions.com',
+        main_phone: '+34 912 345 678',
+        website: 'https://www.techsolutions.com',
+        address: 'Calle Mayor 123, 28001 Madrid',
+        industry: 'technology',
+        primary_language: 'es',
+        bot_personality: 'professional',
+        timezone: 'Europe/Madrid',
+        opening_time: '09:00',
+        closing_time: '18:00',
+        twilio_phone_number: '+34 900 123 456',
+        welcome_message: 'Hola, gracias por llamar a TechSolutions. ¿En qué puedo ayudarte hoy?',
+        incoming_email: 'soporte@techsolutions.com',
+        notification_email: 'admin@techsolutions.com',
+        check_frequency: '15',
+        confidence_level: '0.8',
+        response_tone: 'professional',
+        email_signature: `Saludos cordiales,\nEquipo de TechSolutions\nTel: +34 912 345 678\nWeb: www.techsolutions.com`,
+        working_days: {
+            monday: true,
+            tuesday: true,
+            wednesday: true,
+            thursday: true,
+            friday: true,
+            saturday: false,
+            sunday: false
+        },
+        auto_priority: true,
+        include_context: true,
+        auto_classify: true,
+        require_approval: false,
+        notify_urgent: true,
+        daily_summary: true
+    };
+    
+    // Llenar campos del formulario
+    Object.keys(existingData).forEach(key => {
+        if (key === 'working_days') {
+            Object.keys(existingData.working_days).forEach(day => {
+                const checkbox = document.getElementById(day);
+                if (checkbox) {
+                    checkbox.checked = existingData.working_days[day];
+                }
+            });
+        } else {
+            const element = document.getElementById(key);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = existingData[key];
+                } else {
+                    element.value = existingData[key];
+                }
+            }
+        }
+    });
+    
+    toastr.success('Datos cargados correctamente', 'Datos Existentes');
+}
+
+/**
+ * Procesar archivos de contexto
+ */
+function processContextFiles(files) {
+    console.log('📁 Procesando archivos de contexto...');
+    
+    Object.keys(files).forEach(fileType => {
+        const file = files[fileType];
+        if (file) {
+            console.log(`📄 Procesando archivo ${fileType}:`, file.name);
+            
+            // Validar tamaño (máximo 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                toastr.error(`El archivo ${file.name} es demasiado grande (máximo 10MB)`, 'Error de Archivo');
+                return;
+            }
+            
+            // Validar tipo de archivo
+            const allowedTypes = ['.pdf', '.txt', '.csv', '.xlsx', '.docx'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!allowedTypes.includes(fileExtension)) {
+                toastr.error(`Tipo de archivo no permitido: ${fileExtension}`, 'Error de Archivo');
+                return;
+            }
+            
+            // Simular procesamiento por IA
+            setTimeout(() => {
+                toastr.success(`Archivo ${file.name} procesado correctamente`, 'Archivo Procesado');
+            }, Math.random() * 2000 + 1000);
+        }
+    });
+}
+
+/**
+ * Validar formato de email
+ */
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+/**
+ * Previsualizar plantilla de email
+ */
+function previewEmailTemplate() {
+    const signature = document.getElementById('email_signature')?.value || '';
+    const companyName = document.getElementById('company_name')?.value || 'Tu Empresa';
+    
+    // Reemplazar variables en la firma
+    const processedSignature = signature
+        .replace(/{EMPRESA}/g, companyName)
+        .replace(/\\n/g, '\n');
+    
+    const modalHTML = `
+        <div class="modal fade" id="emailPreviewModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-eye me-2"></i>Preview de Email
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <strong>De:</strong> soporte@${companyName.toLowerCase().replace(/\s+/g, '')}.com<br>
+                                <strong>Para:</strong> cliente@ejemplo.com<br>
+                                <strong>Asunto:</strong> Re: Consulta sobre productos
+                            </div>
+                            <div class="card-body">
+                                <p>Estimado/a Juan Pérez,</p>
+                                <p>Gracias por contactar con nosotros. Hemos recibido su consulta sobre nuestros productos y servicios.</p>
+                                <p>[Aquí iría la respuesta generada por IA basada en el contexto del email]</p>
+                                <hr>
+                                <pre style="font-family: inherit; white-space: pre-wrap;">${processedSignature}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remover modal existente si existe
+    const existingModal = document.getElementById('emailPreviewModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Agregar nuevo modal
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('emailPreviewModal'));
+    modal.show();
+}
+
+/**
+ * Agregar botón de preview a la firma
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // Agregar botón de preview después del textarea de firma
+    setTimeout(() => {
+        const signatureTextarea = document.getElementById('email_signature');
+        if (signatureTextarea && !document.getElementById('preview-signature-btn')) {
+            const previewButton = document.createElement('button');
+            previewButton.type = 'button';
+            previewButton.id = 'preview-signature-btn';
+            previewButton.className = 'btn btn-outline-secondary btn-sm mt-2';
+            previewButton.innerHTML = '<i class="fas fa-eye me-1"></i>Preview Email';
+            previewButton.onclick = previewEmailTemplate;
+            
+            signatureTextarea.parentNode.appendChild(previewButton);
+        }
+    }, 1000);
 });
