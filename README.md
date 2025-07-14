@@ -6,7 +6,9 @@ Sistema SaaS completo para automatización de llamadas y emails con IA.
 
 - **Bot de Voz**: Automatización de llamadas con IA
 - **Gestión de Emails**: Respuestas automáticas inteligentes
-- **Dashboard Completo**: Panel de control empresarial
+- **Dashboard Unificado**: Panel de control empresarial con configuración centralizada
+- **Control de Bot**: Toggle directo para activar/desactivar el bot con advertencias sobre redirección telefónica
+- **Sincronización de Datos**: Flujo automático entre formulario de introducción y dashboard
 - **Integración Twilio**: Manejo de números telefónicos
 - **Configuración Sectorial**: Adaptado por industria
 
@@ -54,6 +56,25 @@ ELEVENLABS_API_KEY=your-key
 2. Configuración del bot
 3. Integración de números
 4. Monitoreo en dashboard
+
+## 📊 Dashboard Features
+
+### 🔄 Configuración Unificada
+- Formulario centralizado para toda la configuración del bot
+- Sincronización automática con datos del formulario de introducción
+- Validación y limpieza de datos duplicados
+
+### ⚙️ Control de Bot
+- **Toggle directo** para activar/desactivar el bot
+- **Advertencia inteligente** sobre redirección telefónica
+- **Modal informativo** que explica las implicaciones de desactivar el bot
+- **Persistencia** del estado en localStorage
+
+### 📞 Gestión de Redirección Telefónica
+- Explicación clara del funcionamiento actual (Twilio)
+- Advertencia sobre la necesidad de contactar al operador telefónico
+- Instrucciones precisas para desactivar redirección manualmente
+- Opción de cancelar la desactivación
 
 ---
 **Desarrollado para automatización empresarial completa** 🚀

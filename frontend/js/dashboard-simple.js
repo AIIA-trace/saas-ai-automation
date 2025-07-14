@@ -46,31 +46,21 @@ function createSimpleTabs() {
         return;
     }
     
-    // HTML de las 6 pestañas principales del agente IA
+    // Nueva estructura de 4 pestañas simplificadas (eliminadas duplicaciones)
     tabsContainer.innerHTML = `
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="calls-analysis-tab" data-bs-toggle="tab" data-bs-target="#calls-analysis" type="button" role="tab">
-                <i class="fas fa-phone me-2"></i>Análisis de Llamadas
+            <button class="nav-link active" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls" type="button" role="tab">
+                <i class="fas fa-phone me-2"></i>Registro de Llamadas
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="emails-analysis-tab" data-bs-toggle="tab" data-bs-target="#emails-analysis" type="button" role="tab">
-                <i class="fas fa-envelope me-2"></i>Análisis de Emails
+            <button class="nav-link" id="emails-tab" data-bs-toggle="tab" data-bs-target="#emails" type="button" role="tab">
+                <i class="fas fa-envelope me-2"></i>Registro de Emails
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="call-bot-tab" data-bs-toggle="tab" data-bs-target="#call-bot" type="button" role="tab">
-                <i class="fas fa-robot me-2"></i>Bot de Llamadas
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="email-management-tab" data-bs-toggle="tab" data-bs-target="#email-management" type="button" role="tab">
-                <i class="fas fa-cogs me-2"></i>Gestión de Emails
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab">
-                <i class="fas fa-user me-2"></i>Perfil
+                <i class="fas fa-cogs me-2"></i>Configuración del Bot
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -87,7 +77,7 @@ function createSimpleTabs() {
 }
 
 /**
- * Crear el contenido de las pestañas
+ * Crear el contenido de las pestañas con nueva estructura simplificada
  */
 function createTabsContent() {
     console.log('📄 Creando contenido de las pestañas...');
@@ -98,12 +88,13 @@ function createTabsContent() {
         return;
     }
     
+    // Nueva estructura de 5 pestañas con espaciado reducido
     tabsContentContainer.innerHTML = `
-        <!-- Análisis de Llamadas -->
-        <div class="tab-pane fade show active" id="calls-analysis" role="tabpanel">
-            <div class="container-fluid py-4">
+        <!-- 1. Registro de Llamadas -->
+        <div class="tab-pane fade show active" id="calls-content" role="tabpanel">
+            <div class="container-fluid pt-2 pb-0">
                 <!-- Registro de Llamadas -->
-                <div class="row mb-4">
+                <div class="row">
                     <div class="col-12">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header bg-white border-bottom-0 py-3">
@@ -116,7 +107,7 @@ function createTabsContent() {
                             </div>
                             <div class="card-body p-0">
                                 <!-- Filtros de Clasificación -->
-                                <div class="px-4 py-3 bg-light border-bottom">
+                                <div class="px-3 py-2 bg-light border-bottom">
                                     <div class="row align-items-center">
                                         <div class="col-md-8">
                                             <div class="btn-group" role="group">
@@ -146,25 +137,25 @@ function createTabsContent() {
                                     <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th class="px-4 py-3">Gestionado</th>
-                                                <th class="px-4 py-3">Fecha</th>
-                                                <th class="px-4 py-3">Número</th>
-                                                <th class="px-4 py-3">Clasificación IA</th>
-                                                <th class="px-4 py-3">Resumen</th>
-                                                <th class="px-4 py-3">Duración</th>
-                                                <th class="px-4 py-3">Acciones</th>
+                                                <th class="px-3 py-2">Gestionado</th>
+                                                <th class="px-3 py-2">Fecha</th>
+                                                <th class="px-3 py-2">Número</th>
+                                                <th class="px-3 py-2">Clasificación IA</th>
+                                                <th class="px-3 py-2">Resumen</th>
+                                                <th class="px-3 py-2">Duración</th>
+                                                <th class="px-3 py-2">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody id="calls-table-body">
                                             <!-- Llamada 1: Pedido -->
                                             <tr class="call-row" data-type="pedidos" data-urgency="alta">
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" id="call-managed-1">
                                                         <label class="form-check-label" for="call-managed-1"></label>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex align-items-center">
                                                         <div class="bg-success rounded-circle me-2" style="width: 8px; height: 8px;"></div>
                                                         <div>
@@ -173,27 +164,27 @@ function createTabsContent() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">+34 600 123 456</div>
                                                         <small class="text-muted">Cliente habitual</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex flex-column">
                                                         <span class="badge bg-success mb-1">📦 PEDIDO</span>
                                                         <span class="badge bg-danger">🚨 URGENTE</span>
                                                         <small class="text-muted mt-1">Confianza: 95%</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="fw-medium">Cliente solicita 200m2 de piel roja</div>
                                                     <small class="text-muted">Necesita entrega para el 22 de julio. Cliente María García, pedido urgente para evento. Requiere confirmación de disponibilidad y precio final.</small>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <span class="badge bg-primary">04:32</span>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="btn-group-vertical btn-group-sm">
                                                         <button class="btn btn-outline-primary btn-sm mb-1" onclick="playCallRecording(1)">
                                                             <i class="fas fa-play me-1"></i>Reproducir
@@ -207,13 +198,13 @@ function createTabsContent() {
                                             
                                             <!-- Llamada 2: Reclamación -->
                                             <tr class="call-row" data-type="reclamaciones" data-urgency="alta">
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" id="call-managed-2" checked>
                                                         <label class="form-check-label" for="call-managed-2"></label>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex align-items-center">
                                                         <div class="bg-danger rounded-circle me-2" style="width: 8px; height: 8px;"></div>
                                                         <div>
@@ -222,27 +213,27 @@ function createTabsContent() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">+34 600 987 654</div>
                                                         <small class="text-muted">Cliente nuevo</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex flex-column">
                                                         <span class="badge bg-danger mb-1">⚠️ RECLAMACIÓN</span>
                                                         <span class="badge bg-danger">🚨 URGENTE</span>
                                                         <small class="text-muted mt-1">Confianza: 98%</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="fw-medium">Producto defectuoso recibido</div>
                                                     <small class="text-muted">Cliente Juan Pérez reclama por producto dañado en envío. Solicita devolución inmediata y reembolso. Pedido #1234 del 15/02. Requiere gestión urgente.</small>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <span class="badge bg-primary">02:18</span>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="btn-group-vertical btn-group-sm">
                                                         <button class="btn btn-outline-primary btn-sm mb-1" onclick="playCallRecording(2)">
                                                             <i class="fas fa-play me-1"></i>Reproducir
@@ -256,13 +247,13 @@ function createTabsContent() {
                                             
                                             <!-- Llamada 3: Consulta -->
                                             <tr class="call-row" data-type="consultas" data-urgency="media">
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" id="call-managed-3">
                                                         <label class="form-check-label" for="call-managed-3"></label>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex align-items-center">
                                                         <div class="bg-info rounded-circle me-2" style="width: 8px; height: 8px;"></div>
                                                         <div>
@@ -271,27 +262,27 @@ function createTabsContent() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">+34 600 555 789</div>
                                                         <small class="text-muted">Prospecto</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex flex-column">
                                                         <span class="badge bg-info mb-1">❓ CONSULTA</span>
                                                         <span class="badge bg-warning">📅 NORMAL</span>
                                                         <small class="text-muted mt-1">Confianza: 87%</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="fw-medium">Información sobre catálogo y precios</div>
                                                     <small class="text-muted">Cliente Ana López consulta sobre disponibilidad de productos de cuero para proyecto comercial. Interesada en catálogo completo y descuentos por volumen.</small>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <span class="badge bg-primary">01:45</span>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="btn-group-vertical btn-group-sm">
                                                         <button class="btn btn-outline-primary btn-sm mb-1" onclick="playCallRecording(3)">
                                                             <i class="fas fa-play me-1"></i>Reproducir
@@ -309,15 +300,14 @@ function createTabsContent() {
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
         
         <!-- Análisis de Emails -->
         <div class="tab-pane fade" id="emails-analysis" role="tabpanel">
-            <div class="container-fluid py-4">
+            <div class="container-fluid pt-2 pb-0">
                 <!-- Clasificación Inteligente de Emails -->
-                <div class="row mb-4">
+                <div class="row">
                     <div class="col-12">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header bg-white border-bottom-0 py-3">
@@ -338,7 +328,7 @@ function createTabsContent() {
                             </div>
                             <div class="card-body p-0">
                                 <!-- Filtros de Clasificación -->
-                                <div class="px-4 py-3 bg-light border-bottom">
+                                <div class="px-3 py-2 bg-light border-bottom">
                                     <div class="row align-items-center">
                                         <div class="col-md-8">
                                             <div class="btn-group" role="group">
@@ -368,18 +358,18 @@ function createTabsContent() {
                                     <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th class="px-4 py-3">Fecha</th>
-                                                <th class="px-4 py-3">Remitente</th>
-                                                <th class="px-4 py-3">Asunto</th>
-                                                <th class="px-4 py-3">Clasificación IA</th>
-                                                <th class="px-4 py-3">Estado</th>
-                                                <th class="px-4 py-3">Acciones</th>
+                                                <th class="px-3 py-2">Fecha</th>
+                                                <th class="px-3 py-2">Remitente</th>
+                                                <th class="px-3 py-2">Asunto</th>
+                                                <th class="px-3 py-2">Clasificación IA</th>
+                                                <th class="px-3 py-2">Estado</th>
+                                                <th class="px-3 py-2">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody id="emails-table-body">
                                             <!-- Email 1: Pedido -->
                                             <tr class="email-row" data-type="pedidos" data-urgency="alta">
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex align-items-center">
                                                         <div class="bg-success rounded-circle me-2" style="width: 8px; height: 8px;"></div>
                                                         <div>
@@ -388,13 +378,13 @@ function createTabsContent() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">cliente@empresa.com</div>
                                                         <small class="text-muted">Cliente Premium</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="fw-medium">
                                                         Nuevo pedido de 200m2 de piel roja para el 22 de julio
                                                         <i class="fas fa-paperclip ms-2 text-primary" title="2 archivos adjuntos"></i>
@@ -405,17 +395,17 @@ function createTabsContent() {
                                                         <small class="text-primary ms-2"><i class="fas fa-file-image me-1"></i>muestra.jpg</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex flex-column">
                                                         <span class="badge bg-success mb-1">📦 PEDIDO</span>
                                                         <span class="badge bg-danger">🚨 URGENTE</span>
                                                         <small class="text-muted mt-1">Confianza: 95%</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <span class="badge bg-warning">📋 Nuevo</span>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="btn-group-vertical btn-group-sm">
                                                         <button class="btn btn-outline-secondary btn-sm mb-1" onclick="markAsRead(1)">
                                                             <i class="fas fa-eye me-1"></i>Marcar Visto
@@ -434,7 +424,7 @@ function createTabsContent() {
                                             
                                             <!-- Email 2: Reclamación -->
                                             <tr class="email-row" data-type="reclamaciones" data-urgency="alta">
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex align-items-center">
                                                         <div class="bg-danger rounded-circle me-2" style="width: 8px; height: 8px;"></div>
                                                         <div>
@@ -443,27 +433,27 @@ function createTabsContent() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">queja@cliente.com</div>
                                                         <small class="text-muted">Cliente Frecuente</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="fw-medium">Producto defectuoso - Solicito reembolso inmediato</div>
                                                     <small class="text-muted">El producto llegó dañado y no cumple especificaciones...</small>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex flex-column">
                                                         <span class="badge bg-danger mb-1">⚠️ RECLAMACIÓN</span>
                                                         <span class="badge bg-danger">🚨 URGENTE</span>
                                                         <small class="text-muted mt-1">Confianza: 98%</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <span class="badge bg-success">👁️ Visto</span>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="btn-group-vertical btn-group-sm">
                                                         <button class="btn btn-outline-secondary btn-sm mb-1" disabled>
                                                             <i class="fas fa-eye me-1"></i>Visto
@@ -482,7 +472,7 @@ function createTabsContent() {
                                             
                                             <!-- Email 3: Consulta -->
                                             <tr class="email-row" data-type="consultas" data-urgency="media">
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex align-items-center">
                                                         <div class="bg-info rounded-circle me-2" style="width: 8px; height: 8px;"></div>
                                                         <div>
@@ -491,13 +481,13 @@ function createTabsContent() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">info@nuevocliente.com</div>
                                                         <small class="text-muted">Cliente Nuevo</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="fw-medium">
                                                         Consulta sobre catálogo de productos y precios
                                                         <i class="fas fa-paperclip ms-2 text-primary" title="1 archivo adjunto"></i>
@@ -507,17 +497,17 @@ function createTabsContent() {
                                                         <small class="text-primary"><i class="fas fa-file-word me-1"></i>requisitos.docx</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex flex-column">
                                                         <span class="badge bg-info mb-1">❓ CONSULTA</span>
                                                         <span class="badge bg-secondary">📋 NORMAL</span>
                                                         <small class="text-muted mt-1">Confianza: 92%</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <span class="badge bg-primary">✅ Respondido</span>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="btn-group-vertical btn-group-sm">
                                                         <button class="btn btn-outline-success btn-sm mb-1" disabled>
                                                             <i class="fas fa-check me-1"></i>Completado
@@ -531,7 +521,7 @@ function createTabsContent() {
                                             
                                             <!-- Email 4: Reporte Automático -->
                                             <tr class="email-row" data-type="reportes" data-urgency="media">
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex align-items-center">
                                                         <div class="bg-primary rounded-circle me-2" style="width: 8px; height: 8px;"></div>
                                                         <div>
@@ -540,27 +530,27 @@ function createTabsContent() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">bot@miempresa.com</div>
                                                         <small class="text-muted">Asistente IA</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="fw-medium">[REPORTE] Resumen de llamada - Cliente pregunta por pedido #1234</div>
                                                     <small class="text-muted">Cliente María García consultó estado de su pedido. Requiere seguimiento...</small>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="d-flex flex-column">
                                                         <span class="badge bg-primary mb-1">📄 REPORTE</span>
                                                         <span class="badge bg-warning">📞 LLAMADA</span>
                                                         <small class="text-muted mt-1">Auto-generado</small>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <span class="badge bg-warning">📋 Nuevo</span>
                                                 </td>
-                                                <td class="px-4 py-3">
+                                                <td class="px-3 py-2">
                                                     <div class="btn-group-vertical btn-group-sm">
                                                         <button class="btn btn-outline-secondary btn-sm mb-1" onclick="markAsRead(4)">
                                                             <i class="fas fa-eye me-1"></i>Marcar Visto
@@ -588,7 +578,7 @@ function createTabsContent() {
                             </div>
                             <div class="card-body">
                                 <!-- Explicación del Sistema IA -->
-                                <div class="alert alert-info mb-4">
+                                <div class="alert alert-info mb-3">
                                     <div class="d-flex align-items-start">
                                         <i class="fas fa-robot me-3 mt-1"></i>
                                         <div>
@@ -746,30 +736,78 @@ function createTabsContent() {
         
         <!-- Bot de Llamadas -->
         <div class="tab-pane fade" id="call-bot" role="tabpanel">
-            <div class="container-fluid py-4">
+            <div class="container-fluid pt-2 pb-0">
                 <div class="row">
                     <div class="col-12">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header bg-white border-bottom-0 py-3">
-                                <h5 class="mb-0"><i class="fas fa-robot me-2 text-primary"></i>Configuración del Bot de Llamadas</h5>
-                                <small class="text-muted">Configura cómo tu bot de IA responderá las llamadas telefónicas</small>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Configuración del Bot</h5>
+                                        <small class="text-muted">Configura los datos de tu empresa y ambos bots de IA (llamadas y emails)</small>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-3 fw-medium" id="bot-status-text">Bot Activo</span>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="bot-master-switch" checked>
+                                            <label class="form-check-label" for="bot-master-switch">
+                                                <i class="fas fa-power-off"></i>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="card-body py-4 px-4">
                                 <form id="call-bot-config-form">
                                     <div class="row">
                                         <!-- Configuración Básica -->
                                         <div class="col-md-6">
-                                            <h6 class="text-primary mb-3"><i class="fas fa-cog me-2"></i>Configuración Básica</h6>
+                                            <h6 class="text-primary mb-3"><i class="fas fa-building me-2"></i>Datos de la Empresa</h6>
                                             
                                             <div class="mb-3">
                                                 <label class="form-label">Nombre de la Empresa *</label>
-                                                <input type="text" class="form-control" id="company-name" placeholder="Mi Empresa S.L." value="Cueros Premium" required>
+                                                <input type="text" class="form-control" id="company-name" name="company_name" placeholder="Mi Empresa S.L." value="Cueros Premium" required>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Teléfono Principal *</label>
+                                                <input type="tel" class="form-control" id="main-phone" name="main_phone" placeholder="+34 123 456 789" value="+34 600 123 456" required>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Email de Contacto *</label>
+                                                <input type="email" class="form-control" id="contact-email" name="contact_email" placeholder="contacto@empresa.com" value="info@cuerospremium.com" required>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Sitio Web</label>
+                                                <input type="url" class="form-control" id="website" name="website" placeholder="https://www.empresa.com" value="https://www.cuerospremium.com">
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Dirección</label>
+                                                <textarea class="form-control" id="address" name="address" rows="2" placeholder="Calle Principal 123, Ciudad, Código Postal">Calle Artesanos 45, Madrid, 28001</textarea>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Sector/Industria *</label>
+                                                <select class="form-select" id="industry" name="industry" required>
+                                                    <option value="">Seleccionar...</option>
+                                                    <option value="retail" selected>Comercio</option>
+                                                    <option value="services">Servicios</option>
+                                                    <option value="healthcare">Salud</option>
+                                                    <option value="education">Educación</option>
+                                                    <option value="hospitality">Hostelería</option>
+                                                    <option value="manufacturing">Manufactura</option>
+                                                    <option value="technology">Tecnología</option>
+                                                    <option value="otro">Otro</option>
+                                                </select>
                                             </div>
                                             
                                             <div class="mb-3">
                                                 <label class="form-label">Número de Teléfono Twilio</label>
                                                 <div class="input-group">
-                                                    <input type="text" class="form-control" id="twilio-number" placeholder="+34 XXX XXX XXX" value="+34 600 123 456" readonly>
+                                                    <input type="text" class="form-control" id="twilio-number" name="twilio_phone_number" placeholder="+34 XXX XXX XXX" value="+34 600 123 456" readonly>
                                                     <button class="btn btn-outline-primary" type="button" id="configure-twilio-btn">
                                                         <i class="fas fa-cog me-1"></i>Configurar
                                                     </button>
@@ -778,8 +816,20 @@ function createTabsContent() {
                                             </div>
                                             
                                             <div class="mb-3">
+                                                <label class="form-label">Idioma Principal *</label>
+                                                <select class="form-select" id="primary-language" name="primary_language" required>
+                                                    <option value="es" selected>Español</option>
+                                                    <option value="en">Inglés</option>
+                                                    <option value="fr">Francés</option>
+                                                    <option value="de">Alemán</option>
+                                                    <option value="it">Italiano</option>
+                                                    <option value="pt">Portugués</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="mb-3">
                                                 <label class="form-label">Personalidad del Bot</label>
-                                                <select class="form-select" id="bot-personality">
+                                                <select class="form-select" id="bot-personality" name="bot_personality">
                                                     <option value="professional">Profesional y Formal</option>
                                                     <option value="friendly" selected>Amigable y Cercano</option>
                                                     <option value="enthusiastic">Entusiasta y Energético</option>
@@ -790,135 +840,74 @@ function createTabsContent() {
                                             
                                             <div class="mb-3">
                                                 <label class="form-label">Mensaje de Bienvenida *</label>
-                                                <textarea class="form-control" id="welcome-message" rows="3" placeholder="Hola, gracias por llamar a [EMPRESA]. ¿En qué puedo ayudarte?" required>Hola, gracias por llamar a Cueros Premium. Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?</textarea>
+                                                <textarea class="form-control" id="welcome-message" name="welcome_message" rows="3" placeholder="Hola, gracias por llamar a [EMPRESA]. ¿En qué puedo ayudarte?" required>Hola, gracias por llamar a Cueros Premium. Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?</textarea>
                                             </div>
                                             
                                             <div class="mb-3">
                                                 <label class="form-label">Horario de Atención</label>
-                                                <div class="row">
-                                                    <div class="col-6">
-                                                        <input type="time" class="form-control" id="opening-time" value="09:00">
-                                                        <small class="text-muted">Apertura</small>
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <input type="time" class="form-control" id="closing-time" value="18:00">
-                                                        <small class="text-muted">Cierre</small>
-                                                    </div>
-                                                </div>
+                                                <select class="form-select" id="business-hours" name="business_hours">
+                                                    <option value="9-18" selected>9:00 - 18:00</option>
+                                                    <option value="8-20">8:00 - 20:00</option>
+                                                    <option value="10-22">10:00 - 22:00</option>
+                                                    <option value="24h">24 Horas</option>
+                                                    <option value="custom">Personalizado</option>
+                                                </select>
                                             </div>
                                             
                                             <div class="mb-3">
                                                 <label class="form-label">Días Laborables</label>
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" id="monday" checked>
-                                                                <label class="form-check-label" for="monday">Lun</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" id="tuesday" checked>
-                                                                <label class="form-check-label" for="tuesday">Mar</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" id="wednesday" checked>
-                                                                <label class="form-check-label" for="wednesday">Mié</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" id="thursday" checked>
-                                                                <label class="form-check-label" for="thursday">Jue</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" id="friday" checked>
-                                                                <label class="form-check-label" for="friday">Vie</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" id="saturday">
-                                                                <label class="form-check-label" for="saturday">Sáb</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" id="sunday">
-                                                                <label class="form-check-label" for="sunday">Dom</label>
-                                                            </div>
-                                                        </div>
+                                                <div class="form-check-group">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="day0" name="working_days[]" value="0" checked>
+                                                        <label class="form-check-label" for="day0">L</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="day1" name="working_days[]" value="1" checked>
+                                                        <label class="form-check-label" for="day1">M</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="day2" name="working_days[]" value="2" checked>
+                                                        <label class="form-check-label" for="day2">X</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="day3" name="working_days[]" value="3" checked>
+                                                        <label class="form-check-label" for="day3">J</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="day4" name="working_days[]" value="4" checked>
+                                                        <label class="form-check-label" for="day4">V</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="day5" name="working_days[]" value="5">
+                                                        <label class="form-check-label" for="day5">S</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="day6" name="working_days[]" value="6">
+                                                        <label class="form-check-label" for="day6">D</label>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <!-- Configuración Avanzada -->
+                                        <!-- Configuración de Llamadas -->
                                         <div class="col-md-6">
-                                            <h6 class="text-primary mb-3"><i class="fas fa-brain me-2"></i>Inteligencia y Contexto</h6>
+                                            <h6 class="text-primary mb-3"><i class="fas fa-phone me-2"></i>Configuración de Llamadas</h6>
                                             
                                             <div class="mb-3">
-                                                <label class="form-label">Archivos de Contexto (Opcionales)</label>
-                                                <small class="text-muted d-block mb-2">Sube archivos para que el bot tenga más información sobre tu negocio</small>
-                                                <div class="border rounded p-3 bg-light">
-                                                    <div class="row">
-                                                        <div class="col-md-6 mb-3">
-                                                            <label for="inventory-file" class="form-label small"><i class="fas fa-boxes me-1"></i>Inventario/Stock</label>
-                                                            <input type="file" class="form-control form-control-sm" id="inventory-file" accept=".pdf,.txt,.csv,.xlsx,.docx">
-                                                            <div class="file-status" id="inventory-status"></div>
-                                                        </div>
-                                                        <div class="col-md-6 mb-3">
-                                                            <label for="catalog-file" class="form-label small"><i class="fas fa-book me-1"></i>Catálogo de Productos</label>
-                                                            <input type="file" class="form-control form-control-sm" id="catalog-file" accept=".pdf,.txt,.csv,.xlsx,.docx">
-                                                            <div class="file-status" id="catalog-status"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row">
-                                                        <div class="col-md-6 mb-3">
-                                                            <label for="pricing-file" class="form-label small"><i class="fas fa-tags me-1"></i>Lista de Precios</label>
-                                                            <input type="file" class="form-control form-control-sm" id="pricing-file" accept=".pdf,.txt,.csv,.xlsx,.docx">
-                                                            <div class="file-status" id="pricing-status"></div>
-                                                        </div>
-                                                        <div class="col-md-6 mb-3">
-                                                            <label for="menu-file" class="form-label small"><i class="fas fa-utensils me-1"></i>Cartas/Menús</label>
-                                                            <input type="file" class="form-control form-control-sm" id="menu-file" accept=".pdf,.txt,.csv,.xlsx,.docx">
-                                                            <div class="file-status" id="menu-status"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row">
-                                                        <div class="col-md-6 mb-3">
-                                                            <label for="samples-file" class="form-label small"><i class="fas fa-palette me-1"></i>Muestrarios</label>
-                                                            <input type="file" class="form-control form-control-sm" id="samples-file" accept=".pdf,.txt,.csv,.xlsx,.docx">
-                                                            <div class="file-status" id="samples-status"></div>
-                                                        </div>
-                                                        <div class="col-md-6 mb-0">
-                                                            <label for="info-file" class="form-label small"><i class="fas fa-info-circle me-1"></i>Información General</label>
-                                                            <input type="file" class="form-control form-control-sm" id="info-file" accept=".pdf,.txt,.csv,.xlsx,.docx">
-                                                            <div class="file-status" id="info-status"></div>
-                                                        </div>
+                                                <label class="form-label">Preguntas Frecuentes para Llamadas</label>
+                                                <small class="text-muted d-block mb-2">Respuestas que dará el bot durante las llamadas</small>
+                                                <div id="faq-container">
+                                                    <div class="input-group mb-2">
+                                                        <input type="text" class="form-control" placeholder="Pregunta" id="faq-question-0" name="faq_questions[]" value="¿Cuáles son sus horarios?">
+                                                        <input type="text" class="form-control" placeholder="Respuesta" id="faq-answer-0" name="faq_answers[]" value="Atendemos de lunes a viernes de 9:00 a 18:00">
+                                                        <button class="btn btn-outline-danger" type="button" onclick="removeFAQ(0)">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <small class="text-muted">El bot usará estos archivos para responder consultas específicas</small>
-                                                
-                                                <style>
-                                                .file-status {
-                                                    margin-top: 5px;
-                                                    min-height: 20px;
-                                                }
-                                                .file-status small {
-                                                    font-size: 0.75rem;
-                                                    line-height: 1.2;
-                                                }
-                                                .form-control.is-invalid {
-                                                    border-color: #dc3545;
-                                                    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-                                                }
-                                                .form-select.is-invalid {
-                                                    border-color: #dc3545;
-                                                    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-                                                }
-                                                .form-control:focus {
-                                                    border-color: #0d6efd;
-                                                    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-                                                }
-                                                .form-select:focus {
-                                                    border-color: #0d6efd;
-                                                    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-                                                }
-                                                </style>
+                                                <button class="btn btn-outline-primary btn-sm" type="button" onclick="addFAQ()">
+                                                    <i class="fas fa-plus me-1"></i>Agregar FAQ
+                                                </button>
                                             </div>
                                             
                                             <div class="mb-3">
@@ -941,52 +930,170 @@ function createTabsContent() {
                                     
                                     <hr class="my-4">
                                     
-                                    <!-- Preguntas Frecuentes -->
+                                    <!-- Archivos de Contexto Común -->
                                     <div class="row">
                                         <div class="col-12">
-                                            <h6 class="text-primary mb-3"><i class="fas fa-question-circle me-2"></i>Preguntas Frecuentes (FAQ)</h6>
-                                            <div id="faq-container">
-                                                <div class="faq-item border rounded p-3 mb-3">
-                                                    <div class="row">
-                                                        <div class="col-md-5">
-                                                            <input type="text" class="form-control" placeholder="Pregunta" value="¿Cuáles son sus horarios de atención?">
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <input type="text" class="form-control" placeholder="Respuesta" value="Atendemos de lunes a viernes de 9:00 a 18:00 horas">
-                                                        </div>
-                                                        <div class="col-md-1">
-                                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFAQ(this)">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        </div>
+                                            <h6 class="text-info mb-3"><i class="fas fa-folder me-2"></i>Archivos de Contexto (Común para Llamadas y Emails)</h6>
+                                            <small class="text-muted d-block mb-3">Sube archivos para que ambos bots tengan más información sobre tu negocio</small>
+                                            <div class="border rounded p-3 bg-light">
+                                                <div class="row">
+                                                    <div class="col-md-4 mb-3">
+                                                        <label for="inventory-file" class="form-label small"><i class="fas fa-boxes me-1"></i>Inventario/Stock</label>
+                                                        <input type="file" class="form-control form-control-sm" id="inventory-file" name="inventory_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                                        <div class="file-status" id="inventory-status"></div>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label for="catalog-file" class="form-label small"><i class="fas fa-book me-1"></i>Catálogo de Productos</label>
+                                                        <input type="file" class="form-control form-control-sm" id="catalog-file" name="catalog_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                                        <div class="file-status" id="catalog-status"></div>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label for="pricing-file" class="form-label small"><i class="fas fa-tags me-1"></i>Lista de Precios</label>
+                                                        <input type="file" class="form-control form-control-sm" id="pricing-file" name="pricing_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                                        <div class="file-status" id="pricing-status"></div>
                                                     </div>
                                                 </div>
-                                                <div class="faq-item border rounded p-3 mb-3">
-                                                    <div class="row">
-                                                        <div class="col-md-5">
-                                                            <input type="text" class="form-control" placeholder="Pregunta" value="¿Hacen envíos a toda España?">
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <input type="text" class="form-control" placeholder="Respuesta" value="Sí, realizamos envíos a toda la península en 24-48 horas">
-                                                        </div>
-                                                        <div class="col-md-1">
-                                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFAQ(this)">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        </div>
+                                                <div class="row">
+                                                    <div class="col-md-4 mb-3">
+                                                        <label for="menu-file" class="form-label small"><i class="fas fa-utensils me-1"></i>Cartas/Menús</label>
+                                                        <input type="file" class="form-control form-control-sm" id="menu-file" name="menu_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                                        <div class="file-status" id="menu-status"></div>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label for="samples-file" class="form-label small"><i class="fas fa-palette me-1"></i>Muestrarios</label>
+                                                        <input type="file" class="form-control form-control-sm" id="samples-file" name="samples_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                                        <div class="file-status" id="samples-status"></div>
+                                                    </div>
+                                                    <div class="col-md-4 mb-0">
+                                                        <label for="info-file" class="form-label small"><i class="fas fa-info-circle me-1"></i>Información General</label>
+                                                        <input type="file" class="form-control form-control-sm" id="info-file" name="info_file" accept=".pdf,.txt,.csv,.xlsx,.docx">
+                                                        <div class="file-status" id="info-status"></div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button type="button" class="btn btn-outline-primary btn-sm" id="add-faq-btn">
-                                                <i class="fas fa-plus me-2"></i>Añadir FAQ
-                                            </button>
+                                            <small class="text-muted">Ambos bots usarán estos archivos para responder consultas específicas</small>
                                         </div>
                                     </div>
                                     
+                                    <style>
+                                    .file-status {
+                                        margin-top: 5px;
+                                        min-height: 20px;
+                                    }
+                                    .file-status small {
+                                        font-size: 0.75rem;
+                                        line-height: 1.2;
+                                    }
+                                    .form-control.is-invalid {
+                                        border-color: #dc3545;
+                                        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+                                    }
+                                    .form-select.is-invalid {
+                                        border-color: #dc3545;
+                                        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+                                    }
+                                    .form-control:focus {
+                                        border-color: #0d6efd;
+                                        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+                                    }
+                                    .form-select:focus {
+                                        border-color: #0d6efd;
+                                        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+                                    }
+                                    </style>
+                                    
                                     <hr class="my-4">
                                     
-                                    <div class="d-flex justify-content-between">
-                                        <button type="button" class="btn btn-outline-info" id="test-bot-btn">
+                                    <!-- Configuración de Emails -->
+                                    <div class="row mt-4">
+                                        <div class="col-12">
+                                            <h6 class="text-success mb-3"><i class="fas fa-envelope me-2"></i>Configuración de Emails</h6>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <!-- Configuración de Clasificación -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Email de Entrada</label>
+                                                <input type="email" class="form-control" id="incoming-email" name="incoming_email" placeholder="info@empresa.com" value="info@cuerospremium.com">
+                                                <small class="text-muted">Email donde llegan las consultas de clientes</small>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Frecuencia de Revisión</label>
+                                                <select class="form-select" id="check-frequency" name="check_frequency">
+                                                    <option value="5">Cada 5 minutos</option>
+                                                    <option value="15" selected>Cada 15 minutos</option>
+                                                    <option value="30">Cada 30 minutos</option>
+                                                    <option value="60">Cada hora</option>
+                                                </select>
+                                                <small class="text-muted">Con qué frecuencia revisar nuevos emails</small>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Nivel de Confianza Mínimo</label>
+                                                <div class="d-flex align-items-center">
+                                                    <input type="range" class="form-range me-3" id="confidence-level" name="confidence_level" min="50" max="95" value="80">
+                                                    <span class="badge bg-primary" id="confidence-display">80%</span>
+                                                </div>
+                                                <small class="text-muted">Mínimo nivel de confianza para clasificación automática</small>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="auto-priority" name="auto_priority" checked>
+                                                    <label class="form-check-label" for="auto-priority">
+                                                        <i class="fas fa-exclamation-triangle me-2"></i>Detección Automática de Urgencia
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted">Detectar automáticamente emails urgentes</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Configuración de Notificaciones -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Email para Notificaciones</label>
+                                                <input type="email" class="form-control" id="notification-email" name="notification_email" placeholder="manager@empresa.com" value="admin@cuerospremium.com">
+                                                <small class="text-muted">Recibir notificaciones de emails importantes</small>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Tipos de Notificación</label>
+                                                <div class="border rounded p-3 bg-light">
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="notify-urgent" name="notify_urgent" checked>
+                                                        <label class="form-check-label" for="notify-urgent">
+                                                            🚨 Emails Urgentes
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="notify-complaints" name="notify_complaints" checked>
+                                                        <label class="form-check-label" for="notify-complaints">
+                                                            ⚠️ Reclamaciones
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="notify-orders" name="notify_orders" checked>
+                                                        <label class="form-check-label" for="notify-orders">
+                                                            📦 Pedidos Importantes
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="notify-summary" name="notify_summary">
+                                                        <label class="form-check-label" for="notify-summary">
+                                                            📈 Resumen Diario
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Botones de Acción -->
+                                    <div class="d-flex gap-2 mt-4">
+                                        <button type="button" class="btn btn-outline-primary" id="test-call-bot-btn">
                                             <i class="fas fa-phone me-2"></i>Probar Bot
                                         </button>
                                         <button type="submit" class="btn btn-primary">
@@ -1001,289 +1108,9 @@ function createTabsContent() {
             </div>
         </div>
         
-        <!-- Gestión de Emails -->
-        <div class="tab-pane fade" id="email-management" role="tabpanel">
-            <div class="container-fluid py-4">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-white border-bottom-0 py-3">
-                                <h5 class="mb-0"><i class="fas fa-cogs me-2 text-success"></i>Configuración de Gestión de Emails</h5>
-                                <small class="text-muted">Configura cómo el sistema clasificará y gestionará tus emails</small>
-                            </div>
-                            <div class="card-body py-4 px-4">
-                                <form id="email-management-form">
-                                    <div class="row">
-                                        <!-- Configuración de Clasificación -->
-                                        <div class="col-md-6">
-                                            <h6 class="text-success mb-3"><i class="fas fa-brain me-2"></i>Clasificación Inteligente</h6>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label">Email de Entrada</label>
-                                                <input type="email" class="form-control" id="incoming-email" placeholder="info@empresa.com" value="info@cuerospremium.com">
-                                                <small class="text-muted">Email donde llegan las consultas de clientes</small>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label">Frecuencia de Revisión</label>
-                                                <select class="form-select" id="check-frequency">
-                                                    <option value="5">Cada 5 minutos</option>
-                                                    <option value="15" selected>Cada 15 minutos</option>
-                                                    <option value="30">Cada 30 minutos</option>
-                                                    <option value="60">Cada hora</option>
-                                                </select>
-                                                <small class="text-muted">Con qué frecuencia revisar nuevos emails</small>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label">Nivel de Confianza Mínimo</label>
-                                                <div class="d-flex align-items-center">
-                                                    <input type="range" class="form-range me-3" id="confidence-level" min="50" max="95" value="80">
-                                                    <span class="badge bg-primary" id="confidence-display">80%</span>
-                                                </div>
-                                                <small class="text-muted">Mínimo nivel de confianza para clasificación automática</small>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="auto-priority" checked>
-                                                    <label class="form-check-label" for="auto-priority">
-                                                        <i class="fas fa-exclamation-triangle me-2"></i>Detección Automática de Urgencia
-                                                    </label>
-                                                </div>
-                                                <small class="text-muted">Detectar automáticamente emails urgentes</small>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Configuración de Notificaciones -->
-                                        <div class="col-md-6">
-                                            <h6 class="text-success mb-3"><i class="fas fa-bell me-2"></i>Notificaciones</h6>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label">Email para Notificaciones</label>
-                                                <input type="email" class="form-control" id="notification-email" placeholder="manager@empresa.com" value="admin@cuerospremium.com">
-                                                <small class="text-muted">Recibir notificaciones de emails importantes</small>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label">Tipos de Notificación</label>
-                                                <div class="border rounded p-3 bg-light">
-                                                    <div class="form-check mb-2">
-                                                        <input class="form-check-input" type="checkbox" id="notify-urgent" checked>
-                                                        <label class="form-check-label" for="notify-urgent">
-                                                            🚨 Emails Urgentes
-                                                        </label>
-                                                    </div>
-                                                    <div class="form-check mb-2">
-                                                        <input class="form-check-input" type="checkbox" id="notify-complaints" checked>
-                                                        <label class="form-check-label" for="notify-complaints">
-                                                            ⚠️ Reclamaciones
-                                                        </label>
-                                                    </div>
-                                                    <div class="form-check mb-2">
-                                                        <input class="form-check-input" type="checkbox" id="notify-orders" checked>
-                                                        <label class="form-check-label" for="notify-orders">
-                                                            📦 Pedidos Importantes
-                                                        </label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="notify-summary">
-                                                        <label class="form-check-label" for="notify-summary">
-                                                            📈 Resumen Diario
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label">Integración de Email</label>
-                                                <div class="d-grid gap-2">
-                                                    <button type="button" class="btn btn-outline-primary" id="setup-gmail-btn">
-                                                        <i class="fab fa-google me-2"></i>Configurar Gmail
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-info" id="setup-outlook-btn">
-                                                        <i class="fab fa-microsoft me-2"></i>Configurar Outlook
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" id="setup-imap-btn">
-                                                        <i class="fas fa-server me-2"></i>Configurar IMAP/SMTP
-                                                    </button>
-                                                </div>
-                                                <small class="text-muted">Conecta tu proveedor de email para clasificación automática</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <hr class="my-4">
-                                    
-                                    <!-- Plantillas de Clasificación -->
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <h6 class="text-success mb-3"><i class="fas fa-tags me-2"></i>Palabras Clave para Clasificación</h6>
-                                            <div class="row">
-                                                <div class="col-md-3">
-                                                    <div class="card border-success">
-                                                        <div class="card-header bg-success text-white py-2">
-                                                            <small class="fw-bold">📦 PEDIDOS</small>
-                                                        </div>
-                                                        <div class="card-body p-2">
-                                                            <textarea class="form-control form-control-sm" rows="3" placeholder="Palabras clave...">pedido, comprar, solicitar, cotizar, precio, stock, disponible</textarea>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="card border-danger">
-                                                        <div class="card-header bg-danger text-white py-2">
-                                                            <small class="fw-bold">⚠️ RECLAMACIONES</small>
-                                                        </div>
-                                                        <div class="card-body p-2">
-                                                            <textarea class="form-control form-control-sm" rows="3" placeholder="Palabras clave...">reclamo, devolución, defectuoso, problema, queja, reembolso, dañado</textarea>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="card border-info">
-                                                        <div class="card-header bg-info text-white py-2">
-                                                            <small class="fw-bold">❓ CONSULTAS</small>
-                                                        </div>
-                                                        <div class="card-body p-2">
-                                                            <textarea class="form-control form-control-sm" rows="3" placeholder="Palabras clave...">consulta, información, pregunta, cómo, cuándo, dónde, ayuda</textarea>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="card border-warning">
-                                                        <div class="card-header bg-warning text-dark py-2">
-                                                            <small class="fw-bold">🚨 URGENTE</small>
-                                                        </div>
-                                                        <div class="card-body p-2">
-                                                            <textarea class="form-control form-control-sm" rows="3" placeholder="Palabras clave...">urgente, inmediato, ya, ahora, rápido, emergencia, importante</textarea>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <hr class="my-4">
-                                    
-                                    <div class="d-flex justify-content-between">
-                                        <button type="button" class="btn btn-outline-info" id="test-classification-btn">
-                                            <i class="fas fa-vial me-2"></i>Probar Clasificación
-                                        </button>
-                                        <button type="submit" class="btn btn-success">
-                                            <i class="fas fa-save me-2"></i>Guardar Configuración
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Perfil -->
-        <div class="tab-pane fade" id="profile" role="tabpanel">
-            <div class="container-fluid py-4">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-white border-bottom-0 py-3">
-                                <h5 class="mb-0"><i class="fas fa-user-cog me-2"></i>Configuración de Cuenta</h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="profile-form">
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Nombre de la Empresa *</label>
-                                            <input type="text" class="form-control" id="account-company-name" placeholder="Mi Empresa S.L." required>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Nombre de Contacto *</label>
-                                            <input type="text" class="form-control" id="account-contact-name" placeholder="Juan Pérez" required>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Email de Contacto *</label>
-                                            <input type="email" class="form-control" id="account-email" placeholder="admin@miempresa.com" required>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Teléfono *</label>
-                                            <input type="tel" class="form-control" id="account-phone" placeholder="+34 900 000 000" required>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Sitio Web</label>
-                                            <input type="url" class="form-control" id="account-website" placeholder="https://www.miempresa.com">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Sector *</label>
-                                            <select class="form-select" id="account-sector" required>
-                                                <option value="">Seleccionar sector...</option>
-                                                <option value="retail">Comercio</option>
-                                                <option value="services">Servicios</option>
-                                                <option value="healthcare">Salud</option>
-                                                <option value="education">Educación</option>
-                                                <option value="hospitality">Hostelería</option>
-                                                <option value="manufacturing">Manufactura</option>
-                                                <option value="technology">Tecnología</option>
-                                                <option value="otro">Otro</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-12 mb-3">
-                                            <label class="form-label">Dirección</label>
-                                            <textarea class="form-control" id="account-address" rows="2" placeholder="Calle Principal 123, 28001 Madrid, España"></textarea>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Zona Horaria</label>
-                                            <select class="form-select" id="account-timezone">
-                                                <option value="Europe/Madrid">España (Madrid)</option>
-                                                <option value="Europe/London">Reino Unido (Londres)</option>
-                                                <option value="Europe/Paris">Francia (París)</option>
-                                                <option value="America/New_York">EE.UU. (Nueva York)</option>
-                                                <option value="America/Los_Angeles">EE.UU. (Los Ángeles)</option>
-                                                <option value="America/Mexico_City">México (Ciudad de México)</option>
-                                                <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Idioma Principal</label>
-                                            <select class="form-select" id="account-language">
-                                                <option value="es">🇪🇸 Español</option>
-                                                <option value="en">🇺🇸 Inglés</option>
-                                                <option value="fr">🇫🇷 Francés</option>
-                                                <option value="pt">🇵🇹 Portugués</option>
-                                                <option value="it">🇮🇹 Italiano</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="text-end">
-                                        <button type="submit" class="btn btn-success">
-                                            <i class="fas fa-save me-2"></i>Guardar Cambios
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         <!-- Facturación -->
         <div class="tab-pane fade" id="billing" role="tabpanel">
-            <div class="container-fluid py-4">
+            <div class="container-fluid pt-2 pb-0">
                 <div class="row">
                     <div class="col-md-8">
                         <div class="card border-0 shadow-sm">
@@ -1295,15 +1122,15 @@ function createTabsContent() {
                                     <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th class="px-4 py-3">Fecha</th>
-                                                <th class="px-4 py-3">Concepto</th>
-                                                <th class="px-4 py-3">Importe</th>
-                                                <th class="px-4 py-3">Estado</th>
+                                                <th class="px-3 py-2">Fecha</th>
+                                                <th class="px-3 py-2">Concepto</th>
+                                                <th class="px-3 py-2">Importe</th>
+                                                <th class="px-3 py-2">Estado</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td class="px-4 py-3" colspan="4">
+                                                <td class="px-3 py-2" colspan="4">
                                                     <div class="text-center text-muted py-4">
                                                         <i class="fas fa-receipt fa-2x mb-3"></i>
                                                         <p>No hay facturas disponibles</p>
@@ -1327,7 +1154,7 @@ function createTabsContent() {
                                     <span class="badge bg-success fs-6 px-3 py-2">Plan Profesional</span>
                                 </div>
                                 <h4 class="text-primary mb-3">€29.99/mes</h4>
-                                <ul class="list-unstyled text-start mb-4">
+                                <ul class="list-unstyled text-start mb-3">
                                     <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Llamadas ilimitadas</li>
                                     <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Emails ilimitados</li>
                                     <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Soporte 24/7</li>
@@ -1594,13 +1421,40 @@ function unmarkCallAsManaged(callId) {
 }
 
 /**
+ * Cargar datos del formulario de introducción desde localStorage
+ */
+function loadCompanySetupData() {
+    console.log('📋 Cargando datos del formulario de introducción...');
+    
+    try {
+        // Intentar cargar datos desde localStorage
+        const companyConfigData = localStorage.getItem('companyConfig');
+        
+        if (companyConfigData) {
+            const configData = JSON.parse(companyConfigData);
+            console.log('✅ Datos del formulario de introducción encontrados:', configData);
+            return configData;
+        } else {
+            console.log('ℹ️ No se encontraron datos del formulario de introducción en localStorage');
+            return null;
+        }
+    } catch (error) {
+        console.error('❌ Error al cargar datos del formulario de introducción:', error);
+        return null;
+    }
+}
+
+/**
  * Cargar datos existentes en los formularios
  */
 function loadExistingData() {
     console.log('📄 Cargando datos existentes...');
     
-    // Simular carga de datos del perfil (en producción sería una llamada al backend)
-    const profileData = {
+    // Cargar datos reales del formulario de introducción
+    const setupData = loadCompanySetupData();
+    
+    // Datos por defecto si no hay datos del formulario de introducción
+    const defaultData = {
         companyName: 'Cueros Premium',
         contactName: 'Juan Pérez',
         email: 'admin@cuerospremium.com',
@@ -1611,6 +1465,19 @@ function loadExistingData() {
         timezone: 'Europe/Madrid',
         language: 'es'
     };
+    
+    // Usar datos del formulario de introducción si están disponibles, sino usar datos por defecto
+    const profileData = setupData ? {
+        companyName: setupData['company-name'] || defaultData.companyName,
+        contactName: setupData['contact-name'] || defaultData.contactName,
+        email: setupData['contact-email'] || defaultData.email,
+        phone: setupData['contact-phone'] || defaultData.phone,
+        website: setupData['company-website'] || defaultData.website,
+        sector: setupData['company-sector'] || defaultData.sector,
+        address: setupData['company-address'] || defaultData.address,
+        timezone: setupData['company-timezone'] || defaultData.timezone,
+        language: setupData['company-language'] || defaultData.language
+    } : defaultData;
     
     // Cargar datos en el formulario de perfil
     if (document.getElementById('account-company-name')) {
@@ -1625,8 +1492,8 @@ function loadExistingData() {
         document.getElementById('account-language').value = profileData.language || 'es';
     }
     
-    // Simular carga de configuración del bot
-    const botConfig = {
+    // Configuración del bot usando datos del formulario de introducción
+    const defaultBotConfig = {
         companyName: 'Cueros Premium',
         personality: 'friendly',
         welcomeMessage: 'Hola, gracias por llamar a Cueros Premium. Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?',
@@ -1643,24 +1510,349 @@ function loadExistingData() {
         }
     };
     
-    // Cargar datos en el formulario del bot
-    if (document.getElementById('company-name')) {
-        document.getElementById('company-name').value = botConfig.companyName || '';
-        document.getElementById('bot-personality').value = botConfig.personality || 'friendly';
-        document.getElementById('welcome-message').value = botConfig.welcomeMessage || '';
-        document.getElementById('opening-time').value = botConfig.openingTime || '09:00';
-        document.getElementById('closing-time').value = botConfig.closingTime || '18:00';
-        
-        // Cargar días laborables
-        Object.keys(botConfig.workingDays).forEach(day => {
-            const checkbox = document.getElementById(day);
-            if (checkbox) {
-                checkbox.checked = botConfig.workingDays[day];
-            }
-        });
-    }
+    // Usar datos del formulario de introducción si están disponibles
+    const botConfig = setupData ? {
+        companyName: setupData['company-name'] || defaultBotConfig.companyName,
+        personality: setupData['bot-personality'] || defaultBotConfig.personality,
+        welcomeMessage: setupData['welcome-message'] || `Hola, gracias por llamar a ${setupData['company-name'] || 'nuestra empresa'}. Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?`,
+        openingTime: setupData['opening-time'] || defaultBotConfig.openingTime,
+        closingTime: setupData['closing-time'] || defaultBotConfig.closingTime,
+        workingDays: {
+            monday: setupData['monday'] !== undefined ? setupData['monday'] : defaultBotConfig.workingDays.monday,
+            tuesday: setupData['tuesday'] !== undefined ? setupData['tuesday'] : defaultBotConfig.workingDays.tuesday,
+            wednesday: setupData['wednesday'] !== undefined ? setupData['wednesday'] : defaultBotConfig.workingDays.wednesday,
+            thursday: setupData['thursday'] !== undefined ? setupData['thursday'] : defaultBotConfig.workingDays.thursday,
+            friday: setupData['friday'] !== undefined ? setupData['friday'] : defaultBotConfig.workingDays.friday,
+            saturday: setupData['saturday'] !== undefined ? setupData['saturday'] : defaultBotConfig.workingDays.saturday,
+            sunday: setupData['sunday'] !== undefined ? setupData['sunday'] : defaultBotConfig.workingDays.sunday
+        }
+    } : defaultBotConfig;
+    
+    // Cargar datos en el formulario unificado de configuración del bot
+    loadUnifiedConfigForm(setupData, profileData, botConfig);
     
     console.log('✅ Datos existentes cargados');
+}
+
+/**
+ * Cargar datos en el formulario unificado de configuración
+ * @param {Object} setupData - Datos del formulario de introducción
+ * @param {Object} profileData - Datos del perfil
+ * @param {Object} botConfig - Configuración del bot
+ */
+function loadUnifiedConfigForm(setupData, profileData, botConfig) {
+    console.log('📋 Cargando datos en formulario unificado de configuración...');
+    
+    // === DATOS DE LA EMPRESA ===
+    if (document.getElementById('company-name')) {
+        document.getElementById('company-name').value = profileData.companyName || '';
+    }
+    if (document.getElementById('main-phone')) {
+        document.getElementById('main-phone').value = profileData.phone || '';
+    }
+    if (document.getElementById('contact-email')) {
+        document.getElementById('contact-email').value = profileData.email || '';
+    }
+    if (document.getElementById('website')) {
+        document.getElementById('website').value = profileData.website || '';
+    }
+    if (document.getElementById('address')) {
+        document.getElementById('address').value = profileData.address || '';
+    }
+    if (document.getElementById('industry')) {
+        document.getElementById('industry').value = profileData.sector || '';
+    }
+    
+    // === CONFIGURACIÓN DE LLAMADAS ===
+    if (document.getElementById('bot-personality')) {
+        document.getElementById('bot-personality').value = botConfig.personality || 'friendly';
+    }
+    if (document.getElementById('welcome-message')) {
+        document.getElementById('welcome-message').value = botConfig.welcomeMessage || '';
+    }
+    if (document.getElementById('opening-time')) {
+        document.getElementById('opening-time').value = botConfig.openingTime || '09:00';
+    }
+    if (document.getElementById('closing-time')) {
+        document.getElementById('closing-time').value = botConfig.closingTime || '18:00';
+    }
+    
+    // Cargar días laborables
+    Object.keys(botConfig.workingDays).forEach(day => {
+        const checkbox = document.getElementById(day);
+        if (checkbox) {
+            checkbox.checked = botConfig.workingDays[day];
+        }
+    });
+    
+    // Cargar configuración adicional si está disponible en setupData
+    if (setupData) {
+        // Nivel de confianza
+        if (document.getElementById('confidence-level') && setupData['confidence-level']) {
+            document.getElementById('confidence-level').value = setupData['confidence-level'];
+        }
+        
+        // Transferir llamadas
+        if (document.getElementById('transfer-calls') && setupData['transfer-calls'] !== undefined) {
+            document.getElementById('transfer-calls').checked = setupData['transfer-calls'];
+        }
+        
+        // === CONFIGURACIÓN DE EMAILS ===
+        // Email entrante
+        if (document.getElementById('incoming-email') && setupData['incoming-email']) {
+            document.getElementById('incoming-email').value = setupData['incoming-email'];
+        }
+        
+        // Servidor SMTP
+        if (document.getElementById('smtp-server') && setupData['smtp-server']) {
+            document.getElementById('smtp-server').value = setupData['smtp-server'];
+        }
+        
+        // Puerto SMTP
+        if (document.getElementById('smtp-port') && setupData['smtp-port']) {
+            document.getElementById('smtp-port').value = setupData['smtp-port'];
+        }
+        
+        // Usuario SMTP
+        if (document.getElementById('smtp-user') && setupData['smtp-user']) {
+            document.getElementById('smtp-user').value = setupData['smtp-user'];
+        }
+        
+        // Contraseña SMTP
+        if (document.getElementById('smtp-password') && setupData['smtp-password']) {
+            document.getElementById('smtp-password').value = setupData['smtp-password'];
+        }
+        
+        // Usar TLS
+        if (document.getElementById('use-tls') && setupData['use-tls'] !== undefined) {
+            document.getElementById('use-tls').checked = setupData['use-tls'];
+        }
+        
+        // Tiempo de respuesta
+        if (document.getElementById('response-time') && setupData['response-time']) {
+            document.getElementById('response-time').value = setupData['response-time'];
+        }
+        
+        // Firma de email
+        if (document.getElementById('email-signature') && setupData['email-signature']) {
+            document.getElementById('email-signature').value = setupData['email-signature'];
+        }
+        
+        // Respuesta automática
+        if (document.getElementById('auto-reply') && setupData['auto-reply'] !== undefined) {
+            document.getElementById('auto-reply').checked = setupData['auto-reply'];
+        }
+    }
+    
+    console.log('✅ Datos cargados en formulario unificado');
+}
+
+/**
+ * Activar o desactivar el bot principal
+ * @param {boolean} isActive - Estado del bot (true = activo, false = inactivo)
+ */
+function toggleBotStatus(isActive) {
+    console.log(`🤖 ${isActive ? 'Activando' : 'Desactivando'} bot...`);
+    
+    const statusText = document.getElementById('bot-status-text');
+    const masterSwitch = document.getElementById('bot-master-switch');
+    const configForm = document.getElementById('call-bot-config-form');
+    
+    // Si se está desactivando, mostrar advertencia sobre redirección telefónica
+    if (!isActive) {
+        showPhoneRedirectionWarning(() => {
+            performBotDeactivation(statusText, masterSwitch, configForm);
+        }, () => {
+            // Cancelar desactivación - volver a activar el switch
+            masterSwitch.checked = true;
+        });
+        return;
+    }
+    
+    if (isActive) {
+        // Bot activado
+        statusText.textContent = 'Bot Activo';
+        statusText.className = 'me-3 fw-medium text-success';
+        masterSwitch.checked = true;
+        
+        // Habilitar formulario de configuración
+        if (configForm) {
+            const inputs = configForm.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.disabled = false;
+            });
+            configForm.style.opacity = '1';
+        }
+        
+        // Guardar estado en localStorage
+        localStorage.setItem('botStatus', 'active');
+        
+        toastr.success('🚀 Bot activado correctamente', 'Bot Activo');
+        
+    }
+    
+    // Simular llamada al backend para actualizar estado
+    updateBotStatusOnServer(isActive);
+}
+
+/**
+ * Realizar la desactivación del bot
+ * @param {HTMLElement} statusText - Elemento de texto de estado
+ * @param {HTMLElement} masterSwitch - Switch principal
+ * @param {HTMLElement} configForm - Formulario de configuración
+ */
+function performBotDeactivation(statusText, masterSwitch, configForm) {
+    console.log('🚫 Procediendo con desactivación del bot...');
+    
+    // Bot desactivado
+    statusText.textContent = 'Bot Inactivo';
+    statusText.className = 'me-3 fw-medium text-danger';
+    masterSwitch.checked = false;
+    
+    // Deshabilitar formulario de configuración
+    if (configForm) {
+        const inputs = configForm.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            if (input.id !== 'bot-master-switch') {
+                input.disabled = true;
+            }
+        });
+        configForm.style.opacity = '0.6';
+    }
+    
+    // Guardar estado en localStorage
+    localStorage.setItem('botStatus', 'inactive');
+    
+    toastr.warning('⚠️ Bot desactivado. Recuerda contactar a tu operador para desactivar la redirección telefónica', 'Bot Inactivo');
+    
+    // Simular llamada al backend para actualizar estado
+    updateBotStatusOnServer(false);
+}
+
+/**
+ * Mostrar advertencia sobre redirección telefónica al desactivar bot
+ * @param {Function} onConfirm - Callback al confirmar
+ * @param {Function} onCancel - Callback al cancelar
+ */
+function showPhoneRedirectionWarning(onConfirm, onCancel) {
+    // Crear modal de advertencia
+    const modalHtml = `
+        <div class="modal fade" id="phoneRedirectionWarningModal" tabindex="-1" aria-labelledby="phoneRedirectionWarningModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-warning text-dark border-0">
+                        <h5 class="modal-title" id="phoneRedirectionWarningModalLabel">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Advertencia: Redirección Telefónica
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-4">
+                        <div class="alert alert-warning border-0 mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Información importante sobre la redirección de llamadas</strong>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3">📞 ¿Cómo funciona actualmente?</h6>
+                            <p class="mb-2">Tu número principal está redirigido automáticamente a nuestro sistema Twilio para que el bot de IA pueda atender las llamadas.</p>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3 text-danger">⚠️ ¿Qué pasa si desactivas el bot?</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="fas fa-times-circle text-danger me-2"></i>El bot dejará de procesar llamadas</li>
+                                <li class="mb-2"><i class="fas fa-phone text-warning me-2"></i>Las llamadas seguirán redirigidas a Twilio</li>
+                                <li class="mb-2"><i class="fas fa-user-tie text-info me-2"></i><strong>Necesitarás contactar a tu operador telefónico</strong> para desactivar la redirección manualmente</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-light p-3 rounded">
+                            <h6 class="fw-bold mb-2">📞 Contacta a tu operador:</h6>
+                            <p class="mb-1 small">Diles: <em>"Quiero desactivar la redirección de llamadas de mi número principal"</em></p>
+                            <p class="mb-0 small text-muted">Tendrás que proporcionar tu número principal y posiblemente verificar tu identidad.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="cancelDeactivation">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <button type="button" class="btn btn-warning" id="confirmDeactivation">
+                            <i class="fas fa-check me-2"></i>Entiendo, desactivar bot
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Agregar modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Configurar event listeners
+    const modal = new bootstrap.Modal(document.getElementById('phoneRedirectionWarningModal'));
+    const confirmBtn = document.getElementById('confirmDeactivation');
+    const cancelBtn = document.getElementById('cancelDeactivation');
+    
+    confirmBtn.addEventListener('click', () => {
+        modal.hide();
+        onConfirm();
+    });
+    
+    cancelBtn.addEventListener('click', () => {
+        modal.hide();
+        onCancel();
+    });
+    
+    // Limpiar modal al cerrarse
+    document.getElementById('phoneRedirectionWarningModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+    
+    // Mostrar modal
+    modal.show();
+}
+
+/**
+ * Actualizar estado del bot en el servidor
+ * @param {boolean} isActive - Estado del bot
+ */
+async function updateBotStatusOnServer(isActive) {
+    try {
+        console.log(`📞 Actualizando estado del bot en servidor: ${isActive ? 'activo' : 'inactivo'}`);
+        
+        // En producción, esto sería una llamada real al backend
+        // const response = await fetch('/api/bot/status', {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //         'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        //     },
+        //     body: JSON.stringify({ active: isActive })
+        // });
+        
+        // Simular respuesta exitosa
+        setTimeout(() => {
+            console.log('✅ Estado del bot actualizado en servidor');
+        }, 500);
+        
+    } catch (error) {
+        console.error('❌ Error al actualizar estado del bot:', error);
+        toastr.error('Error al actualizar estado del bot en servidor', 'Error');
+    }
+}
+
+/**
+ * Cargar estado inicial del bot desde localStorage
+ */
+function loadBotStatus() {
+    const savedStatus = localStorage.getItem('botStatus');
+    const isActive = savedStatus !== 'inactive'; // Por defecto activo
+    
+    const masterSwitch = document.getElementById('bot-master-switch');
+    if (masterSwitch) {
+        masterSwitch.checked = isActive;
+        toggleBotStatus(isActive);
+    }
 }
 
 /**
@@ -1689,6 +1881,13 @@ function setupEventListeners() {
         if (e.target.id === 'upgrade-plan-btn' || e.target.closest('#upgrade-plan-btn')) {
             console.log('⬆️ Actualizando plan...');
             toastr.info('Redirigiendo a actualización de plan...', 'Información');
+        }
+    });
+    
+    // Event listener para botón de activar/desactivar bot
+    document.addEventListener('change', function(e) {
+        if (e.target.id === 'bot-master-switch') {
+            toggleBotStatus(e.target.checked);
         }
     });
     
@@ -2025,8 +2224,8 @@ function addFAQ() {
     
     const faqHTML = `
         <div class="input-group mb-2">
-            <input type="text" class="form-control" placeholder="Pregunta" id="faq-question-${index}">
-            <input type="text" class="form-control" placeholder="Respuesta" id="faq-answer-${index}">
+            <input type="text" class="form-control" placeholder="Pregunta" id="faq-question-${index}" name="faq_questions[]">
+            <input type="text" class="form-control" placeholder="Respuesta" id="faq-answer-${index}" name="faq_answers[]">
             <button class="btn btn-outline-danger" type="button" onclick="removeFAQ(${index})">
                 <i class="fas fa-trash"></i>
             </button>
