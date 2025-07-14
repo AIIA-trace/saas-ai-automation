@@ -250,31 +250,21 @@
     <!-- Contenedor para notificaciones toast -->
     <div id="toast-container" class="position-fixed bottom-0 end-0 p-3"></div>
 
-    <!-- Dependencias JS -->
+    <!-- JavaScript Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     
-    <!-- Servicios de autenticación y configuración API -->
+    <!-- Core Application Scripts -->
     <script src="js/api-config.js"></script>
     <script src="js/auth-service.js"></script>
     <script src="js/route-protection.js"></script>
     
-    <!-- Dashboard modules -->
-    <script src="js/overview.js"></script>
-    <script src="js/bot-config.js"></script>
-    <script src="js/voice-config.js"></script>
-    <script src="js/script-config.js"></script>
-    <script src="js/transfer-config.js"></script>
-    <script src="js/email-config.js"></script>
-    
-    <!-- Navegación del menú lateral -->
+    <!-- Navigation -->
     <script src="js/menu-navigation.js"></script>
     
-    <!-- Dashboard Simple para MVP -->
-    <script src="js/dashboard-clean.js"></script>
+    <!-- Main Dashboard Script -->
     <script src="js/dashboard-simple.js"></script>
     
     <script>
@@ -285,63 +275,6 @@
             positionClass: "toast-top-right",
             timeOut: 5000
         };
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            // La verificación de autenticación ya la realiza route-protection.js
-            
-            // Toggle sidebar
-            document.getElementById("menu-toggle").addEventListener("click", function(e) {
-                e.preventDefault();
-                document.getElementById("wrapper").classList.toggle("toggled");
-            });
-            
-            // Logout functionality usando el servicio de autenticación centralizado
-            document.getElementById("logout-btn").addEventListener("click", function(e) {
-                e.preventDefault();
-                authService.logout();
-                toastr.success('Has cerrado sesión correctamente', '¡Hasta pronto!');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 1000);
-            });
-            
-            // Cargar datos del usuario usando el servicio de autenticación
-            loadUserData();
-        });
-        
-        // Cargar datos del usuario desde la API usando el servicio de autenticación
-        function loadUserData() {
-            authService.getCurrentUser()
-                .then(userData => {
-                    // Actualizar la UI con los datos del usuario
-                    document.getElementById('user-name').textContent = userData.companyName || 'Usuario';
-                    document.getElementById('user-plan').textContent = userData.subscription?.planType || 'Básico';
-                    
-                    // Cargar las secciones del dashboard
-                    loadDashboardOverview(userData);
-                })
-                .catch(error => {
-                    console.error('Error cargando datos del usuario:', error);
-                    
-                    // Mostrar mensaje de error al usuario
-                    toastr.error(
-                        'No se pudieron cargar tus datos. Por favor, recarga la página o contacta con soporte.', 
-                        'Error de conexión'
-                    );
-                    
-                    // Ocultar indicadores de carga
-                    document.getElementById('loading-overview')?.classList.add('d-none');
-                });
-        }
-        
-        function loadDashboardOverview(userData) {
-            // Ocultar indicadores de carga
-            document.getElementById('loading-overview')?.classList.add('d-none');
-            
-            // Cargar componentes del dashboard
-            // Estos serán implementados en sus respectivos módulos
-            // y se encargarán de cargar los datos específicos
-        }
     </script>
 </body>
 </html>

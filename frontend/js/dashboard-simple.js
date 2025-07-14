@@ -26,6 +26,9 @@ function adaptOtherContextSimple(config) {
         // Configurar event listeners
         setupEventListeners();
         
+        // Configurar funcionalidades adicionales (logout, toggle sidebar, etc.)
+        setupAdditionalFeatures();
+        
         console.log('✅ Dashboard simple inicializado correctamente');
         
     } catch (error) {
@@ -2709,3 +2712,113 @@ function copyTemplatePreview() {
         toastr.error('Error al copiar al portapapeles', 'Error');
     });
 }
+
+/**
+ * Configurar funcionalidades adicionales del dashboard
+ */
+function setupAdditionalFeatures() {
+    // Toggle sidebar
+    const menuToggle = document.getElementById("menu-toggle");
+    if (menuToggle) {
+        menuToggle.addEventListener("click", function(e) {
+            e.preventDefault();
+            document.getElementById("wrapper").classList.toggle("toggled");
+        });
+    }
+    
+    // Logout functionality
+    const logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            
+            // Usar authService si está disponible, sino usar localStorage directamente
+            if (typeof authService !== 'undefined') {
+                authService.logout();
+            } else {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('authToken');
+            }
+            
+            toastr.success('Has cerrado sesión correctamente', '¡Hasta pronto!');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1000);
+        });
+    }
+    
+    // Cargar datos del usuario
+    loadUserData();
+}
+
+/**
+ * Cargar datos del usuario
+ */
+function loadUserData() {
+    // Intentar cargar desde authService primero
+    if (typeof authService !== 'undefined') {
+        authService.getCurrentUser()
+            .then(userData => {
+                updateUserUI(userData);
+            })
+            .catch(error => {
+                console.error('Error cargando datos del usuario:', error);
+                loadDefaultUserData();
+            });
+    } else {
+        // Cargar datos por defecto si no hay authService
+        loadDefaultUserData();
+    }
+}
+
+/**
+ * Actualizar UI con datos del usuario
+ */
+function updateUserUI(userData) {
+    const userNameElement = document.getElementById('user-name');
+    const userPlanElement = document.getElementById('user-plan');
+    
+    if (userNameElement) {
+        userNameElement.textContent = userData.companyName || 'Usuario';
+    }
+    
+    if (userPlanElement) {
+        userPlanElement.textContent = userData.subscription?.planType || 'Básico';
+    }
+}
+
+/**
+ * Cargar datos por defecto del usuario
+ */
+function loadDefaultUserData() {
+    const defaultUserData = {
+        companyName: 'Mi Empresa',
+        subscription: { planType: 'Básico' }
+    };
+    
+    updateUserUI(defaultUserData);
+}
+
+/**
+ * Inicializar el dashboard cuando se carga la página
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando Dashboard Simple...');
+    
+    // Verificar token de autenticación
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
+    if (!token) {
+        console.log('❌ No hay token de autenticación, redirigiendo al login');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Configuración por defecto para agente de IA
+    const defaultConfig = {
+        businessSector: 'otro',
+        companyName: 'Mi Empresa'
+    };
+    
+    // Inicializar dashboard
+    adaptOtherContextSimple(defaultConfig);
+});
