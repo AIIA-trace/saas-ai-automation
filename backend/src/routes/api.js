@@ -76,34 +76,187 @@ router.get('/config', authenticate, async (req, res) => {
   }
 });
 
-// Actualizar configuración del bot
-router.put('/config/bot', authenticate, async (req, res) => {
+// Actualizar perfil del cliente
+router.put('/profile', authenticate, async (req, res) => {
   try {
-    const { welcomeMessage, voiceId, language, confirmationMessage, dtmfOptions } = req.body;
+    const { 
+      companyName, 
+      contactName, 
+      email, 
+      phone, 
+      website, 
+      industry, 
+      address, 
+      timezone, 
+      language 
+    } = req.body;
     
-    const botConfig = await prisma.botConfig.upsert({
-      where: { clientId: req.client.id },
-      update: {
-        welcomeMessage: welcomeMessage || undefined,
-        voiceId: voiceId || undefined,
+    // Validar email si se proporciona
+    if (email && email !== req.client.email) {
+      const existingClient = await prisma.client.findUnique({
+        where: { email }
+      });
+      if (existingClient) {
+        return res.status(400).json({ error: 'El email ya está en uso' });
+      }
+    }
+    
+    const updatedClient = await prisma.client.update({
+      where: { id: req.client.id },
+      data: {
+        companyName: companyName || undefined,
+        contactName: contactName || undefined,
+        email: email || undefined,
+        phone: phone || undefined,
+        website: website || undefined,
+        industry: industry || undefined,
+        address: address || undefined,
+        timezone: timezone || undefined,
         language: language || undefined,
-        confirmationMessage: confirmationMessage || undefined,
-        dtmfOptions: dtmfOptions ? JSON.stringify(dtmfOptions) : undefined,
-      },
-      create: {
-        clientId: req.client.id,
-        welcomeMessage: welcomeMessage || "Gracias por llamar. Esta llamada será grabada para mejorar nuestro servicio.",
-        voiceId: voiceId || process.env.ELEVENLABS_VOICE_ID,
-        language: language || "es-ES",
-        confirmationMessage: confirmationMessage || "Gracias por la información. Alguien se pondrá en contacto con usted a la brevedad.",
-        dtmfOptions: dtmfOptions ? JSON.stringify(dtmfOptions) : "[]",
       }
     });
     
-    return res.json(botConfig);
+    // No enviar datos sensibles
+    const { password, apiKey, ...safeClient } = updatedClient;
+    
+    return res.json({
+      success: true,
+      message: 'Perfil actualizado correctamente',
+      client: safeClient
+    });
+  } catch (error) {
+    logger.error(`Error actualizando perfil: ${error.message}`);
+    return res.status(500).json({ error: 'Error actualizando perfil' });
+  }
+});
+
+// Actualizar configuración del bot
+router.put('/config/bot', authenticate, async (req, res) => {
+  try {
+    const { 
+      welcomeMessage, 
+      voiceId, 
+      language, 
+      confirmationMessage, 
+      dtmfOptions,
+      personality,
+      workingHours,
+      workingDays,
+      contextFiles
+    } = req.body;
+    
+    // Obtener configuración actual del bot
+    const currentClient = await prisma.client.findUnique({
+      where: { id: req.client.id }
+    });
+    
+    const currentBotConfig = currentClient.botConfig || {};
+    
+    // Construir nueva configuración del bot
+    const newBotConfig = {
+      ...currentBotConfig,
+      welcomeMessage: welcomeMessage || currentBotConfig.welcomeMessage || "Gracias por llamar. Esta llamada será grabada para mejorar nuestro servicio.",
+      voiceId: voiceId || currentBotConfig.voiceId || process.env.ELEVENLABS_VOICE_ID,
+      language: language || currentBotConfig.language || "es-ES",
+      confirmationMessage: confirmationMessage || currentBotConfig.confirmationMessage || "Gracias por la información. Alguien se pondrá en contacto con usted a la brevedad.",
+      dtmfOptions: dtmfOptions || currentBotConfig.dtmfOptions || [],
+      personality: personality || currentBotConfig.personality || "friendly",
+      workingHours: workingHours || currentBotConfig.workingHours || { opening: "09:00", closing: "18:00" },
+      workingDays: workingDays || currentBotConfig.workingDays || {
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: false,
+        sunday: false
+      },
+      contextFiles: contextFiles || currentBotConfig.contextFiles || {}
+    };
+    
+    // Actualizar cliente con nueva configuración del bot
+    const updatedClient = await prisma.client.update({
+      where: { id: req.client.id },
+      data: {
+        botConfig: newBotConfig
+      }
+    });
+    
+    return res.json({
+      success: true,
+      message: 'Configuración del bot actualizada correctamente',
+      botConfig: newBotConfig
+    });
   } catch (error) {
     logger.error(`Error actualizando configuración del bot: ${error.message}`);
     return res.status(500).json({ error: 'Error actualizando configuración del bot' });
+  }
+});
+
+// Subir archivo de contexto para el bot
+router.post('/bot/upload-context', authenticate, async (req, res) => {
+  try {
+    const { fileType, fileName, fileContent, fileSize } = req.body;
+    
+    if (!fileType || !fileName || !fileContent) {
+      return res.status(400).json({ error: 'Faltan datos del archivo' });
+    }
+    
+    // Validar tipo de archivo
+    const allowedTypes = ['inventory', 'catalog', 'pricing', 'menu', 'samples', 'info'];
+    if (!allowedTypes.includes(fileType)) {
+      return res.status(400).json({ error: 'Tipo de archivo no permitido' });
+    }
+    
+    // Validar tamaño (10MB máximo)
+    if (fileSize > 10 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Archivo muy grande (máximo 10MB)' });
+    }
+    
+    // Obtener configuración actual del bot
+    const currentClient = await prisma.client.findUnique({
+      where: { id: req.client.id }
+    });
+    
+    const currentBotConfig = currentClient.botConfig || {};
+    const currentContextFiles = currentBotConfig.contextFiles || {};
+    
+    // En producción, aquí se subiría el archivo a un servicio de almacenamiento
+    // Por ahora, simulamos guardando la información del archivo
+    const fileInfo = {
+      fileName,
+      fileSize,
+      uploadedAt: new Date().toISOString(),
+      status: 'processed'
+    };
+    
+    // Actualizar archivos de contexto
+    const updatedContextFiles = {
+      ...currentContextFiles,
+      [fileType]: fileInfo
+    };
+    
+    const updatedBotConfig = {
+      ...currentBotConfig,
+      contextFiles: updatedContextFiles
+    };
+    
+    // Actualizar en la base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: {
+        botConfig: updatedBotConfig
+      }
+    });
+    
+    return res.json({
+      success: true,
+      message: 'Archivo de contexto subido correctamente',
+      fileInfo
+    });
+  } catch (error) {
+    logger.error(`Error subiendo archivo de contexto: ${error.message}`);
+    return res.status(500).json({ error: 'Error subiendo archivo de contexto' });
   }
 });
 

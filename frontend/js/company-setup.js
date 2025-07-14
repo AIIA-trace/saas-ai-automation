@@ -201,9 +201,29 @@ class CompanySetup {
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Dirección</label>
-                    <textarea class="form-control" id="address" rows="2" placeholder="Calle Principal 123, Ciudad, Código Postal"></textarea>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label">Dirección</label>
+                            <textarea class="form-control" id="address" rows="2" placeholder="Calle Principal 123, Ciudad, Código Postal"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Sector *</label>
+                            <select class="form-select" id="industry" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="retail">Comercio</option>
+                                <option value="services">Servicios</option>
+                                <option value="healthcare">Salud</option>
+                                <option value="education">Educación</option>
+                                <option value="hospitality">Hostelería</option>
+                                <option value="manufacturing">Manufactura</option>
+                                <option value="technology">Tecnología</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row">

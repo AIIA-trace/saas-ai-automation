@@ -24,6 +24,8 @@ model Client {
   timezone              String         @default("UTC")
   language              String         @default("es")
   industry              String?
+  website               String?
+  address               String?
   stripeCustomerId      String?        @unique
   subscriptionStatus    String         @default("trial") // trial, active, past_due, cancelled
   subscriptionExpiresAt DateTime?
