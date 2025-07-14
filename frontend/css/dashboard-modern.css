@@ -154,7 +154,70 @@ h6 { font-size: 0.875rem; }
 
 .btn-outline-primary:hover {
     background: var(--primary-color);
-    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Botones de acción en tabla de llamadas */
+.action-btn {
+    border-radius: 50px;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    min-width: 160px;
+    text-align: center;
+}
+
+.play-btn {
+    background: var(--primary-color);
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
+}
+
+.play-btn:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+}
+
+.play-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+}
+
+.manage-btn {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+}
+
+.manage-btn:hover {
+    background-color: #f1f5f9;
+    color: #334155;
+    transform: translateY(-2px);
+}
+
+.manage-btn:active {
+    transform: translateY(0);
+}
+
+.manage-btn i {
+    color: #64748b;
+}
+
+.btn-success.manage-btn {
+    background-color: #10b981;
+    border-color: #10b981;
+    color: white;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.2);
+}
+
+.btn-success.manage-btn:hover {
+    background-color: #059669;
+    border-color: #059669;
+}
+
+.btn-success.manage-btn i {
+    color: white;
 }
 
 /* Tablas modernas */

@@ -193,12 +193,12 @@ function createTabsContent() {
                                                     <span class="badge bg-primary">04:32</span>
                                                 </td>
                                                 <td class="px-3 py-2">
-                                                    <div class="btn-group-vertical btn-group-sm">
-                                                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="playCallRecording(1)">
-                                                            <i class="fas fa-play me-1"></i>Reproducir
+                                                    <div class="d-flex flex-column gap-2">
+                                                        <button class="btn btn-primary btn-sm action-btn play-btn" onclick="playCallRecording(1)">
+                                                            <i class="fas fa-play me-2"></i>Reproducir
                                                         </button>
-                                                        <button class="btn btn-outline-info btn-sm" onclick="viewCallDetails(1)">
-                                                            <i class="fas fa-eye me-1"></i>Ver Detalles
+                                                        <button class="btn btn-light btn-sm action-btn manage-btn" onclick="markCallAsManaged(1)">
+                                                            <i class="fas fa-check-circle me-2"></i>Marcar como Gestionado
                                                         </button>
                                                     </div>
                                                 </td>
@@ -242,12 +242,12 @@ function createTabsContent() {
                                                     <span class="badge bg-primary">02:18</span>
                                                 </td>
                                                 <td class="px-3 py-2">
-                                                    <div class="btn-group-vertical btn-group-sm">
-                                                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="playCallRecording(2)">
-                                                            <i class="fas fa-play me-1"></i>Reproducir
+                                                    <div class="d-flex flex-column gap-2">
+                                                        <button class="btn btn-primary btn-sm action-btn play-btn" onclick="playCallRecording(2)">
+                                                            <i class="fas fa-play me-2"></i>Reproducir
                                                         </button>
-                                                        <button class="btn btn-outline-success btn-sm" disabled>
-                                                            <i class="fas fa-check me-1"></i>Gestionado
+                                                        <button class="btn btn-success btn-sm action-btn manage-btn" disabled>
+                                                            <i class="fas fa-check-circle me-2"></i>Gestionado
                                                         </button>
                                                     </div>
                                                 </td>
@@ -291,12 +291,12 @@ function createTabsContent() {
                                                     <span class="badge bg-primary">01:45</span>
                                                 </td>
                                                 <td class="px-3 py-2">
-                                                    <div class="btn-group-vertical btn-group-sm">
-                                                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="playCallRecording(3)">
-                                                            <i class="fas fa-play me-1"></i>Reproducir
+                                                    <div class="d-flex flex-column gap-2">
+                                                        <button class="btn btn-primary btn-sm action-btn play-btn" onclick="playCallRecording(3)">
+                                                            <i class="fas fa-play me-2"></i>Reproducir
                                                         </button>
-                                                        <button class="btn btn-outline-info btn-sm" onclick="viewCallDetails(3)">
-                                                            <i class="fas fa-eye me-1"></i>Ver Detalles
+                                                        <button class="btn btn-light btn-sm action-btn manage-btn" onclick="markCallAsManaged(3)">
+                                                            <i class="fas fa-check-circle me-2"></i>Marcar como Gestionado
                                                         </button>
                                                     </div>
                                                 </td>
@@ -745,55 +745,11 @@ function createTabsContent() {
         <!-- 3. Configuración Unificada del Bot -->
         <div class="tab-pane" id="call-bot-content" role="tabpanel" aria-labelledby="call-bot-tab" tabindex="0">
             <div class="container-fluid">
-                <!-- Datos de la Empresa -->
+                <!-- Configuración Unificada -->
                 <div class="form-section">
-                    <h6><i class="fas fa-building me-2"></i>Datos de la Empresa</h6>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label" for="company_name">Nombre de la Empresa *</label>
-                                <input type="text" class="form-control" id="company_name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label" for="contact_email">Email de Contacto *</label>
-                                <input type="email" class="form-control" id="contact_email" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label" for="main_phone">Teléfono Principal</label>
-                                <input type="tel" class="form-control" id="main_phone">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label" for="website">Sitio Web</label>
-                                <input type="url" class="form-control" id="website" placeholder="https://">
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            <div class="form-group">
-                                <label class="form-label" for="address">Dirección</label>
-                                <input type="text" class="form-control" id="address">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label class="form-label" for="industry">Sector *</label>
-                                <select class="form-select" id="industry" required>
-                                    <option value="">Seleccionar sector</option>
-                                    <option value="retail">Comercio/Retail</option>
-                                    <option value="restaurant">Restauración</option>
-                                    <option value="healthcare">Salud</option>
-                                    <option value="education">Educación</option>
-                                    <option value="services">Servicios</option>
-                                    <option value="technology">Tecnología</option>
-                                    <option value="other">Otro</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        La configuración de la empresa y del bot está unificada en la pestaña "Configuración del Bot"
                     </div>
                 </div>
 
@@ -979,6 +935,20 @@ function createTabsContent() {
                                     <option value="formal">🎩 Formal</option>
                                 </select>
                             </div>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <div class="form-group">
+                                <label class="form-label" for="email_template">Plantilla de Respuesta</label>
+                                <textarea class="form-control" id="email_template" rows="6" placeholder="Personaliza el texto de respuesta utilizando las variables disponibles">{NOMBRE_CLIENTE}:
+
+{RESPUESTA_IA}
+
+{FIRMA}</textarea>
+                                <small class="text-muted">Esta plantilla se utilizará para generar las respuestas automáticas. Usa las variables como {NOMBRE_CLIENTE}, {EMPRESA}, etc.</small>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-3 text-end">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="previewEmailTemplate()"><i class="fas fa-eye me-1"></i>Vista previa</button>
                         </div>
                     </div>
                     
@@ -1227,41 +1197,10 @@ Web: www.miempresa.com"></textarea>
                                             </div>
                                         </div>
                                         
-                                        <!-- Configuración de Llamadas -->
                                         <div class="col-md-6">
-                                            <h6 class="text-primary mb-3"><i class="fas fa-phone me-2"></i>Configuración de Llamadas</h6>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label">Preguntas Frecuentes para Llamadas</label>
-                                                <small class="text-muted d-block mb-2">Respuestas que dará el bot durante las llamadas</small>
-                                                <div id="faq-container">
-                                                    <div class="input-group mb-2">
-                                                        <input type="text" class="form-control" placeholder="Pregunta" id="faq-question-0" name="faq_questions[]" value="¿Cuáles son sus horarios?">
-                                                        <input type="text" class="form-control" placeholder="Respuesta" id="faq-answer-0" name="faq_answers[]" value="Atendemos de lunes a viernes de 9:00 a 18:00">
-                                                        <button class="btn btn-outline-danger" type="button" onclick="removeFAQ(0)">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <button class="btn btn-outline-primary btn-sm" type="button" onclick="addFAQ()">
-                                                    <i class="fas fa-plus me-1"></i>Agregar FAQ
-                                                </button>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="calendar-integration" checked>
-                                                    <label class="form-check-label" for="calendar-integration">
-                                                        <i class="fas fa-calendar me-2"></i>Integración con Calendario
-                                                    </label>
-                                                </div>
-                                                <small class="text-muted">Permite al bot programar citas y reuniones</small>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label">Email para Reportes Automáticos</label>
-                                                <input type="email" class="form-control" id="reports-email" placeholder="manager@empresa.com" value="admin@cuerospremium.com">
-                                                <small class="text-muted">Recibirás un resumen de cada llamada importante</small>
+                                            <div class="alert alert-info">
+                                                <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Configuración Centralizada</h6>
+                                                <p class="mb-0">La configuración de llamadas está disponible en la pestaña <strong>"Configuración del Bot"</strong> para mantener todos los ajustes unificados.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1700,25 +1639,23 @@ function markCallAsManaged(callId) {
     if (checkbox) {
         checkbox.checked = true;
         
-        // Cambiar estado visual de la fila
+        // Aplicar estado visual de gestionado a la fila
         const row = checkbox.closest('.call-row');
         if (row) {
             row.classList.add('table-secondary');
-            row.style.opacity = '0.7';
-        }
-        
-        // Deshabilitar botones de acción
-        const actionButtons = row.querySelectorAll('button');
-        actionButtons.forEach(btn => {
-            if (!btn.textContent.includes('Reproducir')) {
+            row.style.opacity = '0.8';
+            
+            // Actualizar el botón si existe
+            const actionButtons = row.querySelectorAll('.manage-btn');
+            actionButtons.forEach(btn => {
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-check me-1"></i>Gestionado';
-                btn.className = 'btn btn-outline-success btn-sm';
-            }
-        });
+                btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Gestionado';
+                btn.className = 'btn btn-success btn-sm action-btn manage-btn';
+            });
+        }
     }
     
-    toastr.success(`Llamada #${callId} marcada como gestionada`, '¡Éxito!');
+    toastr.success(`Llamada #${callId} marcada como gestionada`, 'Éxito');
     
     // Cerrar modal si está abierto
     const modal = bootstrap.Modal.getInstance(document.getElementById('callDetailsModal'));
@@ -1742,17 +1679,17 @@ function unmarkCallAsManaged(callId) {
         if (row) {
             row.classList.remove('table-secondary');
             row.style.opacity = '1';
+            
+            // Actualizar el botón si existe
+            const actionButtons = row.querySelectorAll('.manage-btn');
+            actionButtons.forEach(btn => {
+                if (btn.textContent.includes('Gestionado')) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Marcar como Gestionado';
+                    btn.className = 'btn btn-light btn-sm action-btn manage-btn';
+                }
+            });
         }
-        
-        // Rehabilitar botones de acción
-        const actionButtons = row.querySelectorAll('button');
-        actionButtons.forEach(btn => {
-            if (btn.textContent.includes('Gestionado')) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-check me-1"></i>Marcar como Gestionado';
-                btn.className = 'btn btn-outline-primary btn-sm';
-            }
-        });
     }
     
     toastr.info(`Llamada #${callId} desmarcada como gestionada`, 'Información');
@@ -3045,6 +2982,76 @@ function copyTemplatePreview() {
         toastr.success('Preview copiado al portapapeles', 'Copiado');
     }).catch(() => {
         toastr.error('Error al copiar al portapapeles', 'Error');
+    });
+}
+
+/**
+ * Previsualizar plantilla de email con variables de muestra
+ */
+function previewEmailTemplate() {
+    console.log('👁️ Previsualizando plantilla de email...');
+    
+    const template = document.getElementById('email_template').value || '{RESPUESTA_IA}';
+    const companyName = document.getElementById('company-name')?.value || 'TechSolutions S.L.';
+    
+    // Datos de ejemplo para previsualización
+    const sampleData = {
+        NOMBRE_CLIENTE: 'María García',
+        EMAIL_CLIENTE: 'maria.garcia@ejemplo.com',
+        ASUNTO_ORIGINAL: 'Consulta sobre disponibilidad de productos',
+        EMPRESA: companyName,
+        RESPUESTA_IA: 'Gracias por su interés en nuestros productos. Le confirmamos que tenemos disponibilidad para todos los modelos mencionados. El tiempo estimado de entrega es de 3-5 días laborables. Para cualquier otra consulta, no dude en contactarnos.',
+        FIRMA: document.getElementById('email-signature')?.value || `Saludos cordiales,\nEquipo de ${companyName}`
+    };
+    
+    // Reemplazar variables en la plantilla
+    let previewContent = template;
+    Object.keys(sampleData).forEach(key => {
+        const regex = new RegExp(`\\{${key}\\}`, 'g');
+        previewContent = previewContent.replace(regex, sampleData[key]);
+    });
+    
+    // Crear modal para previsualización
+    const modalHtml = `
+    <div class="modal fade" id="emailPreviewModal" tabindex="-1" aria-labelledby="emailPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="emailPreviewModalLabel">Previsualización de Email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <div><strong>Para:</strong> ${sampleData.NOMBRE_CLIENTE} &lt;${sampleData.EMAIL_CLIENTE}&gt;</div>
+                            <div><strong>Asunto:</strong> Re: ${sampleData.ASUNTO_ORIGINAL}</div>
+                        </div>
+                        <div class="card-body email-preview-content">
+                            ${previewContent.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    
+    // Eliminar modal anterior si existe
+    const existingModal = document.getElementById('emailPreviewModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Añadir el modal al DOM y mostrarlo
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('emailPreviewModal'));
+    modal.show();
+    
+    // Eliminar el modal al cerrarlo
+    document.getElementById('emailPreviewModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
     });
 }
 
