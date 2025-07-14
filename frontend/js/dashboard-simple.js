@@ -309,113 +309,7 @@ function createTabsContent() {
                         </div>
                     </div>
                 </div>
-                
-                <!-- Configuración del Bot de Llamadas -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-white border-bottom-0 py-3">
-                                <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Configuración del Asistente</h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="call-config-form">
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Nombre de la Empresa</label>
-                                            <input type="text" class="form-control" id="company-name" placeholder="Mi Empresa S.L.">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Teléfono Principal</label>
-                                            <input type="tel" class="form-control" id="company-phone" placeholder="+34 900 000 000">
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Mensaje de Bienvenida</label>
-                                        <textarea class="form-control" id="welcome-message" rows="3" placeholder="Hola, gracias por llamar a [EMPRESA]. ¿En qué puedo ayudarte?"></textarea>
-                                    </div>
-                                    
-                                    <!-- Días de Atención -->
-                                    <div class="mb-3">
-                                        <label class="form-label">Días de Atención</label>
-                                        <div class="row">
-                                            <div class="col-md-12">
-                                                <div class="btn-group-toggle d-flex flex-wrap gap-2" data-bs-toggle="buttons">
-                                                    <label class="btn btn-outline-primary btn-sm active">
-                                                        <input type="checkbox" id="day-monday" checked> Lunes
-                                                    </label>
-                                                    <label class="btn btn-outline-primary btn-sm active">
-                                                        <input type="checkbox" id="day-tuesday" checked> Martes
-                                                    </label>
-                                                    <label class="btn btn-outline-primary btn-sm active">
-                                                        <input type="checkbox" id="day-wednesday" checked> Miércoles
-                                                    </label>
-                                                    <label class="btn btn-outline-primary btn-sm active">
-                                                        <input type="checkbox" id="day-thursday" checked> Jueves
-                                                    </label>
-                                                    <label class="btn btn-outline-primary btn-sm active">
-                                                        <input type="checkbox" id="day-friday" checked> Viernes
-                                                    </label>
-                                                    <label class="btn btn-outline-primary btn-sm">
-                                                        <input type="checkbox" id="day-saturday"> Sábado
-                                                    </label>
-                                                    <label class="btn btn-outline-primary btn-sm">
-                                                        <input type="checkbox" id="day-sunday"> Domingo
-                                                    </label>
-                                                </div>
-                                                <div class="form-text">Selecciona los días en que el bot estará activo</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Horarios -->
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Horario de Atención - Desde</label>
-                                            <input type="time" class="form-control" id="schedule-from" value="09:00">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Horario de Atención - Hasta</label>
-                                            <input type="time" class="form-control" id="schedule-to" value="18:00">
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Configuración de Reportes -->
-                                    <div class="mb-3">
-                                        <label class="form-label">Email para Reportes Automáticos</label>
-                                        <input type="email" class="form-control" id="reports-email" placeholder="gerente@miempresa.com">
-                                        <div class="form-text">
-                                            📧 La IA enviará aquí resúmenes automáticos de llamadas importantes
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Preguntas Frecuentes -->
-                                    <div class="mb-3">
-                                        <label class="form-label">Preguntas Frecuentes</label>
-                                        <div id="faq-container">
-                                            <div class="input-group mb-2">
-                                                <input type="text" class="form-control" placeholder="¿Cuáles son sus horarios?" id="faq-question-0">
-                                                <input type="text" class="form-control" placeholder="Nuestro horario es de 9:00 a 18:00" id="faq-answer-0">
-                                                <button class="btn btn-outline-danger" type="button" onclick="removeFAQ(0)">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addFAQ()">
-                                            <i class="fas fa-plus me-1"></i>Agregar FAQ
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="text-end">
-                                        <button type="submit" class="btn btn-success">
-                                            <i class="fas fa-save me-2"></i>Guardar Configuración
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
             </div>
         </div>
         
@@ -1669,6 +1563,37 @@ function markCallAsManaged(callId) {
 }
 
 /**
+ * Desmarcar llamada como gestionada
+ */
+function unmarkCallAsManaged(callId) {
+    console.log(`❌ Desmarcando llamada ${callId} como gestionada`);
+    
+    const checkbox = document.getElementById(`call-managed-${callId}`);
+    if (checkbox) {
+        checkbox.checked = false;
+        
+        // Restaurar estado visual de la fila
+        const row = checkbox.closest('.call-row');
+        if (row) {
+            row.classList.remove('table-secondary');
+            row.style.opacity = '1';
+        }
+        
+        // Rehabilitar botones de acción
+        const actionButtons = row.querySelectorAll('button');
+        actionButtons.forEach(btn => {
+            if (btn.textContent.includes('Gestionado')) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>Marcar como Gestionado';
+                btn.className = 'btn btn-outline-primary btn-sm';
+            }
+        });
+    }
+    
+    toastr.info(`Llamada #${callId} desmarcada como gestionada`, 'Información');
+}
+
+/**
  * Cargar datos existentes en los formularios
  */
 function loadExistingData() {
@@ -1783,6 +1708,29 @@ function setupEventListeners() {
             const callId = e.target.id.replace('call-managed-', '');
             if (e.target.checked) {
                 markCallAsManaged(callId);
+            } else {
+                unmarkCallAsManaged(callId);
+            }
+        }
+        
+        // Event listener para slider de nivel de confianza
+        if (e.target.id === 'confidence-level') {
+            const confidenceValue = e.target.value;
+            const displayElement = document.getElementById('confidence-display');
+            if (displayElement) {
+                displayElement.textContent = confidenceValue + '%';
+                console.log(`🎯 Nivel de confianza actualizado a: ${confidenceValue}%`);
+            }
+        }
+    });
+    
+    // Event listener para actualización en tiempo real del slider de confianza
+    document.addEventListener('input', function(e) {
+        if (e.target.id === 'confidence-level') {
+            const confidenceValue = e.target.value;
+            const displayElement = document.getElementById('confidence-display');
+            if (displayElement) {
+                displayElement.textContent = confidenceValue + '%';
             }
         }
     });
