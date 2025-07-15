@@ -1852,3 +1852,28 @@ function addEmailPreviewButton() {
         }
     }, 1000);
 }
+
+/**
+ * Inicialización del Dashboard
+ * Este código se ejecuta cuando el documento está listo
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando Dashboard Simple...');
+    
+    // Añadir estilos CSS
+    addDashboardStyles();
+    
+    // Verificar si hay un usuario autenticado
+    if (typeof AuthService !== 'undefined' && AuthService.isAuthenticated()) {
+        // Obtener datos de la empresa del usuario
+        const companyData = JSON.parse(localStorage.getItem('companyData') || '{}');
+        
+        // Adaptar el dashboard según el contexto de la empresa
+        adaptOtherContextSimple(companyData);
+        
+        console.log('✅ Dashboard inicializado correctamente');
+    } else {
+        console.error('❌ Usuario no autenticado');
+        window.location.href = 'login.html';
+    }
+});
