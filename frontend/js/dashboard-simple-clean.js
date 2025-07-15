@@ -38,6 +38,15 @@ function adaptOtherContextSimple(config) {
         // Cargar estado del bot
         loadBotStatus();
         
+        // Configurar selector de horario comercial
+        setupBusinessHoursSelector();
+        
+        // Inicializar gestor de preguntas frecuentes
+        setupFaqManager();
+        
+        // Configurar carga de archivos
+        setupFileUploadHandlers();
+        
         console.log('✅ Dashboard simple inicializado correctamente');
         
     } catch (error) {
@@ -164,16 +173,16 @@ function createCallsTabContent() {
                                                     <label class="form-check-label" for="filter-calls-all">Todas</label>
                                                 </div>
                                                 <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-pedidos">
-                                                    <label class="form-check-label" for="filter-calls-pedidos">Pedidos</label>
+                                                    <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-pendientes">
+                                                    <label class="form-check-label" for="filter-calls-pendientes">Pendientes</label>
                                                 </div>
                                                 <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-consultas">
-                                                    <label class="form-check-label" for="filter-calls-consultas">Consultas</label>
+                                                    <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-gestionadas">
+                                                    <label class="form-check-label" for="filter-calls-gestionadas">Gestionadas</label>
                                                 </div>
                                                 <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-urgente">
-                                                    <label class="form-check-label" for="filter-calls-urgente">Urgentes</label>
+                                                    <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-importantes">
+                                                    <label class="form-check-label" for="filter-calls-importantes">Importantes</label>
                                                 </div>
                                             </div>
                                         </div>
@@ -217,7 +226,7 @@ function createCallsTabContent() {
                                                 <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">+34 600 123 456</div>
-                                                        <small class="text-muted">Cliente habitual</small>
+                                                        <small class="text-muted">Contacto registrado</small>
                                                     </div>
                                                 </td>
                                                 <td class="px-3 py-2">
@@ -235,15 +244,18 @@ function createCallsTabContent() {
                                                     <span class="badge bg-primary">04:32</span>
                                                 </td>
                                                 <td class="px-3 py-2">
-                                                    <div class="d-flex">
-                                                        <button class="btn btn-sm btn-outline-secondary me-1 play-btn" title="Escuchar grabación">
-                                                            <i class="fas fa-play"></i>
+                                                    <div class="d-flex flex-wrap">
+                                                        <button class="btn btn-sm btn-outline-secondary me-1 mb-1 play-btn" title="Reproducir grabación">
+                                                            <i class="fas fa-play me-1"></i><span class="d-none d-lg-inline">Reproducir</span>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-primary me-1" title="Ver detalles" onclick="viewCallDetails(1)">
-                                                            <i class="fas fa-eye"></i>
+                                                        <button class="btn btn-sm btn-outline-primary me-1 mb-1" title="Ver detalles completos" onclick="viewCallDetails(1)">
+                                                            <i class="fas fa-eye me-1"></i><span class="d-none d-lg-inline">Detalles</span>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-success manage-btn" title="Marcar como gestionado">
-                                                            <i class="fas fa-check"></i>
+                                                        <button class="btn btn-sm btn-outline-success me-1 mb-1 manage-btn" title="Marcar/Desmarcar como gestionado" data-managed="false">
+                                                            <i class="fas fa-check me-1"></i><span class="d-none d-lg-inline manage-text">Gestionar</span>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-warning mb-1 star-btn" title="Marcar como importante">
+                                                            <i class="far fa-star me-1"></i><span class="d-none d-lg-inline">Destacar</span>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -269,7 +281,7 @@ function createCallsTabContent() {
                                                 <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">+34 655 789 012</div>
-                                                        <small class="text-muted">Cliente nuevo</small>
+                                                        <small class="text-muted">Contacto registrado</small>
                                                     </div>
                                                 </td>
                                                 <td class="px-3 py-2">
@@ -287,15 +299,18 @@ function createCallsTabContent() {
                                                     <span class="badge bg-primary">02:15</span>
                                                 </td>
                                                 <td class="px-3 py-2">
-                                                    <div class="d-flex">
-                                                        <button class="btn btn-sm btn-outline-secondary me-1 play-btn" title="Escuchar grabación">
-                                                            <i class="fas fa-play"></i>
+                                                    <div class="d-flex flex-wrap">
+                                                        <button class="btn btn-sm btn-outline-secondary me-1 mb-1 play-btn" title="Reproducir grabación">
+                                                            <i class="fas fa-play me-1"></i><span class="d-none d-lg-inline">Reproducir</span>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-primary me-1" title="Ver detalles" onclick="viewCallDetails(2)">
-                                                            <i class="fas fa-eye"></i>
+                                                        <button class="btn btn-sm btn-outline-primary me-1 mb-1" title="Ver detalles completos" onclick="viewCallDetails(2)">
+                                                            <i class="fas fa-eye me-1"></i><span class="d-none d-lg-inline">Detalles</span>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-danger" title="Desmarcar como gestionado" onclick="unmarkCallAsManaged(2)">
-                                                            <i class="fas fa-times"></i>
+                                                        <button class="btn btn-sm btn-success me-1 mb-1 manage-btn" title="Desmarcar como gestionado" data-managed="true">
+                                                            <i class="fas fa-undo me-1"></i><span class="d-none d-lg-inline manage-text">Desmarcar</span>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-warning mb-1 star-btn" title="Marcar como importante">
+                                                            <i class="far fa-star me-1"></i><span class="d-none d-lg-inline">Destacar</span>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -321,7 +336,7 @@ function createCallsTabContent() {
                                                 <td class="px-3 py-2">
                                                     <div>
                                                         <div class="fw-medium">+34 622 334 455</div>
-                                                        <small class="text-muted">Cliente habitual</small>
+                                                        <small class="text-muted">Contacto registrado</small>
                                                     </div>
                                                 </td>
                                                 <td class="px-3 py-2">
@@ -348,6 +363,9 @@ function createCallsTabContent() {
                                                         </button>
                                                         <button class="btn btn-sm btn-outline-success manage-btn" title="Marcar como gestionado">
                                                             <i class="fas fa-check"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-warning ms-1 star-btn" title="Marcar como importante">
+                                                            <i class="far fa-star"></i>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -632,8 +650,75 @@ function createBotConfigTabContent() {
                                             <input type="tel" class="form-control" id="main_phone" name="main_phone" value="+34 91 123 4567" required>
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="business_hours" class="form-label">Horario Comercial</label>
-                                            <input type="text" class="form-control" id="business_hours" name="business_hours" value="Lun-Vie: 9:00-18:00" required>
+                                            <label class="form-label">Horario Comercial</label>
+                                            <input type="hidden" id="business_hours" name="business_hours" value="Lun-Vie: 9:00-18:00">
+                                            <div class="card border-light mb-2">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input business-day" type="checkbox" id="day-mon" data-day="Lun" checked>
+                                                            <label class="form-check-label" for="day-mon">Lun</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input business-day" type="checkbox" id="day-tue" data-day="Mar" checked>
+                                                            <label class="form-check-label" for="day-tue">Mar</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input business-day" type="checkbox" id="day-wed" data-day="Mié" checked>
+                                                            <label class="form-check-label" for="day-wed">Mié</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input business-day" type="checkbox" id="day-thu" data-day="Jue" checked>
+                                                            <label class="form-check-label" for="day-thu">Jue</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input business-day" type="checkbox" id="day-fri" data-day="Vie" checked>
+                                                            <label class="form-check-label" for="day-fri">Vie</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input business-day" type="checkbox" id="day-sat" data-day="Sáb">
+                                                            <label class="form-check-label" for="day-sat">Sáb</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input business-day" type="checkbox" id="day-sun" data-day="Dom">
+                                                            <label class="form-check-label" for="day-sun">Dom</label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-2">
+                                                        <div class="col-6">
+                                                            <label class="form-label small">Hora inicio</label>
+                                                            <select class="form-select form-select-sm" id="business-hours-start">
+                                                                <option value="7:00">7:00</option>
+                                                                <option value="7:30">7:30</option>
+                                                                <option value="8:00">8:00</option>
+                                                                <option value="8:30">8:30</option>
+                                                                <option value="9:00" selected>9:00</option>
+                                                                <option value="9:30">9:30</option>
+                                                                <option value="10:00">10:00</option>
+                                                                <option value="10:30">10:30</option>
+                                                                <option value="11:00">11:00</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <label class="form-label small">Hora fin</label>
+                                                            <select class="form-select form-select-sm" id="business-hours-end">
+                                                                <option value="16:00">16:00</option>
+                                                                <option value="16:30">16:30</option>
+                                                                <option value="17:00">17:00</option>
+                                                                <option value="17:30">17:30</option>
+                                                                <option value="18:00" selected>18:00</option>
+                                                                <option value="18:30">18:30</option>
+                                                                <option value="19:00">19:00</option>
+                                                                <option value="19:30">19:30</option>
+                                                                <option value="20:00">20:00</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mt-3">
+                                                        <span class="badge bg-primary" id="business-hours-preview">Lun-Vie: 9:00-18:00</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -712,9 +797,57 @@ function createBotConfigTabContent() {
                                             </select>
                                         </div>
                                         
+                                        <div class="col-md-6">
+                                            <label for="outgoing_email" class="form-label">Email de Salida</label>
+                                            <input type="email" class="form-control" id="outgoing_email" name="outgoing_email" value="soporte@techsolutions.com" required>
+                                            <div class="form-text">Email desde el que se enviarán las respuestas automáticas</div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <label for="recipient_email" class="form-label">Email de Recepción</label>
+                                            <input type="email" class="form-control" id="recipient_email" name="recipient_email" value="info@techsolutions.com" required>
+                                            <div class="form-text">Email donde se recibirán las copias de las respuestas</div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <label for="website" class="form-label">Sitio Web</label>
+                                            <input type="url" class="form-control" id="website" name="website" value="https://www.techsolutions.com" required>
+                                        </div>
+                                        
                                         <div class="col-12">
                                             <label for="email_signature" class="form-label">Firma de Email</label>
-                                            <textarea class="form-control" id="email_signature" name="email_signature" rows="3" required>Atentamente,\nEquipo de Soporte\nTech Solutions S.L.\n+34 91 123 4567</textarea>
+                                            <textarea class="form-control" id="email_signature" name="email_signature" rows="4" required>Atentamente,
+{NOMBRE}
+{CARGO}
+{EMPRESA}
+Tel: {TELEFONO}
+Email: {EMAIL}
+Web: {WEB}</textarea>
+                                            <div class="form-text">Puedes usar las variables: {NOMBRE}, {CARGO}, {EMPRESA}, {TELEFONO}, {EMAIL}, {WEB}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Sección: Preguntas Frecuentes -->
+                            <div class="card mb-4 border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i>Preguntas Frecuentes</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <p class="text-muted">Añade preguntas frecuentes para que el bot pueda responderlas automáticamente.</p>
+                                            
+                                            <div id="faq-items">
+                                                <!-- Las preguntas se añadirán aquí dinámicamente -->
+                                            </div>
+                                            
+                                            <div class="mt-3">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="add-faq-btn">
+                                                    <i class="fas fa-plus me-2"></i>Añadir Pregunta
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -787,7 +920,202 @@ function createAccountTabContent() {
                     </div>
                     <div class="card-body p-0">
                         <!-- Contenido de Mi Cuenta -->
-                        <p class="p-3">Contenido de la pestaña Mi Cuenta en desarrollo...</p>
+                        <ul class="nav nav-tabs" id="accountTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-content" type="button" role="tab" aria-controls="profile-content" aria-selected="true">
+                                    <i class="fas fa-user me-2"></i>Perfil
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-content" type="button" role="tab" aria-controls="security-content" aria-selected="false">
+                                    <i class="fas fa-shield-alt me-2"></i>Seguridad
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications-content" type="button" role="tab" aria-controls="notifications-content" aria-selected="false">
+                                    <i class="fas fa-bell me-2"></i>Notificaciones
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content pt-3" id="accountTabsContent">
+                            <!-- Perfil -->
+                            <div class="tab-pane fade show active" id="profile-content" role="tabpanel" aria-labelledby="profile-tab">
+                                <div class="row">
+                                    <div class="col-md-3 text-center mb-4">
+                                        <div class="position-relative d-inline-block">
+                                            <img src="https://via.placeholder.com/150" class="rounded-circle img-thumbnail" alt="Foto de perfil" style="width: 150px; height: 150px; object-fit: cover;">
+                                            <button class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle" style="width: 32px; height: 32px;" title="Cambiar foto">
+                                                <i class="fas fa-camera"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="account_name" class="form-label">Nombre</label>
+                                                <input type="text" class="form-control" id="account_name" value="Usuario">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="account_lastname" class="form-label">Apellidos</label>
+                                                <input type="text" class="form-control" id="account_lastname" value="Ejemplo">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="account_email" class="form-label">Email</label>
+                                                <input type="email" class="form-control" id="account_email" value="usuario@ejemplo.com">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="account_phone" class="form-label">Teléfono</label>
+                                                <input type="tel" class="form-control" id="account_phone" value="+34 600 000 000">
+                                            </div>
+                                            <div class="col-md-12">
+                                                <label for="account_company" class="form-label">Empresa</label>
+                                                <input type="text" class="form-control" id="account_company" value="Mi Empresa, S.L.">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="account_position" class="form-label">Cargo</label>
+                                                <input type="text" class="form-control" id="account_position" value="Director/a">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="account_timezone" class="form-label">Zona horaria</label>
+                                                <select class="form-select" id="account_timezone">
+                                                    <option value="Europe/Madrid" selected>Europa/Madrid (GMT+1)</option>
+                                                    <option value="Europe/London">Europa/Londres (GMT+0)</option>
+                                                    <option value="America/New_York">América/Nueva York (GMT-5)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Seguridad -->
+                            <div class="tab-pane fade" id="security-content" role="tabpanel" aria-labelledby="security-tab">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">Cambiar contraseña</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="current_password" class="form-label">Contraseña actual</label>
+                                                    <input type="password" class="form-control" id="current_password">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="new_password" class="form-label">Nueva contraseña</label>
+                                                    <input type="password" class="form-control" id="new_password">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="confirm_password" class="form-label">Confirmar nueva contraseña</label>
+                                                    <input type="password" class="form-control" id="confirm_password">
+                                                </div>
+                                                <button type="button" class="btn btn-primary" id="change-password-btn">
+                                                    <i class="fas fa-key me-2"></i>Actualizar contraseña
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">Verificación en dos pasos</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="form-check form-switch mb-3">
+                                                    <input class="form-check-input" type="checkbox" id="two_factor_auth">
+                                                    <label class="form-check-label" for="two_factor_auth">Activar verificación en dos pasos</label>
+                                                </div>
+                                                <p class="text-muted small">La verificación en dos pasos añade una capa adicional de seguridad a tu cuenta. Cada vez que inicies sesión, necesitarás introducir un código enviado a tu teléfono.</p>
+                                                <button type="button" class="btn btn-outline-primary" id="setup-2fa-btn" disabled>
+                                                    <i class="fas fa-mobile-alt me-2"></i>Configurar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">Sesiones activas</h6>
+                                            </div>
+                                            <div class="card-body p-0">
+                                                <div class="table-responsive">
+                                                    <table class="table mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Dispositivo</th>
+                                                                <th>Ubicación</th>
+                                                                <th>Última actividad</th>
+                                                                <th>Acción</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td><i class="fas fa-laptop me-2"></i>MacBook Pro (Este dispositivo)</td>
+                                                                <td>Madrid, España</td>
+                                                                <td>Ahora mismo</td>
+                                                                <td><span class="badge bg-success">Actual</span></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><i class="fas fa-mobile-alt me-2"></i>iPhone 13</td>
+                                                                <td>Madrid, España</td>
+                                                                <td>Hace 2 horas</td>
+                                                                <td><button class="btn btn-sm btn-outline-danger">Cerrar</button></td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Notificaciones -->
+                            <div class="tab-pane fade" id="notifications-content" role="tabpanel" aria-labelledby="notifications-tab">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Preferencias de notificaciones</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-4">
+                                            <h6>Notificaciones por email</h6>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" id="notify_new_calls" checked>
+                                                <label class="form-check-label" for="notify_new_calls">Nuevas llamadas recibidas</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" id="notify_new_emails" checked>
+                                                <label class="form-check-label" for="notify_new_emails">Nuevos emails recibidos</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" id="notify_billing" checked>
+                                                <label class="form-check-label" for="notify_billing">Facturas y pagos</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" id="notify_updates">
+                                                <label class="form-check-label" for="notify_updates">Actualizaciones y novedades</label>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h6>Notificaciones push</h6>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" id="push_new_calls" checked>
+                                                <label class="form-check-label" for="push_new_calls">Nuevas llamadas recibidas</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" id="push_new_emails" checked>
+                                                <label class="form-check-label" for="push_new_emails">Nuevos emails recibidos</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" id="push_billing">
+                                                <label class="form-check-label" for="push_billing">Facturas y pagos</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -813,9 +1141,281 @@ function createBillingTabContent() {
                             </button>
                         </div>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-3">
                         <!-- Contenido de Facturación -->
-                        <p class="p-3">Contenido de la pestaña Facturación en desarrollo...</p>
+                        <ul class="nav nav-tabs" id="billingTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="plan-tab" data-bs-toggle="tab" data-bs-target="#plan-content" type="button" role="tab" aria-controls="plan-content" aria-selected="true">
+                                    <i class="fas fa-cubes me-2"></i>Plan Actual
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment-content" type="button" role="tab" aria-controls="payment-content" aria-selected="false">
+                                    <i class="fas fa-credit-card me-2"></i>Métodos de Pago
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-content" type="button" role="tab" aria-controls="history-content" aria-selected="false">
+                                    <i class="fas fa-history me-2"></i>Historial
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content pt-3" id="billingTabsContent">
+                            <!-- Plan Actual -->
+                            <div class="tab-pane fade show active" id="plan-content" role="tabpanel" aria-labelledby="plan-tab">
+                                <div class="alert alert-info">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <i class="fas fa-info-circle fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="alert-heading">Plan Profesional</h5>
+                                            <p class="mb-0">Tu plan actual vence el 15/08/2025. La renovación automática está activada.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="card h-100 border-primary">
+                                            <div class="card-header bg-primary text-white">
+                                                <h5 class="mb-0">Plan Profesional</h5>
+                                                <span class="badge bg-white text-primary">Plan Actual</span>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="display-6 mb-3">49,99€ <small class="text-muted fs-6">/mes</small></div>
+                                                <ul class="list-unstyled">
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Hasta 1.000 llamadas/mes</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Hasta 5.000 emails/mes</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Respuestas IA ilimitadas</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 5 usuarios incluidos</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Soporte prioritario</li>
+                                                </ul>
+                                                <button class="btn btn-outline-primary w-100" disabled>Plan Actual</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-dark text-white">
+                                                <h5 class="mb-0">Plan Enterprise</h5>
+                                                <span class="badge bg-warning">Recomendado</span>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="display-6 mb-3">99,99€ <small class="text-muted fs-6">/mes</small></div>
+                                                <ul class="list-unstyled">
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Llamadas ilimitadas</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Emails ilimitados</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Respuestas IA ilimitadas</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 15 usuarios incluidos</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Soporte 24/7 dedicado</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> API personalizada</li>
+                                                </ul>
+                                                <button class="btn btn-dark w-100" id="upgrade-plan-btn">Actualizar Plan</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Uso Actual</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Llamadas procesadas</label>
+                                                <div class="progress mb-2" style="height: 20px;">
+                                                    <div class="progress-bar" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">65%</div>
+                                                </div>
+                                                <small class="text-muted">650 de 1.000 llamadas</small>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Emails procesados</label>
+                                                <div class="progress mb-2" style="height: 20px;">
+                                                    <div class="progress-bar" role="progressbar" style="width: 42%;" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100">42%</div>
+                                                </div>
+                                                <small class="text-muted">2.100 de 5.000 emails</small>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Usuarios activos</label>
+                                                <div class="progress mb-2" style="height: 20px;">
+                                                    <div class="progress-bar" role="progressbar" style="width: 80%;" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">80%</div>
+                                                </div>
+                                                <small class="text-muted">4 de 5 usuarios</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Métodos de Pago -->
+                            <div class="tab-pane fade" id="payment-content" role="tabpanel" aria-labelledby="payment-tab">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Métodos de pago guardados</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                                            <div class="me-3">
+                                                <i class="fab fa-cc-visa fa-2x text-primary"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="fw-bold">Visa terminada en 4242</div>
+                                                <div class="small text-muted">Expira: 05/2026</div>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-success me-2">Predeterminada</span>
+                                                <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <i class="fab fa-cc-mastercard fa-2x text-danger"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="fw-bold">Mastercard terminada en 5555</div>
+                                                <div class="small text-muted">Expira: 12/2025</div>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm btn-outline-primary me-2">Predeterminar</button>
+                                                <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-white">
+                                        <button class="btn btn-primary" id="add-payment-method-btn">
+                                            <i class="fas fa-plus-circle me-2"></i>Añadir método de pago
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Datos de facturación</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="billing_company" class="form-label">Empresa</label>
+                                                <input type="text" class="form-control" id="billing_company" value="Mi Empresa, S.L.">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="billing_tax_id" class="form-label">CIF/NIF</label>
+                                                <input type="text" class="form-control" id="billing_tax_id" value="B12345678">
+                                            </div>
+                                            <div class="col-md-12">
+                                                <label for="billing_address" class="form-label">Dirección</label>
+                                                <input type="text" class="form-control" id="billing_address" value="Calle Ejemplo, 123">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="billing_postal_code" class="form-label">Código Postal</label>
+                                                <input type="text" class="form-control" id="billing_postal_code" value="28001">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="billing_city" class="form-label">Ciudad</label>
+                                                <input type="text" class="form-control" id="billing_city" value="Madrid">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="billing_country" class="form-label">País</label>
+                                                <select class="form-select" id="billing_country">
+                                                    <option value="ES" selected>España</option>
+                                                    <option value="PT">Portugal</option>
+                                                    <option value="FR">Francia</option>
+                                                    <option value="DE">Alemania</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-white">
+                                        <button class="btn btn-primary" id="save-billing-info-btn">
+                                            <i class="fas fa-save me-2"></i>Guardar datos de facturación
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Historial -->
+                            <div class="tab-pane fade" id="history-content" role="tabpanel" aria-labelledby="history-tab">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">Historial de facturas</h6>
+                                            <div>
+                                                <select class="form-select form-select-sm" id="invoice-year-filter">
+                                                    <option value="2025" selected>2025</option>
+                                                    <option value="2024">2024</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Número</th>
+                                                        <th>Fecha</th>
+                                                        <th>Periodo</th>
+                                                        <th>Total</th>
+                                                        <th>Estado</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>FAC-2025-007</td>
+                                                        <td>15/07/2025</td>
+                                                        <td>Jul 2025</td>
+                                                        <td>49,99€</td>
+                                                        <td><span class="badge bg-success">Pagada</span></td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-secondary me-1" title="Ver factura">
+                                                                <i class="fas fa-eye"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-primary" title="Descargar PDF">
+                                                                <i class="fas fa-download"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>FAC-2025-006</td>
+                                                        <td>15/06/2025</td>
+                                                        <td>Jun 2025</td>
+                                                        <td>49,99€</td>
+                                                        <td><span class="badge bg-success">Pagada</span></td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-secondary me-1" title="Ver factura">
+                                                                <i class="fas fa-eye"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-primary" title="Descargar PDF">
+                                                                <i class="fas fa-download"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>FAC-2025-005</td>
+                                                        <td>15/05/2025</td>
+                                                        <td>May 2025</td>
+                                                        <td>49,99€</td>
+                                                        <td><span class="badge bg-success">Pagada</span></td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-secondary me-1" title="Ver factura">
+                                                                <i class="fas fa-eye"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-primary" title="Descargar PDF">
+                                                                <i class="fas fa-download"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -876,15 +1476,31 @@ function filterCalls(type) {
     callRows.forEach(row => {
         if (type === 'all') {
             row.classList.remove('d-none');
-        } else if (type === 'urgent') {
-            // Para el tipo urgente, verificamos si tiene la clase 'urgent' o si el dataset.urgent es 'true'
-            if (row.classList.contains('urgent') || row.dataset.urgent === 'true') {
+        } else if (type === 'importantes') {
+            // Para llamadas importantes/urgentes, verificamos el atributo data-urgent o la presencia de badge con texto URGENTE
+            if (row.dataset.urgent === 'true' || row.querySelector('.badge.bg-danger')) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
+        } else if (type === 'pendientes') {
+            // Para llamadas pendientes, verificamos si NO está marcada como gestionada (checkbox no marcado)
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            if (checkbox && !checkbox.checked) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
+        } else if (type === 'gestionadas') {
+            // Para llamadas gestionadas, verificamos si está marcada como gestionada (checkbox marcado)
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            if (checkbox && checkbox.checked) {
                 row.classList.remove('d-none');
             } else {
                 row.classList.add('d-none');
             }
         } else {
-            // Para otros tipos (managed, pending)
+            // Para otros tipos específicos (pedidos, consultas, etc.)
             if (row.dataset.type === type) {
                 row.classList.remove('d-none');
             } else {
@@ -969,20 +1585,62 @@ function markCallAsManaged(callId) {
         return;
     }
     
-    // Verificar si ya está gestionada
-    const isManaged = callRow.classList.contains('managed');
+    // Obtener el botón de gestión
+    const manageBtn = callRow.querySelector('.manage-btn');
+    // Verificar si ya está gestionada usando el atributo data-managed del botón
+    const isManaged = manageBtn && manageBtn.getAttribute('data-managed') === 'true';
     
     if (isManaged) {
         // Desmarcar como gestionada
         callRow.classList.remove('managed');
-        callRow.querySelector('.status-badge').innerHTML = '<span class="badge bg-warning">Pendiente</span>';
-        callRow.querySelector('.manage-btn').innerHTML = '<i class="fas fa-check"></i>';
+        callRow.style.backgroundColor = '';
+        
+        // Actualizar el checkbox de gestionado
+        const checkbox = callRow.querySelector('.form-check-input');
+        if (checkbox) checkbox.checked = false;
+        
+        // Actualizar el botón de gestión
+        if (manageBtn) {
+            manageBtn.setAttribute('data-managed', 'false');
+            manageBtn.classList.remove('btn-success');
+            manageBtn.classList.add('btn-outline-success');
+            
+            // Actualizar icono y texto
+            const icon = manageBtn.querySelector('i');
+            if (icon) icon.className = 'fas fa-check me-1';
+            
+            const text = manageBtn.querySelector('.manage-text');
+            if (text) text.textContent = 'Gestionar';
+            
+            manageBtn.title = 'Marcar como gestionado';
+        }
+        
         toastr.info(`Llamada #${callId} marcada como pendiente`, 'Estado actualizado');
     } else {
         // Marcar como gestionada
         callRow.classList.add('managed');
-        callRow.querySelector('.status-badge').innerHTML = '<span class="badge bg-success">Gestionada</span>';
-        callRow.querySelector('.manage-btn').innerHTML = '<i class="fas fa-undo"></i>';
+        callRow.style.backgroundColor = '#f8f9fa'; // Fondo gris claro para indicar gestionada
+        
+        // Actualizar el checkbox de gestionado
+        const checkbox = callRow.querySelector('.form-check-input');
+        if (checkbox) checkbox.checked = true;
+        
+        // Actualizar el botón de gestión
+        if (manageBtn) {
+            manageBtn.setAttribute('data-managed', 'true');
+            manageBtn.classList.remove('btn-outline-success');
+            manageBtn.classList.add('btn-success');
+            
+            // Actualizar icono y texto
+            const icon = manageBtn.querySelector('i');
+            if (icon) icon.className = 'fas fa-undo me-1';
+            
+            const text = manageBtn.querySelector('.manage-text');
+            if (text) text.textContent = 'Desmarcar';
+            
+            manageBtn.title = 'Desmarcar como gestionado';
+        }
+        
         toastr.success(`Llamada #${callId} marcada como gestionada`, 'Estado actualizado');
     }
     
@@ -1188,6 +1846,58 @@ function setupEventListeners() {
                 showAutoReplyModal(parseInt(emailId), 'manual');
             }
         }
+        
+        // Event listener para marcar llamadas o emails como importantes/favoritos (estrellas)
+        if (e.target.matches('.star-btn') || e.target.closest('.star-btn') || e.target.matches('.fa-star') || e.target.matches('.far.fa-star')) {
+            // Para botones de estrella en llamadas
+            const btn = e.target.matches('.star-btn') ? e.target : e.target.closest('.star-btn');
+            if (btn) {
+                const callRow = btn.closest('.call-row');
+                if (callRow) {
+                    const callId = callRow.dataset.id;
+                    if (callId) {
+                        toggleCallImportance(parseInt(callId), btn);
+                    }
+                }
+            }
+            
+            // Para iconos de estrella en emails
+            const starIcon = e.target.matches('.fa-star') || e.target.matches('.far.fa-star') ? e.target : null;
+            if (starIcon) {
+                const emailRow = starIcon.closest('.email-row');
+                if (emailRow) {
+                    const emailId = emailRow.dataset.id;
+                    if (emailId) {
+                        toggleEmailFavorite(parseInt(emailId), starIcon);
+                    }
+                }
+            }
+        }
+        
+        // Event listeners para la pestaña de Facturación
+        // Botón de actualizar plan
+        if (e.target.matches('#upgrade-plan-btn') || e.target.closest('#upgrade-plan-btn')) {
+            showUpgradePlanModal();
+        }
+        
+        // Botón de añadir método de pago
+        if (e.target.matches('#add-payment-method-btn') || e.target.closest('#add-payment-method-btn')) {
+            showAddPaymentMethodModal();
+        }
+        
+        // Botón de guardar datos de facturación
+        if (e.target.matches('#save-billing-info-btn') || e.target.closest('#save-billing-info-btn')) {
+            saveBillingInfo();
+        }
+        
+        // Botón de ver facturas
+        if (e.target.matches('#view-invoices-btn') || e.target.closest('#view-invoices-btn')) {
+            // Activar la pestaña de historial
+            const historyTab = document.getElementById('history-tab');
+            if (historyTab) {
+                historyTab.click();
+            }
+        }
     });
     
     // Configurar botón de guardar configuración del bot
@@ -1203,6 +1913,14 @@ function setupEventListeners() {
     if (testBotBtn) {
         testBotBtn.addEventListener('click', function() {
             testBotConfiguration();
+        });
+    }
+    
+    // Configurar filtro de año para facturas
+    const invoiceYearFilter = document.getElementById('invoice-year-filter');
+    if (invoiceYearFilter) {
+        invoiceYearFilter.addEventListener('change', function() {
+            filterInvoicesByYear(this.value);
         });
     }
     
@@ -1598,6 +2316,28 @@ function markEmailAsRead(emailId) {
 function showAutoReplyModal(emailId, mode) {
     console.log(`💬 Mostrando modal de respuesta para email ${emailId} en modo ${mode}`);
     
+    // Obtener información del email original
+    const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
+    let emailSubject = 'Consulta';
+    let senderName = 'Cliente';
+    
+    if (emailRow) {
+        // Obtener el asunto del email
+        const subjectCell = emailRow.querySelector('td:nth-child(3)');
+        if (subjectCell) {
+            emailSubject = subjectCell.textContent.trim();
+        }
+        
+        // Obtener el nombre del remitente
+        const senderCell = emailRow.querySelector('td:nth-child(2)');
+        if (senderCell) {
+            senderName = senderCell.textContent.trim().split(' ')[0]; // Obtener solo el primer nombre
+        }
+    }
+    
+    // Preparar el asunto de respuesta
+    const replySubject = emailSubject.startsWith('RE:') ? emailSubject : `RE: ${emailSubject}`;
+    
     const modalTitle = mode === 'ai' ? 'Respuesta Automática IA' : 'Respuesta Manual';
     const modalContent = mode === 'ai' ? 
         'La IA está generando una respuesta personalizada basada en el contenido del email y el historial del cliente...' : 
@@ -1626,11 +2366,11 @@ function showAutoReplyModal(emailId, mode) {
                             </div>` : 
                             `<div class="form-group mb-3">
                                 <label class="form-label">Asunto</label>
-                                <input type="text" class="form-control" value="RE: Consulta sobre productos">
+                                <input type="text" class="form-control" value="${replySubject}">
                             </div>
                             <div class="form-group mb-3">
                                 <label class="form-label">Contenido</label>
-                                <textarea class="form-control" rows="8">Estimado cliente,
+                                <textarea class="form-control" rows="8">Estimado ${senderName},
 
 Gracias por contactar con nosotros.
 
@@ -1669,6 +2409,22 @@ Equipo de Atención al Cliente</textarea>
     // Si es modo IA, simular generación de respuesta
     if (mode === 'ai') {
         setTimeout(() => {
+            // Obtener firma configurada
+            const signature = document.getElementById('email_signature')?.value || '';
+            const companyName = document.getElementById('company_name')?.value || 'Tu Empresa';
+            const outgoingEmail = document.getElementById('outgoing_email')?.value || `soporte@${companyName.toLowerCase().replace(/\s+/g, '')}.com`;
+            const website = document.getElementById('website')?.value || 'www.empresa.com';
+            const phone = document.getElementById('main_phone')?.value || '+34 900 000 000';
+            
+            // Procesar firma con variables
+            const processedSignature = signature
+                .replace(/{EMPRESA}/g, companyName)
+                .replace(/{NOMBRE}/g, 'Equipo de Soporte')
+                .replace(/{CARGO}/g, 'Atención al Cliente')
+                .replace(/{TELEFONO}/g, phone)
+                .replace(/{EMAIL}/g, outgoingEmail)
+                .replace(/{WEB}/g, website);
+            
             const modalBody = document.querySelector('#replyModal .modal-body');
             modalBody.innerHTML = `
                 <div class="alert alert-success">
@@ -1677,41 +2433,40 @@ Equipo de Atención al Cliente</textarea>
                 </div>
                 <div class="form-group mb-3">
                     <label class="form-label">Asunto</label>
-                    <input type="text" class="form-control" value="RE: Consulta sobre productos">
+                    <input type="text" class="form-control" value="${replySubject}">
                 </div>
                 <div class="form-group mb-3">
                     <label class="form-label">Respuesta generada por IA</label>
-                    <textarea class="form-control" rows="8">Estimado cliente,
+                    <textarea class="form-control" rows="8">Estimado ${senderName},
 
-Gracias por contactar con nosotros. En respuesta a su consulta sobre nuestros productos, me complace informarle que disponemos de una amplia gama de opciones que podrían ajustarse a sus necesidades.
+Gracias por contactar con nosotros. En respuesta a su consulta sobre ${emailSubject.replace(/^RE:\s*/i, '')}, me complace informarle que disponemos de una amplia gama de opciones que podrían ajustarse a sus necesidades.
 
 Basado en su interés, le recomendaría revisar nuestro catálogo adjunto donde encontrará información detallada sobre especificaciones, precios y disponibilidad.
 
 Si necesita información adicional o tiene alguna otra pregunta, no dude en contactarnos nuevamente.
 
-Saludos cordiales,
-Equipo de Atención al Cliente</textarea>
+${processedSignature}</textarea>
                 </div>
             `;
             
             // Habilitar botón de enviar
             const sendButton = document.querySelector('#replyModal .btn-primary');
-            if (sendButton) {
-                sendButton.disabled = false;
-                sendButton.addEventListener('click', () => {
-                    // Simular envío de respuesta
-                    sendButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-                    sendButton.disabled = true;
+            sendButton.disabled = false;
+            
+            // Agregar evento al botón de enviar
+            sendButton.addEventListener('click', () => {
+                // Simular envío de respuesta
+                sendButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+                sendButton.disabled = true;
+                
+                setTimeout(() => {
+                    toastr.success(`Respuesta enviada al email #${emailId}`, 'Éxito');
+                    modal.hide();
                     
-                    setTimeout(() => {
-                        toastr.success(`Respuesta enviada al email #${emailId}`, 'Éxito');
-                        modal.hide();
-                        
-                        // Marcar email como leído
-                        markEmailAsRead(emailId);
-                    }, 1500);
-                });
-            }
+                    // Marcar email como leído
+                    markEmailAsRead(emailId);
+                }, 1500);
+            });
         }, 2000);
     } else {
         // Configurar botón de enviar para modo manual
@@ -1760,11 +2515,19 @@ function addEmailPreviewButton() {
 function previewEmailTemplate() {
     const signature = document.getElementById('email_signature')?.value || '';
     const companyName = document.getElementById('company_name')?.value || 'Tu Empresa';
+    const outgoingEmail = document.getElementById('outgoing_email')?.value || `soporte@${companyName.toLowerCase().replace(/\s+/g, '')}.com`;
+    const website = document.getElementById('website')?.value || 'www.empresa.com';
+    const phone = document.getElementById('main_phone')?.value || '+34 900 000 000';
     
     // Reemplazar variables en la firma
     const processedSignature = signature
         .replace(/{EMPRESA}/g, companyName)
-        .replace(/\n/g, '\n');
+        .replace(/{NOMBRE}/g, 'Equipo de Soporte')
+        .replace(/{CARGO}/g, 'Atención al Cliente')
+        .replace(/{TELEFONO}/g, phone)
+        .replace(/{EMAIL}/g, outgoingEmail)
+        .replace(/{WEB}/g, website)
+        .replace(/\n/g, '<br>');
     
     const modalHTML = `
         <div class="modal fade" id="emailPreviewModal" tabindex="-1">
@@ -1779,7 +2542,7 @@ function previewEmailTemplate() {
                     <div class="modal-body">
                         <div class="card">
                             <div class="card-header bg-light">
-                                <strong>De:</strong> soporte@${companyName.toLowerCase().replace(/\s+/g, '')}.com<br>
+                                <strong>De:</strong> ${outgoingEmail}<br>
                                 <strong>Para:</strong> cliente@ejemplo.com<br>
                                 <strong>Asunto:</strong> Re: Consulta sobre productos
                             </div>
@@ -1788,7 +2551,7 @@ function previewEmailTemplate() {
                                 <p>Gracias por contactar con nosotros. Hemos recibido su consulta sobre nuestros productos y servicios.</p>
                                 <p>[Aquí iría la respuesta generada por IA basada en el contexto del email]</p>
                                 <hr>
-                                <pre style="font-family: inherit; white-space: pre-wrap;">${processedSignature}</pre>
+                                <div class="email-signature">${processedSignature}</div>
                             </div>
                         </div>
                     </div>
@@ -1953,6 +2716,191 @@ function viewEmailHistory(emailId) {
 function viewCallReport(reportId) {
     console.log(`📞 Viendo reporte de llamada ${reportId}`);
     toastr.info(`Mostrando reporte de llamada ${reportId}`, 'Reporte');
+}
+
+/**
+ * Marcar o desmarcar una llamada como importante (estrella)
+ * @param {number} callId - ID de la llamada
+ * @param {HTMLElement} starBtn - Botón de estrella
+ */
+function toggleCallImportance(callId, starBtn) {
+    console.log(`⭐ Cambiando importancia de llamada ID: ${callId}`);
+    
+    // Verificar si ya está marcada como importante
+    const isStarred = starBtn.querySelector('i').classList.contains('fas');
+    
+    if (isStarred) {
+        // Desmarcar como importante
+        starBtn.querySelector('i').classList.remove('fas');
+        starBtn.querySelector('i').classList.add('far');
+        starBtn.classList.remove('btn-warning');
+        starBtn.classList.add('btn-outline-warning');
+        toastr.info(`Llamada #${callId} desmarcada como importante`, 'Actualizado');
+    } else {
+        // Marcar como importante
+        starBtn.querySelector('i').classList.remove('far');
+        starBtn.querySelector('i').classList.add('fas');
+        starBtn.classList.remove('btn-outline-warning');
+        starBtn.classList.add('btn-warning');
+        toastr.success(`Llamada #${callId} marcada como importante`, 'Actualizado');
+    }
+    
+    // En producción, aquí se enviaría la actualización a la API
+    // Simular llamada a API
+    setTimeout(() => {
+        console.log(`API: Llamada ${callId} importancia actualizada a ${!isStarred ? 'importante' : 'normal'}`);
+    }, 500);
+}
+
+/**
+ * Marcar o desmarcar un email como favorito
+ * @param {number} emailId - ID del email
+ * @param {HTMLElement} starIcon - Icono de estrella
+ */
+function toggleEmailFavorite(emailId, starIcon) {
+    console.log(`⭐ Cambiando estado de favorito del email ID: ${emailId}`);
+    
+    const isFavorite = starIcon.classList.contains('fas');
+    const emailRow = starIcon.closest('.email-row');
+    
+    if (isFavorite) {
+        // Desmarcar como favorito
+        starIcon.classList.remove('fas');
+        starIcon.classList.remove('text-warning');
+        starIcon.classList.add('far');
+        starIcon.classList.add('text-muted');
+        
+        // Actualizar el tipo de email en el dataset
+        if (emailRow) {
+            const currentType = emailRow.dataset.type || '';
+            emailRow.dataset.type = currentType.replace('important', '').trim();
+        }
+        
+        toastr.info(`Email #${emailId} desmarcado como favorito`, 'Favorito actualizado');
+    } else {
+        // Marcar como favorito
+        starIcon.classList.remove('far');
+        starIcon.classList.remove('text-muted');
+        starIcon.classList.add('fas');
+        starIcon.classList.add('text-warning');
+        
+        // Actualizar el tipo de email en el dataset
+        if (emailRow) {
+            const currentType = emailRow.dataset.type || '';
+            if (!currentType.includes('important')) {
+                emailRow.dataset.type = `${currentType} important`.trim();
+            }
+        }
+        
+        toastr.warning(`Email #${emailId} marcado como favorito`, 'Favorito actualizado');
+    }
+    
+    // En producción, aquí se enviaría la actualización a la API
+    // Simular llamada a API
+    setTimeout(() => {
+        console.log(`API: Email ${emailId} estado de favorito actualizado a ${!isFavorite ? 'favorito' : 'normal'}`);
+    }, 500);
+    
+    // Actualizar el filtrado si está activo el filtro de importantes
+    const importantFilter = document.getElementById('filter-important');
+    if (importantFilter && importantFilter.checked) {
+        filterEmails('important');
+    }
+}
+
+/**
+ * Configurar el selector de horario comercial
+ */
+function setupBusinessHoursSelector() {
+    // Obtener referencias a los elementos
+    const businessDays = document.querySelectorAll('.business-day');
+    const startHourSelect = document.getElementById('business-hours-start');
+    const endHourSelect = document.getElementById('business-hours-end');
+    const businessHoursInput = document.getElementById('business_hours');
+    const businessHoursPreview = document.getElementById('business-hours-preview');
+    
+    // Función para actualizar el horario comercial
+    function updateBusinessHours() {
+        // Recopilar días seleccionados
+        const selectedDays = [];
+        businessDays.forEach(checkbox => {
+            if (checkbox.checked) {
+                selectedDays.push(checkbox.dataset.day);
+            }
+        });
+        
+        // Formatear el rango de días
+        let daysText = '';
+        if (selectedDays.length === 0) {
+            daysText = 'Sin días seleccionados';
+        } else if (selectedDays.length === 7) {
+            daysText = 'Todos los días';
+        } else {
+            // Agrupar días consecutivos con guiones
+            const dayOrder = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            const orderedDays = selectedDays.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+            
+            let currentGroup = [orderedDays[0]];
+            const groups = [];
+            
+            for (let i = 1; i < orderedDays.length; i++) {
+                const currentDayIndex = dayOrder.indexOf(orderedDays[i]);
+                const prevDayIndex = dayOrder.indexOf(orderedDays[i-1]);
+                
+                if (currentDayIndex - prevDayIndex === 1) {
+                    // Día consecutivo, añadir al grupo actual
+                    currentGroup.push(orderedDays[i]);
+                } else {
+                    // No consecutivo, cerrar grupo actual y empezar uno nuevo
+                    groups.push(currentGroup);
+                    currentGroup = [orderedDays[i]];
+                }
+            }
+            groups.push(currentGroup);
+            
+            // Formatear grupos
+            daysText = groups.map(group => {
+                if (group.length === 1) {
+                    return group[0];
+                } else {
+                    return `${group[0]}-${group[group.length - 1]}`;
+                }
+            }).join(', ');
+        }
+        
+        // Obtener horas seleccionadas
+        const startHour = startHourSelect.value;
+        const endHour = endHourSelect.value;
+        
+        // Crear texto completo del horario
+        const businessHoursText = selectedDays.length === 0 ? 
+            'Sin horario definido' : 
+            `${daysText}: ${startHour}-${endHour}`;
+        
+        // Actualizar el campo oculto y el preview
+        businessHoursInput.value = businessHoursText;
+        businessHoursPreview.textContent = businessHoursText;
+        
+        // Cambiar el color del badge según si hay días seleccionados
+        if (selectedDays.length === 0) {
+            businessHoursPreview.classList.remove('bg-primary');
+            businessHoursPreview.classList.add('bg-danger');
+        } else {
+            businessHoursPreview.classList.remove('bg-danger');
+            businessHoursPreview.classList.add('bg-primary');
+        }
+    }
+    
+    // Añadir event listeners
+    businessDays.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBusinessHours);
+    });
+    
+    startHourSelect.addEventListener('change', updateBusinessHours);
+    endHourSelect.addEventListener('change', updateBusinessHours);
+    
+    // Inicializar con los valores actuales
+    updateBusinessHours();
 }
 
 /**
@@ -2194,66 +3142,6 @@ function isValidEmail(email) {
 
 /**
  * Previsualizar plantilla de email
- */
-function previewEmailTemplate() {
-    const signature = document.getElementById('email_signature')?.value || '';
-    const companyName = document.getElementById('company_name')?.value || 'Tu Empresa';
-    
-    // Reemplazar variables en la firma
-    const processedSignature = signature
-        .replace(/{EMPRESA}/g, companyName)
-        .replace(/\n/g, '\n');
-    
-    const modalHTML = `
-        <div class="modal fade" id="emailPreviewModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="fas fa-eye me-2"></i>Preview de Email
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="card">
-                            <div class="card-header bg-light">
-                                <strong>De:</strong> soporte@${companyName.toLowerCase().replace(/\s+/g, '')}.com<br>
-                                <strong>Para:</strong> cliente@ejemplo.com<br>
-                                <strong>Asunto:</strong> Re: Consulta sobre productos
-                            </div>
-                            <div class="card-body">
-                                <p>Estimado/a Juan Pérez,</p>
-                                <p>Gracias por contactar con nosotros. Hemos recibido su consulta sobre nuestros productos y servicios.</p>
-                                <p>[Aquí iría la respuesta generada por IA basada en el contexto del email]</p>
-                                <hr>
-                                <pre style="font-family: inherit; white-space: pre-wrap;">${processedSignature}</pre>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Remover modal existente si existe
-    const existingModal = document.getElementById('emailPreviewModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Agregar nuevo modal
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Mostrar modal
-    const modal = new bootstrap.Modal(document.getElementById('emailPreviewModal'));
-    modal.show();
-}
-
-/**
- * Agregar botón de preview a la firma
  */
 document.addEventListener('DOMContentLoaded', function() {
     // Agregar botón de preview después del textarea de firma
@@ -2785,38 +3673,544 @@ function saveUnifiedConfig() {
 }
 
 /**
- * Procesar archivos de contexto
- * @param {Object} files - Archivos a procesar
+ * Probar configuración del bot
  */
-function processContextFiles(files) {
-    console.log('📁 Procesando archivos de contexto...');
+function testBotConfiguration() {
+    console.log('🤖 Probando configuración del bot...');
     
-    Object.keys(files).forEach(fileType => {
-        const file = files[fileType];
-        if (file) {
-            console.log(`📄 Procesando archivo ${fileType}:`, file.name);
+    // Mostrar spinner de carga
+    toastr.info('Probando configuración del bot...', 'Procesando');
+    
+    // Recopilar datos de configuración relevantes para la prueba
+    const companyName = document.getElementById('company_name')?.value || 'Empresa';
+    const businessHours = document.getElementById('business_hours')?.value || 'Lun-Vie: 9:00-18:00';
+    const botPersonality = document.getElementById('bot_personality')?.value || 'professional';
+    
+    // Recopilar preguntas frecuentes
+    const faqs = collectFaqItems();
+    
+    // Simular prueba del bot
+    setTimeout(() => {
+        // Mostrar modal con resultados de la prueba
+        showBotTestModal(companyName, businessHours, botPersonality, faqs);
+    }, 2000);
+}
+
+/**
+ * Mostrar modal con resultados de la prueba del bot
+ * @param {string} companyName - Nombre de la empresa
+ * @param {string} businessHours - Horario comercial
+ * @param {string} botPersonality - Personalidad del bot
+ * @param {Array} faqs - Preguntas frecuentes
+ */
+function showBotTestModal(companyName, businessHours, botPersonality, faqs) {
+    console.log('💬 Mostrando resultados de prueba del bot');
+    
+    // Determinar personalidad del bot para el mensaje
+    let botStyle = 'profesional y eficiente';
+    if (botPersonality === 'friendly') {
+        botStyle = 'amigable y cercano';
+    } else if (botPersonality === 'formal') {
+        botStyle = 'formal y serio';
+    }
+    
+    // Crear HTML para las preguntas frecuentes
+    let faqsHtml = '';
+    if (faqs.length > 0) {
+        faqsHtml = `
+            <div class="mt-3">
+                <h6 class="mb-2">Preguntas frecuentes cargadas:</h6>
+                <ul class="list-group">
+                    ${faqs.map((faq, index) => `
+                        <li class="list-group-item">
+                            <strong>P${index + 1}:</strong> ${faq.question}<br>
+                            <small class="text-muted">R: ${faq.answer}</small>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    } else {
+        faqsHtml = `
+            <div class="alert alert-warning mt-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No se han configurado preguntas frecuentes. Recomendamos añadir al menos 3-5 preguntas para mejorar la experiencia del usuario.
+            </div>
+        `;
+    }
+    
+    const modalHTML = `
+        <div class="modal fade" id="botTestModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-robot me-2"></i>Resultados de Prueba del Bot
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="me-3">
+                                <div class="avatar bg-light rounded-circle p-2" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-robot text-success" style="font-size: 2.5rem;"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="mb-1">Bot de ${companyName}</h5>
+                                <p class="mb-0 text-muted">Configuración probada con éxito</p>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>¡Prueba exitosa!</strong> El bot está correctamente configurado y listo para responder consultas de clientes.
+                        </div>
+                        
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">Configuración actual</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>Horario comercial:</span>
+                                        <span class="badge bg-primary">${businessHours}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>Personalidad del bot:</span>
+                                        <span class="badge bg-info">${botStyle}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>Preguntas frecuentes:</span>
+                                        <span class="badge bg-${faqs.length > 0 ? 'success' : 'warning'}">${faqs.length} configuradas</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">Ejemplo de respuesta del bot</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chat-message">
+                                    <div class="message bot-message">
+                                        <div class="message-content">
+                                            Hola, soy el asistente virtual de ${companyName}. ¿En qué puedo ayudarte hoy? Nuestro horario de atención es ${businessHours}.
+                                        </div>
+                                        <div class="message-time">Ahora</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${faqsHtml}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn btn-success" id="save-test-config-btn">
+                            <i class="fas fa-save me-2"></i>Guardar y Activar Bot
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Eliminar modal existente si hay uno
+    const existingModal = document.getElementById('botTestModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Añadir modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('botTestModal'));
+    modal.show();
+    
+    // Configurar botón de guardar
+    const saveButton = document.getElementById('save-test-config-btn');
+    if (saveButton) {
+        saveButton.addEventListener('click', function() {
+            // Simular guardado y activación
+            toastr.info('Activando configuración del bot...', 'Procesando');
             
-            // Validar tamaño (máximo 10MB)
-            if (file.size > 10 * 1024 * 1024) {
-                toastr.error(`El archivo ${file.name} es demasiado grande (máximo 10MB)`, 'Error de Archivo');
-                return;
-            }
-            
-            // Validar tipo de archivo
-            const allowedTypes = ['.pdf', '.txt', '.csv', '.xlsx', '.docx'];
-            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-            
-            if (!allowedTypes.includes(fileExtension)) {
-                toastr.error(`Tipo de archivo no permitido: ${fileExtension}`, 'Error de Archivo');
-                return;
-            }
-            
-            // Simular procesamiento por IA
             setTimeout(() => {
-                toastr.success(`Archivo ${file.name} procesado correctamente`, 'Archivo Procesado');
-            }, 2000 + Math.random() * 3000); // Tiempo aleatorio entre 2-5 segundos
+                toastr.success('Bot activado correctamente', '¡Éxito!');
+                modal.hide();
+            }, 1500);
+        });
+    }
+    
+    // Añadir estilos para el chat
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            max-width: 80%;
+            margin-bottom: 10px;
+            padding: 10px 15px;
+            border-radius: 15px;
+            position: relative;
+        }
+        .bot-message {
+            align-self: flex-start;
+            background-color: #f0f2f5;
+        }
+        .message-content {
+            margin-bottom: 5px;
+        }
+        .message-time {
+            font-size: 0.7rem;
+            color: #999;
+            text-align: right;
+        }
+    `;
+    document.head.appendChild(styleElement);
+}
+
+/**
+ * Inicializar el gestor de preguntas frecuentes
+ */
+function setupFaqManager() {
+    console.log('💬 Inicializando gestor de preguntas frecuentes...');
+    
+    // Botón para añadir nueva pregunta
+    const addFaqBtn = document.getElementById('add-faq-btn');
+    if (addFaqBtn) {
+        addFaqBtn.addEventListener('click', addNewFaqItem);
+    }
+    
+    // Cargar preguntas de ejemplo
+    loadSampleFaqs();
+}
+
+/**
+ * Cargar preguntas frecuentes de ejemplo
+ */
+function loadSampleFaqs() {
+    const sampleFaqs = [
+        {
+            id: 1,
+            question: '¿Cuáles son los horarios de atención?',
+            answer: 'Nuestro horario de atención al cliente es de lunes a viernes de 9:00 a 18:00 horas.'
+        },
+        {
+            id: 2,
+            question: '¿Cómo puedo solicitar una devolución?',
+            answer: 'Para solicitar una devolución, debe contactar con nuestro departamento de atención al cliente en un plazo de 14 días desde la recepción del producto, adjuntando el número de pedido y el motivo de la devolución.'
+        }
+    ];
+    
+    // Añadir preguntas de ejemplo al DOM
+    sampleFaqs.forEach(faq => addFaqItemToDOM(faq));
+}
+
+/**
+ * Añadir nueva pregunta frecuente
+ */
+function addNewFaqItem() {
+    const newFaq = {
+        id: Date.now(), // Usar timestamp como ID temporal
+        question: '',
+        answer: ''
+    };
+    
+    addFaqItemToDOM(newFaq);
+    
+    // Enfocar el nuevo campo de pregunta
+    setTimeout(() => {
+        const newQuestionField = document.querySelector(`#faq-question-${newFaq.id}`);
+        if (newQuestionField) {
+            newQuestionField.focus();
+        }
+    }, 100);
+}
+
+/**
+ * Añadir un elemento de pregunta frecuente al DOM
+ * @param {Object} faq - Objeto con la pregunta y respuesta
+ */
+function addFaqItemToDOM(faq) {
+    const faqItems = document.getElementById('faq-items');
+    if (!faqItems) return;
+    
+    const faqCard = document.createElement('div');
+    faqCard.className = 'card mb-3 border';
+    faqCard.id = `faq-item-${faq.id}`;
+    
+    faqCard.innerHTML = `
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="card-title mb-0">Pregunta #${faqItems.children.length + 1}</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger delete-faq-btn" data-faq-id="${faq.id}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Pregunta</label>
+                <input type="text" class="form-control" id="faq-question-${faq.id}" value="${faq.question}" placeholder="Escribe la pregunta...">
+            </div>
+            <div>
+                <label class="form-label">Respuesta</label>
+                <textarea class="form-control" id="faq-answer-${faq.id}" rows="3" placeholder="Escribe la respuesta...">${faq.answer}</textarea>
+            </div>
+        </div>
+    `;
+    
+    faqItems.appendChild(faqCard);
+    
+    // Añadir event listener para eliminar la pregunta
+    const deleteBtn = faqCard.querySelector('.delete-faq-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => deleteFaqItem(faq.id));
+    }
+}
+
+/**
+ * Eliminar una pregunta frecuente
+ * @param {number} faqId - ID de la pregunta a eliminar
+ */
+function deleteFaqItem(faqId) {
+    const faqItem = document.getElementById(`faq-item-${faqId}`);
+    if (faqItem) {
+        // Animación de desvanecimiento antes de eliminar
+        faqItem.style.transition = 'opacity 0.3s';
+        faqItem.style.opacity = '0';
+        
+        setTimeout(() => {
+            faqItem.remove();
+            renumberFaqItems();
+            toastr.success('Pregunta eliminada correctamente', 'FAQ');
+        }, 300);
+    }
+}
+
+/**
+ * Renumerar las preguntas frecuentes
+ */
+function renumberFaqItems() {
+    const faqItems = document.getElementById('faq-items');
+    if (!faqItems) return;
+    
+    const items = faqItems.querySelectorAll('.card');
+    items.forEach((item, index) => {
+        const titleEl = item.querySelector('.card-title');
+        if (titleEl) {
+            titleEl.textContent = `Pregunta #${index + 1}`;
         }
     });
+}
+
+/**
+ * Recopilar todas las preguntas frecuentes para guardar
+ * @returns {Array} Array de objetos con preguntas y respuestas
+ */
+function collectFaqItems() {
+    const faqItems = document.getElementById('faq-items');
+    if (!faqItems) return [];
+    
+    const items = faqItems.querySelectorAll('.card');
+    const faqs = [];
+    
+    items.forEach((item) => {
+        const faqId = item.id.split('-').pop();
+        const question = document.getElementById(`faq-question-${faqId}`)?.value || '';
+        const answer = document.getElementById(`faq-answer-${faqId}`)?.value || '';
+        
+        if (question.trim() !== '' && answer.trim() !== '') {
+            faqs.push({ id: faqId, question, answer });
+        }
+    });
+    
+    return faqs;
+}
+
+/**
+ * Procesar archivos de contexto
+ * @param {Object} files - Archivos a procesar (opcional)
+ */
+function processContextFiles(files = null) {
+    console.log('📁 Procesando archivos de contexto...');
+    
+    // Si se pasan archivos específicos (desde saveUnifiedConfig)
+    if (files) {
+        Object.keys(files).forEach(fileType => {
+            const file = files[fileType];
+            if (file) {
+                processFile(file);
+            }
+        });
+        return;
+    }
+    
+    // Si no se pasan archivos, usar el input de archivos context_files
+    const contextFilesInput = document.getElementById('context_files');
+    if (!contextFilesInput || !contextFilesInput.files || contextFilesInput.files.length === 0) {
+        console.log('No hay archivos seleccionados');
+        return;
+    }
+    
+    // Validar número máximo de archivos
+    if (contextFilesInput.files.length > 5) {
+        toastr.error('Máximo 5 archivos permitidos', 'Error de Archivo');
+        return;
+    }
+    
+    // Procesar cada archivo seleccionado
+    Array.from(contextFilesInput.files).forEach(file => {
+        processFile(file);
+    });
+    
+    // Actualizar la lista de archivos
+    updateContextFilesList();
+}
+
+/**
+ * Procesar un archivo individual
+ * @param {File} file - Archivo a procesar
+ */
+function processFile(file) {
+    console.log(`📄 Procesando archivo:`, file.name);
+    
+    // Validar tamaño (máximo 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        toastr.error(`El archivo ${file.name} es demasiado grande (máximo 10MB)`, 'Error de Archivo');
+        return false;
+    }
+    
+    // Validar tipo de archivo
+    const allowedTypes = ['.pdf', '.txt', '.docx'];
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+    
+    if (!allowedTypes.includes(fileExtension)) {
+        toastr.error(`Tipo de archivo no permitido: ${fileExtension}`, 'Error de Archivo');
+        return false;
+    }
+    
+    // Simular procesamiento por IA
+    setTimeout(() => {
+        toastr.success(`Archivo ${file.name} procesado correctamente`, 'Archivo Procesado');
+    }, 1000 + Math.random() * 2000); // Tiempo aleatorio entre 1-3 segundos
+    
+    return true;
+}
+
+/**
+ * Configurar los manejadores de eventos para la carga de archivos
+ */
+function setupFileUploadHandlers() {
+    console.log('📎 Configurando manejadores de carga de archivos...');
+    
+    // Manejar cambios en el input de archivos de contexto
+    const contextFilesInput = document.getElementById('context_files');
+    if (contextFilesInput) {
+        contextFilesInput.addEventListener('change', () => {
+            if (contextFilesInput.files.length > 0) {
+                processContextFiles();
+            }
+        });
+    }
+    
+    // Configurar botones de eliminación para archivos existentes
+    setupExistingFileDeleteButtons();
+}
+
+/**
+ * Configurar botones de eliminación para archivos existentes
+ */
+function setupExistingFileDeleteButtons() {
+    const deleteButtons = document.querySelectorAll('#context-files-list .btn-outline-danger');
+    
+    deleteButtons.forEach(button => {
+        // Evitar duplicar event listeners
+        button.removeEventListener('click', handleFileDelete);
+        button.addEventListener('click', handleFileDelete);
+    });
+}
+
+/**
+ * Manejar la eliminación de un archivo
+ * @param {Event} event - Evento de click
+ */
+function handleFileDelete(event) {
+    const button = event.currentTarget;
+    const listItem = button.closest('li');
+    
+    if (listItem) {
+        const fileName = listItem.querySelector('div').textContent.trim();
+        
+        // Animación de desvanecimiento
+        listItem.style.transition = 'opacity 0.3s';
+        listItem.style.opacity = '0';
+        
+        setTimeout(() => {
+            listItem.remove();
+            toastr.success(`Archivo ${fileName} eliminado`, 'Archivo Eliminado');
+        }, 300);
+    }
+}
+
+/**
+ * Actualizar la lista visual de archivos de contexto
+ */
+function updateContextFilesList() {
+    const contextFilesList = document.getElementById('context-files-list');
+    const contextFilesInput = document.getElementById('context_files');
+    
+    if (!contextFilesList || !contextFilesInput) return;
+    
+    // Limpiar la lista actual pero mantener los archivos existentes
+    const existingItems = Array.from(contextFilesList.querySelectorAll('li:not(.new-file)'));
+    
+    // Añadir los nuevos archivos
+    if (contextFilesInput.files && contextFilesInput.files.length > 0) {
+        Array.from(contextFilesInput.files).forEach(file => {
+            // Comprobar si el archivo ya existe en la lista
+            const fileExists = existingItems.some(item => 
+                item.querySelector('div').textContent.trim() === file.name);
+            
+            if (!fileExists) {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center new-file';
+                
+                // Determinar el icono según la extensión
+                let iconClass = 'fas fa-file text-secondary';
+                const ext = file.name.split('.').pop().toLowerCase();
+                
+                if (ext === 'pdf') iconClass = 'fas fa-file-pdf text-danger';
+                else if (['doc', 'docx'].includes(ext)) iconClass = 'fas fa-file-word text-primary';
+                else if (['txt', 'text'].includes(ext)) iconClass = 'fas fa-file-alt text-info';
+                
+                li.innerHTML = `
+                    <div>
+                        <i class="${iconClass} me-2"></i>
+                        ${file.name}
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger delete-file-btn">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                
+                contextFilesList.appendChild(li);
+                
+                // Añadir event listener para eliminar el archivo
+                const deleteBtn = li.querySelector('.delete-file-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', () => {
+                        li.remove();
+                        toastr.success(`Archivo ${file.name} eliminado`, 'Archivo Eliminado');
+                    });
+                }
+            }
+        });
+    }
 }
 
 /**
@@ -2843,6 +4237,390 @@ function addEmailPreviewButton() {
  * Inicialización del Dashboard
  * Este código se ejecuta cuando el documento está listo
  */
+/**
+ * Mostrar modal para actualizar plan
+ */
+function showUpgradePlanModal() {
+    console.log('💳 Mostrando modal para actualizar plan...');
+    
+    const modalHTML = `
+        <div class="modal fade" id="upgradePlanModal" tabindex="-1" aria-labelledby="upgradePlanModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-dark text-white border-0">
+                        <h5 class="modal-title" id="upgradePlanModalLabel">
+                            <i class="fas fa-arrow-circle-up me-2"></i>Actualizar a Plan Enterprise
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info mb-4">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <i class="fas fa-info-circle fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="alert-heading">Actualización de Plan</h5>
+                                    <p class="mb-0">Estás a punto de actualizar de <strong>Plan Profesional</strong> a <strong>Plan Enterprise</strong>.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card h-100 border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">Plan Profesional</h5>
+                                        <span class="badge bg-white text-primary">Plan Actual</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="display-6 mb-3">49,99€ <small class="text-muted fs-6">/mes</small></div>
+                                        <ul class="list-unstyled">
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Hasta 1.000 llamadas/mes</li>
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Hasta 5.000 emails/mes</li>
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Respuestas IA ilimitadas</li>
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 5 usuarios incluidos</li>
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Soporte prioritario</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100 border-dark">
+                                    <div class="card-header bg-dark text-white">
+                                        <h5 class="mb-0">Plan Enterprise</h5>
+                                        <span class="badge bg-warning">Recomendado</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="display-6 mb-3">99,99€ <small class="text-muted fs-6">/mes</small></div>
+                                        <ul class="list-unstyled">
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Llamadas ilimitadas</li>
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Emails ilimitados</li>
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Respuestas IA ilimitadas</li>
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 15 usuarios incluidos</li>
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Soporte 24/7 dedicado</li>
+                                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> API personalizada</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Información importante:</strong> El cambio de plan se hará efectivo inmediatamente. Se te cobrará la diferencia prorrateada por el tiempo restante de tu ciclo de facturación actual.
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="confirmUpgrade">
+                            <label class="form-check-label" for="confirmUpgrade">
+                                Confirmo que quiero actualizar mi plan y acepto el cargo adicional.
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-dark" id="confirm-upgrade-btn" disabled>
+                            <i class="fas fa-arrow-circle-up me-2"></i>Confirmar Actualización
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Eliminar modal existente si hay uno
+    const existingModal = document.getElementById('upgradePlanModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Añadir modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('upgradePlanModal'));
+    modal.show();
+    
+    // Configurar checkbox de confirmación
+    const confirmCheckbox = document.getElementById('confirmUpgrade');
+    const confirmButton = document.getElementById('confirm-upgrade-btn');
+    
+    confirmCheckbox.addEventListener('change', function() {
+        confirmButton.disabled = !this.checked;
+    });
+    
+    // Configurar botón de confirmación
+    confirmButton.addEventListener('click', function() {
+        processPlanUpgrade();
+        modal.hide();
+    });
+}
+
+/**
+ * Procesar actualización de plan
+ */
+function processPlanUpgrade() {
+    console.log('💳 Procesando actualización de plan...');
+    
+    // Mostrar spinner de carga
+    toastr.info('Procesando actualización de plan...', 'Procesando');
+    
+    // Simular procesamiento
+    setTimeout(() => {
+        toastr.success('¡Plan actualizado correctamente! Ahora tienes el Plan Enterprise.', 'Actualización Completada');
+        
+        // Actualizar UI
+        updatePlanUI('enterprise');
+    }, 2000);
+}
+
+/**
+ * Actualizar UI después de cambio de plan
+ * @param {string} planType - Tipo de plan ('professional', 'enterprise')
+ */
+function updatePlanUI(planType) {
+    // Actualizar alerta de información de plan
+    const planAlert = document.querySelector('#plan-content .alert-info');
+    if (planAlert) {
+        const planTitle = planAlert.querySelector('.alert-heading');
+        const planText = planAlert.querySelector('p');
+        
+        if (planType === 'enterprise') {
+            planTitle.textContent = 'Plan Enterprise';
+            planText.textContent = 'Tu plan actual vence el 15/08/2025. La renovación automática está activada.';
+        }
+    }
+    
+    // Actualizar tarjetas de planes
+    const planCards = document.querySelectorAll('#plan-content .card');
+    if (planCards.length >= 2) {
+        // Quitar bordes y etiquetas de plan actual
+        planCards.forEach(card => {
+            card.classList.remove('border-primary');
+            const header = card.querySelector('.card-header');
+            if (header) {
+                header.classList.remove('bg-primary');
+            }
+        });
+        
+        if (planType === 'enterprise') {
+            // Actualizar segunda tarjeta (Enterprise)
+            planCards[1].classList.add('border-primary');
+            const header = planCards[1].querySelector('.card-header');
+            if (header) {
+                header.classList.add('bg-primary');
+                header.classList.remove('bg-dark');
+                
+                // Actualizar badge
+                const badge = header.querySelector('.badge');
+                if (badge) {
+                    badge.className = 'badge bg-white text-primary';
+                    badge.textContent = 'Plan Actual';
+                }
+            }
+            
+            // Actualizar botón
+            const button = planCards[1].querySelector('button');
+            if (button) {
+                button.className = 'btn btn-outline-primary w-100';
+                button.disabled = true;
+                button.textContent = 'Plan Actual';
+                button.id = '';
+            }
+            
+            // Actualizar primera tarjeta (Profesional)
+            const proHeader = planCards[0].querySelector('.card-header');
+            if (proHeader) {
+                proHeader.classList.remove('bg-primary');
+                proHeader.classList.add('bg-secondary');
+                
+                // Actualizar badge
+                const badge = proHeader.querySelector('.badge');
+                if (badge) {
+                    badge.className = 'badge bg-light text-secondary';
+                    badge.textContent = 'Plan Anterior';
+                }
+            }
+            
+            // Actualizar botón
+            const proButton = planCards[0].querySelector('button');
+            if (proButton) {
+                proButton.className = 'btn btn-outline-secondary w-100';
+                proButton.disabled = false;
+                proButton.textContent = 'Cambiar a este plan';
+                proButton.id = 'downgrade-plan-btn';
+            }
+        }
+    }
+}
+
+/**
+ * Mostrar modal para añadir método de pago
+ */
+function showAddPaymentMethodModal() {
+    console.log('💳 Mostrando modal para añadir método de pago...');
+    
+    const modalHTML = `
+        <div class="modal fade" id="addPaymentMethodModal" tabindex="-1" aria-labelledby="addPaymentMethodModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-primary text-white border-0">
+                        <h5 class="modal-title" id="addPaymentMethodModalLabel">
+                            <i class="fas fa-credit-card me-2"></i>Añadir método de pago
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-3">
+                                <div>
+                                    <h6 class="mb-0">Tarjeta de crédito/débito</h6>
+                                    <small class="text-muted">Procesamos pagos de forma segura</small>
+                                </div>
+                                <div>
+                                    <i class="fab fa-cc-visa fa-2x me-2 text-primary"></i>
+                                    <i class="fab fa-cc-mastercard fa-2x me-2 text-danger"></i>
+                                    <i class="fab fa-cc-amex fa-2x text-info"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form id="payment-form">
+                            <div class="mb-3">
+                                <label for="card_number" class="form-label">Número de tarjeta</label>
+                                <input type="text" class="form-control" id="card_number" placeholder="1234 5678 9012 3456" required>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="card_expiry" class="form-label">Fecha de expiración</label>
+                                    <input type="text" class="form-control" id="card_expiry" placeholder="MM/AA" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="card_cvc" class="form-label">CVC/CVV</label>
+                                    <input type="text" class="form-control" id="card_cvc" placeholder="123" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="card_name" class="form-label">Nombre en la tarjeta</label>
+                                <input type="text" class="form-control" id="card_name" placeholder="NOMBRE APELLIDOS" required>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="set_default" checked>
+                                <label class="form-check-label" for="set_default">
+                                    Establecer como método de pago predeterminado
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="save-payment-method-btn">
+                            <i class="fas fa-save me-2"></i>Guardar método de pago
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Eliminar modal existente si hay uno
+    const existingModal = document.getElementById('addPaymentMethodModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Añadir modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('addPaymentMethodModal'));
+    modal.show();
+    
+    // Configurar botón de guardar
+    const saveButton = document.getElementById('save-payment-method-btn');
+    saveButton.addEventListener('click', function() {
+        savePaymentMethod();
+        modal.hide();
+    });
+}
+
+/**
+ * Guardar método de pago
+ */
+function savePaymentMethod() {
+    console.log('💳 Guardando método de pago...');
+    
+    // Mostrar spinner de carga
+    toastr.info('Guardando método de pago...', 'Procesando');
+    
+    // Simular procesamiento
+    setTimeout(() => {
+        toastr.success('Método de pago guardado correctamente', 'Guardado');
+        
+        // Actualizar UI
+        updatePaymentMethodsUI();
+    }, 1500);
+}
+
+/**
+ * Actualizar UI de métodos de pago
+ */
+function updatePaymentMethodsUI() {
+    // Aquí se actualizaría la UI con el nuevo método de pago
+    // Por ahora solo simulamos la actualización
+    console.log('💳 Actualizando UI de métodos de pago...');
+}
+
+/**
+ * Guardar datos de facturación
+ */
+function saveBillingInfo() {
+    console.log('💳 Guardando datos de facturación...');
+    
+    // Mostrar spinner de carga
+    toastr.info('Guardando datos de facturación...', 'Procesando');
+    
+    // Obtener datos del formulario
+    const company = document.getElementById('billing_company').value;
+    const taxId = document.getElementById('billing_tax_id').value;
+    const address = document.getElementById('billing_address').value;
+    const postalCode = document.getElementById('billing_postal_code').value;
+    const city = document.getElementById('billing_city').value;
+    const country = document.getElementById('billing_country').value;
+    
+    // Validar datos
+    if (!company || !taxId || !address || !postalCode || !city) {
+        toastr.error('Por favor, completa todos los campos obligatorios', 'Error');
+        return;
+    }
+    
+    // Simular guardado
+    setTimeout(() => {
+        toastr.success('Datos de facturación guardados correctamente', 'Guardado');
+    }, 1500);
+}
+
+/**
+ * Filtrar facturas por año
+ * @param {string} year - Año a filtrar
+ */
+function filterInvoicesByYear(year) {
+    console.log(`📆 Filtrando facturas por año: ${year}`);
+    
+    // Mostrar spinner de carga
+    toastr.info(`Cargando facturas de ${year}...`, 'Procesando');
+    
+    // Simular carga de datos
+    setTimeout(() => {
+        // Aquí se cargarían las facturas del año seleccionado
+        toastr.success(`Facturas de ${year} cargadas correctamente`, 'Completado');
+    }, 1000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Inicializando Dashboard Simple...');
     
