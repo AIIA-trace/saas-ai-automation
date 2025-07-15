@@ -198,7 +198,7 @@ function createCallsTabContent() {
                                         </thead>
                                         <tbody id="calls-table-body">
                                             <!-- Llamada 1: Pedido -->
-                                            <tr class="call-row" data-type="pedidos" data-urgency="alta">
+                                            <tr class="call-row" data-id="1" data-type="pedidos" data-urgency="alta" data-urgent="true">
                                                 <td class="px-3 py-2">
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" id="call-managed-1">
@@ -250,7 +250,7 @@ function createCallsTabContent() {
                                             </tr>
                                             
                                             <!-- Llamada 2: Consulta -->
-                                            <tr class="call-row" data-type="consultas" data-urgency="baja">
+                                            <tr class="call-row" data-id="2" data-type="consultas" data-urgency="baja">
                                                 <td class="px-3 py-2">
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" id="call-managed-2" checked>
@@ -302,7 +302,7 @@ function createCallsTabContent() {
                                             </tr>
                                             
                                             <!-- Llamada 3: Pedido -->
-                                            <tr class="call-row" data-type="pedidos" data-urgency="media">
+                                            <tr class="call-row" data-id="3" data-type="pedidos" data-urgency="media" data-urgent="true">
                                                 <td class="px-3 py-2">
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" id="call-managed-3">
@@ -431,7 +431,7 @@ function createEmailsTabContent() {
                                 </thead>
                                 <tbody>
                                     <!-- Email 1 - No leído, importante -->
-                                    <tr class="email-row fw-bold" data-type="unread important">
+                                    <tr class="email-row fw-bold" data-id="1" data-type="unread important">
                                         <td><i class="fas fa-star text-warning"></i></td>
                                         <td>Juan Pérez <span class="badge bg-primary ms-1">Cliente</span></td>
                                         <td>
@@ -441,63 +441,72 @@ function createEmailsTabContent() {
                                         <td>Hoy, 10:25</td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="showAutoReplyModal(1, 'ai')" title="Responder con IA">
+                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="1" title="Responder con IA">
                                                     <i class="fas fa-robot"></i>
                                                 </button>
-                                                <button class="btn btn-outline-secondary" onclick="showAutoReplyModal(1, 'manual')" title="Responder manual">
+                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="1" title="Responder manual">
                                                     <i class="fas fa-reply"></i>
                                                 </button>
-                                                <button class="btn btn-outline-info" onclick="viewEmailHistory(1)" title="Ver historial">
+                                                <button class="btn btn-outline-info history-btn" title="Ver historial">
                                                     <i class="fas fa-history"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning read-btn" title="Marcar como leído/no leído">
+                                                    <i class="fas fa-envelope"></i>
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
                                     
                                     <!-- Email 2 - Leído -->
-                                    <tr class="email-row" data-type="read">
+                                    <tr class="email-row" data-id="2" data-type="read">
                                         <td><i class="far fa-star text-muted"></i></td>
                                         <td>María Gómez</td>
                                         <td>Solicitud de información adicional</td>
                                         <td>Ayer, 15:40</td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="showAutoReplyModal(2, 'ai')" title="Responder con IA">
+                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="2" title="Responder con IA">
                                                     <i class="fas fa-robot"></i>
                                                 </button>
-                                                <button class="btn btn-outline-secondary" onclick="showAutoReplyModal(2, 'manual')" title="Responder manual">
+                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="2" title="Responder manual">
                                                     <i class="fas fa-reply"></i>
                                                 </button>
-                                                <button class="btn btn-outline-info" onclick="viewEmailHistory(2)" title="Ver historial">
+                                                <button class="btn btn-outline-info history-btn" title="Ver historial">
                                                     <i class="fas fa-history"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning read-btn" title="Marcar como leído/no leído">
+                                                    <i class="fas fa-envelope"></i>
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
                                     
                                     <!-- Email 3 - Spam -->
-                                    <tr class="email-row" data-type="spam">
+                                    <tr class="email-row" data-id="3" data-type="spam">
                                         <td><i class="far fa-star text-muted"></i></td>
                                         <td>marketing@ofertas.com <span class="badge bg-danger ms-1">Spam</span></td>
                                         <td>¡¡¡Oferta especial solo por hoy!!!</td>
                                         <td>15/05/2023</td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="showAutoReplyModal(3, 'ai')" title="Responder con IA">
+                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="3" title="Responder con IA">
                                                     <i class="fas fa-robot"></i>
                                                 </button>
-                                                <button class="btn btn-outline-secondary" onclick="showAutoReplyModal(3, 'manual')" title="Responder manual">
+                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="3" title="Responder manual">
                                                     <i class="fas fa-reply"></i>
                                                 </button>
-                                                <button class="btn btn-outline-info" onclick="viewEmailHistory(3)" title="Ver historial">
+                                                <button class="btn btn-outline-info history-btn" title="Ver historial">
                                                     <i class="fas fa-history"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning read-btn" title="Marcar como leído/no leído">
+                                                    <i class="fas fa-envelope"></i>
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
                                     
                                     <!-- Email 4 - No leído -->
-                                    <tr class="email-row fw-bold" data-type="unread">
+                                    <tr class="email-row fw-bold" data-id="4" data-type="unread">
                                         <td><i class="far fa-star text-muted"></i></td>
                                         <td>Carlos Rodríguez <span class="badge bg-success ms-1">Nuevo</span></td>
                                         <td>
@@ -507,14 +516,17 @@ function createEmailsTabContent() {
                                         <td>14/05/2023</td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="showAutoReplyModal(4, 'ai')" title="Responder con IA">
+                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="4" title="Responder con IA">
                                                     <i class="fas fa-robot"></i>
                                                 </button>
-                                                <button class="btn btn-outline-secondary" onclick="showAutoReplyModal(4, 'manual')" title="Responder manual">
+                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="4" title="Responder manual">
                                                     <i class="fas fa-reply"></i>
                                                 </button>
-                                                <button class="btn btn-outline-info" onclick="viewEmailHistory(4)" title="Ver historial">
+                                                <button class="btn btn-outline-info history-btn" title="Ver historial">
                                                     <i class="fas fa-history"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning read-btn" title="Marcar como leído/no leído">
+                                                    <i class="fas fa-envelope"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -528,10 +540,10 @@ function createEmailsTabContent() {
                                         <td>10/05/2023</td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="showAutoReplyModal(5, 'ai')" title="Responder con IA">
+                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="5" title="Responder con IA">
                                                     <i class="fas fa-robot"></i>
                                                 </button>
-                                                <button class="btn btn-outline-secondary" onclick="showAutoReplyModal(5, 'manual')" title="Responder manual">
+                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="5" title="Responder manual">
                                                     <i class="fas fa-reply"></i>
                                                 </button>
                                                 <button class="btn btn-outline-info" onclick="viewEmailHistory(5)" title="Ver historial">
@@ -597,9 +609,157 @@ function createBotConfigTabContent() {
                             </div>
                         </div>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body">
                         <!-- Contenido de Configuración del Bot -->
-                        <p class="p-3">Contenido de la pestaña Configuración del Bot en desarrollo...</p>
+                        <form id="unified-bot-config-form">
+                            <!-- Sección: Información de la empresa -->
+                            <div class="card mb-4 border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-building me-2"></i>Información de la Empresa</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="company_name" class="form-label">Nombre de la Empresa</label>
+                                            <input type="text" class="form-control" id="company_name" name="company_name" value="Tech Solutions S.L." required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="contact_email" class="form-label">Email de Contacto</label>
+                                            <input type="email" class="form-control" id="contact_email" name="contact_email" value="info@techsolutions.com" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="main_phone" class="form-label">Teléfono Principal</label>
+                                            <input type="tel" class="form-control" id="main_phone" name="main_phone" value="+34 91 123 4567" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="business_hours" class="form-label">Horario Comercial</label>
+                                            <input type="text" class="form-control" id="business_hours" name="business_hours" value="Lun-Vie: 9:00-18:00" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Sección: Configuración de Llamadas -->
+                            <div class="card mb-4 border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-phone-alt me-2"></i>Configuración de Llamadas</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="call_bot_active" name="call_bot_active" checked>
+                                                <label class="form-check-label" for="call_bot_active">Bot de Llamadas Activo</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="call_recording" name="call_recording" checked>
+                                                <label class="form-check-label" for="call_recording">Grabación de Llamadas</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="call_transcription" name="call_transcription" checked>
+                                                <label class="form-check-label" for="call_transcription">Transcripción de Llamadas</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="call_language" class="form-label">Idioma Principal</label>
+                                            <select class="form-select" id="call_language" name="call_language" required>
+                                                <option value="es-ES" selected>Español (España)</option>
+                                                <option value="en-US">Inglés (EEUU)</option>
+                                                <option value="fr-FR">Francés</option>
+                                                <option value="de-DE">Alemán</option>
+                                            </select>
+                                            
+                                            <label for="voice_type" class="form-label mt-3">Tipo de Voz</label>
+                                            <select class="form-select" id="voice_type" name="voice_type" required>
+                                                <option value="female" selected>Femenina</option>
+                                                <option value="male">Masculina</option>
+                                                <option value="neutral">Neutral</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-12">
+                                            <label for="call_greeting" class="form-label">Saludo Inicial</label>
+                                            <textarea class="form-control" id="call_greeting" name="call_greeting" rows="2" required>Hola, ha llamado a Tech Solutions. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Sección: Configuración de Emails -->
+                            <div class="card mb-4 border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-envelope me-2"></i>Configuración de Emails</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="email_bot_active" name="email_bot_active" checked>
+                                                <label class="form-check-label" for="email_bot_active">Bot de Emails Activo</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="auto_reply" name="auto_reply" checked>
+                                                <label class="form-check-label" for="auto_reply">Respuesta Automática</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="email_language" class="form-label">Idioma Principal</label>
+                                            <select class="form-select" id="email_language" name="email_language" required>
+                                                <option value="es-ES" selected>Español (España)</option>
+                                                <option value="en-US">Inglés (EEUU)</option>
+                                                <option value="fr-FR">Francés</option>
+                                                <option value="de-DE">Alemán</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-12">
+                                            <label for="email_signature" class="form-label">Firma de Email</label>
+                                            <textarea class="form-control" id="email_signature" name="email_signature" rows="3" required>Atentamente,\nEquipo de Soporte\nTech Solutions S.L.\n+34 91 123 4567</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Sección: Archivos de Contexto -->
+                            <div class="card mb-4 border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>Archivos de Contexto</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label for="context_files" class="form-label">Subir Archivos de Contexto (PDF, DOCX, TXT)</label>
+                                            <input type="file" class="form-control" id="context_files" name="context_files" multiple accept=".pdf,.docx,.txt">
+                                            <div class="form-text">Máximo 5 archivos, 10MB por archivo.</div>
+                                        </div>
+                                        
+                                        <div class="col-12">
+                                            <label class="form-label">Archivos Actuales</label>
+                                            <ul class="list-group" id="context-files-list">
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <i class="fas fa-file-pdf text-danger me-2"></i>
+                                                        Catálogo_Productos_2023.pdf
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <i class="fas fa-file-word text-primary me-2"></i>
+                                                        Preguntas_Frecuentes.docx
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -716,7 +876,15 @@ function filterCalls(type) {
     callRows.forEach(row => {
         if (type === 'all') {
             row.classList.remove('d-none');
+        } else if (type === 'urgent') {
+            // Para el tipo urgente, verificamos si tiene la clase 'urgent' o si el dataset.urgent es 'true'
+            if (row.classList.contains('urgent') || row.dataset.urgent === 'true') {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
         } else {
+            // Para otros tipos (managed, pending)
             if (row.dataset.type === type) {
                 row.classList.remove('d-none');
             } else {
@@ -953,18 +1121,24 @@ function setupEventListeners() {
         // Event listener para botones de reproducir llamadas
         if (e.target.matches('.play-btn') || e.target.closest('.play-btn')) {
             const btn = e.target.matches('.play-btn') ? e.target : e.target.closest('.play-btn');
-            const callId = btn.getAttribute('onclick')?.match(/\d+/)?.[0];
-            if (callId) {
-                playCallRecording(parseInt(callId));
+            const callRow = btn.closest('.call-row');
+            if (callRow) {
+                const callId = callRow.dataset.id;
+                if (callId) {
+                    playCallRecording(parseInt(callId));
+                }
             }
         }
         
         // Event listener para botones de marcar como gestionado
         if (e.target.matches('.manage-btn') || e.target.closest('.manage-btn')) {
             const btn = e.target.matches('.manage-btn') ? e.target : e.target.closest('.manage-btn');
-            const callId = btn.getAttribute('onclick')?.match(/\d+/)?.[0];
-            if (callId) {
-                markCallAsManaged(parseInt(callId));
+            const callRow = btn.closest('.call-row');
+            if (callRow) {
+                const callId = callRow.dataset.id;
+                if (callId) {
+                    markCallAsManaged(parseInt(callId));
+                }
             }
         }
         
@@ -972,7 +1146,65 @@ function setupEventListeners() {
         if (e.target.matches('.refresh-btn') || e.target.closest('.refresh-btn')) {
             refreshDashboardData();
         }
+        
+        // Event listener para marcar emails como leídos/no leídos
+        if (e.target.matches('.read-btn') || e.target.closest('.read-btn')) {
+            const btn = e.target.matches('.read-btn') ? e.target : e.target.closest('.read-btn');
+            const emailRow = btn.closest('.email-row');
+            if (emailRow) {
+                const emailId = emailRow.dataset.id;
+                if (emailId) {
+                    markEmailAsRead(parseInt(emailId));
+                }
+            }
+        }
+        
+        // Event listener para ver historial de emails
+        if (e.target.matches('.history-btn') || e.target.closest('.history-btn')) {
+            const btn = e.target.matches('.history-btn') ? e.target : e.target.closest('.history-btn');
+            const emailRow = btn.closest('.email-row');
+            if (emailRow) {
+                const emailId = emailRow.dataset.id;
+                if (emailId) {
+                    viewEmailHistory(parseInt(emailId));
+                }
+            }
+        }
+        
+        // Event listener para responder con IA
+        if (e.target.matches('.ai-reply-btn') || e.target.closest('.ai-reply-btn')) {
+            const btn = e.target.matches('.ai-reply-btn') ? e.target : e.target.closest('.ai-reply-btn');
+            const emailId = btn.dataset.id;
+            if (emailId) {
+                showAutoReplyModal(parseInt(emailId), 'ai');
+            }
+        }
+        
+        // Event listener para responder manualmente
+        if (e.target.matches('.manual-reply-btn') || e.target.closest('.manual-reply-btn')) {
+            const btn = e.target.matches('.manual-reply-btn') ? e.target : e.target.closest('.manual-reply-btn');
+            const emailId = btn.dataset.id;
+            if (emailId) {
+                showAutoReplyModal(parseInt(emailId), 'manual');
+            }
+        }
     });
+    
+    // Configurar botón de guardar configuración del bot
+    const saveBotConfigBtn = document.getElementById('save-bot-config-btn');
+    if (saveBotConfigBtn) {
+        saveBotConfigBtn.addEventListener('click', function() {
+            saveUnifiedConfig();
+        });
+    }
+    
+    // Configurar botón de probar bot
+    const testBotBtn = document.getElementById('test-bot-btn');
+    if (testBotBtn) {
+        testBotBtn.addEventListener('click', function() {
+            testBotConfiguration();
+        });
+    }
     
     console.log('✅ Event listeners configurados');
 }
@@ -1285,10 +1517,10 @@ function viewEmailHistory(emailId) {
                 </div>
                 
                 <div class="mt-4">
-                    <button type="button" class="btn btn-primary" onclick="showAutoReplyModal(${emailId}, 'ai')">
+                    <button type="button" class="btn btn-primary ai-reply-btn" data-id="${emailId}">
                         <i class="fas fa-robot me-2"></i>Responder con IA
                     </button>
-                    <button type="button" class="btn btn-outline-secondary ms-2" onclick="showAutoReplyModal(${emailId}, 'manual')">
+                    <button type="button" class="btn btn-outline-secondary ms-2 manual-reply-btn" data-id="${emailId}">
                         <i class="fas fa-edit me-2"></i>Responder manualmente
                     </button>
                     <button type="button" class="btn btn-outline-success ms-2" onclick="markEmailAsRead(${emailId})">
@@ -1463,30 +1695,42 @@ Equipo de Atención al Cliente</textarea>
             `;
             
             // Habilitar botón de enviar
-            document.querySelector('#replyModal .btn-primary').disabled = false;
-            
-            // Configurar botón de enviar
-            document.querySelector('#replyModal .btn-primary').addEventListener('click', function() {
-                toastr.success(`Respuesta enviada al email #${emailId}`, 'Éxito');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('replyModal'));
-                modal.hide();
-                
-                // Marcar email como leído
-                markEmailAsRead(emailId);
-            });
-        }, 3000);
+            const sendButton = document.querySelector('#replyModal .btn-primary');
+            if (sendButton) {
+                sendButton.disabled = false;
+                sendButton.addEventListener('click', () => {
+                    // Simular envío de respuesta
+                    sendButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+                    sendButton.disabled = true;
+                    
+                    setTimeout(() => {
+                        toastr.success(`Respuesta enviada al email #${emailId}`, 'Éxito');
+                        modal.hide();
+                        
+                        // Marcar email como leído
+                        markEmailAsRead(emailId);
+                    }, 1500);
+                });
+            }
+        }, 2000);
     } else {
         // Configurar botón de enviar para modo manual
-        setTimeout(() => {
-            document.querySelector('#replyModal .btn-primary').addEventListener('click', function() {
-                toastr.success(`Respuesta manual enviada al email #${emailId}`, 'Éxito');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('replyModal'));
-                modal.hide();
+        const sendButton = document.querySelector('#replyModal .btn-primary');
+        if (sendButton) {
+            sendButton.addEventListener('click', () => {
+                // Simular envío de respuesta
+                sendButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+                sendButton.disabled = true;
                 
-                // Marcar email como leído
-                markEmailAsRead(emailId);
+                setTimeout(() => {
+                    toastr.success(`Respuesta enviada al email #${emailId}`, 'Éxito');
+                    modal.hide();
+                    
+                    // Marcar email como leído
+                    markEmailAsRead(emailId);
+                }, 1500);
             });
-        }, 500);
+        }
     }
 }
 
