@@ -29,6 +29,12 @@ function adaptOtherContextSimple(config) {
         // Configurar funcionalidades adicionales (logout, toggle sidebar, etc.)
         setupAdditionalFeatures();
         
+        // Configurar funcionalidades de la cuenta
+        setupAccountFeatures();
+        
+        // Configurar funcionalidades de facturación
+        setupBillingFeatures();
+        
         // Cargar estado del bot
         loadBotStatus();
         
@@ -702,7 +708,29 @@ function loadSimpleData(config) {
  */
 function filterCalls(type) {
     console.log(`🔍 Filtrando llamadas por tipo: ${type}`);
+    toastr.info(`Mostrando llamadas de tipo: ${type}`, 'Filtro aplicado');
+    
     // Implementación de filtrado
+    const callRows = document.querySelectorAll('.call-row');
+    
+    callRows.forEach(row => {
+        if (type === 'all') {
+            row.classList.remove('d-none');
+        } else {
+            if (row.dataset.type === type) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
+        }
+    });
+    
+    // Actualizar contador
+    const callCount = document.getElementById('call-count');
+    if (callCount) {
+        const visibleRows = document.querySelectorAll('.call-row:not(.d-none)');
+        callCount.textContent = visibleRows.length;
+    }
 }
 
 /**
@@ -711,7 +739,51 @@ function filterCalls(type) {
  */
 function playCallRecording(callId) {
     console.log(`▶️ Reproduciendo grabación de llamada ID: ${callId}`);
-    // Implementación de reproducción
+    
+    // Mostrar modal de reproducción
+    const playModal = new bootstrap.Modal(document.getElementById('play-call-modal'));
+    
+    // Actualizar título del modal
+    const modalTitle = document.querySelector('#play-call-modal .modal-title');
+    if (modalTitle) {
+        modalTitle.textContent = `Reproducción de llamada #${callId}`;
+    }
+    
+    // Simular carga de audio
+    const audioPlayer = document.getElementById('call-audio-player');
+    if (audioPlayer) {
+        // Deshabilitar controles mientras se carga
+        audioPlayer.controls = false;
+        
+        // Mostrar spinner de carga
+        const loadingSpinner = document.getElementById('audio-loading');
+        if (loadingSpinner) {
+            loadingSpinner.classList.remove('d-none');
+        }
+        
+        // Simular carga de audio (en producción cargaría de la API)
+        setTimeout(() => {
+            // URL de ejemplo (en producción sería dinámica)
+            audioPlayer.src = `https://example.com/calls/audio-${callId}.mp3`;
+            audioPlayer.controls = true;
+            
+            // Ocultar spinner
+            if (loadingSpinner) {
+                loadingSpinner.classList.add('d-none');
+            }
+            
+            // Reproducir automáticamente
+            audioPlayer.play().catch(e => {
+                console.warn('Reproducción automática bloqueada por el navegador:', e);
+                toastr.info('Haga clic en reproducir para escuchar la grabación', 'Listo para reproducir');
+            });
+        }, 1500);
+    }
+    
+    // Mostrar modal
+    playModal.show();
+    
+    toastr.info('Cargando grabación...', 'Reproductor');
 }
 
 /**
@@ -720,7 +792,40 @@ function playCallRecording(callId) {
  */
 function markCallAsManaged(callId) {
     console.log(`✅ Marcando llamada como gestionada ID: ${callId}`);
-    // Implementación de marcar como gestionada
+    
+    // Buscar la fila de la llamada
+    const callRow = document.querySelector(`.call-row[data-id="${callId}"]`);
+    if (!callRow) {
+        console.error(`No se encontró la llamada con ID ${callId}`);
+        toastr.error('No se pudo encontrar la llamada', 'Error');
+        return;
+    }
+    
+    // Verificar si ya está gestionada
+    const isManaged = callRow.classList.contains('managed');
+    
+    if (isManaged) {
+        // Desmarcar como gestionada
+        callRow.classList.remove('managed');
+        callRow.querySelector('.status-badge').innerHTML = '<span class="badge bg-warning">Pendiente</span>';
+        callRow.querySelector('.manage-btn').innerHTML = '<i class="fas fa-check"></i>';
+        toastr.info(`Llamada #${callId} marcada como pendiente`, 'Estado actualizado');
+    } else {
+        // Marcar como gestionada
+        callRow.classList.add('managed');
+        callRow.querySelector('.status-badge').innerHTML = '<span class="badge bg-success">Gestionada</span>';
+        callRow.querySelector('.manage-btn').innerHTML = '<i class="fas fa-undo"></i>';
+        toastr.success(`Llamada #${callId} marcada como gestionada`, 'Estado actualizado');
+    }
+    
+    // En producción, aquí se enviaría la actualización a la API
+    // Simular llamada a API
+    setTimeout(() => {
+        console.log(`API: Llamada ${callId} estado actualizado a ${!isManaged ? 'gestionada' : 'pendiente'}`);
+    }, 500);
+    
+    // Actualizar contador
+    updateCallsCount();
 }
 
 /**
@@ -729,7 +834,106 @@ function markCallAsManaged(callId) {
  */
 function viewCallDetails(callId) {
     console.log(`👁️ Ver detalles de llamada ID: ${callId}`);
-    // Implementación de ver detalles
+    
+    // Mostrar modal de detalles
+    const detailsModal = new bootstrap.Modal(document.getElementById('call-details-modal'));
+    
+    // Actualizar título del modal
+    const modalTitle = document.querySelector('#call-details-modal .modal-title');
+    if (modalTitle) {
+        modalTitle.textContent = `Detalles de llamada #${callId}`;
+    }
+    
+    // Simular carga de datos
+    const detailsContent = document.getElementById('call-details-content');
+    if (detailsContent) {
+        // Mostrar spinner de carga
+        detailsContent.innerHTML = `
+            <div class="d-flex justify-content-center my-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        `;
+        
+        // Simular carga de datos (en producción cargaría de la API)
+        setTimeout(() => {
+            // Datos de ejemplo (en producción serían dinámicos)
+            const callDetails = {
+                id: callId,
+                date: new Date().toLocaleString(),
+                duration: '3:45',
+                caller: '+34 612 345 678',
+                status: Math.random() > 0.5 ? 'Gestionada' : 'Pendiente',
+                recording: true,
+                transcript: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam euismod, nisl eget aliquam ultricies, nunc nisl aliquet nunc, quis aliquam nisl nunc quis nisl.',
+                summary: 'Cliente consulta sobre problema con su factura del mes pasado.',
+                sentiment: Math.random() > 0.7 ? 'Negativo' : (Math.random() > 0.5 ? 'Neutro' : 'Positivo'),
+                priority: Math.random() > 0.8 ? 'Alta' : (Math.random() > 0.5 ? 'Media' : 'Baja'),
+                tags: ['facturación', 'consulta', 'cliente existente']
+            };
+            
+            // Actualizar contenido del modal
+            detailsContent.innerHTML = `
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Información de la llamada</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>ID:</strong> ${callDetails.id}</p>
+                                <p><strong>Fecha:</strong> ${callDetails.date}</p>
+                                <p><strong>Duración:</strong> ${callDetails.duration}</p>
+                                <p><strong>Teléfono:</strong> ${callDetails.caller}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Estado:</strong> <span class="badge ${callDetails.status === 'Gestionada' ? 'bg-success' : 'bg-warning'}">${callDetails.status}</span></p>
+                                <p><strong>Grabación:</strong> ${callDetails.recording ? 'Disponible' : 'No disponible'}</p>
+                                <p><strong>Prioridad:</strong> <span class="badge ${callDetails.priority === 'Alta' ? 'bg-danger' : (callDetails.priority === 'Media' ? 'bg-warning' : 'bg-info')}">${callDetails.priority}</span></p>
+                                <p><strong>Sentimiento:</strong> <span class="badge ${callDetails.sentiment === 'Negativo' ? 'bg-danger' : (callDetails.sentiment === 'Neutro' ? 'bg-secondary' : 'bg-success')}">${callDetails.sentiment}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Transcripción</h5>
+                        <p class="card-text">${callDetails.transcript}</p>
+                    </div>
+                </div>
+                
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Resumen</h5>
+                        <p class="card-text">${callDetails.summary}</p>
+                    </div>
+                </div>
+                
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Etiquetas</h5>
+                        <div>
+                            ${callDetails.tags.map(tag => `<span class="badge bg-secondary me-1">${tag}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="button" class="btn btn-primary" onclick="playCallRecording(${callDetails.id})">
+                        <i class="fas fa-play me-2"></i>Reproducir grabación
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" onclick="markCallAsManaged(${callDetails.id})">
+                        <i class="fas fa-${callDetails.status === 'Gestionada' ? 'undo' : 'check'} me-2"></i>${callDetails.status === 'Gestionada' ? 'Desmarcar como gestionada' : 'Marcar como gestionada'}
+                    </button>
+                </div>
+            `;
+        }, 1000);
+    }
+    
+    // Mostrar modal
+    detailsModal.show();
+    
+    toastr.info('Cargando detalles de la llamada...', 'Detalles');
 }
 
 /**
@@ -985,12 +1189,173 @@ function filterEmails(type) {
 }
 
 /**
+ * Ver historial de email
+ * @param {number} emailId - ID del email
+ */
+function viewEmailHistory(emailId) {
+    console.log(`📜 Viendo historial del email ${emailId}`);
+    
+    // Mostrar modal de historial
+    const historyModal = new bootstrap.Modal(document.getElementById('email-history-modal'));
+    
+    // Actualizar título del modal
+    const modalTitle = document.querySelector('#email-history-modal .modal-title');
+    if (modalTitle) {
+        modalTitle.textContent = `Historial de email #${emailId}`;
+    }
+    
+    // Simular carga de datos
+    const historyContent = document.getElementById('email-history-content');
+    if (historyContent) {
+        // Mostrar spinner de carga
+        historyContent.innerHTML = `
+            <div class="d-flex justify-content-center my-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        `;
+        
+        // Simular carga de datos (en producción cargaría de la API)
+        setTimeout(() => {
+            // Datos de ejemplo (en producción serían dinámicos)
+            const emailHistory = [
+                {
+                    id: emailId + '-3',
+                    date: new Date(Date.now() - 3600000).toLocaleString(),
+                    subject: 'RE: Consulta sobre productos',
+                    from: 'soporte@techsolutions.com',
+                    to: 'cliente@example.com',
+                    content: 'Estimado cliente, gracias por su respuesta. Adjunto encontrará el catálogo actualizado con los precios que solicitó. Quedamos a su disposición para cualquier duda adicional.',
+                    direction: 'outgoing'
+                },
+                {
+                    id: emailId + '-2',
+                    date: new Date(Date.now() - 7200000).toLocaleString(),
+                    subject: 'RE: Consulta sobre productos',
+                    from: 'cliente@example.com',
+                    to: 'soporte@techsolutions.com',
+                    content: 'Gracias por su rápida respuesta. Me gustaría recibir más información sobre los precios de los productos mencionados.',
+                    direction: 'incoming'
+                },
+                {
+                    id: emailId + '-1',
+                    date: new Date(Date.now() - 10800000).toLocaleString(),
+                    subject: 'RE: Consulta sobre productos',
+                    from: 'soporte@techsolutions.com',
+                    to: 'cliente@example.com',
+                    content: 'Estimado cliente, hemos recibido su consulta sobre nuestros productos. Adjunto encontrará nuestro catálogo con toda la información solicitada. No dude en contactarnos si necesita más detalles.',
+                    direction: 'outgoing'
+                },
+                {
+                    id: emailId + '-0',
+                    date: new Date(Date.now() - 14400000).toLocaleString(),
+                    subject: 'Consulta sobre productos',
+                    from: 'cliente@example.com',
+                    to: 'soporte@techsolutions.com',
+                    content: 'Hola, estoy interesado en conocer más detalles sobre sus productos y servicios. ¿Podrían enviarme un catálogo o información adicional? Gracias de antemano.',
+                    direction: 'incoming'
+                }
+            ];
+            
+            // Actualizar contenido del modal
+            historyContent.innerHTML = `
+                <div class="email-thread">
+                    ${emailHistory.map(email => `
+                        <div class="card border-0 shadow-sm mb-3 ${email.direction === 'incoming' ? 'border-start border-primary' : 'border-start border-success'}">
+                            <div class="card-header bg-transparent">
+                                <div class="row align-items-center">
+                                    <div class="col">
+                                        <strong>${email.direction === 'incoming' ? email.from : email.to}</strong>
+                                        <span class="text-muted ms-2">${email.date}</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="badge ${email.direction === 'incoming' ? 'bg-primary' : 'bg-success'}">
+                                            ${email.direction === 'incoming' ? 'Recibido' : 'Enviado'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">${email.subject}</h5>
+                                <p class="card-text">${email.content}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="mt-4">
+                    <button type="button" class="btn btn-primary" onclick="showAutoReplyModal(${emailId}, 'ai')">
+                        <i class="fas fa-robot me-2"></i>Responder con IA
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" onclick="showAutoReplyModal(${emailId}, 'manual')">
+                        <i class="fas fa-edit me-2"></i>Responder manualmente
+                    </button>
+                    <button type="button" class="btn btn-outline-success ms-2" onclick="markEmailAsRead(${emailId})">
+                        <i class="fas fa-check me-2"></i>Marcar como leído
+                    </button>
+                </div>
+            `;
+        }, 1000);
+    }
+    
+    // Mostrar modal
+    historyModal.show();
+    
+    toastr.info('Cargando historial del email...', 'Historial');
+}
+
+/**
  * Marcar email como leído
  * @param {number} emailId - ID del email
  */
-function markAsRead(emailId) {
-    console.log(`👁️ Marcando email ${emailId} como leído`);
-    toastr.success(`Email ${emailId} marcado como leído`, 'Actualizado');
+function markEmailAsRead(emailId) {
+    console.log(`✅ Marcando email como leído ID: ${emailId}`);
+    
+    // Buscar la fila del email
+    const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
+    if (!emailRow) {
+        console.error(`No se encontró el email con ID ${emailId}`);
+        toastr.error('No se pudo encontrar el email', 'Error');
+        return;
+    }
+    
+    // Verificar si ya está leído
+    const isRead = !emailRow.classList.contains('fw-bold');
+    
+    if (isRead) {
+        // Marcar como no leído
+        emailRow.classList.add('fw-bold');
+        emailRow.dataset.type = emailRow.dataset.type.includes('unread') ? emailRow.dataset.type : `unread ${emailRow.dataset.type}`;
+        toastr.info(`Email #${emailId} marcado como no leído`, 'Estado actualizado');
+    } else {
+        // Marcar como leído
+        emailRow.classList.remove('fw-bold');
+        emailRow.dataset.type = emailRow.dataset.type.replace('unread', '').trim();
+        if (emailRow.dataset.type === '') {
+            emailRow.dataset.type = 'read';
+        }
+        toastr.success(`Email #${emailId} marcado como leído`, 'Estado actualizado');
+    }
+    
+    // En producción, aquí se enviaría la actualización a la API
+    // Simular llamada a API
+    setTimeout(() => {
+        console.log(`API: Email ${emailId} estado actualizado a ${!isRead ? 'no leído' : 'leído'}`);
+    }, 500);
+    
+    // Si estamos filtrando por 'unread', actualizar visibilidad
+    const unreadFilter = document.getElementById('filter-unread');
+    if (unreadFilter && unreadFilter.checked && isRead) {
+        emailRow.classList.add('d-none');
+    }
+    
+    // Actualizar contador
+    const emailCount = document.getElementById('email-count');
+    if (emailCount) {
+        const visibleRows = document.querySelectorAll('.email-row:not(.d-none)');
+        emailCount.textContent = visibleRows.length;
+    }
 }
 
 /**
@@ -1099,6 +1464,220 @@ Equipo de Atención al Cliente</textarea>
             
             // Habilitar botón de enviar
             document.querySelector('#replyModal .btn-primary').disabled = false;
+            
+            // Configurar botón de enviar
+            document.querySelector('#replyModal .btn-primary').addEventListener('click', function() {
+                toastr.success(`Respuesta enviada al email #${emailId}`, 'Éxito');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('replyModal'));
+                modal.hide();
+                
+                // Marcar email como leído
+                markEmailAsRead(emailId);
+            });
+        }, 3000);
+    } else {
+        // Configurar botón de enviar para modo manual
+        setTimeout(() => {
+            document.querySelector('#replyModal .btn-primary').addEventListener('click', function() {
+                toastr.success(`Respuesta manual enviada al email #${emailId}`, 'Éxito');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('replyModal'));
+                modal.hide();
+                
+                // Marcar email como leído
+                markEmailAsRead(emailId);
+            });
+        }, 500);
+    }
+}
+
+/**
+ * Agregar botón de preview a la firma
+ */
+function addEmailPreviewButton() {
+    // Agregar botón de preview después del textarea de firma
+    setTimeout(() => {
+        const signatureTextarea = document.getElementById('email_signature');
+        if (signatureTextarea && !document.getElementById('preview-signature-btn')) {
+            const previewButton = document.createElement('button');
+            previewButton.type = 'button';
+            previewButton.id = 'preview-signature-btn';
+            previewButton.className = 'btn btn-outline-secondary btn-sm mt-2';
+            previewButton.innerHTML = '<i class="fas fa-eye me-1"></i>Preview Email';
+            previewButton.onclick = previewEmailTemplate;
+            
+            signatureTextarea.parentNode.appendChild(previewButton);
+        }
+    }, 1000);
+}
+
+/**
+ * Previsualizar plantilla de email
+ */
+function previewEmailTemplate() {
+    const signature = document.getElementById('email_signature')?.value || '';
+    const companyName = document.getElementById('company_name')?.value || 'Tu Empresa';
+    
+    // Reemplazar variables en la firma
+    const processedSignature = signature
+        .replace(/{EMPRESA}/g, companyName)
+        .replace(/\n/g, '\n');
+    
+    const modalHTML = `
+        <div class="modal fade" id="emailPreviewModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-eye me-2"></i>Preview de Email
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <strong>De:</strong> soporte@${companyName.toLowerCase().replace(/\s+/g, '')}.com<br>
+                                <strong>Para:</strong> cliente@ejemplo.com<br>
+                                <strong>Asunto:</strong> Re: Consulta sobre productos
+                            </div>
+                            <div class="card-body">
+                                <p>Estimado/a Juan Pérez,</p>
+                                <p>Gracias por contactar con nosotros. Hemos recibido su consulta sobre nuestros productos y servicios.</p>
+                                <p>[Aquí iría la respuesta generada por IA basada en el contexto del email]</p>
+                                <hr>
+                                <pre style="font-family: inherit; white-space: pre-wrap;">${processedSignature}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remover modal existente si existe
+    const existingModal = document.getElementById('emailPreviewModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Agregar nuevo modal
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('emailPreviewModal'));
+    modal.show();
+}
+
+/**
+ * Configurar funcionalidades específicas de emails
+ */
+function setupEmailFeatures() {
+    console.log('📧 Configurando funcionalidades de emails...');
+    
+    // Botón para clasificar emails
+    const classifyEmailsBtn = document.getElementById('classify-emails-btn');
+    if (classifyEmailsBtn) {
+        classifyEmailsBtn.addEventListener('click', function() {
+            console.log('🤖 Clasificando emails con IA...');
+            toastr.info('Clasificando emails...', 'Procesando');
+            
+            // Simular procesamiento
+            setTimeout(() => {
+                toastr.success('Emails clasificados correctamente', 'Éxito');
+            }, 2000);
+        });
+    }
+    
+    // Botón para refrescar emails
+    const refreshEmailsBtn = document.getElementById('refresh-emails-btn');
+    if (refreshEmailsBtn) {
+        refreshEmailsBtn.addEventListener('click', function() {
+            console.log('🔄 Actualizando bandeja de emails...');
+            toastr.info('Actualizando bandeja de entrada...', 'Procesando');
+            
+            // Simular actualización
+            setTimeout(() => {
+                toastr.success('Bandeja actualizada correctamente', 'Éxito');
+            }, 1500);
+        });
+    }
+    
+    // Configurar filtros de emails
+    const emailFilters = document.querySelectorAll('input[name="email-filter"]');
+    emailFilters.forEach(filter => {
+        filter.addEventListener('change', function() {
+            filterEmails(this.id.replace('filter-', ''));
+        });
+    });
+    
+    // Añadir botón de preview a la firma de email
+    addEmailPreviewButton();
+    
+    console.log('✅ Funcionalidades de emails configuradas');
+}
+
+/**
+ * Mostrar modal de respuesta automática o manual para emails
+ * @param {number} emailId - ID del email
+ * @param {string} mode - Modo de respuesta ('auto' o 'manual')
+ */
+function showAutoReplyModal(emailId, mode) {
+    console.log(`💬 Mostrando modal de respuesta ${mode} para email ${emailId}`);
+    
+    // Construir el modal dinámicamente
+    const modalHTML = `
+        <div class="modal fade" id="replyModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-${mode === 'auto' ? 'robot' : 'edit'} me-2"></i>
+                            ${mode === 'auto' ? 'Respuesta Automática' : 'Respuesta Manual'}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Asunto:</label>
+                            <input type="text" class="form-control" value="Re: Consulta sobre productos" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contenido:</label>
+                            <textarea class="form-control" rows="8" id="reply-content">${mode === 'auto' ? 'Generando respuesta con IA...' : ''}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" ${mode === 'auto' ? 'disabled' : ''}>Enviar Respuesta</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Eliminar modal existente si hay uno
+    const existingModal = document.getElementById('replyModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Añadir modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('replyModal'));
+    modal.show();
+    
+    // Si es automático, simular generación de respuesta con IA
+    if (mode === 'auto') {
+        setTimeout(() => {
+            document.getElementById('reply-content').value = 'Estimado cliente,\n\nGracias por contactar con nosotros. En respuesta a su consulta sobre nuestros productos, me complace informarle que disponemos de una amplia gama de soluciones adaptadas a sus necesidades.\n\nNuestro equipo está a su disposición para ofrecerle más detalles o concertar una demostración personalizada.\n\nSaludos cordiales,';
+            document.querySelector('#replyModal .btn-primary').disabled = false;
+            
+            // Marcar email como leído automáticamente
+            markEmailAsRead(emailId);
         }, 3000);
     }
     
@@ -1130,6 +1709,169 @@ function viewEmailHistory(emailId) {
 function viewCallReport(reportId) {
     console.log(`📞 Viendo reporte de llamada ${reportId}`);
     toastr.info(`Mostrando reporte de llamada ${reportId}`, 'Reporte');
+}
+
+/**
+ * Configurar funcionalidades de la cuenta
+ */
+function setupAccountFeatures() {
+    console.log('👤 Configurando funcionalidades de la cuenta...');
+    
+    // Botón para guardar cambios en la cuenta
+    const saveAccountBtn = document.getElementById('save-account-btn');
+    if (saveAccountBtn) {
+        saveAccountBtn.addEventListener('click', function() {
+            console.log('💾 Guardando cambios en la cuenta...');
+            toastr.info('Guardando cambios...', 'Procesando');
+            
+            // Simular guardado
+            setTimeout(() => {
+                toastr.success('Cambios guardados correctamente', 'Éxito');
+            }, 1500);
+        });
+    }
+    
+    // Validar formularios de la cuenta
+    const accountForm = document.querySelector('#account-content form');
+    if (accountForm) {
+        accountForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('📝 Formulario de cuenta enviado');
+            toastr.success('Datos de cuenta actualizados', 'Éxito');
+        });
+    }
+    
+    // Configurar campos de perfil
+    const profileFields = document.querySelectorAll('#account-content input, #account-content select, #account-content textarea');
+    profileFields.forEach(field => {
+        field.addEventListener('change', function() {
+            console.log(`📝 Campo ${field.name || field.id} modificado: ${field.value}`);
+        });
+    });
+    
+    console.log('✅ Funcionalidades de la cuenta configuradas');
+}
+
+/**
+ * Configurar funcionalidades de facturación
+ */
+function setupBillingFeatures() {
+    console.log('💳 Configurando funcionalidades de facturación...');
+    
+    // Botón para ver facturas
+    const viewInvoicesBtn = document.getElementById('view-invoices-btn');
+    if (viewInvoicesBtn) {
+        viewInvoicesBtn.addEventListener('click', function() {
+            console.log('💸 Mostrando facturas...');
+            toastr.info('Cargando facturas...', 'Procesando');
+            
+            // Simular carga de facturas
+            setTimeout(() => {
+                showInvoicesModal();
+            }, 1000);
+        });
+    }
+    
+    console.log('✅ Funcionalidades de facturación configuradas');
+}
+
+/**
+ * Mostrar modal de facturas
+ */
+function showInvoicesModal() {
+    console.log('📈 Mostrando modal de facturas');
+    
+    const modalHTML = `
+        <div class="modal fade" id="invoicesModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-file-invoice-dollar me-2"></i>Historial de Facturas
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Número</th>
+                                        <th>Fecha</th>
+                                        <th>Concepto</th>
+                                        <th>Importe</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>F-2025-001</td>
+                                        <td>01/07/2025</td>
+                                        <td>Plan Premium - Julio 2025</td>
+                                        <td>49,99 €</td>
+                                        <td><span class="badge bg-success">Pagada</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-download me-1"></i>PDF</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>F-2025-002</td>
+                                        <td>01/06/2025</td>
+                                        <td>Plan Premium - Junio 2025</td>
+                                        <td>49,99 €</td>
+                                        <td><span class="badge bg-success">Pagada</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-download me-1"></i>PDF</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>F-2025-003</td>
+                                        <td>01/05/2025</td>
+                                        <td>Plan Premium - Mayo 2025</td>
+                                        <td>49,99 €</td>
+                                        <td><span class="badge bg-success">Pagada</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-download me-1"></i>PDF</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Eliminar modal existente si hay uno
+    const existingModal = document.getElementById('invoicesModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Añadir modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('invoicesModal'));
+    modal.show();
+    
+    // Configurar botones de descarga
+    setTimeout(() => {
+        const downloadButtons = document.querySelectorAll('#invoicesModal .btn-outline-secondary');
+        downloadButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                toastr.info('Descargando factura...', 'Procesando');
+                setTimeout(() => {
+                    toastr.success('Factura descargada correctamente', 'Éxito');
+                }, 1500);
+            });
+        });
+    }, 500);
 }
 
 /**
@@ -1828,7 +2570,7 @@ function processContextFiles(files) {
             // Simular procesamiento por IA
             setTimeout(() => {
                 toastr.success(`Archivo ${file.name} procesado correctamente`, 'Archivo Procesado');
-            }, Math.random() * 2000 + 1000);
+            }, 2000 + Math.random() * 3000); // Tiempo aleatorio entre 2-5 segundos
         }
     });
 }
