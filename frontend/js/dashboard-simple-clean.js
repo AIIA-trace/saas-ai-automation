@@ -1864,7 +1864,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addDashboardStyles();
     
     // Verificar si hay un usuario autenticado
-    if (typeof AuthService !== 'undefined' && AuthService.isAuthenticated()) {
+    if (typeof authService !== 'undefined' && authService.isAuthenticated()) {
         // Obtener datos de la empresa del usuario
         const companyData = JSON.parse(localStorage.getItem('companyData') || '{}');
         
