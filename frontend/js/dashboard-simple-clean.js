@@ -650,6 +650,24 @@ function createBotConfigTabContent() {
                                             <input type="tel" class="form-control" id="main_phone" name="main_phone" value="+34 91 123 4567" required>
                                         </div>
                                         <div class="col-md-6">
+                                            <label for="address" class="form-label">Dirección</label>
+                                            <input type="text" class="form-control" id="address" name="address" value="Calle Mayor 123, 28001 Madrid">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="industry" class="form-label">Sector empresarial</label>
+                                            <select class="form-select" id="industry" name="industry" required>
+                                                <option value="">Selecciona un sector</option>
+                                                <option value="retail" selected>Comercio (Retail)</option>
+                                                <option value="restaurant">Restaurante</option>
+                                                <option value="beauty">Belleza</option>
+                                                <option value="legal">Legal</option>
+                                                <option value="healthcare">Salud</option>
+                                                <option value="real estate">Inmobiliaria</option>
+                                                <option value="technology">Tecnología</option>
+                                                <option value="generic">Otro</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
                                             <label class="form-label">Horario Comercial</label>
                                             <input type="hidden" id="business_hours" name="business_hours" value="Lun-Vie: 9:00-18:00">
                                             <div class="card border-light mb-2">
@@ -812,6 +830,12 @@ function createBotConfigTabContent() {
                                         <div class="col-md-6">
                                             <label for="website" class="form-label">Sitio Web</label>
                                             <input type="url" class="form-control" id="website" name="website" value="https://www.techsolutions.com" required>
+                                        </div>
+                                        
+                                        <div class="col-12">
+                                            <label for="company_description" class="form-label">Descripción de la Empresa</label>
+                                            <textarea class="form-control" id="company_description" name="company_description" rows="3" placeholder="Describe brevemente a qué se dedica tu empresa...">Empresa líder en soluciones tecnológicas para negocios, especializada en software de gestión y automatización de procesos.</textarea>
+                                            <small class="text-muted">Esta descripción ayuda al bot a entender mejor el contexto de tu negocio.</small>
                                         </div>
                                         
                                         <div class="col-12">
@@ -1958,6 +1982,7 @@ function loadExistingData() {
         website: 'https://www.techsolutions.com',
         address: 'Calle Mayor 123, 28001 Madrid',
         industry: 'technology',
+        company_description: 'Empresa líder en soluciones tecnológicas para negocios, especializada en software de gestión y automatización de procesos.',
         primary_language: 'es',
         bot_personality: 'professional',
         timezone: 'Europe/Madrid',
@@ -3577,6 +3602,7 @@ function saveUnifiedConfig() {
         website: document.getElementById('website')?.value || '',
         address: document.getElementById('address')?.value || '',
         industry: document.getElementById('industry')?.value || '',
+        company_description: document.getElementById('company_description')?.value || '',
         
         // Configuración general
         primary_language: document.getElementById('primary_language')?.value || 'es',
