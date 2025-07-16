@@ -653,6 +653,11 @@ function createBotConfigTabContent() {
                                             <label for="address" class="form-label">Dirección</label>
                                             <input type="text" class="form-control" id="address" name="address" value="Calle Mayor 123, 28001 Madrid">
                                         </div>
+                                        <div class="col-12">
+                                            <label for="company_description" class="form-label">Descripción de la Empresa</label>
+                                            <textarea class="form-control" id="company_description" name="company_description" rows="3" placeholder="Describe brevemente a qué se dedica tu empresa...">Empresa líder en soluciones tecnológicas para negocios, especializada en software de gestión y automatización de procesos.</textarea>
+                                            <small class="text-muted">Esta descripción ayuda al bot a entender mejor el contexto de tu negocio.</small>
+                                        </div>
                                         <div class="col-md-6">
                                             <label for="industry" class="form-label">Sector empresarial</label>
                                             <select class="form-select" id="industry" name="industry" required>
@@ -749,40 +754,64 @@ function createBotConfigTabContent() {
                                 </div>
                                 <div class="card-body">
                                     <div class="row g-3">
+                                        <!-- Columna izquierda: Opciones de activación -->
                                         <div class="col-md-6">
-                                            <div class="form-check form-switch mb-3">
-                                                <input class="form-check-input" type="checkbox" id="call_bot_active" name="call_bot_active" checked>
-                                                <label class="form-check-label" for="call_bot_active">Bot de Llamadas Activo</label>
+                                            <div class="card border-light h-100">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Opciones de Activación</h6>
+                                                    <div class="form-check form-switch mb-3">
+                                                        <input class="form-check-input" type="checkbox" id="call_bot_active" name="call_bot_active" checked>
+                                                        <label class="form-check-label" for="call_bot_active">Bot de Llamadas Activo</label>
+                                                    </div>
+                                                    <div class="form-check form-switch mb-3">
+                                                        <input class="form-check-input" type="checkbox" id="call_recording" name="call_recording" checked>
+                                                        <label class="form-check-label" for="call_recording">Grabación de Llamadas</label>
+                                                    </div>
+                                                    <div class="form-check form-switch mb-0">
+                                                        <input class="form-check-input" type="checkbox" id="call_transcription" name="call_transcription" checked>
+                                                        <label class="form-check-label" for="call_transcription">Transcripción de Llamadas</label>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="form-check form-switch mb-3">
-                                                <input class="form-check-input" type="checkbox" id="call_recording" name="call_recording" checked>
-                                                <label class="form-check-label" for="call_recording">Grabación de Llamadas</label>
-                                            </div>
-                                            <div class="form-check form-switch mb-3">
-                                                <input class="form-check-input" type="checkbox" id="call_transcription" name="call_transcription" checked>
-                                                <label class="form-check-label" for="call_transcription">Transcripción de Llamadas</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="call_language" class="form-label">Idioma Principal</label>
-                                            <select class="form-select" id="call_language" name="call_language" required>
-                                                <option value="es-ES" selected>Español (España)</option>
-                                                <option value="en-US">Inglés (EEUU)</option>
-                                                <option value="fr-FR">Francés</option>
-                                                <option value="de-DE">Alemán</option>
-                                            </select>
-                                            
-                                            <label for="voice_type" class="form-label mt-3">Tipo de Voz</label>
-                                            <select class="form-select" id="voice_type" name="voice_type" required>
-                                                <option value="female" selected>Femenina</option>
-                                                <option value="male">Masculina</option>
-                                                <option value="neutral">Neutral</option>
-                                            </select>
                                         </div>
                                         
+                                        <!-- Columna derecha: Configuración de voz -->
+                                        <div class="col-md-6">
+                                            <div class="card border-light h-100">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Configuración de Voz</h6>
+                                                    <div class="mb-3">
+                                                        <label for="call_language" class="form-label">Idioma Principal</label>
+                                                        <select class="form-select" id="call_language" name="call_language" required>
+                                                            <option value="es-ES" selected>Español (España)</option>
+                                                            <option value="en-US">Inglés (EEUU)</option>
+                                                            <option value="fr-FR">Francés</option>
+                                                            <option value="de-DE">Alemán</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label for="voice_type" class="form-label">Tipo de Voz</label>
+                                                        <select class="form-select" id="voice_type" name="voice_type" required>
+                                                            <option value="female" selected>Femenina</option>
+                                                            <option value="male">Masculina</option>
+                                                            <option value="neutral">Neutral</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Saludo inicial (ancho completo) -->
                                         <div class="col-12">
-                                            <label for="call_greeting" class="form-label">Saludo Inicial</label>
-                                            <textarea class="form-control" id="call_greeting" name="call_greeting" rows="2" required>Hola, ha llamado a Tech Solutions. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?</textarea>
+                                            <div class="card border-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Mensaje de Bienvenida</h6>
+                                                    <label for="call_greeting" class="form-label">Saludo Inicial</label>
+                                                    <textarea class="form-control" id="call_greeting" name="call_greeting" rows="2" placeholder="Introduce el saludo que escuchará el cliente al llamar..." required>Hola, ha llamado a Tech Solutions. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?</textarea>
+                                                    <small class="text-muted">Este mensaje se reproducirá al inicio de cada llamada.</small>
+                                                </div>
+                                            </div>
+                                        </div>
                                         </div>
                                     </div>
                                 </div>
@@ -795,59 +824,89 @@ function createBotConfigTabContent() {
                                 </div>
                                 <div class="card-body">
                                     <div class="row g-3">
+                                        <!-- Columna izquierda: Opciones de activación -->
                                         <div class="col-md-6">
-                                            <div class="form-check form-switch mb-3">
-                                                <input class="form-check-input" type="checkbox" id="email_bot_active" name="email_bot_active" checked>
-                                                <label class="form-check-label" for="email_bot_active">Bot de Emails Activo</label>
+                                            <div class="card border-light h-100">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Opciones de Activación</h6>
+                                                    <div class="form-check form-switch mb-3">
+                                                        <input class="form-check-input" type="checkbox" id="email_bot_active" name="email_bot_active" checked>
+                                                        <label class="form-check-label" for="email_bot_active">Bot de Emails Activo</label>
+                                                    </div>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" id="auto_reply" name="auto_reply" checked>
+                                                        <label class="form-check-label" for="auto_reply">Respuesta Automática</label>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="form-check form-switch mb-3">
-                                                <input class="form-check-input" type="checkbox" id="auto_reply" name="auto_reply" checked>
-                                                <label class="form-check-label" for="auto_reply">Respuesta Automática</label>
+                                        </div>
+                                        
+                                        <!-- Columna derecha: Configuración de idioma -->
+                                        <div class="col-md-6">
+                                            <div class="card border-light h-100">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Configuración de Idioma</h6>
+                                                    <div>
+                                                        <label for="email_language" class="form-label">Idioma Principal</label>
+                                                        <select class="form-select" id="email_language" name="email_language" required>
+                                                            <option value="es-ES" selected>Español (España)</option>
+                                                            <option value="en-US">Inglés (EEUU)</option>
+                                                            <option value="fr-FR">Francés</option>
+                                                            <option value="de-DE">Alemán</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+                                        
+                                        <!-- Configuración de correos electrónicos -->
                                         <div class="col-md-6">
-                                            <label for="email_language" class="form-label">Idioma Principal</label>
-                                            <select class="form-select" id="email_language" name="email_language" required>
-                                                <option value="es-ES" selected>Español (España)</option>
-                                                <option value="en-US">Inglés (EEUU)</option>
-                                                <option value="fr-FR">Francés</option>
-                                                <option value="de-DE">Alemán</option>
-                                            </select>
+                                            <div class="card border-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Correos de Gestión</h6>
+                                                    <div class="mb-3">
+                                                        <label for="outgoing_email" class="form-label">Email de Salida</label>
+                                                        <input type="email" class="form-control" id="outgoing_email" name="outgoing_email" value="soporte@techsolutions.com" required placeholder="correo@tuempresa.com">
+                                                        <div class="form-text">Email desde el que se enviarán las respuestas automáticas</div>
+                                                    </div>
+                                                    <div>
+                                                        <label for="recipient_email" class="form-label">Email de Recepción</label>
+                                                        <input type="email" class="form-control" id="recipient_email" name="recipient_email" value="info@techsolutions.com" required placeholder="info@tuempresa.com">
+                                                        <div class="form-text">Email donde se recibirán las copias de las respuestas</div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         
+                                        <!-- Configuración adicional -->
                                         <div class="col-md-6">
-                                            <label for="outgoing_email" class="form-label">Email de Salida</label>
-                                            <input type="email" class="form-control" id="outgoing_email" name="outgoing_email" value="soporte@techsolutions.com" required>
-                                            <div class="form-text">Email desde el que se enviarán las respuestas automáticas</div>
+                                            <div class="card border-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Información Adicional</h6>
+                                                    <div>
+                                                        <label for="website" class="form-label">Sitio Web</label>
+                                                        <input type="url" class="form-control" id="website" name="website" value="https://www.techsolutions.com" required placeholder="https://www.tuempresa.com">
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         
-                                        <div class="col-md-6">
-                                            <label for="recipient_email" class="form-label">Email de Recepción</label>
-                                            <input type="email" class="form-control" id="recipient_email" name="recipient_email" value="info@techsolutions.com" required>
-                                            <div class="form-text">Email donde se recibirán las copias de las respuestas</div>
-                                        </div>
-                                        
-                                        <div class="col-md-6">
-                                            <label for="website" class="form-label">Sitio Web</label>
-                                            <input type="url" class="form-control" id="website" name="website" value="https://www.techsolutions.com" required>
-                                        </div>
-                                        
+                                        <!-- Firma de email (ancho completo) -->
                                         <div class="col-12">
-                                            <label for="company_description" class="form-label">Descripción de la Empresa</label>
-                                            <textarea class="form-control" id="company_description" name="company_description" rows="3" placeholder="Describe brevemente a qué se dedica tu empresa...">Empresa líder en soluciones tecnológicas para negocios, especializada en software de gestión y automatización de procesos.</textarea>
-                                            <small class="text-muted">Esta descripción ayuda al bot a entender mejor el contexto de tu negocio.</small>
-                                        </div>
-                                        
-                                        <div class="col-12">
-                                            <label for="email_signature" class="form-label">Firma de Email</label>
-                                            <textarea class="form-control" id="email_signature" name="email_signature" rows="4" required>Atentamente,
+                                            <div class="card border-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Firma de Email</h6>
+                                                    <label for="email_signature" class="form-label">Plantilla de Firma</label>
+                                                    <textarea class="form-control" id="email_signature" name="email_signature" rows="4" required placeholder="Introduce la plantilla para la firma de los emails...">Atentamente,
 {NOMBRE}
 {CARGO}
 {EMPRESA}
 Tel: {TELEFONO}
 Email: {EMAIL}
 Web: {WEB}</textarea>
-                                            <div class="form-text">Puedes usar las variables: {NOMBRE}, {CARGO}, {EMPRESA}, {TELEFONO}, {EMAIL}, {WEB}</div>
+                                                    <div class="form-text">Puedes usar las variables: {NOMBRE}, {CARGO}, {EMPRESA}, {TELEFONO}, {EMAIL}, {WEB}</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -855,22 +914,23 @@ Web: {WEB}</textarea>
                             
                             <!-- Sección: Preguntas Frecuentes -->
                             <div class="card mb-4 border-0 shadow-sm">
-                                <div class="card-header bg-light">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i>Preguntas Frecuentes</h6>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-faq-btn">
+                                        <i class="fas fa-plus me-1"></i>Añadir
+                                    </button>
                                 </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
+                                <div class="card-body p-3">
+                                    <div class="row">
                                         <div class="col-12">
-                                            <p class="text-muted">Añade preguntas frecuentes para que el bot pueda responderlas automáticamente.</p>
+                                            <p class="text-muted small mb-3">Configura preguntas frecuentes para respuestas automáticas. Recomendamos añadir al menos 3-5 preguntas comunes.</p>
                                             
-                                            <div id="faq-items">
+                                            <div id="faq-items" class="faq-container">
                                                 <!-- Las preguntas se añadirán aquí dinámicamente -->
                                             </div>
                                             
-                                            <div class="mt-3">
-                                                <button type="button" class="btn btn-outline-primary btn-sm" id="add-faq-btn">
-                                                    <i class="fas fa-plus me-2"></i>Añadir Pregunta
-                                                </button>
+                                            <div id="no-faqs-message" class="text-center py-3 d-none">
+                                                <p class="text-muted"><i class="fas fa-info-circle me-1"></i> No hay preguntas frecuentes configuradas</p>
                                             </div>
                                         </div>
                                     </div>
@@ -953,11 +1013,6 @@ function createAccountTabContent() {
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-content" type="button" role="tab" aria-controls="security-content" aria-selected="false">
                                     <i class="fas fa-shield-alt me-2"></i>Seguridad
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications-content" type="button" role="tab" aria-controls="notifications-content" aria-selected="false">
-                                    <i class="fas fa-bell me-2"></i>Notificaciones
                                 </button>
                             </li>
                         </ul>
@@ -1057,88 +1112,10 @@ function createAccountTabContent() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-12">
-                                        <div class="card">
-                                            <div class="card-header bg-light">
-                                                <h6 class="mb-0">Sesiones activas</h6>
-                                            </div>
-                                            <div class="card-body p-0">
-                                                <div class="table-responsive">
-                                                    <table class="table mb-0">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Dispositivo</th>
-                                                                <th>Ubicación</th>
-                                                                <th>Última actividad</th>
-                                                                <th>Acción</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <tr>
-                                                                <td><i class="fas fa-laptop me-2"></i>MacBook Pro (Este dispositivo)</td>
-                                                                <td>Madrid, España</td>
-                                                                <td>Ahora mismo</td>
-                                                                <td><span class="badge bg-success">Actual</span></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td><i class="fas fa-mobile-alt me-2"></i>iPhone 13</td>
-                                                                <td>Madrid, España</td>
-                                                                <td>Hace 2 horas</td>
-                                                                <td><button class="btn btn-sm btn-outline-danger">Cerrar</button></td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                             
-                            <!-- Notificaciones -->
-                            <div class="tab-pane fade" id="notifications-content" role="tabpanel" aria-labelledby="notifications-tab">
-                                <div class="card">
-                                    <div class="card-header bg-light">
-                                        <h6 class="mb-0">Preferencias de notificaciones</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="mb-4">
-                                            <h6>Notificaciones por email</h6>
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="notify_new_calls" checked>
-                                                <label class="form-check-label" for="notify_new_calls">Nuevas llamadas recibidas</label>
-                                            </div>
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="notify_new_emails" checked>
-                                                <label class="form-check-label" for="notify_new_emails">Nuevos emails recibidos</label>
-                                            </div>
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="notify_billing" checked>
-                                                <label class="form-check-label" for="notify_billing">Facturas y pagos</label>
-                                            </div>
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="notify_updates">
-                                                <label class="form-check-label" for="notify_updates">Actualizaciones y novedades</label>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <h6>Notificaciones push</h6>
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="push_new_calls" checked>
-                                                <label class="form-check-label" for="push_new_calls">Nuevas llamadas recibidas</label>
-                                            </div>
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="push_new_emails" checked>
-                                                <label class="form-check-label" for="push_new_emails">Nuevos emails recibidos</label>
-                                            </div>
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="push_billing">
-                                                <label class="form-check-label" for="push_billing">Facturas y pagos</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -1188,86 +1165,104 @@ function createBillingTabContent() {
                         <div class="tab-content pt-3" id="billingTabsContent">
                             <!-- Plan Actual -->
                             <div class="tab-pane fade show active" id="plan-content" role="tabpanel" aria-labelledby="plan-tab">
-                                <div class="alert alert-info">
-                                    <div class="d-flex">
-                                        <div class="me-3">
-                                            <i class="fas fa-info-circle fa-2x"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="alert-heading">Plan Profesional</h5>
-                                            <p class="mb-0">Tu plan actual vence el 15/08/2025. La renovación automática está activada.</p>
-                                        </div>
-                                    </div>
+                                <div class="text-end mb-2">
+                                    <small class="text-muted">Tu plan actual vence el 15/08/2025. Renovación automática activada.</small>
                                 </div>
                                 
                                 <div class="row mb-4">
-                                    <div class="col-md-6">
-                                        <div class="card h-100 border-primary">
-                                            <div class="card-header bg-primary text-white">
-                                                <h5 class="mb-0">Plan Profesional</h5>
-                                                <span class="badge bg-white text-primary">Plan Actual</span>
+                                    <div class="col-md-4">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">Plan Básico</h6>
                                             </div>
-                                            <div class="card-body">
-                                                <div class="display-6 mb-3">49,99€ <small class="text-muted fs-6">/mes</small></div>
-                                                <ul class="list-unstyled">
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Hasta 1.000 llamadas/mes</li>
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Hasta 5.000 emails/mes</li>
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Respuestas IA ilimitadas</li>
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 5 usuarios incluidos</li>
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Soporte prioritario</li>
+                                            <div class="card-body p-3">
+                                                <div class="fw-bold fs-4 mb-2">19,99€ <small class="text-muted fs-6">/mes</small></div>
+                                                <ul class="list-unstyled small">
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 100 llamadas/mes</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 500 emails/mes</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 1 usuario</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Soporte básico</li>
                                                 </ul>
-                                                <button class="btn btn-outline-primary w-100" disabled>Plan Actual</button>
+                                                <button class="btn btn-sm btn-outline-primary w-100 mt-2">Cambiar plan</button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
+                                        <div class="card h-100 border-primary">
+                                            <div class="card-header bg-primary text-white">
+                                                <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                                                    Plan Profesional
+                                                    <span class="badge bg-white text-primary">Actual</span>
+                                                </h6>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="fw-bold fs-4 mb-2">49,99€ <small class="text-muted fs-6">/mes</small></div>
+                                                <ul class="list-unstyled small">
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 1.000 llamadas/mes</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 5.000 emails/mes</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 5 usuarios</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Soporte prioritario</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Respuestas IA ilimitadas</li>
+                                                </ul>
+                                                <button class="btn btn-sm btn-outline-primary w-100 mt-2" disabled>Plan Actual</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
                                         <div class="card h-100">
                                             <div class="card-header bg-dark text-white">
-                                                <h5 class="mb-0">Plan Enterprise</h5>
-                                                <span class="badge bg-warning">Recomendado</span>
+                                                <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                                                    Plan Enterprise
+                                                    <span class="badge bg-warning">Premium</span>
+                                                </h6>
                                             </div>
-                                            <div class="card-body">
-                                                <div class="display-6 mb-3">99,99€ <small class="text-muted fs-6">/mes</small></div>
-                                                <ul class="list-unstyled">
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Llamadas ilimitadas</li>
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Emails ilimitados</li>
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Respuestas IA ilimitadas</li>
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 15 usuarios incluidos</li>
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Soporte 24/7 dedicado</li>
-                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> API personalizada</li>
+                                            <div class="card-body p-3">
+                                                <div class="fw-bold fs-4 mb-2">99,99€ <small class="text-muted fs-6">/mes</small></div>
+                                                <ul class="list-unstyled small">
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Llamadas ilimitadas</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Emails ilimitados</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 15 usuarios</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Soporte 24/7</li>
+                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> API personalizada</li>
                                                 </ul>
-                                                <button class="btn btn-dark w-100" id="upgrade-plan-btn">Actualizar Plan</button>
+                                                <button class="btn btn-sm btn-dark w-100 mt-2" id="upgrade-plan-btn">Actualizar Plan</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="card">
-                                    <div class="card-header bg-light">
-                                        <h6 class="mb-0">Uso Actual</h6>
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-light py-2">
+                                        <h6 class="mb-0 small">Uso Actual del Plan</h6>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="card-body p-3">
                                         <div class="row g-3">
                                             <div class="col-md-4">
-                                                <label class="form-label">Llamadas procesadas</label>
-                                                <div class="progress mb-2" style="height: 20px;">
-                                                    <div class="progress-bar" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">65%</div>
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <small class="text-muted">Llamadas</small>
+                                                    <small class="text-muted">650 / 1.000</small>
                                                 </div>
-                                                <small class="text-muted">650 de 1.000 llamadas</small>
+                                                <div class="progress" style="height: 8px;">
+                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label">Emails procesados</label>
-                                                <div class="progress mb-2" style="height: 20px;">
-                                                    <div class="progress-bar" role="progressbar" style="width: 42%;" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100">42%</div>
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <small class="text-muted">Emails</small>
+                                                    <small class="text-muted">2.100 / 5.000</small>
                                                 </div>
-                                                <small class="text-muted">2.100 de 5.000 emails</small>
+                                                <div class="progress" style="height: 8px;">
+                                                    <div class="progress-bar bg-success" role="progressbar" style="width: 42%;" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label">Usuarios activos</label>
-                                                <div class="progress mb-2" style="height: 20px;">
-                                                    <div class="progress-bar" role="progressbar" style="width: 80%;" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">80%</div>
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <small class="text-muted">Usuarios</small>
+                                                    <small class="text-muted">4 / 5</small>
                                                 </div>
-                                                <small class="text-muted">4 de 5 usuarios</small>
+                                                <div class="progress" style="height: 8px;">
+                                                    <div class="progress-bar bg-warning" role="progressbar" style="width: 80%;" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1277,11 +1272,13 @@ function createBillingTabContent() {
                             <!-- Métodos de Pago -->
                             <div class="tab-pane fade" id="payment-content" role="tabpanel" aria-labelledby="payment-tab">
                                 <div class="card mb-4">
-                                    <div class="card-header bg-light">
-                                        <h6 class="mb-0">Métodos de pago guardados</h6>
+                                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">Método de pago</h6>
+                                        <small class="text-muted">Solo se permite un método de pago activo</small>
                                     </div>
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                                    <div class="card-body" id="payment-method-container">
+                                        <!-- Si hay método de pago -->
+                                        <div id="payment-method-exists" class="d-flex align-items-center">
                                             <div class="me-3">
                                                 <i class="fab fa-cc-visa fa-2x text-primary"></i>
                                             </div>
@@ -1290,22 +1287,19 @@ function createBillingTabContent() {
                                                 <div class="small text-muted">Expira: 05/2026</div>
                                             </div>
                                             <div>
-                                                <span class="badge bg-success me-2">Predeterminada</span>
-                                                <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                                <button class="btn btn-sm btn-outline-danger" id="remove-payment-method-btn">
+                                                    <i class="fas fa-trash me-1"></i>Eliminar
+                                                </button>
                                             </div>
                                         </div>
-                                        <div class="d-flex align-items-center">
-                                            <div class="me-3">
-                                                <i class="fab fa-cc-mastercard fa-2x text-danger"></i>
+                                        
+                                        <!-- Si no hay método de pago -->
+                                        <div id="no-payment-method" class="text-center py-4 d-none">
+                                            <div class="mb-3">
+                                                <i class="fas fa-credit-card fa-3x text-muted"></i>
                                             </div>
-                                            <div class="flex-grow-1">
-                                                <div class="fw-bold">Mastercard terminada en 5555</div>
-                                                <div class="small text-muted">Expira: 12/2025</div>
-                                            </div>
-                                            <div>
-                                                <button class="btn btn-sm btn-outline-primary me-2">Predeterminar</button>
-                                                <button class="btn btn-sm btn-outline-danger">Eliminar</button>
-                                            </div>
+                                            <p class="text-muted mb-0">No hay ningún método de pago configurado</p>
+                                            <p class="small text-danger mb-0">Las funcionalidades del plan están desactivadas</p>
                                         </div>
                                     </div>
                                     <div class="card-footer bg-white">
@@ -1367,10 +1361,9 @@ function createBillingTabContent() {
                                         <div class="d-flex justify-content-between align-items-center">
                                             <h6 class="mb-0">Historial de facturas</h6>
                                             <div>
-                                                <select class="form-select form-select-sm" id="invoice-year-filter">
-                                                    <option value="2025" selected>2025</option>
-                                                    <option value="2024">2024</option>
-                                                </select>
+                                                <div class="badge bg-light text-dark border" id="invoice-year-filter" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                                                    2025
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1395,9 +1388,6 @@ function createBillingTabContent() {
                                                         <td>49,99€</td>
                                                         <td><span class="badge bg-success">Pagada</span></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-outline-secondary me-1" title="Ver factura">
-                                                                <i class="fas fa-eye"></i>
-                                                            </button>
                                                             <button class="btn btn-sm btn-outline-primary" title="Descargar PDF">
                                                                 <i class="fas fa-download"></i>
                                                             </button>
@@ -1410,9 +1400,6 @@ function createBillingTabContent() {
                                                         <td>49,99€</td>
                                                         <td><span class="badge bg-success">Pagada</span></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-outline-secondary me-1" title="Ver factura">
-                                                                <i class="fas fa-eye"></i>
-                                                            </button>
                                                             <button class="btn btn-sm btn-outline-primary" title="Descargar PDF">
                                                                 <i class="fas fa-download"></i>
                                                             </button>
@@ -1425,9 +1412,6 @@ function createBillingTabContent() {
                                                         <td>49,99€</td>
                                                         <td><span class="badge bg-success">Pagada</span></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-outline-secondary me-1" title="Ver factura">
-                                                                <i class="fas fa-eye"></i>
-                                                            </button>
                                                             <button class="btn btn-sm btn-outline-primary" title="Descargar PDF">
                                                                 <i class="fas fa-download"></i>
                                                             </button>
@@ -1909,6 +1893,11 @@ function setupEventListeners() {
             showAddPaymentMethodModal();
         }
         
+        // Botón de eliminar método de pago
+        if (e.target.matches('#remove-payment-method-btn') || e.target.closest('#remove-payment-method-btn')) {
+            showRemovePaymentMethodConfirmation();
+        }
+        
         // Botón de guardar datos de facturación
         if (e.target.matches('#save-billing-info-btn') || e.target.closest('#save-billing-info-btn')) {
             saveBillingInfo();
@@ -1940,15 +1929,51 @@ function setupEventListeners() {
         });
     }
     
-    // Configurar filtro de año para facturas
-    const invoiceYearFilter = document.getElementById('invoice-year-filter');
-    if (invoiceYearFilter) {
-        invoiceYearFilter.addEventListener('change', function() {
-            filterInvoicesByYear(this.value);
-        });
-    }
+    // El filtro de año ahora es estático (2025)
+    // Ya no necesitamos un event listener para cambiar el año
+    // Las facturas siempre se muestran para el año actual (2025)
     
     console.log('✅ Event listeners configurados');
+}
+
+/**
+ * Inicializar el dashboard
+ */
+function initDashboard() {
+    console.log('💻 Inicializando dashboard...');
+    
+    // Crear estructura del dashboard
+    createDashboardStructure();
+    
+    // Configurar event listeners
+    setupEventListeners();
+    
+    // Cargar datos iniciales
+    loadInitialData();
+    
+    // Desactivar mensajes temporales excepto advertencias
+    disableTemporaryMessages();
+    
+    console.log('✅ Dashboard inicializado correctamente');
+}
+
+/**
+ * Desactivar mensajes temporales excepto advertencias
+ * Esta función sobrescribe los métodos de toastr para que solo se muestren los mensajes de advertencia
+ */
+function disableTemporaryMessages() {
+    // Guardar la función original de warning
+    const originalWarning = toastr.warning;
+    
+    // Reemplazar todas las funciones de toastr con funciones vacías
+    toastr.success = function() { /* No mostrar mensajes de éxito */ };
+    toastr.info = function() { /* No mostrar mensajes informativos */ };
+    toastr.error = function() { /* No mostrar mensajes de error */ };
+    
+    // Restaurar solo la función de advertencia
+    toastr.warning = originalWarning;
+    
+    console.log('🔇 Mensajes temporales desactivados excepto advertencias');
 }
 
 /**
@@ -3931,11 +3956,35 @@ function loadSampleFaqs() {
             id: 2,
             question: '¿Cómo puedo solicitar una devolución?',
             answer: 'Para solicitar una devolución, debe contactar con nuestro departamento de atención al cliente en un plazo de 14 días desde la recepción del producto, adjuntando el número de pedido y el motivo de la devolución.'
+        },
+        {
+            id: 3,
+            question: '¿Qué métodos de pago aceptan?',
+            answer: 'Aceptamos tarjetas de crédito/débito (Visa, Mastercard, American Express), PayPal y transferencia bancaria.'
         }
     ];
     
     // Añadir preguntas de ejemplo al DOM
     sampleFaqs.forEach(faq => addFaqItemToDOM(faq));
+    
+    // Actualizar la visualización del mensaje de no hay preguntas
+    updateNoFaqsMessage();
+}
+
+/**
+ * Actualiza la visualización del mensaje cuando no hay preguntas frecuentes
+ */
+function updateNoFaqsMessage() {
+    const faqItems = document.getElementById('faq-items');
+    const noFaqsMessage = document.getElementById('no-faqs-message');
+    
+    if (!faqItems || !noFaqsMessage) return;
+    
+    if (faqItems.children.length === 0) {
+        noFaqsMessage.classList.remove('d-none');
+    } else {
+        noFaqsMessage.classList.add('d-none');
+    }
 }
 
 /**
@@ -3968,24 +4017,26 @@ function addFaqItemToDOM(faq) {
     if (!faqItems) return;
     
     const faqCard = document.createElement('div');
-    faqCard.className = 'card mb-3 border';
+    faqCard.className = 'card mb-2 border-light';
     faqCard.id = `faq-item-${faq.id}`;
     
     faqCard.innerHTML = `
-        <div class="card-body">
+        <div class="card-body p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="card-title mb-0">Pregunta #${faqItems.children.length + 1}</h6>
+                <h6 class="card-subtitle text-muted mb-0">Pregunta #${faqItems.children.length + 1}</h6>
                 <button type="button" class="btn btn-sm btn-outline-danger delete-faq-btn" data-faq-id="${faq.id}">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Pregunta</label>
-                <input type="text" class="form-control" id="faq-question-${faq.id}" value="${faq.question}" placeholder="Escribe la pregunta...">
-            </div>
-            <div>
-                <label class="form-label">Respuesta</label>
-                <textarea class="form-control" id="faq-answer-${faq.id}" rows="3" placeholder="Escribe la respuesta...">${faq.answer}</textarea>
+            <div class="row g-2">
+                <div class="col-md-5">
+                    <label class="form-label small">Pregunta</label>
+                    <input type="text" class="form-control form-control-sm" id="faq-question-${faq.id}" value="${faq.question}" placeholder="Escribe la pregunta...">
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label small">Respuesta</label>
+                    <textarea class="form-control form-control-sm" id="faq-answer-${faq.id}" rows="2" placeholder="Escribe la respuesta...">${faq.answer}</textarea>
+                </div>
             </div>
         </div>
     `;
@@ -4013,6 +4064,7 @@ function deleteFaqItem(faqId) {
         setTimeout(() => {
             faqItem.remove();
             renumberFaqItems();
+            updateNoFaqsMessage(); // Actualizar mensaje de no hay preguntas
             toastr.success('Pregunta eliminada correctamente', 'FAQ');
         }, 300);
     }
@@ -4580,6 +4632,13 @@ function showAddPaymentMethodModal() {
 function savePaymentMethod() {
     console.log('💳 Guardando método de pago...');
     
+    // Verificar si ya existe un método de pago
+    const paymentMethodExists = document.getElementById('payment-method-exists');
+    if (!paymentMethodExists.classList.contains('d-none')) {
+        toastr.warning('Ya tienes un método de pago configurado. Solo se permite un método activo.', 'Atención');
+        return;
+    }
+    
     // Mostrar spinner de carga
     toastr.info('Guardando método de pago...', 'Procesando');
     
@@ -4587,18 +4646,164 @@ function savePaymentMethod() {
     setTimeout(() => {
         toastr.success('Método de pago guardado correctamente', 'Guardado');
         
-        // Actualizar UI
-        updatePaymentMethodsUI();
+        // Cerrar modal
+        const modalElement = document.getElementById('addPaymentMethodModal');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) modal.hide();
+        }
+        
+        // Actualizar UI para mostrar que hay un método de pago
+        updatePaymentMethodsUI(true);
     }, 1500);
 }
 
 /**
  * Actualizar UI de métodos de pago
+ * @param {boolean} hasPaymentMethod - Indica si hay un método de pago configurado
  */
-function updatePaymentMethodsUI() {
-    // Aquí se actualizaría la UI con el nuevo método de pago
-    // Por ahora solo simulamos la actualización
-    console.log('💳 Actualizando UI de métodos de pago...');
+function updatePaymentMethodsUI(hasPaymentMethod = true) {
+    const paymentMethodExists = document.getElementById('payment-method-exists');
+    const noPaymentMethod = document.getElementById('no-payment-method');
+    
+    if (hasPaymentMethod) {
+        paymentMethodExists.classList.remove('d-none');
+        noPaymentMethod.classList.add('d-none');
+        // Activar funcionalidades del plan
+        console.log('💳 Método de pago configurado. Activando funcionalidades del plan...');
+    } else {
+        paymentMethodExists.classList.add('d-none');
+        noPaymentMethod.classList.remove('d-none');
+        // Desactivar funcionalidades del plan
+        console.log('⚠️ Sin método de pago. Desactivando funcionalidades del plan...');
+    }
+}
+
+/**
+ * Mostrar confirmación para eliminar método de pago
+ */
+function showRemovePaymentMethodConfirmation() {
+    // Crear modal de confirmación si no existe
+    let confirmModal = document.getElementById('removePaymentMethodModal');
+    
+    if (!confirmModal) {
+        const modalHTML = `
+        <div class="modal fade" id="removePaymentMethodModal" tabindex="-1" aria-labelledby="removePaymentMethodModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="removePaymentMethodModalLabel">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Advertencia
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-credit-card fa-3x text-danger mb-3"></i>
+                            <h5>¿Estás seguro de eliminar este método de pago?</h5>
+                        </div>
+                        <div class="alert alert-warning">
+                            <p class="mb-1"><strong>Importante:</strong> Al eliminar tu método de pago:</p>
+                            <ul class="mb-0">
+                                <li>Se desactivarán todas las funciones activas de tu plan</li>
+                                <li>No podrás procesar nuevas llamadas ni emails</li>
+                                <li>Perderás acceso a las funciones premium hasta añadir un nuevo método de pago</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-danger" id="confirm-remove-payment-method">
+                            <i class="fas fa-trash me-1"></i>Eliminar método de pago
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        
+        // Añadir el modal al DOM
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHTML;
+        document.body.appendChild(modalContainer.firstElementChild);
+        
+        // Obtener referencia al modal recién creado
+        confirmModal = document.getElementById('removePaymentMethodModal');
+        
+        // Añadir event listener al botón de confirmar
+        const confirmButton = confirmModal.querySelector('#confirm-remove-payment-method');
+        confirmButton.addEventListener('click', function() {
+            removePaymentMethod();
+            const modal = bootstrap.Modal.getInstance(confirmModal);
+            modal.hide();
+        });
+    }
+    
+    // Mostrar el modal
+    const modal = new bootstrap.Modal(confirmModal);
+    modal.show();
+}
+
+/**
+ * Eliminar método de pago
+ */
+function removePaymentMethod() {
+    console.log('💳 Eliminando método de pago...');
+    
+    // Mostrar spinner de carga
+    toastr.info('Eliminando método de pago...', 'Procesando');
+    
+    // Simular procesamiento
+    setTimeout(() => {
+        toastr.success('Método de pago eliminado correctamente', 'Completado');
+        
+        // Mostrar advertencia de funcionalidades desactivadas
+        toastr.warning('Las funcionalidades del plan han sido desactivadas', 'Atención', {
+            timeOut: 5000,
+            extendedTimeOut: 2000
+        });
+        
+        // Actualizar UI para mostrar que no hay método de pago
+        updatePaymentMethodsUI(false);
+        
+        // Desactivar funcionalidades del plan
+        disablePlanFeatures();
+    }, 1500);
+}
+
+/**
+ * Desactivar funcionalidades del plan
+ */
+function disablePlanFeatures() {
+    console.log('🔒 Desactivando funcionalidades del plan...');
+    
+    // Aquí se desactivarían las funcionalidades del plan
+    // Por ejemplo, deshabilitar botones, mostrar mensajes de advertencia, etc.
+    
+    // Ejemplo: deshabilitar botones de llamadas y emails
+    const actionButtons = document.querySelectorAll('.calls-tab .action-btn, .emails-tab .action-btn');
+    actionButtons.forEach(btn => {
+        btn.classList.add('disabled');
+        btn.setAttribute('title', 'Funcionalidad desactivada - Añade un método de pago');
+    });
+    
+    // Ejemplo: añadir mensaje de advertencia en pestañas principales
+    const tabContents = document.querySelectorAll('.tab-pane.fade');
+    tabContents.forEach(tabContent => {
+        // Verificar si ya existe un mensaje de advertencia
+        if (!tabContent.querySelector('.payment-warning-alert')) {
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'alert alert-warning payment-warning-alert mb-3';
+            warningDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i><strong>Funcionalidades limitadas:</strong> Añade un método de pago para activar todas las funciones.';
+            
+            // Insertar al principio del contenido de la pestaña
+            if (tabContent.firstChild) {
+                tabContent.insertBefore(warningDiv, tabContent.firstChild);
+            } else {
+                tabContent.appendChild(warningDiv);
+            }
+        }
+    });
 }
 
 /**
@@ -4661,7 +4866,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Adaptar el dashboard según el contexto de la empresa
         adaptOtherContextSimple(companyData);
         
-        console.log('✅ Dashboard inicializado correctamente');
+        // Inicializar el dashboard con la nueva función que desactiva los mensajes temporales
+        initDashboard();
     } else {
         console.error('❌ Usuario no autenticado');
         window.location.href = 'login.html';
