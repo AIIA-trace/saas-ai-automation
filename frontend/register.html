@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="styles.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -150,6 +151,43 @@
         .navbar {
             box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
         }
+        
+        /* Estilos del footer */
+        .footer {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 3rem 0;
+        }
+        
+        .footer-links {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+        
+        .footer-links a {
+            color: #e2e8f0;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .footer-links a:hover {
+            color: #ffffff;
+        }
+        
+        .footer-title {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+        }
+        
+        .footer-divider {
+            border-color: rgba(255, 255, 255, 0.1);
+            margin: 2rem 0;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -158,7 +196,7 @@
         <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
             <div class="container">
                 <a class="navbar-brand d-flex align-items-center" href="index.html">
-                    <div class="brand-icon">
+                    <div class="brand-icon rounded-circle bg-primary d-flex align-items-center justify-content-center me-2">
                         <i class="fas fa-robot text-white"></i>
                     </div>
                     <span class="fw-bold">IA Receptionist</span>
@@ -169,10 +207,16 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto align-items-center">
                         <li class="nav-item">
-                            <a class="nav-link px-3" href="index.html">Inicio</a>
+                            <a class="nav-link px-3" href="index.html#features">Características</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link px-3" href="index.html#how-it-works">Cómo funciona</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link px-3" href="index.html#pricing">Precios</a>
                         </li>
                         <li class="nav-item ms-lg-2">
-                            <a class="btn btn-primary rounded-pill px-4" href="login.html">Iniciar sesión</a>
+                            <a class="nav-link" href="login.html">Iniciar sesión</a>
                         </li>
                     </ul>
                 </div>
@@ -585,5 +629,49 @@
             console.log('=== FORMULARIO INICIALIZADO CORRECTAMENTE ===');
         });
     </script>
+
+    <!-- Footer -->
+    <footer class="footer py-5 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="assets/logo-white.png" alt="IA Receptionist" width="40" class="me-2" onerror="this.onerror=null; this.src=''; this.parentNode.innerHTML += '<div class=\'brand-icon rounded-circle bg-primary d-flex align-items-center justify-content-center me-2\'><i class=\'fas fa-robot text-white\'></i></div>';">
+                        <h4 class="text-white mb-0">IA Receptionist</h4>
+                    </div>
+                    <p class="text-white-50 mb-4">Revolucionando la atención al cliente con inteligencia artificial avanzada. Automatiza tus comunicaciones y mejora la experiencia de tus clientes.</p>
+                </div>
+                
+                <div class="col-lg-6 col-md-12 mb-4 mb-lg-0">
+                    <div class="row">
+                        <div class="col-md-6 mb-4 mb-md-0">
+                            <h5 class="footer-title">Enlaces</h5>
+                            <ul class="footer-links">
+                                <li><a href="#">Sobre nosotros</a></li>
+                                <li><a href="#">Política de privacidad</a></li>
+                                <li><a href="#">Política de cookies</a></li>
+                                <li><a href="login.html">Login</a></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5 class="footer-title">Contacto</h5>
+                            <ul class="footer-links">
+                                <li><a href="mailto:javier.sanchez@aiiatrace.com">javier.sanchez@aiiatrace.com</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="footer-divider">
+            
+            <div class="row align-items-center">
+                <div class="col-12 text-center">
+                    <p class="mb-0 text-white-50">&copy; 2023 IA Receptionist. Todos los derechos reservados.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
