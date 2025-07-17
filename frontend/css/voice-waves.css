@@ -1,0 +1,155 @@
+/* Estilos para las ondas de voz animadas */
+.voice-wave-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 20px;
+    margin-top: 30px;
+}
+
+.voice-waves {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 200px;
+    width: 100%;
+    position: relative;
+}
+
+.wave-bar {
+    width: 6px;
+    background: linear-gradient(180deg, #4a6cf7 0%, #2651f0 100%);
+    border-radius: 6px;
+    transition: height 0.2s ease;
+}
+
+/* Estado inicial de las barras */
+.wave-bar:nth-child(1) { height: 40%; }
+.wave-bar:nth-child(2) { height: 60%; }
+.wave-bar:nth-child(3) { height: 80%; }
+.wave-bar:nth-child(4) { height: 100%; }
+.wave-bar:nth-child(5) { height: 70%; }
+.wave-bar:nth-child(6) { height: 50%; }
+.wave-bar:nth-child(7) { height: 75%; }
+.wave-bar:nth-child(8) { height: 95%; }
+.wave-bar:nth-child(9) { height: 60%; }
+.wave-bar:nth-child(10) { height: 40%; }
+.wave-bar:nth-child(11) { height: 55%; }
+.wave-bar:nth-child(12) { height: 80%; }
+.wave-bar:nth-child(13) { height: 45%; }
+.wave-bar:nth-child(14) { height: 65%; }
+.wave-bar:nth-child(15) { height: 85%; }
+
+/* Animación de las ondas */
+.voice-waves.animated .wave-bar {
+    animation: wave-animation 1.2s infinite ease-in-out;
+}
+
+.voice-waves.animated .wave-bar:nth-child(1) { animation-delay: 0.0s; }
+.voice-waves.animated .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+.voice-waves.animated .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+.voice-waves.animated .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+.voice-waves.animated .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+.voice-waves.animated .wave-bar:nth-child(6) { animation-delay: 0.5s; }
+.voice-waves.animated .wave-bar:nth-child(7) { animation-delay: 0.6s; }
+.voice-waves.animated .wave-bar:nth-child(8) { animation-delay: 0.7s; }
+.voice-waves.animated .wave-bar:nth-child(9) { animation-delay: 0.8s; }
+.voice-waves.animated .wave-bar:nth-child(10) { animation-delay: 0.9s; }
+.voice-waves.animated .wave-bar:nth-child(11) { animation-delay: 0.8s; }
+.voice-waves.animated .wave-bar:nth-child(12) { animation-delay: 0.7s; }
+.voice-waves.animated .wave-bar:nth-child(13) { animation-delay: 0.6s; }
+.voice-waves.animated .wave-bar:nth-child(14) { animation-delay: 0.5s; }
+.voice-waves.animated .wave-bar:nth-child(15) { animation-delay: 0.4s; }
+
+@keyframes wave-animation {
+    0% {
+        height: 20%;
+    }
+    50% {
+        height: 100%;
+    }
+    100% {
+        height: 20%;
+    }
+}
+
+/* Efecto de brillo tecnológico */
+.tech-glow {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(74, 108, 247, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+    border-radius: 50%;
+    filter: blur(20px);
+    z-index: -1;
+    animation: pulse 4s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.3;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(0.8);
+        opacity: 0.3;
+    }
+}
+
+/* Círculos decorativos */
+.tech-circle {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(74, 108, 247, 0.3);
+    z-index: -1;
+}
+
+.tech-circle-1 {
+    width: 200px;
+    height: 200px;
+    animation: rotate 20s linear infinite;
+}
+
+.tech-circle-2 {
+    width: 300px;
+    height: 300px;
+    animation: rotate 30s linear infinite reverse;
+}
+
+.tech-circle-3 {
+    width: 400px;
+    height: 400px;
+    border-style: dashed;
+    animation: rotate 40s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .voice-wave-container {
+        margin-top: 20px;
+    }
+    
+    .voice-waves {
+        height: 150px;
+        gap: 4px;
+    }
+    
+    .wave-bar {
+        width: 4px;
+    }
+}
