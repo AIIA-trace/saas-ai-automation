@@ -98,6 +98,26 @@ body {
 }
 
 .stats-card .stats-icon {
+
+/* Botones en tablas */
+.btn-sm .fas,
+.btn-sm .far {
+    margin-right: 0.25rem;
+}
+
+.btn-outline-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.5rem;
+    font-weight: normal;
+}
+
+.btn-outline-secondary .fas,
+.btn-outline-secondary .far {
+    margin-right: 0.25rem;
+}
+
     position: absolute;
     right: 20px;
     top: 20px;

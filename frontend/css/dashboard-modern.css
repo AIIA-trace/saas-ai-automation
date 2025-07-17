@@ -1,15 +1,28 @@
-/* Dashboard Moderno - Diseño Limpio y Profesional */
+/* Dashboard Moderno - Estética Apple */
 
 /* Variables CSS para consistencia */
 :root {
-    --primary-color: #2563eb;
-    --secondary-color: #64748b;
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --light-bg: #f8fafc;
-    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    --border-radius: 8px;
+    /* Colores inspirados en Apple */
+    --primary-color: #0071e3;
+    --secondary-color: #86868b;
+    --success-color: #34c759;
+    --warning-color: #ff9f0a;
+    --danger-color: #ff3b30;
+    --light-bg: #f5f5f7;
+    --card-bg: #ffffff;
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --border-color: #e6e6e6;
+    
+    /* Sombras sutiles */
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    
+    /* Bordes redondeados */
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    
+    /* Espaciado */
     --spacing-xs: 0.5rem;
     --spacing-sm: 0.75rem;
     --spacing-md: 1rem;
@@ -17,41 +30,50 @@
     --spacing-xl: 2rem;
 }
 
-/* Tipografías mejoradas */
+/* Tipografías estilo Apple */
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-size: 14px;
     line-height: 1.5;
-    color: #334155;
+    font-weight: 400;
+    color: var(--text-primary);
     background-color: var(--light-bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Títulos con mejor espaciado */
+/* Títulos con tipografía fina */
 h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
+    font-weight: 500;
     margin-bottom: var(--spacing-md);
-    color: #1e293b;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
 }
 
-h1 { font-size: 1.875rem; }
-h2 { font-size: 1.5rem; }
-h3 { font-size: 1.25rem; }
-h4 { font-size: 1.125rem; }
+h1 { font-size: 2rem; font-weight: 400; letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; font-weight: 400; }
+h3 { font-size: 1.3rem; }
+h4 { font-size: 1.1rem; }
 h5 { font-size: 1rem; }
 h6 { font-size: 0.875rem; }
 
-/* Cards modernas */
+/* Cards estilo Apple */
 .card {
     border: none;
     border-radius: var(--border-radius);
     box-shadow: var(--card-shadow);
     margin-bottom: var(--spacing-lg);
-    background: white;
+    background: var(--card-bg);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--hover-shadow);
 }
 
 .card-header {
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
     padding: var(--spacing-lg);
     border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
@@ -61,15 +83,16 @@ h6 { font-size: 0.875rem; }
 }
 
 .card-title {
-    font-size: 1.125rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 500;
     margin-bottom: var(--spacing-sm);
-    color: #1e293b;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
 }
 
-/* Pestañas modernas */
+/* Pestañas estilo Apple */
 .nav-tabs {
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
     margin-bottom: var(--spacing-xl);
 }
 
@@ -77,11 +100,12 @@ h6 { font-size: 0.875rem; }
     border: none;
     border-radius: 0;
     padding: var(--spacing-md) var(--spacing-lg);
-    color: var(--secondary-color);
-    font-weight: 500;
-    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    font-size: 0.9rem;
     position: relative;
     transition: all 0.2s ease;
+    margin-bottom: -1px;
 }
 
 .nav-tabs .nav-link:hover {
@@ -94,7 +118,7 @@ h6 { font-size: 0.875rem; }
     border: none;
     background: transparent;
     color: var(--primary-color);
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .nav-tabs .nav-link.active::after {
@@ -107,159 +131,232 @@ h6 { font-size: 0.875rem; }
     background: var(--primary-color);
 }
 
-/* Formularios modernos */
+/* Formularios estilo Apple */
 .form-label {
-    font-weight: 500;
-    font-size: 0.875rem;
-    color: #374151;
+    font-weight: 400;
+    font-size: 0.9rem;
+    color: var(--text-primary);
     margin-bottom: var(--spacing-xs);
 }
 
 .form-control, .form-select {
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    padding: 0.625rem 0.75rem;
-    font-size: 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
     transition: all 0.2s ease;
+    background-color: var(--light-bg);
+    color: var(--text-primary);
 }
 
 .form-control:focus, .form-select:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+    background-color: #fff;
+    outline: none;
 }
 
-/* Botones modernos */
+/* Botones estilo Apple */
 .btn {
-    font-weight: 500;
-    font-size: 0.875rem;
-    padding: 0.625rem 1rem;
-    border-radius: 6px;
+    font-weight: 400;
+    font-size: 0.9rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 980px; /* Botones redondeados estilo Apple */
     transition: all 0.2s ease;
+    letter-spacing: -0.01em;
 }
 
 .btn-primary {
     background: var(--primary-color);
     border-color: var(--primary-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
+    background: #0062c9;
+    border-color: #0062c9;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .btn-outline-primary {
     color: var(--primary-color);
     border-color: var(--primary-color);
+    background-color: transparent;
 }
 
 .btn-outline-primary:hover {
-    background: var(--primary-color);
-    color: white;
+    background: rgba(0, 113, 227, 0.05);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
 }
 
-/* Botones de acción en tabla de llamadas */
+/* Botones de acción estilo Apple */
 .action-btn {
-    border-radius: 50px;
-    padding: 0.5rem 1rem;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    letter-spacing: 0.3px;
+    border-radius: 980px;
+    padding: 0.6rem 1.2rem;
+    transition: all 0.2s ease;
+    font-weight: 400;
+    letter-spacing: -0.01em;
     min-width: 160px;
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .play-btn {
     background: var(--primary-color);
-    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 2px 6px rgba(0, 113, 227, 0.15);
 }
 
 .play-btn:hover {
-    background: #1d4ed8;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+    background: #0062c9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 113, 227, 0.2);
 }
 
 .play-btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 113, 227, 0.15);
 }
 
 .manage-btn {
-    background-color: white;
-    border: 1px solid #e2e8f0;
-    color: #64748b;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
 }
 
 .manage-btn:hover {
-    background-color: #f1f5f9;
-    color: #334155;
-    transform: translateY(-2px);
+    background-color: rgba(0, 0, 0, 0.02);
+    color: var(--text-primary);
+    transform: translateY(-1px);
 }
 
 .manage-btn:active {
     transform: translateY(0);
+    background-color: rgba(0, 0, 0, 0.04);
 }
 
 .manage-btn i {
-    color: #64748b;
+    color: var(--text-secondary);
 }
 
 .btn-success.manage-btn {
-    background-color: #10b981;
-    border-color: #10b981;
+    background-color: var(--success-color);
+    border-color: var(--success-color);
     color: white;
-    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 2px 6px rgba(52, 199, 89, 0.15);
 }
 
 .btn-success.manage-btn:hover {
-    background-color: #059669;
-    border-color: #059669;
+    background-color: #2db84c;
+    border-color: #2db84c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(52, 199, 89, 0.2);
+}
+
+.btn-success.manage-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(52, 199, 89, 0.15);
 }
 
 .btn-success.manage-btn i {
     color: white;
 }
 
-/* Tablas modernas */
+/* Tablas estilo Apple */
 .table {
-    font-size: 0.875rem;
+    font-size: 0.9rem;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 .table th {
-    font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
-    padding: 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 0.75rem;
+    text-align: left;
+    font-size: 0.85rem;
+    letter-spacing: -0.01em;
 }
 
 .table td {
-    padding: 0.75rem;
+    padding: 1rem 0.75rem;
     vertical-align: middle;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
 }
 
 .table-hover tbody tr:hover {
-    background-color: #f9fafb;
+    background-color: rgba(0, 0, 0, 0.02);
 }
 
-/* Badges modernos */
+/* Badges estilo Apple */
 .badge {
     font-size: 0.75rem;
-    font-weight: 500;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    font-weight: 400;
+    padding: 0.25rem 0.6rem;
+    border-radius: 980px;
+    letter-spacing: -0.01em;
 }
 
-/* Espaciado mejorado */
+/* Espaciado y secciones estilo Apple */
 .section-spacing {
     margin-bottom: var(--spacing-xl);
 }
 
 .form-section {
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
+    padding: var(--spacing-xl);
     margin-bottom: var(--spacing-lg);
     box-shadow: var(--card-shadow);
+}
+
+/* Estilos adicionales para la estética Apple */
+
+/* Colores de estado */
+.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.bg-warning {
+    background-color: var(--warning-color) !important;
+}
+
+.bg-danger {
+    background-color: var(--danger-color) !important;
+}
+
+/* Mejoras de accesibilidad */
+:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.3);
+}
+
+/* Transiciones suaves */
+* {
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Iconos */
+.icon-sm {
+    width: 16px;
+    height: 16px;
+}
+
+/* Progress bars estilo Apple */
+.progress {
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.progress-bar {
+    border-radius: 3px;
 }
 
 .form-section h6 {
