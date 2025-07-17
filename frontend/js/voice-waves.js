@@ -1,39 +1,35 @@
 /**
  * Controlador para las ondas de voz animadas
- * Permite que las ondas reaccionen al pasar el ratón por encima
+ * Las ondas están en constante movimiento con variaciones de intensidad
  */
 document.addEventListener('DOMContentLoaded', function() {
     const voiceWaves = document.querySelector('.voice-waves');
     
     if (voiceWaves) {
-        // Activar animación al pasar el ratón
-        voiceWaves.addEventListener('mouseenter', function() {
-            voiceWaves.classList.add('animated');
-        });
+        // Las ondas ahora están siempre animadas por defecto gracias al CSS actualizado
+        // Añadimos variaciones de intensidad para dar un efecto más dinámico
         
-        // Desactivar animación al quitar el ratón
-        voiceWaves.addEventListener('mouseleave', function() {
-            voiceWaves.classList.remove('animated');
-        });
-        
-        // Animación inicial al cargar la página (breve)
-        setTimeout(() => {
-            voiceWaves.classList.add('animated');
+        // Función para crear variaciones de intensidad en las ondas
+        function createWaveVariations() {
+            const waveBars = voiceWaves.querySelectorAll('.wave-bar');
             
-            setTimeout(() => {
-                voiceWaves.classList.remove('animated');
-            }, 3000);
-        }, 500);
-        
-        // Crear efecto de "habla" aleatorio cada cierto tiempo
-        setInterval(() => {
-            if (!voiceWaves.classList.contains('animated')) {
-                voiceWaves.classList.add('animated');
+            // Aplicar variaciones aleatorias a cada barra
+            waveBars.forEach(bar => {
+                // Variación sutil en la animación
+                const randomDelay = Math.random() * 0.5;
+                const randomDuration = 0.8 + Math.random() * 0.8;
                 
-                setTimeout(() => {
-                    voiceWaves.classList.remove('animated');
-                }, 2000);
-            }
-        }, 8000);
+                bar.style.animationDelay = `${randomDelay}s`;
+                bar.style.animationDuration = `${randomDuration}s`;
+            });
+        }
+        
+        // Aplicar variaciones iniciales
+        createWaveVariations();
+        
+        // Cambiar las variaciones periódicamente para un efecto más dinámico
+        setInterval(() => {
+            createWaveVariations();
+        }, 5000);
     }
 });

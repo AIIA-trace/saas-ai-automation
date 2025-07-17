@@ -283,7 +283,7 @@ h1, h2, h3, h4, h5, h6 {
 .modern-timeline-item {
     position: relative;
     margin-bottom: 40px;
-    padding-left: 100px;
+    padding-left: 120px;
 }
 
 .modern-timeline-item:last-child {
@@ -292,7 +292,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .timeline-marker {
     position: absolute;
-    left: -15px;
+    left: 20px;
     width: 60px;
     height: 60px;
     display: flex;
