@@ -1,7 +1,16 @@
 /* Estilos para eliminar aspas y elementos de selección en los planes de precios */
 .pricing-card::before,
-.pricing-card::after {
+.pricing-card::after,
+.pricing-card *::before,
+.pricing-card *::after,
+.pricing-card-header::before,
+.pricing-card-header::after,
+.pricing-card-body::before,
+.pricing-card-body::after {
     display: none !important;
+    content: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
 }
 
 /* Ocultar cualquier elemento que pueda estar generando aspas */
@@ -10,15 +19,33 @@
 .x-mark,
 .close-icon,
 [class*="x-"],
-[class*="close"] {
+[class*="close"],
+[class*="check"],
+[class*="mark"] {
     display: none !important;
 }
 
 /* Asegurar que no haya elementos posicionados absolutamente en las esquinas de las tarjetas */
 .pricing-card {
     position: relative;
+    overflow: hidden;
 }
 
+/* Eliminar cualquier elemento no deseado en las tarjetas de precios */
 .pricing-card > *:not(.pricing-card-header):not(.pricing-card-body):not(.popular-badge) {
+    display: none !important;
+}
+
+/* Eliminar específicamente las aspas en las esquinas superiores */
+.pricing-card-header > *:not(h3):not(p):not(.badge),
+.pricing-card-header::before,
+.pricing-card-header::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* Forzar que no haya elementos absolutos en las esquinas */
+.pricing-card *[style*="position: absolute"],
+.pricing-card *[style*="position:absolute"] {
     display: none !important;
 }
