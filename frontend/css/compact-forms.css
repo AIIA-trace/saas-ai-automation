@@ -6,7 +6,7 @@
 /* Ajustes para los contenedores de formularios */
 .register-card,
 .login-card {
-  max-width: 90%;
+  max-width: 85%;
   margin: 0 auto;
 }
 
@@ -61,11 +61,11 @@
 /* Ajuste para el contenedor de formularios en pantallas grandes */
 @media (min-width: 992px) {
   .col-lg-7 {
-    max-width: 600px;
+    max-width: 550px;
   }
   
   .col-lg-5 {
-    max-width: 450px;
+    max-width: 400px;
   }
 }
 
