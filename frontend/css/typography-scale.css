@@ -1,0 +1,86 @@
+/* 
+ * Typography Scale - Reduce font sizes globally while maintaining proportions
+ * Este archivo ajusta los tamaños de fuente en todo el sitio
+ */
+
+:root {
+  /* Factor de escala para reducir todas las fuentes */
+  --font-scale-factor: 0.9;
+}
+
+/* Ajuste de tipografías para elementos de texto principales */
+body {
+  font-size: calc(1rem * var(--font-scale-factor));
+}
+
+h1, .h1 {
+  font-size: calc(2.5rem * var(--font-scale-factor));
+}
+
+h2, .h2 {
+  font-size: calc(2rem * var(--font-scale-factor));
+}
+
+h3, .h3 {
+  font-size: calc(1.75rem * var(--font-scale-factor));
+}
+
+h4, .h4 {
+  font-size: calc(1.5rem * var(--font-scale-factor));
+}
+
+h5, .h5 {
+  font-size: calc(1.25rem * var(--font-scale-factor));
+}
+
+h6, .h6 {
+  font-size: calc(1rem * var(--font-scale-factor));
+}
+
+.lead {
+  font-size: calc(1.25rem * var(--font-scale-factor));
+}
+
+.small, small {
+  font-size: calc(0.875rem * var(--font-scale-factor));
+}
+
+/* Ajustes para elementos de navegación */
+.navbar-brand {
+  font-size: calc(1.25rem * var(--font-scale-factor));
+}
+
+.nav-link {
+  font-size: calc(1rem * var(--font-scale-factor));
+}
+
+/* Ajustes para botones */
+.btn {
+  font-size: calc(1rem * var(--font-scale-factor));
+}
+
+.btn-lg {
+  font-size: calc(1.25rem * var(--font-scale-factor));
+}
+
+.btn-sm {
+  font-size: calc(0.875rem * var(--font-scale-factor));
+}
+
+/* Ajustes para formularios */
+.form-label {
+  font-size: calc(1rem * var(--font-scale-factor));
+}
+
+.form-control {
+  font-size: calc(1rem * var(--font-scale-factor));
+}
+
+/* Ajustes para footer */
+.footer-title {
+  font-size: calc(1.25rem * var(--font-scale-factor));
+}
+
+.footer-links {
+  font-size: calc(1rem * var(--font-scale-factor));
+}
