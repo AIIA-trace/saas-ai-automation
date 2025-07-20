@@ -1,0 +1,392 @@
+/* Dashboard Unificado - Estética moderna y tecnológica */
+
+:root {
+  /* Colores principales - alineados con la landing page */
+  --primary-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  --primary-color: #6366F1;
+  --secondary-color: #8B5CF6;
+  --success-color: #10B981;
+  --warning-color: #F59E0B;
+  --danger-color: #EF4444;
+  --info-color: #3B82F6;
+  --light-bg: #F9FAFB;
+  --dark-bg: #1F2937;
+  
+  /* Colores de texto */
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-muted: #6B7280;
+  --text-light: #F9FAFB;
+  
+  /* Bordes y sombras */
+  --border-color: #E5E7EB;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* Bordes redondeados */
+  --border-radius-lg: 16px;
+  --border-radius-md: 12px;
+  --border-radius-sm: 8px;
+  --border-radius-pill: 9999px;
+  
+  /* Espaciado */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+}
+
+/* Estilos generales del dashboard */
+.dashboard-container {
+  background-color: var(--light-bg);
+  min-height: 100vh;
+}
+
+/* Navbar superior */
+.dashboard-navbar {
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-navbar .brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-gradient);
+  color: white;
+  margin-right: 0.75rem;
+}
+
+.dashboard-navbar .navbar-brand {
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+
+/* Pestañas de navegación */
+.nav-tabs {
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1.5rem;
+}
+
+.nav-tabs .nav-link {
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.75rem 1.25rem;
+  border-radius: 0;
+  font-weight: 500;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-link:hover {
+  color: var(--primary-color);
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--primary-color);
+  background-color: transparent;
+  border-bottom: 3px solid var(--primary-color);
+}
+
+.nav-tabs .nav-link i {
+  margin-right: 0.5rem;
+}
+
+/* Tarjetas */
+.dashboard-card {
+  background-color: white;
+  border-radius: var(--border-radius-md);
+  border: none;
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.dashboard-card:hover {
+  box-shadow: var(--hover-shadow);
+}
+
+.dashboard-card .card-header {
+  background-color: white;
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.25rem;
+}
+
+.dashboard-card .card-title {
+  font-weight: 600;
+  margin-bottom: 0;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-card .card-title i {
+  margin-right: 0.75rem;
+  color: var(--primary-color);
+}
+
+.dashboard-card .card-body {
+  padding: 1.25rem;
+}
+
+/* Botones */
+.btn-dashboard-primary {
+  background: var(--primary-gradient);
+  border: none;
+  color: white;
+  border-radius: var(--border-radius-sm);
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-dashboard-primary:hover {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-dashboard-outline {
+  background-color: transparent;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  border-radius: var(--border-radius-sm);
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-dashboard-outline:hover {
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+/* Tablas */
+.dashboard-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.dashboard-table thead th {
+  background-color: rgba(249, 250, 251, 0.8);
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-table tbody td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  vertical-align: middle;
+}
+
+.dashboard-table tbody tr:hover {
+  background-color: rgba(249, 250, 251, 0.5);
+}
+
+.dashboard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Badges y etiquetas */
+.badge-dashboard {
+  padding: 0.35em 0.65em;
+  font-size: 0.75em;
+  font-weight: 600;
+  border-radius: var(--border-radius-pill);
+}
+
+.badge-pedido {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.badge-consulta {
+  background-color: var(--info-color);
+  color: white;
+}
+
+.badge-urgente {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.badge-normal {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.badge-prioritario {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+/* Filtros */
+.filter-container {
+  padding: 0.75rem 1rem;
+  background-color: rgba(249, 250, 251, 0.8);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.filter-option {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 1rem;
+  cursor: pointer;
+}
+
+.filter-option input[type="radio"] {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.375rem;
+}
+
+.filter-option label {
+  margin-bottom: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* Botones de acción */
+.action-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--border-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-right: 0.375rem;
+}
+
+.action-btn-primary {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+}
+
+.action-btn-primary:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.action-btn-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+}
+
+.action-btn-success:hover {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.action-btn-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--warning-color);
+}
+
+.action-btn-warning:hover {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+/* Checkbox personalizado */
+.custom-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--border-radius-sm);
+  border: 2px solid var(--border-color);
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox.checked {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.custom-checkbox.checked::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 0.75rem;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Modales */
+.modal-dashboard .modal-content {
+  border: none;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--card-shadow);
+}
+
+.modal-dashboard .modal-header {
+  background: var(--primary-gradient);
+  color: white;
+  border-bottom: none;
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+}
+
+.modal-dashboard .modal-title {
+  font-weight: 600;
+}
+
+.modal-dashboard .modal-footer {
+  border-top: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-card .card-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .dashboard-card .card-body {
+    padding: 1rem;
+  }
+  
+  .dashboard-table thead th,
+  .dashboard-table tbody td {
+    padding: 0.75rem;
+  }
+  
+  .filter-container {
+    padding: 0.5rem 0.75rem;
+  }
+}

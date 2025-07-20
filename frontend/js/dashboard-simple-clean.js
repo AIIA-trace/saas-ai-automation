@@ -147,115 +147,111 @@ function addDashboardStyles() {
 function createCallsTabContent() {
     return `
         <!-- 1. Registro de Llamadas -->
-        <div class="tab-pane active" id="calls-content" role="tabpanel" aria-labelledby="calls-tab" tabindex="0">
+        <div class="tab-pane active animate-fadeIn" id="calls-content" role="tabpanel" aria-labelledby="calls-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <!-- Registro de Llamadas -->
                 <div class="row">
                     <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-white border-bottom-0 py-3">
+                        <div class="dashboard-card">
+                            <div class="card-header">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Registro de Llamadas</h5>
-                                    <button class="btn btn-primary btn-sm" id="refresh-calls-btn">
-                                        <i class="fas fa-sync me-2"></i>Actualizar
+                                    <h5 class="card-title"><i class="fas fa-phone-alt"></i>Registro de Llamadas</h5>
+                                    <button class="btn-dashboard-primary" id="refresh-calls-btn">
+                                        <i class="fas fa-sync-alt me-2"></i>Actualizar
                                     </button>
                                 </div>
                             </div>
                             <div class="card-body p-0">
                                 <!-- Filtros de Clasificación -->
-                                <div class="px-3 py-2 bg-light border-bottom">
+                                <div class="filter-container">
                                     <div class="row align-items-center">
-                                        <div class="col-md-6">
-                                            <div class="d-flex align-items-center">
-                                                <span class="me-2">Filtrar por:</span>
-                                                <div class="form-check form-check-inline">
+                                        <div class="col-md-7">
+                                            <div class="d-flex align-items-center flex-wrap">
+                                                <span class="me-3 text-secondary fw-medium">Filtrar por:</span>
+                                                <div class="filter-option">
                                                     <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-all" checked>
                                                     <label class="form-check-label" for="filter-calls-all">Todas</label>
                                                 </div>
-                                                <div class="form-check form-check-inline">
+                                                <div class="filter-option">
                                                     <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-pendientes">
                                                     <label class="form-check-label" for="filter-calls-pendientes">Pendientes</label>
                                                 </div>
-                                                <div class="form-check form-check-inline">
+                                                <div class="filter-option">
                                                     <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-gestionadas">
                                                     <label class="form-check-label" for="filter-calls-gestionadas">Gestionadas</label>
                                                 </div>
-                                                <div class="form-check form-check-inline">
+                                                <div class="filter-option">
                                                     <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-importantes">
                                                     <label class="form-check-label" for="filter-calls-importantes">Importantes</label>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-6 text-md-end mt-2 mt-md-0">
-                                            <small class="text-muted">Última actualización: 2024-02-20 12:15</small>
+                                        <div class="col-md-5 text-md-end mt-2 mt-md-0">
+                                            <small class="text-muted"><i class="far fa-clock me-1"></i>Última actualización: <span id="last-update-time">2024-02-20 12:15</span></small>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                                    <table class="table table-hover mb-0">
-                                        <thead class="table-light">
+                                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                    <table class="dashboard-table">
+                                        <thead>
                                             <tr>
-                                                <th class="px-3 py-2">Gestionado</th>
-                                                <th class="px-3 py-2">Fecha</th>
-                                                <th class="px-3 py-2">Número</th>
-                                                <th class="px-3 py-2">Clasificación IA</th>
-                                                <th class="px-3 py-2">Resumen</th>
-                                                <th class="px-3 py-2">Duración</th>
-                                                <th class="px-3 py-2">Acciones</th>
+                                                <th>Gestionado</th>
+                                                <th>Fecha</th>
+                                                <th>Número</th>
+                                                <th>Clasificación IA</th>
+                                                <th>Resumen</th>
+                                                <th>Duración</th>
+                                                <th>Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody id="calls-table-body">
                                             <!-- Llamada 1: Pedido -->
                                             <tr class="call-row" data-id="1" data-type="pedidos" data-urgency="alta" data-urgent="true">
-                                                <td class="px-3 py-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="call-managed-1">
-                                                        <label class="form-check-label" for="call-managed-1"></label>
-                                                    </div>
+                                                <td>
+                                                    <div class="custom-checkbox" id="call-managed-1" onclick="toggleCheckbox(this)"></div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-success rounded-circle me-2" style="width: 8px; height: 8px;"></div>
-                                                        <div>
-                                                            <div class="fw-medium">2024-02-20</div>
-                                                            <small class="text-muted">11:45</small>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td class="px-3 py-2">
-                                                    <div>
-                                                        <div class="fw-medium">+34 600 123 456</div>
-                                                        <small class="text-muted">Contacto registrado</small>
-                                                    </div>
-                                                </td>
-                                                <td class="px-3 py-2">
+                                                <td>
                                                     <div class="d-flex flex-column">
-                                                        <span class="badge bg-success mb-1">📦 PEDIDO</span>
-                                                        <span class="badge bg-danger">🚨 URGENTE</span>
-                                                        <small class="text-muted mt-1">Confianza: 95%</small>
+                                                        <div class="fw-medium">2024-02-20</div>
+                                                        <div class="text-muted small">11:45</div>
                                                     </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="fw-medium">Cliente solicita 200m2 de piel roja</div>
-                                                    <small class="text-muted">Necesita entrega para el 22 de julio. Cliente María García, pedido urgente para evento. Requiere confirmación de disponibilidad y precio final.</small>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <div class="fw-medium">+34 600 123 456</div>
+                                                        <div class="text-muted small">Contacto registrado</div>
+                                                    </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <span class="badge bg-primary">04:32</span>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <span class="badge-dashboard badge-pedido mb-1">📦 PEDIDO</span>
+                                                        <span class="badge-dashboard badge-urgente">🚨 URGENTE</span>
+                                                        <div class="text-muted small mt-1">Confianza: 95%</div>
+                                                    </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="d-flex flex-wrap">
-                                                        <button class="btn btn-sm btn-outline-secondary me-1 mb-1 play-btn" title="Reproducir grabación">
-                                                            <i class="fas fa-play me-1"></i><span class="d-none d-lg-inline">Reproducir</span>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <div class="fw-medium">Cliente solicita 200m2 de piel roja</div>
+                                                        <div class="text-muted small">Necesita entrega para el 22 de julio. Cliente María García, pedido urgente para evento. Requiere confirmación de disponibilidad y precio final.</div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge-dashboard" style="background: var(--primary-gradient)">04:32</span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex">
+                                                        <button class="action-btn action-btn-primary play-btn" title="Reproducir grabación">
+                                                            <i class="fas fa-play"></i>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-primary me-1 mb-1" title="Ver detalles completos" onclick="viewCallDetails(1)">
-                                                            <i class="fas fa-eye me-1"></i><span class="d-none d-lg-inline">Detalles</span>
+                                                        <button class="action-btn action-btn-primary" title="Ver detalles completos" onclick="viewCallDetails(1)">
+                                                            <i class="fas fa-eye"></i>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-success me-1 mb-1 manage-btn" title="Marcar/Desmarcar como gestionado" data-managed="false">
-                                                            <i class="fas fa-check me-1"></i><span class="d-none d-lg-inline manage-text">Gestionar</span>
+                                                        <button class="action-btn action-btn-success manage-btn" title="Marcar/Desmarcar como gestionado" data-managed="false">
+                                                            <i class="fas fa-check"></i>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-warning mb-1 star-btn" title="Marcar como importante">
-                                                            <i class="far fa-star me-1"></i><span class="d-none d-lg-inline">Destacar</span>
+                                                        <button class="action-btn action-btn-warning star-btn" title="Marcar como importante">
+                                                            <i class="far fa-star"></i>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -263,54 +259,50 @@ function createCallsTabContent() {
                                             
                                             <!-- Llamada 2: Consulta -->
                                             <tr class="call-row" data-id="2" data-type="consultas" data-urgency="baja">
-                                                <td class="px-3 py-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="call-managed-2" checked>
-                                                        <label class="form-check-label" for="call-managed-2"></label>
-                                                    </div>
+                                                <td>
+                                                    <div class="custom-checkbox checked" id="call-managed-2" onclick="toggleCheckbox(this)"></div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-secondary rounded-circle me-2" style="width: 8px; height: 8px;"></div>
-                                                        <div>
-                                                            <div class="fw-medium">2024-02-19</div>
-                                                            <small class="text-muted">16:20</small>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td class="px-3 py-2">
-                                                    <div>
-                                                        <div class="fw-medium">+34 655 789 012</div>
-                                                        <small class="text-muted">Contacto registrado</small>
-                                                    </div>
-                                                </td>
-                                                <td class="px-3 py-2">
+                                                <td>
                                                     <div class="d-flex flex-column">
-                                                        <span class="badge bg-info mb-1">❓ CONSULTA</span>
-                                                        <span class="badge bg-secondary">NORMAL</span>
-                                                        <small class="text-muted mt-1">Confianza: 87%</small>
+                                                        <div class="fw-medium">2024-02-19</div>
+                                                        <div class="text-muted small">16:20</div>
                                                     </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="fw-medium">Consulta sobre disponibilidad de pieles</div>
-                                                    <small class="text-muted">Pregunta por disponibilidad de piel negra y marrón para tapicería. Interesado en precios por metro cuadrado y tiempos de entrega estándar.</small>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <div class="fw-medium">+34 655 789 012</div>
+                                                        <div class="text-muted small">Contacto registrado</div>
+                                                    </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <span class="badge bg-primary">02:15</span>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <span class="badge-dashboard badge-consulta mb-1">❓ CONSULTA</span>
+                                                        <span class="badge-dashboard badge-normal">NORMAL</span>
+                                                        <div class="text-muted small mt-1">Confianza: 87%</div>
+                                                    </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="d-flex flex-wrap">
-                                                        <button class="btn btn-sm btn-outline-secondary me-1 mb-1 play-btn" title="Reproducir grabación">
-                                                            <i class="fas fa-play me-1"></i><span class="d-none d-lg-inline">Reproducir</span>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <div class="fw-medium">Consulta sobre disponibilidad de pieles</div>
+                                                        <div class="text-muted small">Pregunta por disponibilidad de piel negra y marrón para tapicería. Interesado en precios por metro cuadrado y tiempos de entrega estándar.</div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge-dashboard" style="background: var(--primary-gradient)">02:15</span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex">
+                                                        <button class="action-btn action-btn-primary play-btn" title="Reproducir grabación">
+                                                            <i class="fas fa-play"></i>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-primary me-1 mb-1" title="Ver detalles completos" onclick="viewCallDetails(2)">
-                                                            <i class="fas fa-eye me-1"></i><span class="d-none d-lg-inline">Detalles</span>
+                                                        <button class="action-btn action-btn-primary" title="Ver detalles completos" onclick="viewCallDetails(2)">
+                                                            <i class="fas fa-eye"></i>
                                                         </button>
-                                                        <button class="btn btn-sm btn-success me-1 mb-1 manage-btn" title="Desmarcar como gestionado" data-managed="true">
-                                                            <i class="fas fa-undo me-1"></i><span class="d-none d-lg-inline manage-text">Desmarcar</span>
+                                                        <button class="action-btn action-btn-success active manage-btn" title="Desmarcar como gestionado" data-managed="true">
+                                                            <i class="fas fa-undo"></i>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-warning mb-1 star-btn" title="Marcar como importante">
-                                                            <i class="far fa-star me-1"></i><span class="d-none d-lg-inline">Destacar</span>
+                                                        <button class="action-btn action-btn-warning star-btn" title="Marcar como importante">
+                                                            <i class="far fa-star"></i>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -389,45 +381,51 @@ function createCallsTabContent() {
 function createEmailsTabContent() {
     return `
         <!-- 2. Gestión de Emails -->
-        <div class="tab-pane" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
+        <div class="tab-pane animate-fadeIn" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white border-bottom-0 py-3">
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Gestión de Emails <span class="badge bg-primary ms-2" id="email-count">0</span></h5>
+                            <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Gestión de Emails <span class="badge-dashboard badge-primary ms-2" id="email-count">0</span></h5>
                             <div>
-                                <button class="btn btn-success btn-sm me-2" id="classify-emails-btn">
+                                <button class="btn-dashboard-success me-2" id="classify-emails-btn">
                                     <i class="fas fa-robot me-2"></i>Clasificar con IA
                                 </button>
-                                <button class="btn btn-primary btn-sm" id="refresh-emails-btn">
+                                <button class="btn-dashboard-primary" id="refresh-emails-btn">
                                     <i class="fas fa-sync me-2"></i>Actualizar
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="dashboard-card-body p-0">
                         <!-- Filtros de emails -->
-                        <div class="p-3 border-bottom">
+                        <div class="dashboard-filters p-3 border-bottom">
                             <div class="row align-items-center">
                                 <div class="col-md-6">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <input type="radio" class="btn-check" name="email-filter" id="filter-all" autocomplete="off" checked>
-                                        <label class="btn btn-outline-primary" for="filter-all">Todos</label>
-                                        
-                                        <input type="radio" class="btn-check" name="email-filter" id="filter-unread" autocomplete="off">
-                                        <label class="btn btn-outline-primary" for="filter-unread">No leídos</label>
-                                        
-                                        <input type="radio" class="btn-check" name="email-filter" id="filter-important" autocomplete="off">
-                                        <label class="btn btn-outline-primary" for="filter-important">Importantes</label>
-                                        
-                                        <input type="radio" class="btn-check" name="email-filter" id="filter-spam" autocomplete="off">
-                                        <label class="btn btn-outline-primary" for="filter-spam">Spam</label>
+                                    <div class="dashboard-filter-group">
+                                        <span class="me-2">Filtrar por:</span>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-all" checked>
+                                            <label class="form-check-label" for="filter-emails-all">Todos</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-unread">
+                                            <label class="form-check-label" for="filter-emails-unread">No leídos</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-important">
+                                            <label class="form-check-label" for="filter-emails-important">Importantes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-spam">
+                                            <label class="form-check-label" for="filter-emails-spam">Spam</label>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control" placeholder="Buscar emails...">
-                                        <button class="btn btn-outline-secondary" type="button">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" placeholder="Buscar emails..." id="email-search-input">
+                                        <button class="btn btn-outline-primary" type="button" id="email-search-btn">
                                             <i class="fas fa-search"></i>
                                         </button>
                                     </div>
@@ -436,9 +434,9 @@ function createEmailsTabContent() {
                         </div>
                         
                         <!-- Lista de emails -->
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="dashboard-table">
+                                <thead>
                                     <tr>
                                         <th style="width: 5%"><i class="fas fa-star"></i></th>
                                         <th style="width: 25%">Remitente</th>
@@ -447,15 +445,8 @@ function createEmailsTabContent() {
                                         <th style="width: 10%">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <!-- Email 1 - No leído, importante -->
-                                    <tr class="email-row fw-bold" data-id="1" data-type="unread important">
-                                        <td><i class="fas fa-star text-warning"></i></td>
-                                        <td>Juan Pérez <span class="badge bg-primary ms-1">Cliente</span></td>
-                                        <td>
-                                            <i class="fas fa-circle text-primary me-1" style="font-size: 8px;"></i>
-                                            Consulta sobre productos premium
-                                        </td>
+                                <tbody id="emails-table-body">
+                                    <!-- Los emails se cargarán dinámicamente -->
                                         <td>Hoy, 10:25</td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
@@ -1457,10 +1448,239 @@ function createTabsContent() {
 function loadSimpleData(config) {
     console.log('📊 Cargando datos iniciales para el dashboard...');
     
-    // Esta función ya no es necesaria porque los datos están directamente en el HTML
-    // Los datos de ejemplo están integrados en createTabsContent() para mejor rendimiento
+    // Cargar datos de llamadas (simulación de API)
+    loadCallsData();
+    loadEmailsData();
+    // Actualizar la hora de última actualización
+    updateLastUpdateTime();
     
-    console.log('✅ Datos iniciales cargados desde HTML estático');
+    console.log('✅ Datos iniciales cargados dinámicamente');
+}
+
+/**
+ * Actualizar la hora de última actualización
+ */
+function updateLastUpdateTime() {
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const lastUpdateElement = document.getElementById('last-update-time');
+    if (lastUpdateElement) {
+        lastUpdateElement.textContent = formattedDate;
+    }
+}
+
+/**
+ * Cargar datos de llamadas desde la API (simulado)
+ */
+function loadCallsData() {
+    console.log('📞 Cargando datos de llamadas...');
+    
+    // Simular llamada a API con datos de ejemplo
+    // En producción, esto sería una llamada fetch real a la API
+    setTimeout(() => {
+        const callsData = [
+            {
+                id: 1,
+                date: '2024-02-20',
+                time: '11:45',
+                phone: '+34 600 123 456',
+                contactType: 'Contacto registrado',
+                classification: 'pedido',
+                urgency: 'urgente',
+                confidence: 95,
+                summary: 'Cliente solicita 200m2 de piel roja',
+                details: 'Necesita entrega para el 22 de julio. Cliente María García, pedido urgente para evento. Requiere confirmación de disponibilidad y precio final.',
+                duration: '04:32',
+                managed: false
+            },
+            {
+                id: 2,
+                date: '2024-02-19',
+                time: '16:20',
+                phone: '+34 655 789 012',
+                contactType: 'Contacto registrado',
+                classification: 'consulta',
+                urgency: 'normal',
+                confidence: 87,
+                summary: 'Consulta sobre disponibilidad de pieles',
+                details: 'Pregunta por disponibilidad de piel negra y marrón para tapicería. Interesado en precios por metro cuadrado y tiempos de entrega estándar.',
+                duration: '02:15',
+                managed: true
+            },
+            {
+                id: 3,
+                date: '2024-02-18',
+                time: '09:10',
+                phone: '+34 633 456 789',
+                contactType: 'Cliente nuevo',
+                classification: 'reclamación',
+                urgency: 'alta',
+                confidence: 92,
+                summary: 'Reclamación por calidad del producto',
+                details: 'Cliente insatisfecho con la calidad de la piel recibida. Menciona que el color no coincide con lo solicitado y hay imperfecciones en algunas áreas.',
+                duration: '06:45',
+                managed: false
+            }
+        ];
+        
+        // Limpiar tabla de llamadas
+        const callsTableBody = document.getElementById('calls-table-body');
+        if (callsTableBody) {
+            callsTableBody.innerHTML = '';
+            
+            // Generar filas de llamadas con el nuevo diseño moderno
+            callsData.forEach(call => {
+                const callRow = createCallRow(call);
+                callsTableBody.appendChild(callRow);
+            });
+            
+            // Actualizar contador
+            updateCallsCount();
+        }
+        
+        console.log(`✅ ${callsData.length} llamadas cargadas correctamente`);
+    }, 500);
+}
+
+/**
+ * Crear una fila de llamada con el nuevo diseño moderno
+ * @param {Object} call - Datos de la llamada
+ * @returns {HTMLElement} - Elemento TR con la fila de la llamada
+ */
+function createCallRow(call) {
+    const row = document.createElement('tr');
+    row.className = 'call-row';
+    row.dataset.id = call.id;
+    row.dataset.type = call.classification;
+    row.dataset.urgency = call.urgency;
+    
+    if (call.urgency === 'urgente' || call.urgency === 'alta') {
+        row.dataset.urgent = 'true';
+    }
+    
+    // Columna de checkbox gestionado
+    let checkboxClass = 'custom-checkbox';
+    if (call.managed) checkboxClass += ' checked';
+    
+    row.innerHTML = `
+        <td>
+            <div class="${checkboxClass}" id="call-managed-${call.id}" onclick="toggleCheckbox(this)"></div>
+        </td>
+        <td>
+            <div class="d-flex flex-column">
+                <div class="fw-medium">${call.date}</div>
+                <div class="text-muted small">${call.time}</div>
+            </div>
+        </td>
+        <td>
+            <div class="d-flex flex-column">
+                <div class="fw-medium">${call.phone}</div>
+                <div class="text-muted small">${call.contactType}</div>
+            </div>
+        </td>
+        <td>
+            <div class="d-flex flex-column">
+                ${getClassificationBadge(call.classification, call.urgency)}
+                <div class="text-muted small mt-1">Confianza: ${call.confidence}%</div>
+            </div>
+        </td>
+        <td>
+            <div class="d-flex flex-column">
+                <div class="fw-medium">${call.summary}</div>
+                <div class="text-muted small">${call.details}</div>
+            </div>
+        </td>
+        <td>
+            <span class="badge-dashboard" style="background: var(--primary-gradient)">${call.duration}</span>
+        </td>
+        <td>
+            <div class="d-flex">
+                <button class="action-btn action-btn-primary play-btn" title="Reproducir grabación">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="action-btn action-btn-primary" title="Ver detalles completos" onclick="viewCallDetails(${call.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+                ${getManageButton(call.id, call.managed)}
+                <button class="action-btn action-btn-warning star-btn" title="Marcar como importante">
+                    <i class="far fa-star"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    
+    return row;
+}
+
+/**
+ * Obtener el HTML para las badges de clasificación y urgencia
+ * @param {string} classification - Tipo de clasificación
+ * @param {string} urgency - Nivel de urgencia
+ * @returns {string} - HTML con las badges
+ */
+function getClassificationBadge(classification, urgency) {
+    let classificationBadge = '';
+    let urgencyBadge = '';
+    
+    // Badge de clasificación
+    switch (classification) {
+        case 'pedido':
+            classificationBadge = '<span class="badge-dashboard badge-pedido mb-1">📦 PEDIDO</span>';
+            break;
+        case 'consulta':
+            classificationBadge = '<span class="badge-dashboard badge-consulta mb-1">❓ CONSULTA</span>';
+            break;
+        case 'reclamación':
+            classificationBadge = '<span class="badge-dashboard badge-reclamacion mb-1">⚠️ RECLAMACIÓN</span>';
+            break;
+        default:
+            classificationBadge = `<span class="badge-dashboard mb-1">${classification.toUpperCase()}</span>`;
+    }
+    
+    // Badge de urgencia
+    switch (urgency) {
+        case 'urgente':
+            urgencyBadge = '<span class="badge-dashboard badge-urgente">🚨 URGENTE</span>';
+            break;
+        case 'alta':
+            urgencyBadge = '<span class="badge-dashboard badge-alta">ALTA</span>';
+            break;
+        case 'normal':
+            urgencyBadge = '<span class="badge-dashboard badge-normal">NORMAL</span>';
+            break;
+        case 'baja':
+            urgencyBadge = '<span class="badge-dashboard badge-baja">BAJA</span>';
+            break;
+        default:
+            if (urgency) {
+                urgencyBadge = `<span class="badge-dashboard">${urgency.toUpperCase()}</span>`;
+            }
+    }
+    
+    return classificationBadge + (urgencyBadge ? urgencyBadge : '');
+}
+
+/**
+ * Obtener el HTML para el botón de gestión
+ * @param {number} callId - ID de la llamada
+ * @param {boolean} managed - Si la llamada está gestionada
+ * @returns {string} - HTML con el botón de gestión
+ */
+function getManageButton(callId, managed) {
+    if (managed) {
+        return `
+            <button class="action-btn action-btn-success active manage-btn" title="Desmarcar como gestionado" data-managed="true">
+                <i class="fas fa-undo"></i>
+            </button>
+        `;
+    } else {
+        return `
+            <button class="action-btn action-btn-success manage-btn" title="Marcar como gestionado" data-managed="false">
+                <i class="fas fa-check"></i>
+            </button>
+        `;
+    }
 }
 
 /**
@@ -1571,6 +1791,26 @@ function playCallRecording(callId) {
 }
 
 /**
+ * Alternar el estado de un checkbox personalizado
+ * @param {HTMLElement} checkbox - Elemento checkbox personalizado
+ */
+function toggleCheckbox(checkbox) {
+    if (!checkbox) return;
+    
+    // Alternar la clase 'checked'
+    checkbox.classList.toggle('checked');
+    
+    // Si está dentro de una fila de llamada, actualizar el estado gestionado
+    const callRow = checkbox.closest('.call-row');
+    if (callRow) {
+        const callId = callRow.dataset.id;
+        if (callId) {
+            markCallAsManaged(parseInt(callId));
+        }
+    }
+}
+
+/**
  * Marcar llamada como gestionada
  * @param {number} callId - ID de la llamada
  */
@@ -1590,27 +1830,24 @@ function markCallAsManaged(callId) {
     // Verificar si ya está gestionada usando el atributo data-managed del botón
     const isManaged = manageBtn && manageBtn.getAttribute('data-managed') === 'true';
     
+    // Obtener el checkbox personalizado
+    const checkbox = callRow.querySelector('.custom-checkbox');
+    
     if (isManaged) {
         // Desmarcar como gestionada
         callRow.classList.remove('managed');
-        callRow.style.backgroundColor = '';
         
-        // Actualizar el checkbox de gestionado
-        const checkbox = callRow.querySelector('.form-check-input');
-        if (checkbox) checkbox.checked = false;
+        // Actualizar el checkbox personalizado
+        if (checkbox) checkbox.classList.remove('checked');
         
         // Actualizar el botón de gestión
         if (manageBtn) {
             manageBtn.setAttribute('data-managed', 'false');
-            manageBtn.classList.remove('btn-success');
-            manageBtn.classList.add('btn-outline-success');
+            manageBtn.classList.remove('active');
             
-            // Actualizar icono y texto
+            // Actualizar icono
             const icon = manageBtn.querySelector('i');
-            if (icon) icon.className = 'fas fa-check me-1';
-            
-            const text = manageBtn.querySelector('.manage-text');
-            if (text) text.textContent = 'Gestionar';
+            if (icon) icon.className = 'fas fa-check';
             
             manageBtn.title = 'Marcar como gestionado';
         }
@@ -1619,24 +1856,18 @@ function markCallAsManaged(callId) {
     } else {
         // Marcar como gestionada
         callRow.classList.add('managed');
-        callRow.style.backgroundColor = '#f8f9fa'; // Fondo gris claro para indicar gestionada
         
-        // Actualizar el checkbox de gestionado
-        const checkbox = callRow.querySelector('.form-check-input');
-        if (checkbox) checkbox.checked = true;
+        // Actualizar el checkbox personalizado
+        if (checkbox) checkbox.classList.add('checked');
         
         // Actualizar el botón de gestión
         if (manageBtn) {
             manageBtn.setAttribute('data-managed', 'true');
-            manageBtn.classList.remove('btn-outline-success');
-            manageBtn.classList.add('btn-success');
+            manageBtn.classList.add('active');
             
-            // Actualizar icono y texto
+            // Actualizar icono
             const icon = manageBtn.querySelector('i');
-            if (icon) icon.className = 'fas fa-undo me-1';
-            
-            const text = manageBtn.querySelector('.manage-text');
-            if (text) text.textContent = 'Desmarcar';
+            if (icon) icon.className = 'fas fa-undo';
             
             manageBtn.title = 'Desmarcar como gestionado';
         }
@@ -1768,12 +1999,48 @@ function viewCallDetails(callId) {
 function setupEventListeners() {
     console.log('👂 Configurando event listeners para el dashboard...');
     
+    // Event listener para el botón de actualizar llamadas
+    const refreshCallsBtn = document.getElementById('refresh-calls-btn');
+    if (refreshCallsBtn) {
+        refreshCallsBtn.addEventListener('click', function() {
+            console.log('🔄 Botón de actualizar llamadas clickeado');
+            loadCallsData();
+            updateLastUpdateTime();
+            toastr.info('Actualizando registro de llamadas...', 'Actualización');
+        });
+    }
+    
     // Event listeners para botones de actualizar
     document.addEventListener('click', function(e) {
         // Event listener para botones de filtro de llamadas
         if (e.target.matches('input[name="call-filter"]')) {
             const filterType = e.target.id.replace('filter-calls-', '');
             filterCalls(filterType);
+        }
+        
+        // Event listener para botones de gestión en filas de llamadas dinámicas
+        if (e.target.closest('.manage-btn')) {
+            const manageBtn = e.target.closest('.manage-btn');
+            const callRow = manageBtn.closest('.call-row');
+            if (callRow) {
+                const callId = callRow.dataset.id;
+                if (callId) {
+                    markCallAsManaged(parseInt(callId));
+                }
+            }
+        }
+        
+        // Event listener para botones de reproducción en filas de llamadas dinámicas
+        if (e.target.closest('.play-btn')) {
+            const playBtn = e.target.closest('.play-btn');
+            const callRow = playBtn.closest('.call-row');
+            if (callRow) {
+                const callId = callRow.dataset.id;
+                if (callId) {
+                    toastr.info(`Reproduciendo grabación de la llamada #${callId}`, 'Reproducción');
+                    console.log(`🎧 Reproduciendo grabación de la llamada ID: ${callId}`);
+                }
+            }
         }
         
         // Event listener para botones de reproducir llamadas
@@ -1973,15 +2240,27 @@ function disableTemporaryMessages() {
  */
 function refreshDashboardData() {
     console.log('🔄 Actualizando datos del dashboard...');
-    // Implementación de actualización de datos
     
     // Mostrar notificación
     toastr.info('Actualizando datos...', 'Actualización');
     
-    // Simular actualización
+    // Actualizar la hora de última actualización
+    updateLastUpdateTime();
+    
+    // Actualizar datos de llamadas
+    loadCallsData();
+    
+    // Actualizar datos de emails
+    loadEmailsData();
+    
+    // Actualizar otros datos si es necesario
+    // loadBotConfigData();
+    // loadAccountData();
+    // loadBillingData();
+    
+    // Mostrar notificación de éxito después de un breve retraso
     setTimeout(() => {
         toastr.success('Datos actualizados correctamente', 'Éxito');
-        updateCallsCount();
     }, 1500);
 }
 
@@ -2102,6 +2381,381 @@ function updateCallsCount() {
 }
 
 /**
+ * Actualizar contador de emails
+ */
+function updateEmailsCount() {
+    const emailsCountElement = document.getElementById('email-count');
+    if (emailsCountElement) {
+        const emailRows = document.querySelectorAll('.email-row:not(.d-none)');
+        emailsCountElement.textContent = emailRows.length;
+    }
+}
+
+/**
+ * Cargar datos de emails desde la API (simulado)
+ */
+function loadEmailsData() {
+    console.log('📧 Cargando datos de emails...');
+    
+    // Simular llamada a API con datos de ejemplo
+    // En producción, esto sería una llamada fetch real a la API
+    setTimeout(() => {
+        const emailsData = [
+            {
+                id: 1,
+                sender: 'Juan Pérez',
+                senderType: 'Cliente',
+                subject: 'Consulta sobre productos premium',
+                preview: 'Buenas tardes, me gustaría obtener más información sobre sus productos premium, especialmente...',
+                content: 'Buenas tardes,\n\nMe gustaría obtener más información sobre sus productos premium, especialmente sobre las pieles sintéticas para tapicería. Necesito conocer precios, disponibilidad y tiempos de entrega para un proyecto importante.\n\nGracias de antemano,\nJuan Pérez\nDirector de Proyectos\nInteriorismo Moderno S.L.',
+                date: 'Hoy',
+                time: '10:25',
+                read: false,
+                important: true,
+                spam: false
+            },
+            {
+                id: 2,
+                sender: 'María García',
+                senderType: 'Proveedor',
+                subject: 'Actualización de catálogo 2024',
+                preview: 'Adjunto encontrará nuestro nuevo catálogo de productos para 2024 con todas las novedades...',
+                content: 'Estimado cliente,\n\nAdjunto encontrará nuestro nuevo catálogo de productos para 2024 con todas las novedades y actualizaciones de precios. Hemos incorporado nuevas líneas de productos que podrían ser de su interés.\n\nNo dude en contactarnos para cualquier consulta.\n\nSaludos cordiales,\nMaría García\nDepartamento Comercial\nProveedores Unidos S.A.',
+                date: 'Ayer',
+                time: '16:40',
+                read: true,
+                important: false,
+                spam: false
+            },
+            {
+                id: 3,
+                sender: 'newsletter@marketing.com',
+                senderType: '',
+                subject: '¡Ofertas especiales solo este mes!',
+                preview: 'Descubra nuestras ofertas exclusivas para clientes VIP. ¡Solo durante este mes!...',
+                content: '¡Ofertas especiales solo este mes!\n\nDescubra nuestras ofertas exclusivas para clientes VIP. ¡Solo durante este mes! Aproveche descuentos de hasta el 50% en productos seleccionados.\n\nHaga clic aquí para ver todas las ofertas.\n\nSi no desea recibir más emails como este, haga clic aquí para darse de baja.',
+                date: '18/02/2024',
+                time: '09:15',
+                read: true,
+                important: false,
+                spam: true
+            }
+        ];
+        
+        // Limpiar tabla de emails
+        const emailsTableBody = document.getElementById('emails-table-body');
+        if (emailsTableBody) {
+            emailsTableBody.innerHTML = '';
+            
+            // Generar filas de emails con el nuevo diseño moderno
+            emailsData.forEach(email => {
+                const emailRow = createEmailRow(email);
+                emailsTableBody.appendChild(emailRow);
+            });
+            
+            // Actualizar contador
+            updateEmailsCount();
+        }
+        
+        // Actualizar hora de última actualización
+        const lastUpdateElement = document.getElementById('emails-last-update');
+        if (lastUpdateElement) {
+            const now = new Date();
+            const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            lastUpdateElement.textContent = formattedDate;
+        }
+        
+        console.log(`✅ ${emailsData.length} emails cargados correctamente`);
+    }, 500);
+}
+
+/**
+ * Crear una fila de email con el nuevo diseño moderno
+ * @param {Object} email - Datos del email
+ * @returns {HTMLElement} - Elemento TR con la fila del email
+ */
+function createEmailRow(email) {
+    const row = document.createElement('tr');
+    row.className = 'email-row';
+    if (!email.read) row.classList.add('fw-bold');
+    row.dataset.id = email.id;
+    row.dataset.type = '';
+    
+    if (!email.read) row.dataset.type += 'unread ';
+    if (email.important) row.dataset.type += 'important ';
+    if (email.spam) row.dataset.type += 'spam';
+    
+    row.innerHTML = `
+        <td>
+            <i class="${email.important ? 'fas' : 'far'} fa-star ${email.important ? 'text-warning' : ''}" 
+               onclick="toggleEmailFavorite(${email.id}, this)"></i>
+        </td>
+        <td>
+            <div class="d-flex flex-column">
+                <div>${email.sender}</div>
+                ${email.senderType ? `<span class="badge-dashboard badge-primary mt-1">${email.senderType}</span>` : ''}
+            </div>
+        </td>
+        <td>
+            <div class="d-flex align-items-center">
+                ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 8px;"></i>' : ''}
+                <div class="text-truncate">${email.subject}</div>
+            </div>
+        </td>
+        <td>
+            <div class="d-flex flex-column">
+                <div>${email.date}</div>
+                <div class="text-muted small">${email.time}</div>
+            </div>
+        </td>
+        <td>
+            <div class="d-flex">
+                <button class="action-btn action-btn-primary view-email-btn" title="Ver email completo" onclick="viewEmailDetails(${email.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn ${email.read ? 'action-btn-secondary' : 'action-btn-primary'} read-email-btn" 
+                        title="${email.read ? 'Marcar como no leído' : 'Marcar como leído'}" 
+                        onclick="toggleEmailRead(${email.id})">
+                    <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'}"></i>
+                </button>
+                <button class="action-btn action-btn-danger" title="Eliminar email" onclick="deleteEmail(${email.id})">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    
+    return row;
+}
+
+/**
+ * Eliminar un email
+ * @param {number} emailId - ID del email a eliminar
+ */
+function deleteEmail(emailId) {
+    console.log(`🗑️ Eliminando email ID: ${emailId}`);
+    
+    // Mostrar confirmación
+    if (!confirm(`¿Está seguro de que desea eliminar el email #${emailId}?`)) {
+        return;
+    }
+    
+    // Buscar la fila del email
+    const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
+    if (!emailRow) {
+        console.error(`No se encontró el email con ID ${emailId}`);
+        toastr.error('No se pudo encontrar el email', 'Error');
+        return;
+    }
+    
+    // Animar eliminación
+    emailRow.style.transition = 'all 0.3s';
+    emailRow.style.opacity = '0';
+    emailRow.style.transform = 'translateX(20px)';
+    
+    setTimeout(() => {
+        // Eliminar fila
+        emailRow.remove();
+        
+        // Actualizar contador
+        updateEmailsCount();
+        
+        // Notificar
+        toastr.success(`Email #${emailId} eliminado correctamente`, 'Eliminado');
+        
+        // En producción, aquí se enviaría la eliminación a la API
+        console.log(`API: Email ${emailId} eliminado del servidor`);
+    }, 300);
+}
+
+/**
+ * Ver detalles completos de una llamada
+ * @param {number} callId - ID de la llamada
+ */
+function viewCallDetails(callId) {
+    console.log(`👁️ Ver detalles completos de llamada ID: ${callId}`);
+    
+    // Buscar la fila de la llamada
+    const callRow = document.querySelector(`.call-row[data-id="${callId}"]`);
+    if (!callRow) {
+        console.error(`No se encontró la llamada con ID ${callId}`);
+        toastr.error('No se pudo encontrar la llamada', 'Error');
+        return;
+    }
+    
+    // Obtener datos de la llamada desde la fila
+    const date = callRow.querySelector('td:nth-child(2) .fw-medium')?.textContent || '';
+    const time = callRow.querySelector('td:nth-child(2) .text-muted')?.textContent || '';
+    const phone = callRow.querySelector('td:nth-child(3) .fw-medium')?.textContent || '';
+    const contactType = callRow.querySelector('td:nth-child(3) .text-muted')?.textContent || '';
+    const summary = callRow.querySelector('td:nth-child(5) .fw-medium')?.textContent || '';
+    const details = callRow.querySelector('td:nth-child(5) .text-muted')?.textContent || '';
+    const duration = callRow.querySelector('td:nth-child(6) .badge-dashboard')?.textContent || '';
+    
+    // Determinar tipo y urgencia
+    const classification = callRow.dataset.type || '';
+    const urgency = callRow.dataset.urgency || '';
+    
+    // Crear modal con detalles
+    const modalId = `call-details-modal-${callId}`;
+    
+    // Eliminar modal anterior si existe
+    const existingModal = document.getElementById(modalId);
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Crear estructura del modal
+    const modalHTML = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content dashboard-card border-0">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title" id="${modalId}-label">
+                            <i class="fas fa-phone-alt me-2"></i>Detalles de la llamada #${callId}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-circle bg-primary text-white me-3">
+                                        <i class="fas fa-calendar"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Fecha y hora</div>
+                                        <div class="fw-medium">${date} ${time}</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-circle bg-primary text-white me-3">
+                                        <i class="fas fa-phone"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Teléfono</div>
+                                        <div class="fw-medium">${phone}</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-circle bg-primary text-white me-3">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Tipo de contacto</div>
+                                        <div class="fw-medium">${contactType}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-circle bg-primary text-white me-3">
+                                        <i class="fas fa-tag"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Clasificación</div>
+                                        <div class="fw-medium">
+                                            ${getClassificationBadge(classification, urgency)}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-circle bg-primary text-white me-3">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Duración</div>
+                                        <div class="fw-medium">${duration}</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-circle bg-primary text-white me-3">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Estado</div>
+                                        <div class="fw-medium">
+                                            ${callRow.querySelector('.custom-checkbox').classList.contains('checked') ? 
+                                                '<span class="badge-dashboard badge-success">Gestionada</span>' : 
+                                                '<span class="badge-dashboard badge-warning">Pendiente</span>'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card p-3 mb-4">
+                            <h6 class="mb-3"><i class="fas fa-comment-alt me-2"></i>Resumen</h6>
+                            <p class="mb-0">${summary}</p>
+                        </div>
+                        
+                        <div class="dashboard-card p-3">
+                            <h6 class="mb-3"><i class="fas fa-file-alt me-2"></i>Detalles completos</h6>
+                            <p class="mb-0">${details}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn-dashboard-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn-dashboard-primary play-call-btn">
+                            <i class="fas fa-play me-2"></i>Reproducir grabación
+                        </button>
+                        <button type="button" class="btn-dashboard-success manage-call-btn" data-id="${callId}">
+                            ${callRow.querySelector('.custom-checkbox').classList.contains('checked') ? 
+                                '<i class="fas fa-undo me-2"></i>Desmarcar como gestionada' : 
+                                '<i class="fas fa-check me-2"></i>Marcar como gestionada'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Agregar modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Obtener referencia al modal
+    const modal = document.getElementById(modalId);
+    
+    // Configurar event listeners para los botones del modal
+    if (modal) {
+        // Botón de gestión
+        const manageBtn = modal.querySelector('.manage-call-btn');
+        if (manageBtn) {
+            manageBtn.addEventListener('click', function() {
+                markCallAsManaged(callId);
+                
+                // Actualizar texto del botón
+                const isManaged = document.querySelector(`#call-managed-${callId}`).classList.contains('checked');
+                if (isManaged) {
+                    this.innerHTML = '<i class="fas fa-undo me-2"></i>Desmarcar como gestionada';
+                    modal.querySelector('.fw-medium .badge-dashboard').className = 'badge-dashboard badge-success';
+                    modal.querySelector('.fw-medium .badge-dashboard').textContent = 'Gestionada';
+                } else {
+                    this.innerHTML = '<i class="fas fa-check me-2"></i>Marcar como gestionada';
+                    modal.querySelector('.fw-medium .badge-dashboard').className = 'badge-dashboard badge-warning';
+                    modal.querySelector('.fw-medium .badge-dashboard').textContent = 'Pendiente';
+                }
+            });
+        }
+        
+        // Botón de reproducción
+        const playBtn = modal.querySelector('.play-call-btn');
+        if (playBtn) {
+            playBtn.addEventListener('click', function() {
+                toastr.info(`Reproduciendo grabación de la llamada #${callId}`, 'Reproducción');
+                
+                // Aquí iría la lógica para reproducir la grabación
+                console.log(`🎧 Reproduciendo grabación de la llamada ID: ${callId}`);
+            });
+        }
+        
+        // Mostrar modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+}
+
+/**
  * Configurar funcionalidades específicas de emails
  */
 function setupEmailFeatures() {
@@ -2150,33 +2804,277 @@ function setupEmailFeatures() {
 }
 
 /**
+ * Alternar estado de favorito de un email
+ * @param {number} emailId - ID del email
+ * @param {HTMLElement} starIcon - Icono de estrella
+ */
+function toggleEmailFavorite(emailId, starIcon) {
+    console.log(`⭐ Alternando estado de favorito para email ID: ${emailId}`);
+    
+    if (!starIcon) return;
+    
+    const isImportant = starIcon.classList.contains('fas');
+    
+    if (isImportant) {
+        starIcon.classList.replace('fas', 'far');
+        starIcon.classList.remove('text-warning');
+        toastr.info(`Email #${emailId} eliminado de favoritos`, 'Favoritos');
+    } else {
+        starIcon.classList.replace('far', 'fas');
+        starIcon.classList.add('text-warning');
+        toastr.success(`Email #${emailId} marcado como favorito`, 'Favoritos');
+    }
+    
+    // Actualizar dataset del email row
+    const emailRow = starIcon.closest('.email-row');
+    if (emailRow) {
+        const currentType = emailRow.dataset.type || '';
+        if (isImportant) {
+            emailRow.dataset.type = currentType.replace('important', '').trim();
+        } else if (!currentType.includes('important')) {
+            emailRow.dataset.type = (currentType + ' important').trim();
+        }
+    }
+    
+    // En producción, aquí se enviaría la actualización a la API
+    setTimeout(() => {
+        console.log(`API: Email ${emailId} estado de favorito actualizado a ${!isImportant}`);
+    }, 300);
+}
+
+/**
+ * Alternar estado de leído de un email
+ * @param {number} emailId - ID del email
+ */
+function toggleEmailRead(emailId) {
+    console.log(`📣 Alternando estado de leído para email ID: ${emailId}`);
+    
+    const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
+    if (!emailRow) return;
+    
+    const isRead = !emailRow.classList.contains('fw-bold');
+    const readBtn = emailRow.querySelector('.read-email-btn');
+    const readIcon = readBtn?.querySelector('i');
+    
+    if (isRead) {
+        // Marcar como no leído
+        emailRow.classList.add('fw-bold');
+        if (readIcon) readIcon.classList.replace('fa-envelope', 'fa-envelope-open');
+        if (readBtn) {
+            readBtn.classList.replace('action-btn-secondary', 'action-btn-primary');
+            readBtn.title = 'Marcar como leído';
+        }
+        
+        // Agregar indicador de no leído
+        const subjectCell = emailRow.querySelector('td:nth-child(3) .d-flex');
+        if (subjectCell && !subjectCell.querySelector('.fa-circle')) {
+            const indicator = document.createElement('i');
+            indicator.className = 'fas fa-circle text-primary me-2';
+            indicator.style.fontSize = '8px';
+            subjectCell.prepend(indicator);
+        }
+        
+        // Actualizar dataset
+        const currentType = emailRow.dataset.type || '';
+        if (!currentType.includes('unread')) {
+            emailRow.dataset.type = (currentType + ' unread').trim();
+        }
+        
+        toastr.info(`Email #${emailId} marcado como no leído`, 'Estado actualizado');
+    } else {
+        // Marcar como leído
+        emailRow.classList.remove('fw-bold');
+        if (readIcon) readIcon.classList.replace('fa-envelope-open', 'fa-envelope');
+        if (readBtn) {
+            readBtn.classList.replace('action-btn-primary', 'action-btn-secondary');
+            readBtn.title = 'Marcar como no leído';
+        }
+        
+        // Eliminar indicador de no leído
+        const indicator = emailRow.querySelector('td:nth-child(3) .fa-circle');
+        if (indicator) indicator.remove();
+        
+        // Actualizar dataset
+        emailRow.dataset.type = (emailRow.dataset.type || '').replace('unread', '').trim();
+        
+        toastr.success(`Email #${emailId} marcado como leído`, 'Estado actualizado');
+    }
+    
+    // En producción, aquí se enviaría la actualización a la API
+    setTimeout(() => {
+        console.log(`API: Email ${emailId} estado de leído actualizado a ${!isRead}`);
+    }, 300);
+}
+
+/**
  * Filtrar emails por tipo
  * @param {string} type - Tipo de filtro
  */
 function filterEmails(type) {
     console.log(`🔍 Filtrando emails por: ${type}`);
-    toastr.info(`Mostrando emails de tipo: ${type}`, 'Filtro aplicado');
     
     // Implementación de filtrado
     const emailRows = document.querySelectorAll('.email-row');
+    let visibleCount = 0;
     
     emailRows.forEach(row => {
+        const rowType = row.dataset.type || '';
+        
         if (type === 'all') {
             row.classList.remove('d-none');
+            visibleCount++;
+        } else if (rowType.includes(type)) {
+            row.classList.remove('d-none');
+            visibleCount++;
         } else {
-            if (row.dataset.type === type) {
-                row.classList.remove('d-none');
-            } else {
-                row.classList.add('d-none');
-            }
+            row.classList.add('d-none');
         }
     });
     
     // Actualizar contador
-    const emailCount = document.getElementById('email-count');
-    if (emailCount) {
-        const visibleRows = document.querySelectorAll('.email-row:not(.d-none)');
-        emailCount.textContent = visibleRows.length;
+    updateEmailsCount();
+    
+    // Mostrar notificación con el tipo de filtro aplicado
+    const filterTypeText = {
+        'all': 'todos',
+        'unread': 'no leídos',
+        'important': 'importantes',
+        'spam': 'spam'
+    };
+    
+    toastr.info(`Mostrando ${visibleCount} emails ${filterTypeText[type] || type}`, 'Filtro aplicado');
+}
+
+/**
+ * Ver detalles completos de un email
+ * @param {number} emailId - ID del email
+ */
+function viewEmailDetails(emailId) {
+    console.log(`👁️ Ver detalles completos de email ID: ${emailId}`);
+    
+    // Buscar la fila del email
+    const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
+    if (!emailRow) {
+        console.error(`No se encontró el email con ID ${emailId}`);
+        toastr.error('No se pudo encontrar el email', 'Error');
+        return;
+    }
+    
+    // Obtener datos del email desde la fila
+    const sender = emailRow.querySelector('td:nth-child(2) div:first-child')?.textContent || '';
+    const senderType = emailRow.querySelector('td:nth-child(2) .badge-dashboard')?.textContent || '';
+    const subject = emailRow.querySelector('td:nth-child(3) .text-truncate')?.textContent || '';
+    const date = emailRow.querySelector('td:nth-child(4) div:first-child')?.textContent || '';
+    const time = emailRow.querySelector('td:nth-child(4) .small')?.textContent || '';
+    
+    // Simular obtención del contenido completo (en producción vendría de la API)
+    let content = '';
+    if (emailId === 1) {
+        content = 'Buenas tardes,\n\nMe gustaría obtener más información sobre sus productos premium, especialmente sobre las pieles sintéticas para tapicería. Necesito conocer precios, disponibilidad y tiempos de entrega para un proyecto importante.\n\nGracias de antemano,\nJuan Pérez\nDirector de Proyectos\nInteriorismo Moderno S.L.';
+    } else if (emailId === 2) {
+        content = 'Estimado cliente,\n\nAdjunto encontrará nuestro nuevo catálogo de productos para 2024 con todas las novedades y actualizaciones de precios. Hemos incorporado nuevas líneas de productos que podrían ser de su interés.\n\nNo dude en contactarnos para cualquier consulta.\n\nSaludos cordiales,\nMaría García\nDepartamento Comercial\nProveedores Unidos S.A.';
+    } else if (emailId === 3) {
+        content = '¡Ofertas especiales solo este mes!\n\nDescubra nuestras ofertas exclusivas para clientes VIP. ¡Solo durante este mes! Aproveche descuentos de hasta el 50% en productos seleccionados.\n\nHaga clic aquí para ver todas las ofertas.\n\nSi no desea recibir más emails como este, haga clic aquí para darse de baja.';
+    } else {
+        content = 'Contenido del email no disponible.';
+    }
+    
+    // Formatear el contenido para HTML (reemplazar saltos de línea)
+    const formattedContent = content.replace(/\n/g, '<br>');
+    
+    // Crear modal con detalles
+    const modalId = `email-details-modal-${emailId}`;
+    
+    // Eliminar modal anterior si existe
+    const existingModal = document.getElementById(modalId);
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Crear estructura del modal
+    const modalHTML = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content dashboard-card border-0">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title" id="${modalId}-label">
+                            <i class="fas fa-envelope me-2"></i>${subject}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="d-flex justify-content-between mb-4">
+                            <div>
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-circle bg-primary text-white me-3">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-medium">${sender}</div>
+                                        ${senderType ? `<span class="badge-dashboard badge-primary mt-1">${senderType}</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-medium">${date}</div>
+                                <div class="text-muted small">${time}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card p-3">
+                            <div class="email-content">${formattedContent}</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn-dashboard-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn-dashboard-primary reply-btn">
+                            <i class="fas fa-reply me-2"></i>Responder
+                        </button>
+                        <button type="button" class="btn-dashboard-success forward-btn">
+                            <i class="fas fa-share me-2"></i>Reenviar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Agregar modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Obtener referencia al modal
+    const modal = document.getElementById(modalId);
+    
+    // Configurar event listeners para los botones del modal
+    if (modal) {
+        // Botón de responder
+        const replyBtn = modal.querySelector('.reply-btn');
+        if (replyBtn) {
+            replyBtn.addEventListener('click', function() {
+                toastr.info(`Respondiendo al email #${emailId}`, 'Respuesta');
+                console.log(`💬 Respondiendo al email ID: ${emailId}`);
+                // Aquí iría la lógica para responder al email
+            });
+        }
+        
+        // Botón de reenviar
+        const forwardBtn = modal.querySelector('.forward-btn');
+        if (forwardBtn) {
+            forwardBtn.addEventListener('click', function() {
+                toastr.info(`Reenviando email #${emailId}`, 'Reenviar');
+                console.log(`🔁 Reenviando email ID: ${emailId}`);
+                // Aquí iría la lógica para reenviar el email
+            });
+        }
+        
+        // Mostrar modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        // Marcar como leído si no lo estaba
+        if (emailRow.classList.contains('fw-bold')) {
+            toggleEmailRead(emailId);
+        }
     }
 }
 
@@ -2185,7 +3083,7 @@ function filterEmails(type) {
  * @param {number} emailId - ID del email
  */
 function viewEmailHistory(emailId) {
-    console.log(`📜 Viendo historial del email ${emailId}`);
+    console.log(`📃 Viendo historial del email ${emailId}`);
     
     // Mostrar modal de historial
     const historyModal = new bootstrap.Modal(document.getElementById('email-history-modal'));

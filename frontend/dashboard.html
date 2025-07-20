@@ -11,9 +11,10 @@
     <link href="css/dashboard-modern.css" rel="stylesheet">
     <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="css/typography-scale.css">
+    <link rel="stylesheet" href="css/dashboard-unified.css">
 </head>
 <body>
-    <div class="d-flex" id="wrapper">
+    <div class="d-flex dashboard-container" id="wrapper">
         <!-- Sidebar - OCULTO PARA MVP -->
         <div class="bg-dark text-white d-none" id="sidebar-wrapper">
             <div class="sidebar-heading py-4 text-center">
@@ -52,24 +53,37 @@
         <!-- Page content wrapper - ANCHO COMPLETO PARA MVP -->
         <div id="page-content-wrapper" class="bg-light w-100">
             <!-- Top navigation -->
-            <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+            <nav class="navbar navbar-expand-lg navbar-light dashboard-navbar">
                 <div class="container-fluid">
-                    <!-- Botón hamburguesa -->
-                    <button class="btn btn-link" id="menu-toggle">
-                        <i class="fas fa-bars"></i>
+                    <!-- Logo y nombre -->
+                    <a class="navbar-brand" href="#">
+                        <div class="brand-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        IA Receptionist
+                    </a>
+                    
+                    <!-- Botón hamburguesa para móvil -->
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
                     </button>
-                    <div class="ms-auto d-flex align-items-center">
-                        <span class="badge bg-success me-3">Plan: <span id="user-plan">Profesional</span></span>
-                        <div class="dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown">
-                                <i class="fas fa-user-circle me-1"></i>
-                                <span id="user-name">Usuario</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#call-bot-content" data-bs-toggle="tab">Mi perfil</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" id="logout-btn">Cerrar sesión</a></li>
-                            </ul>
+                    
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <div class="ms-auto d-flex align-items-center">
+                            <span class="badge rounded-pill me-3" style="background: var(--primary-gradient)">Plan: <span id="user-plan">Profesional</span></span>
+                            <div class="dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown">
+                                    <div class="d-flex align-items-center justify-content-center bg-light rounded-circle me-2" style="width: 32px; height: 32px;">
+                                        <i class="fas fa-user text-primary"></i>
+                                    </div>
+                                    <span id="user-name" class="fw-medium">Usuario</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="border-radius: var(--border-radius-md)">
+                                    <li><a class="dropdown-item py-2" href="#call-bot-content" data-bs-toggle="tab"><i class="fas fa-user-cog me-2 text-primary"></i>Mi perfil</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item py-2" href="#" id="logout-btn"><i class="fas fa-sign-out-alt me-2 text-danger"></i>Cerrar sesión</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
