@@ -1544,7 +1544,7 @@ function loadCallsData() {
 }
 
 /**
- * Crear una fila de llamada con el nuevo diseño moderno
+ * Crear una fila de llamada con el nuevo diseño moderno y compacto
  * @param {Object} call - Datos de la llamada
  * @returns {HTMLElement} - Elemento TR con la fila de la llamada
  */
@@ -1564,22 +1564,22 @@ function createCallRow(call) {
     if (call.managed) checkboxClass += ' checked';
     
     row.innerHTML = `
-        <td>
+        <td class="text-center" style="width: 40px;">
             <div class="${checkboxClass}" id="call-managed-${call.id}" onclick="toggleCheckbox(this)"></div>
         </td>
-        <td>
+        <td style="width: 90px;">
             <div class="d-flex flex-column">
                 <div class="fw-medium">${call.date}</div>
                 <div class="text-muted small">${call.time}</div>
             </div>
         </td>
-        <td>
+        <td style="width: 120px;">
             <div class="d-flex flex-column">
                 <div class="fw-medium">${call.phone}</div>
                 <div class="text-muted small">${call.contactType}</div>
             </div>
         </td>
-        <td>
+        <td style="width: 140px;">
             <div class="d-flex flex-column">
                 ${getClassificationBadge(call.classification, call.urgency)}
                 <div class="text-muted small mt-1">Confianza: ${call.confidence}%</div>
@@ -1587,25 +1587,32 @@ function createCallRow(call) {
         </td>
         <td>
             <div class="d-flex flex-column">
-                <div class="fw-medium">${call.summary}</div>
-                <div class="text-muted small">${call.details}</div>
+                <div class="fw-medium text-truncate">${call.summary}</div>
+                <div class="text-muted small text-truncate">${call.details}</div>
             </div>
         </td>
-        <td>
+        <td style="width: 70px;">
             <span class="badge-dashboard" style="background: var(--primary-gradient)">${call.duration}</span>
         </td>
-        <td>
-            <div class="d-flex">
-                <button class="action-btn action-btn-primary play-btn" title="Reproducir grabación">
-                    <i class="fas fa-play"></i>
+        <td class="text-center" style="width: 50px;">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-dashboard-primary dropdown-toggle p-1" type="button" id="callActions${call.id}" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-robot"></i>
                 </button>
-                <button class="action-btn action-btn-primary" title="Ver detalles completos" onclick="viewCallDetails(${call.id})">
-                    <i class="fas fa-eye"></i>
-                </button>
-                ${getManageButton(call.id, call.managed)}
-                <button class="action-btn action-btn-warning star-btn" title="Marcar como importante">
-                    <i class="far fa-star"></i>
-                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="callActions${call.id}">
+                    <li><a class="dropdown-item" href="#" onclick="playCallRecording(${call.id}); return false;">
+                        <i class="fas fa-play me-2"></i> Reproducir grabación
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="viewCallDetails(${call.id}); return false;">
+                        <i class="fas fa-eye me-2"></i> Ver detalles
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="toggleCallManaged(${call.id}); return false;">
+                        <i class="fas fa-check me-2"></i> ${call.managed ? 'Desmarcar gestionado' : 'Marcar gestionado'}
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="toggleCallImportant(${call.id}); return false;">
+                        <i class="far fa-star me-2"></i> Marcar importante
+                    </a></li>
+                </ul>
             </div>
         </td>
     `;
@@ -2381,6 +2388,82 @@ function updateCallsCount() {
 }
 
 /**
+ * Reproducir grabación de llamada
+ * @param {number} callId - ID de la llamada
+ */
+function playCallRecording(callId) {
+    console.log(`🔊 Reproduciendo grabación de llamada ID: ${callId}`);
+    
+    // Simular reproducción de audio
+    const audioPlayer = document.getElementById('audio-player') || createAudioPlayer();
+    audioPlayer.classList.remove('d-none');
+    
+    // Notificar al usuario
+    toastr.info('Reproduciendo grabación de llamada', 'Audio');
+}
+
+/**
+ * Crear un reproductor de audio si no existe
+ * @returns {HTMLElement} - Elemento del reproductor de audio
+ */
+function createAudioPlayer() {
+    const audioContainer = document.createElement('div');
+    audioContainer.id = 'audio-player';
+    audioContainer.className = 'audio-player-container position-fixed bottom-0 start-0 m-3';
+    audioContainer.style.zIndex = '1050';
+    audioContainer.innerHTML = `
+        <div class="card shadow-sm" style="width: 300px;">
+            <div class="card-body d-flex align-items-center p-2">
+                <i class="fas fa-headphones me-2"></i>
+                <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: 45%"></div>
+                </div>
+                <span class="text-muted small">01:23</span>
+                <button class="btn btn-sm btn-link text-danger ms-2" onclick="document.getElementById('audio-player').classList.add('d-none')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(audioContainer);
+    return audioContainer;
+}
+
+/**
+ * Alternar estado gestionado de una llamada
+ * @param {number} callId - ID de la llamada
+ */
+function toggleCallManaged(callId) {
+    const row = document.querySelector(`.call-row[data-id="${callId}"]`);
+    if (!row) return;
+    
+    const checkbox = document.getElementById(`call-managed-${callId}`);
+    if (checkbox) {
+        const isChecked = checkbox.classList.contains('checked');
+        if (isChecked) {
+            checkbox.classList.remove('checked');
+            toastr.info('Llamada marcada como no gestionada', 'Estado actualizado');
+        } else {
+            checkbox.classList.add('checked');
+            toastr.success('Llamada marcada como gestionada', 'Estado actualizado');
+        }
+    }
+}
+
+/**
+ * Alternar estado importante de una llamada
+ * @param {number} callId - ID de la llamada
+ */
+function toggleCallImportant(callId) {
+    console.log(`⭐ Alternando estado importante de llamada ID: ${callId}`);
+    
+    // Aquí se implementaría la lógica para marcar como importante
+    // Por ahora solo mostramos una notificación
+    toastr.success('Llamada marcada como importante', 'Estado actualizado');
+}
+
+/**
  * Actualizar contador de emails
  */
 function updateEmailsCount() {
@@ -2470,7 +2553,7 @@ function loadEmailsData() {
 }
 
 /**
- * Crear una fila de email con el nuevo diseño moderno
+ * Crear una fila de email con el nuevo diseño moderno y compacto
  * @param {Object} email - Datos del email
  * @returns {HTMLElement} - Elemento TR con la fila del email
  */
@@ -2486,13 +2569,13 @@ function createEmailRow(email) {
     if (email.spam) row.dataset.type += 'spam';
     
     row.innerHTML = `
-        <td>
+        <td class="text-center" style="width: 40px;">
             <i class="${email.important ? 'fas' : 'far'} fa-star ${email.important ? 'text-warning' : ''}" 
                onclick="toggleEmailFavorite(${email.id}, this)"></i>
         </td>
-        <td>
+        <td style="width: 20%;">
             <div class="d-flex flex-column">
-                <div>${email.sender}</div>
+                <div class="text-truncate">${email.sender}</div>
                 ${email.senderType ? `<span class="badge-dashboard badge-primary mt-1">${email.senderType}</span>` : ''}
             </div>
         </td>
@@ -2502,25 +2585,30 @@ function createEmailRow(email) {
                 <div class="text-truncate">${email.subject}</div>
             </div>
         </td>
-        <td>
+        <td style="width: 100px;">
             <div class="d-flex flex-column">
                 <div>${email.date}</div>
                 <div class="text-muted small">${email.time}</div>
             </div>
         </td>
-        <td>
-            <div class="d-flex">
-                <button class="action-btn action-btn-primary view-email-btn" title="Ver email completo" onclick="viewEmailDetails(${email.id})">
-                    <i class="fas fa-eye"></i>
+        <td class="text-center" style="width: 50px;">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-dashboard-primary dropdown-toggle p-1" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-robot"></i>
                 </button>
-                <button class="action-btn ${email.read ? 'action-btn-secondary' : 'action-btn-primary'} read-email-btn" 
-                        title="${email.read ? 'Marcar como no leído' : 'Marcar como leído'}" 
-                        onclick="toggleEmailRead(${email.id})">
-                    <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'}"></i>
-                </button>
-                <button class="action-btn action-btn-danger" title="Eliminar email" onclick="deleteEmail(${email.id})">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="emailActions${email.id}">
+                    <li><a class="dropdown-item" href="#" onclick="viewEmailDetails(${email.id}); return false;">
+                        <i class="fas fa-eye me-2"></i> Ver detalles
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="toggleEmailRead(${email.id}); return false;">
+                        <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'} me-2"></i> 
+                        ${email.read ? 'Marcar como no leído' : 'Marcar como leído'}
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteEmail(${email.id}); return false;">
+                        <i class="fas fa-trash-alt me-2"></i> Eliminar
+                    </a></li>
+                </ul>
             </div>
         </td>
     `;
