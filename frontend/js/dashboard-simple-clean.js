@@ -1537,6 +1537,9 @@ function loadCallsData() {
             
             // Actualizar contador
             updateCallsCount();
+            
+            // Inicializar dropdowns de Bootstrap
+            initializeDropdowns();
         }
         
         console.log(`✅ ${callsData.length} llamadas cargadas correctamente`);
@@ -2464,6 +2467,31 @@ function toggleCallImportant(callId) {
 }
 
 /**
+ * Inicializar los componentes dropdown de Bootstrap
+ * Esta función debe llamarse después de añadir elementos dropdown al DOM
+ */
+function initializeDropdowns() {
+    console.log('🔄 Inicializando dropdowns de Bootstrap...');
+    
+    // Obtener todos los elementos dropdown
+    const dropdownElements = document.querySelectorAll('.dropdown-toggle');
+    
+    // Inicializar cada dropdown usando la API de Bootstrap 5
+    if (dropdownElements.length > 0) {
+        dropdownElements.forEach(dropdownEl => {
+            // Verificar si el dropdown ya está inicializado
+            if (!dropdownEl.hasAttribute('data-bs-initialized')) {
+                // Crear una instancia de dropdown para cada elemento
+                new bootstrap.Dropdown(dropdownEl);
+                // Marcar como inicializado para evitar duplicados
+                dropdownEl.setAttribute('data-bs-initialized', 'true');
+            }
+        });
+        console.log(`✅ ${dropdownElements.length} dropdowns inicializados correctamente`);
+    }
+}
+
+/**
  * Actualizar contador de emails
  */
 function updateEmailsCount() {
@@ -2538,6 +2566,9 @@ function loadEmailsData() {
             
             // Actualizar contador
             updateEmailsCount();
+            
+            // Inicializar dropdowns de Bootstrap
+            initializeDropdowns();
         }
         
         // Actualizar hora de última actualización
@@ -5846,6 +5877,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Inicializar el dashboard con la nueva función que desactiva los mensajes temporales
         initDashboard();
+        
+        // Inicializar dropdowns de Bootstrap después de cargar el contenido
+        setTimeout(() => {
+            initializeDropdowns();
+        }, 1000);
     } else {
         console.error('❌ Usuario no autenticado');
         window.location.href = 'login.html';
