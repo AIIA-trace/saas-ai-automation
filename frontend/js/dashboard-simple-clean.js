@@ -1567,25 +1567,25 @@ function createCallRow(call) {
         <td class="text-center" style="width: 30px;">
             <div class="${checkboxClass}" id="call-managed-${call.id}" onclick="toggleCheckbox(this)"></div>
         </td>
-        <td style="width: 80px;">
+        <td style="width: 70px;">
             <div class="d-flex flex-column">
-                <div class="fw-medium">${call.date}</div>
-                <div class="text-muted small">${call.time}</div>
+                <div class="fw-medium small">${call.date}</div>
+                <div class="text-muted small" style="font-size: 0.7rem;">${call.time}</div>
             </div>
         </td>
-        <td style="width: 110px;">
+        <td style="width: 90px;">
             <div class="d-flex flex-column">
-                <div class="fw-medium">${call.phone}</div>
-                <div class="text-muted small">${call.contactType}</div>
+                <div class="fw-medium small">${call.phone}</div>
+                <div class="text-muted small" style="font-size: 0.7rem;">${call.contactType}</div>
             </div>
         </td>
-        <td style="width: 120px;">
+        <td style="width: 100px;">
             <div class="d-flex flex-column">
                 ${getClassificationBadge(call.classification, call.urgency)}
-                <div class="text-muted small mt-1">Confianza: ${call.confidence}%</div>
+                <div class="text-muted small" style="font-size: 0.7rem;">Confianza: ${call.confidence}%</div>
             </div>
         </td>
-        <td style="width: calc(100% - 390px);">
+        <td style="width: calc(100% - 330px);">
             <div class="d-flex flex-column">
                 <div class="fw-medium text-truncate">${call.summary}</div>
                 <div class="text-muted small text-truncate">${call.details}</div>
@@ -2601,13 +2601,13 @@ function createEmailRow(email) {
             <i class="${email.important ? 'fas' : 'far'} fa-star ${email.important ? 'text-warning' : ''}" 
                onclick="toggleEmailFavorite(${email.id}, this)"></i>
         </td>
-        <td style="width: 15%;">
+        <td style="width: 12%;">
             <div class="d-flex flex-column">
-                <div class="text-truncate small">${email.sender}</div>
-                ${email.senderType ? `<span class="badge-dashboard badge-primary mt-1 small">${email.senderType}</span>` : ''}
+                <div class="text-truncate small" style="font-size: 0.8rem;">${email.sender}</div>
+                ${email.senderType ? `<span class="badge-dashboard badge-primary mt-1 small" style="font-size: 0.65rem;">${email.senderType}</span>` : ''}
             </div>
         </td>
-        <td style="width: calc(100% - 15% - 170px);">
+        <td style="width: calc(100% - 12% - 140px);">
             <div class="d-flex flex-column">
                 <div class="d-flex align-items-center">
                     ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 6px;"></i>' : ''}
@@ -2616,9 +2616,9 @@ function createEmailRow(email) {
                 <div class="text-muted text-truncate small" style="font-size: 0.75rem;">${email.preview}</div>
             </div>
         </td>
-        <td style="width: 80px;">
+        <td style="width: 70px;">
             <div class="d-flex flex-column">
-                <div class="small">${email.date}</div>
+                <div class="small" style="font-size: 0.8rem;">${email.date}</div>
                 <div class="text-muted small" style="font-size: 0.7rem;">${email.time}</div>
             </div>
         </td>
