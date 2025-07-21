@@ -192,8 +192,8 @@ function createCallsTabContent() {
                                     </div>
                                 </div>
                                 
-                                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-                                    <table class="dashboard-table">
+                                <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
+                                    <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
                                         <thead>
                                             <tr>
                                                 <th>Gestionado</th>
@@ -388,9 +388,6 @@ function createEmailsTabContent() {
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Gestión de Emails <span class="badge-dashboard badge-primary ms-2" id="email-count">0</span></h5>
                             <div>
-                                <button class="btn-dashboard-success me-2" id="classify-emails-btn">
-                                    <i class="fas fa-robot me-2"></i>Clasificar con IA
-                                </button>
                                 <button class="btn-dashboard-primary" id="refresh-emails-btn">
                                     <i class="fas fa-sync me-2"></i>Actualizar
                                 </button>
@@ -434,15 +431,15 @@ function createEmailsTabContent() {
                         </div>
                         
                         <!-- Lista de emails -->
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                            <table class="dashboard-table">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: hidden;">
+                            <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 5%"><i class="fas fa-star"></i></th>
-                                        <th style="width: 25%">Remitente</th>
-                                        <th style="width: 45%">Asunto</th>
-                                        <th style="width: 15%">Fecha</th>
-                                        <th style="width: 10%">Acciones</th>
+                                        <th style="width: 30px"><i class="fas fa-star"></i></th>
+                                        <th style="width: 15%">Remitente</th>
+                                        <th>Asunto</th>
+                                        <th style="width: 80px">Fecha</th>
+                                        <th style="width: 40px">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
@@ -1567,37 +1564,37 @@ function createCallRow(call) {
     if (call.managed) checkboxClass += ' checked';
     
     row.innerHTML = `
-        <td class="text-center" style="width: 40px;">
+        <td class="text-center" style="width: 30px;">
             <div class="${checkboxClass}" id="call-managed-${call.id}" onclick="toggleCheckbox(this)"></div>
         </td>
-        <td style="width: 90px;">
+        <td style="width: 80px;">
             <div class="d-flex flex-column">
                 <div class="fw-medium">${call.date}</div>
                 <div class="text-muted small">${call.time}</div>
             </div>
         </td>
-        <td style="width: 120px;">
+        <td style="width: 110px;">
             <div class="d-flex flex-column">
                 <div class="fw-medium">${call.phone}</div>
                 <div class="text-muted small">${call.contactType}</div>
             </div>
         </td>
-        <td style="width: 140px;">
+        <td style="width: 120px;">
             <div class="d-flex flex-column">
                 ${getClassificationBadge(call.classification, call.urgency)}
                 <div class="text-muted small mt-1">Confianza: ${call.confidence}%</div>
             </div>
         </td>
-        <td>
+        <td style="width: calc(100% - 390px);">
             <div class="d-flex flex-column">
                 <div class="fw-medium text-truncate">${call.summary}</div>
                 <div class="text-muted small text-truncate">${call.details}</div>
             </div>
         </td>
-        <td style="width: 70px;">
+        <td style="width: 60px;">
             <span class="badge-dashboard" style="background: var(--primary-gradient)">${call.duration}</span>
         </td>
-        <td class="text-center" style="width: 50px;">
+        <td class="text-center" style="width: 40px;">
             <div class="dropdown">
                 <button class="btn btn-sm btn-dashboard-primary dropdown-toggle p-1" type="button" id="callActions${call.id}" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-robot"></i>
@@ -2600,29 +2597,32 @@ function createEmailRow(email) {
     if (email.spam) row.dataset.type += 'spam';
     
     row.innerHTML = `
-        <td class="text-center" style="width: 40px;">
+        <td class="text-center" style="width: 30px;">
             <i class="${email.important ? 'fas' : 'far'} fa-star ${email.important ? 'text-warning' : ''}" 
                onclick="toggleEmailFavorite(${email.id}, this)"></i>
         </td>
-        <td style="width: 20%;">
+        <td style="width: 15%;">
             <div class="d-flex flex-column">
-                <div class="text-truncate">${email.sender}</div>
-                ${email.senderType ? `<span class="badge-dashboard badge-primary mt-1">${email.senderType}</span>` : ''}
+                <div class="text-truncate small">${email.sender}</div>
+                ${email.senderType ? `<span class="badge-dashboard badge-primary mt-1 small">${email.senderType}</span>` : ''}
             </div>
         </td>
-        <td>
-            <div class="d-flex align-items-center">
-                ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 8px;"></i>' : ''}
-                <div class="text-truncate">${email.subject}</div>
-            </div>
-        </td>
-        <td style="width: 100px;">
+        <td style="width: calc(100% - 15% - 170px);">
             <div class="d-flex flex-column">
-                <div>${email.date}</div>
-                <div class="text-muted small">${email.time}</div>
+                <div class="d-flex align-items-center">
+                    ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 6px;"></i>' : ''}
+                    <div class="text-truncate small fw-medium">${email.subject}</div>
+                </div>
+                <div class="text-muted text-truncate small" style="font-size: 0.75rem;">${email.preview}</div>
             </div>
         </td>
-        <td class="text-center" style="width: 50px;">
+        <td style="width: 80px;">
+            <div class="d-flex flex-column">
+                <div class="small">${email.date}</div>
+                <div class="text-muted small" style="font-size: 0.7rem;">${email.time}</div>
+            </div>
+        </td>
+        <td class="text-center" style="width: 40px;">
             <div class="dropdown">
                 <button class="btn btn-sm btn-dashboard-primary dropdown-toggle p-1" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-robot"></i>
@@ -2631,6 +2631,13 @@ function createEmailRow(email) {
                     <li><a class="dropdown-item" href="#" onclick="viewEmailDetails(${email.id}); return false;">
                         <i class="fas fa-eye me-2"></i> Ver detalles
                     </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="replyToEmail(${email.id}); return false;">
+                        <i class="fas fa-reply me-2"></i> Responder
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="replyWithAI(${email.id}); return false;">
+                        <i class="fas fa-robot me-2"></i> Responder con IA
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="#" onclick="toggleEmailRead(${email.id}); return false;">
                         <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'} me-2"></i> 
                         ${email.read ? 'Marcar como no leído' : 'Marcar como leído'}
@@ -3146,8 +3153,11 @@ function viewEmailDetails(emailId) {
                     </div>
                     <div class="modal-footer border-0">
                         <button type="button" class="btn-dashboard-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        <button type="button" class="btn-dashboard-primary reply-btn">
+                        <button type="button" class="btn-dashboard-primary reply-btn" onclick="replyToEmail(${emailId})">
                             <i class="fas fa-reply me-2"></i>Responder
+                        </button>
+                        <button type="button" class="btn-dashboard-info reply-with-ai-btn" onclick="replyWithAI(${emailId})">
+                            <i class="fas fa-robot me-2"></i>Responder con IA
                         </button>
                         <button type="button" class="btn-dashboard-success forward-btn">
                             <i class="fas fa-share me-2"></i>Reenviar
@@ -5858,6 +5868,233 @@ function filterInvoicesByYear(year) {
     setTimeout(() => {
         // Aquí se cargarían las facturas del año seleccionado
         toastr.success(`Facturas de ${year} cargadas correctamente`, 'Completado');
+    }, 1000);
+}
+
+/**
+ * Función para responder a un email
+ * @param {number} emailId - ID del email
+ */
+function replyToEmail(emailId) {
+    console.log(`📧 Respondiendo al email ID: ${emailId}`);
+    
+    // Buscar la fila del email
+    const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
+    if (!emailRow) {
+        console.error(`No se encontró el email con ID ${emailId}`);
+        toastr.error('No se pudo encontrar el email', 'Error');
+        return;
+    }
+    
+    // Obtener datos del email desde la fila
+    const sender = emailRow.querySelector('td:nth-child(2) div:first-child')?.textContent || '';
+    const subject = emailRow.querySelector('td:nth-child(3) .fw-medium')?.textContent || '';
+    
+    // Crear modal para respuesta
+    createReplyModal(emailId, sender, subject, false);
+}
+
+/**
+ * Función para responder a un email con IA
+ * @param {number} emailId - ID del email
+ */
+function replyWithAI(emailId) {
+    console.log(`🤖 Respondiendo con IA al email ID: ${emailId}`);
+    
+    // Buscar la fila del email
+    const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
+    if (!emailRow) {
+        console.error(`No se encontró el email con ID ${emailId}`);
+        toastr.error('No se pudo encontrar el email', 'Error');
+        return;
+    }
+    
+    // Obtener datos del email desde la fila
+    const sender = emailRow.querySelector('td:nth-child(2) div:first-child')?.textContent || '';
+    const subject = emailRow.querySelector('td:nth-child(3) .fw-medium')?.textContent || '';
+    
+    // Crear modal para respuesta con IA
+    createReplyModal(emailId, sender, subject, true);
+}
+
+/**
+ * Crear modal para responder a un email
+ * @param {number} emailId - ID del email
+ * @param {string} sender - Remitente del email
+ * @param {string} subject - Asunto del email
+ * @param {boolean} useAI - Si se debe usar IA para generar la respuesta
+ */
+function createReplyModal(emailId, sender, subject, useAI) {
+    // Crear ID único para el modal
+    const modalId = `email-reply-modal-${emailId}`;
+    
+    // Eliminar modal anterior si existe
+    const existingModal = document.getElementById(modalId);
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Crear estructura del modal
+    const modalHTML = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content dashboard-card border-0">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title" id="${modalId}-label">
+                            <i class="fas fa-${useAI ? 'robot' : 'reply'} me-2"></i>RE: ${subject}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label for="reply-to-${emailId}" class="form-label">Para:</label>
+                            <input type="text" class="form-control" id="reply-to-${emailId}" value="${sender}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reply-subject-${emailId}" class="form-label">Asunto:</label>
+                            <input type="text" class="form-control" id="reply-subject-${emailId}" value="RE: ${subject}">
+                        </div>
+                        ${useAI ? `
+                        <div class="mb-3 d-flex align-items-center" id="ai-loading-${emailId}">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                <span class="visually-hidden">Generando respuesta...</span>
+                            </div>
+                            <span>La IA está generando una respuesta...</span>
+                        </div>
+                        ` : ''}
+                        <div class="mb-3">
+                            <label for="reply-content-${emailId}" class="form-label">Mensaje:</label>
+                            <textarea class="form-control" id="reply-content-${emailId}" rows="8" ${useAI ? 'placeholder="La respuesta generada por IA aparecerá aquí..."' : 'placeholder="Escribe tu respuesta aquí..."'}></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn-dashboard-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        ${useAI ? `<button type="button" class="btn-dashboard-info" onclick="regenerateAIReply(${emailId})">
+                            <i class="fas fa-sync-alt me-2"></i>Regenerar respuesta
+                        </button>` : ''}
+                        <button type="button" class="btn-dashboard-primary" onclick="sendReply(${emailId})">
+                            <i class="fas fa-paper-plane me-2"></i>Enviar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Añadir modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Mostrar el modal
+    const replyModal = new bootstrap.Modal(document.getElementById(modalId));
+    replyModal.show();
+    
+    // Si es respuesta con IA, generar respuesta después de un breve retraso
+    if (useAI) {
+        setTimeout(() => {
+            const aiResponse = generateAIResponse(emailId, subject);
+            document.getElementById(`reply-content-${emailId}`).value = aiResponse;
+            document.getElementById(`ai-loading-${emailId}`).style.display = 'none';
+        }, 1500);
+    }
+}
+
+/**
+ * Generar respuesta de IA para un email
+ * @param {number} emailId - ID del email
+ * @param {string} subject - Asunto del email
+ * @returns {string} - Respuesta generada por IA
+ */
+function generateAIResponse(emailId, subject) {
+    // Simulación de respuestas generadas por IA
+    const responses = [
+        `Estimado/a cliente,\n\nGracias por su mensaje sobre "${subject}".\n\nHemos recibido su consulta y nos pondremos en contacto con usted a la mayor brevedad posible para proporcionarle toda la información que necesita.\n\nSaludos cordiales,\nEquipo de Atención al Cliente`,
+        
+        `Hola,\n\nAgradecemos su interés en nuestros servicios. En relación a su consulta sobre "${subject}", me complace informarle que estamos trabajando para darle una respuesta detallada.\n\nEn breve recibirá más información.\n\nAtentamente,\nServicio de Atención al Cliente`,
+        
+        `Estimado/a cliente,\n\nEn respuesta a su mensaje sobre "${subject}", queremos informarle que su solicitud ha sido registrada con éxito en nuestro sistema.\n\nUn miembro de nuestro equipo se pondrá en contacto con usted en las próximas 24-48 horas.\n\nGracias por su paciencia.\n\nSaludos cordiales,\nDepartamento de Atención al Cliente`
+    ];
+    
+    // Elegir una respuesta basada en el ID del email para simular consistencia
+    const responseIndex = emailId % responses.length;
+    return responses[responseIndex];
+}
+
+/**
+ * Regenerar respuesta de IA
+ * @param {number} emailId - ID del email
+ */
+function regenerateAIReply(emailId) {
+    console.log(`🔄 Regenerando respuesta IA para email ID: ${emailId}`);
+    
+    // Mostrar spinner de carga
+    const loadingDiv = document.getElementById(`ai-loading-${emailId}`);
+    if (loadingDiv) {
+        loadingDiv.style.display = 'flex';
+    } else {
+        // Crear div de carga si no existe
+        const textareaContainer = document.getElementById(`reply-content-${emailId}`).parentNode;
+        const newLoadingDiv = document.createElement('div');
+        newLoadingDiv.className = 'mb-3 d-flex align-items-center';
+        newLoadingDiv.id = `ai-loading-${emailId}`;
+        newLoadingDiv.innerHTML = `
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                <span class="visually-hidden">Regenerando respuesta...</span>
+            </div>
+            <span>La IA está generando una nueva respuesta...</span>
+        `;
+        textareaContainer.insertBefore(newLoadingDiv, textareaContainer.firstChild);
+    }
+    
+    // Limpiar textarea
+    document.getElementById(`reply-content-${emailId}`).value = '';
+    
+    // Obtener asunto del email
+    const subject = document.getElementById(`reply-subject-${emailId}`).value.replace('RE: ', '');
+    
+    // Generar nueva respuesta después de un breve retraso
+    setTimeout(() => {
+        // Generar respuesta diferente
+        const currentDate = new Date();
+        const seed = currentDate.getSeconds(); // Usar los segundos como semilla para variar la respuesta
+        const aiResponse = generateAIResponse(emailId + seed, subject);
+        
+        document.getElementById(`reply-content-${emailId}`).value = aiResponse;
+        document.getElementById(`ai-loading-${emailId}`).style.display = 'none';
+    }, 1500);
+}
+
+/**
+ * Enviar respuesta a un email
+ * @param {number} emailId - ID del email
+ */
+function sendReply(emailId) {
+    console.log(`📤 Enviando respuesta al email ID: ${emailId}`);
+    
+    const content = document.getElementById(`reply-content-${emailId}`).value.trim();
+    if (!content) {
+        toastr.warning('Por favor, escribe un mensaje antes de enviar', 'Mensaje vacío');
+        return;
+    }
+    
+    // Mostrar spinner de carga
+    toastr.info('Enviando respuesta...', 'Procesando');
+    
+    // Simular envío
+    setTimeout(() => {
+        // Cerrar modal
+        const modalElement = document.getElementById(`email-reply-modal-${emailId}`);
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Marcar email como leído si no lo estaba
+        const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
+        if (emailRow && emailRow.classList.contains('fw-bold')) {
+            toggleEmailRead(emailId);
+        }
+        
+        toastr.success('Respuesta enviada correctamente', 'Enviado');
     }, 1000);
 }
 

@@ -234,6 +234,29 @@
         </div>
     </div>
 
+    <!-- Modal para responder emails -->
+    <div class="modal fade" id="emailReplyModal" tabindex="-1" aria-labelledby="emailReplyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content dashboard-card border-0">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="emailReplyModalLabel">
+                        <i class="fas fa-reply me-2"></i>Responder Email
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="emailReplyModalBody">
+                    <!-- El contenido se cargará dinámicamente -->
+                </div>
+                <div class="modal-footer border-0" id="emailReplyModalFooter">
+                    <button type="button" class="btn-dashboard-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn-dashboard-primary" id="send-reply-btn">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Contenedor para notificaciones toast -->
     <div id="toast-container" class="position-fixed bottom-0 end-0 p-3"></div>
 
