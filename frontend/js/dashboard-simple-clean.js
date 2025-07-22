@@ -308,6 +308,59 @@ function addDashboardStyles() {
             border-bottom: 1px solid #f1f3f4;
             font-size: 0.875rem;
             vertical-align: middle;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            line-height: 1.4;
+        }
+        
+        /* Evitar corte de texto en celdas específicas */
+        .dashboard-table td:nth-child(5) {
+            white-space: normal;
+            word-break: break-word;
+            max-width: 0;
+        }
+        
+        /* Mejorar espaciado en celdas de contenido */
+        .dashboard-table .text-truncate {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: initial !important;
+        }
+        
+        /* Mejorar scroll horizontal en tablas */
+        .table-responsive {
+            border-radius: var(--border-radius);
+        }
+        
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f3f4;
+            border-radius: 4px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #c1c7cd;
+            border-radius: 4px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #a8b0b8;
+        }
+        
+        /* Asegurar que las celdas tengan altura mínima adecuada */
+        .dashboard-table td {
+            min-height: 60px;
+        }
+        
+        /* Mejorar el diseño responsive */
+        @media (max-width: 1200px) {
+            .dashboard-table {
+                min-width: 1000px;
+            }
         }
         
         .dashboard-table tbody tr {
@@ -514,16 +567,16 @@ function createCallsTabContent() {
                                 
                                 
                                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
-                                    <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
+                                    <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 1000px;">
                                         <thead>
                                             <tr>
-                                                <th style="width: 70px; font-size: 0.85rem; font-weight: 600;">Estado</th>
-                                                <th style="width: 85px; font-size: 0.85rem; font-weight: 600;">Fecha</th>
-                                                <th style="width: 110px; font-size: 0.85rem; font-weight: 600;">Teléfono</th>
-                                                <th style="width: 100px; font-size: 0.85rem; font-weight: 600;">Tipo</th>
-                                                <th style="width: auto; min-width: 300px; font-size: 0.85rem; font-weight: 600;">Resumen</th>
-                                                <th style="width: 70px; font-size: 0.85rem; font-weight: 600;">Tiempo</th>
-                                                <th style="width: 60px; text-align: center; font-size: 0.85rem; font-weight: 600;">Play</th>
+                                                <th style="width: 80px; font-size: 0.85rem; font-weight: 600;">Estado</th>
+                                                <th style="width: 110px; font-size: 0.85rem; font-weight: 600;">Fecha</th>
+                                                <th style="width: 130px; font-size: 0.85rem; font-weight: 600;">Teléfono</th>
+                                                <th style="width: 140px; font-size: 0.85rem; font-weight: 600;">Tipo</th>
+                                                <th style="width: auto; min-width: 350px; font-size: 0.85rem; font-weight: 600;">Resumen</th>
+                                                <th style="width: 90px; font-size: 0.85rem; font-weight: 600;">Tiempo</th>
+                                                <th style="width: 100px; font-size: 0.85rem; font-weight: 600; text-align: center;">Play</th>
                                             </tr>
                                         </thead>
                                         <tbody id="calls-table-body">
@@ -600,15 +653,15 @@ function createEmailsTabContent() {
                         
                         <!-- Lista de emails -->
                         <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: hidden;">
-                            <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
+                            <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 1100px;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 50px; text-align: center"><i class="fas fa-star"></i></th>
-                                        <th style="width: 150px">Remitente</th>
-                                        <th style="width: 180px">Asunto</th>
-                                        <th style="width: auto; min-width: 200px">Contenido</th>
-                                        <th style="width: 110px">Fecha</th>
-                                        <th style="width: 100px; text-align: center">Acciones</th>
+                                        <th style="width: 60px; text-align: center"><i class="fas fa-star"></i></th>
+                                        <th style="width: 180px">Remitente</th>
+                                        <th style="width: 220px">Asunto</th>
+                                        <th style="width: auto; min-width: 300px">Contenido</th>
+                                        <th style="width: 120px">Fecha</th>
+                                        <th style="width: 120px; text-align: center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
@@ -1790,8 +1843,8 @@ function createCallRow(call) {
             <div class="text-muted small mt-1">${call.confidence}%</div>
         </td>
         <td>
-            <div class="fw-medium text-dark mb-2">${call.summary}</div>
-            <div class="text-muted small lh-sm">${call.details}</div>
+            <div class="fw-medium text-dark mb-2" style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${call.summary}</div>
+            <div class="text-muted small" style="line-height: 1.4; word-wrap: break-word; white-space: normal;">${call.details}</div>
         </td>
         <td class="text-center">
             <span class="badge badge-primary">${call.duration}</span>
@@ -3163,11 +3216,11 @@ function createEmailRow(email) {
         <td>
             <div class="d-flex align-items-center">
                 ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 6px;"></i>' : ''}
-                <div class="fw-medium text-truncate">${email.subject}</div>
+                <div class="fw-medium" style="word-wrap: break-word; white-space: normal; line-height: 1.3;">${email.subject}</div>
             </div>
         </td>
         <td class="column-summary">
-            <div class="text-muted small" style="line-height: 1.3;">${email.preview}</div>
+            <div class="text-muted small" style="line-height: 1.4; word-wrap: break-word; white-space: normal;">${email.preview}</div>
         </td>
         <td>
             <div class="d-flex flex-column">
