@@ -500,6 +500,54 @@ function addDashboardStyles() {
             padding-right: 0.375rem;
         }
         
+        /* Botón robot centrado y dropdown mejorado */
+        .btn-play-call {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .btn-play-call:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .btn-play-call .fas {
+            font-size: 0.75rem;
+            margin: 0;
+        }
+        
+        /* Dropdown con z-index alto para aparecer por encima */
+        .dropdown-menu {
+            z-index: 1050 !important;
+            position: absolute !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #e0e0e0;
+            border-radius: var(--border-radius);
+        }
+        
+        .email-row .dropdown {
+            position: relative;
+        }
+        
+        .dashboard-table tbody tr {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .dashboard-table tbody tr:hover {
+            z-index: 2;
+        }
+        
         /* Sistema de tablas profesional */
         .dashboard-table {
             width: 100%;
@@ -979,8 +1027,8 @@ function createEmailsTabContent() {
                                         <th style="width: 140px; font-size: 0.75rem; font-weight: 600;">Remitente</th>
                                         <th style="width: 150px; font-size: 0.75rem; font-weight: 600;">Asunto</th>
                                         <th style="width: 250px; font-size: 0.75rem; font-weight: 600;">Contenido</th>
-                                        <th style="width: 100px; font-size: 0.75rem; font-weight: 600;">Fecha</th>
-                                        <th style="width: 80px; text-align: center; font-size: 0.75rem; font-weight: 600;">Acc.</th>
+                                        <th style="width: 80px; font-size: 0.75rem; font-weight: 600;">Fecha</th>
+                                        <th style="width: 90px; text-align: center; font-size: 0.75rem; font-weight: 600;">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
