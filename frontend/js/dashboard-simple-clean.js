@@ -246,11 +246,6 @@ function createCallsTabContent() {
                                     </div>
                                 </div>
                                 
-                                <!-- Aviso de datos de demostración -->
-                                <div class="demo-data-notice mb-3" id="calls-demo-notice">
-                                    <i class="fas fa-info-circle icon"></i>
-                                    Mostrando datos de ejemplo. Estos serán reemplazados automáticamente cuando se carguen datos reales.
-                                </div>
                                 
                                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
                                     <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
@@ -336,11 +331,6 @@ function createEmailsTabContent() {
                             </div>
                         </div>
                         
-                        <!-- Aviso de datos de demostración -->
-                        <div class="demo-data-notice mb-3" id="emails-demo-notice">
-                            <i class="fas fa-info-circle icon"></i>
-                            Mostrando datos de ejemplo. Estos serán reemplazados automáticamente cuando se carguen datos reales.
-                        </div>
                         
                         <!-- Lista de emails -->
                         <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: hidden;">
@@ -2259,6 +2249,10 @@ function setupEventListeners() {
     console.log('✅ Event listeners configurados');
 }
 
+
+
+
+
 /**
  * Inicializar el dashboard
  */
@@ -2271,8 +2265,16 @@ function initDashboard() {
     // Configurar event listeners
     setupEventListeners();
     
-    // Cargar datos de llamadas y emails
-    loadSimpleData({});
+    // Cargar datos de demostración directamente
+    if (typeof loadDemoCallsData === 'function') {
+        console.log('📞 Cargando datos de demostración para llamadas...');
+        loadDemoCallsData();
+    }
+    
+    if (typeof loadDemoEmailsData === 'function') {
+        console.log('📧 Cargando datos de demostración para emails...');
+        loadDemoEmailsData();
+    }
     
     // Cargar datos existentes del perfil y configuración desde el backend
     loadExistingData();

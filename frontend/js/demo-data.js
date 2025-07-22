@@ -162,6 +162,13 @@ function loadDemoCallsData() {
         updateCallsCount();
     }
     
+    // Inicializar dropdowns después de cargar los datos
+    if (typeof initializeDropdowns === 'function') {
+        setTimeout(() => {
+            initializeDropdowns();
+        }, 100);
+    }
+    
     console.log('✅ Datos de demostración de llamadas cargados correctamente');
 }
 
@@ -184,6 +191,13 @@ function loadDemoEmailsData() {
     // Actualizar contador
     if (typeof updateEmailsCount === 'function') {
         updateEmailsCount();
+    }
+    
+    // Inicializar dropdowns después de cargar los datos
+    if (typeof initializeDropdowns === 'function') {
+        setTimeout(() => {
+            initializeDropdowns();
+        }, 100);
     }
     
     console.log('✅ Datos de demostración de emails cargados correctamente');
