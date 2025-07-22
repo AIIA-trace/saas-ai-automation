@@ -841,14 +841,6 @@ function createCallsTabContent() {
                 <div class="row">
                     <div class="col-12">
                         <div class="dashboard-card">
-                            <div class="card-header">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title"><i class="fas fa-phone me-2"></i>Registro de Llamadas</h5>
-                                    <button class="btn-dashboard-primary" id="refresh-calls-btn">
-                                        <i class="fas fa-sync-alt me-2"></i>Actualizar
-                                    </button>
-                                </div>
-                            </div>
                             <div class="card-body p-0">
                                 <!-- Filtros de Clasificación -->
                                 <div class="filter-container">
@@ -907,13 +899,13 @@ function createCallsTabContent() {
                                     <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 1000px;">
                                         <thead>
                                             <tr>
-                                                <th style="width: 80px; font-size: 0.85rem; font-weight: 600;">Estado</th>
-                                                <th style="width: 110px; font-size: 0.85rem; font-weight: 600;">Fecha</th>
-                                                <th style="width: 130px; font-size: 0.85rem; font-weight: 600;">Teléfono</th>
-                                                <th style="width: 140px; font-size: 0.85rem; font-weight: 600;">Tipo</th>
-                                                <th style="width: auto; min-width: 350px; font-size: 0.85rem; font-weight: 600;">Resumen</th>
-                                                <th style="width: 90px; font-size: 0.85rem; font-weight: 600;">Tiempo</th>
-                                                <th style="width: 100px; font-size: 0.85rem; font-weight: 600; text-align: center;">Play</th>
+                                                <th style="width: 80px; font-size: 0.75rem; font-weight: 600;">Estado</th>
+                                                <th style="width: 110px; font-size: 0.75rem; font-weight: 600;">Fecha</th>
+                                                <th style="width: 130px; font-size: 0.75rem; font-weight: 600;">Teléfono</th>
+                                                <th style="width: 140px; font-size: 0.75rem; font-weight: 600;">Tipo</th>
+                                                <th style="width: 300px; font-size: 0.75rem; font-weight: 600;">Resumen</th>
+                                                <th style="width: 110px; font-size: 0.75rem; font-weight: 600;">Tiempo</th>
+                                                <th style="width: 120px; font-size: 0.75rem; font-weight: 600; text-align: center;">Play</th>
                                             </tr>
                                         </thead>
                                         <tbody id="calls-table-body">
@@ -941,16 +933,6 @@ function createEmailsTabContent() {
         <div class="tab-pane animate-fadeIn" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title"><i class="fas fa-envelope me-2"></i>Gestión de Emails <span class="badge-dashboard badge-primary ms-2" id="email-count">0</span></h5>
-                            <div>
-                                <button class="btn-dashboard-primary" id="refresh-emails-btn">
-                                    <i class="fas fa-sync me-2"></i>Actualizar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                     <div class="card-body p-0">
                         <!-- Filtros de emails -->
                         <div class="dashboard-filters p-3 border-bottom">
@@ -996,9 +978,9 @@ function createEmailsTabContent() {
                                         <th style="width: 40px; text-align: center; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-star"></i></th>
                                         <th style="width: 140px; font-size: 0.75rem; font-weight: 600;">Remitente</th>
                                         <th style="width: 150px; font-size: 0.75rem; font-weight: 600;">Asunto</th>
-                                        <th style="width: auto; font-size: 0.75rem; font-weight: 600;">Contenido</th>
-                                        <th style="width: 85px; font-size: 0.75rem; font-weight: 600;">Fecha</th>
-                                        <th style="width: 60px; text-align: center; font-size: 0.75rem; font-weight: 600;">Acc.</th>
+                                        <th style="width: 250px; font-size: 0.75rem; font-weight: 600;">Contenido</th>
+                                        <th style="width: 100px; font-size: 0.75rem; font-weight: 600;">Fecha</th>
+                                        <th style="width: 80px; text-align: center; font-size: 0.75rem; font-weight: 600;">Acc.</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
