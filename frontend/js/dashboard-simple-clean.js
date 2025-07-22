@@ -384,6 +384,25 @@ function addDashboardStyles() {
             display: none !important;
         }
         
+        /* Estilos específicos para reducir tipografías en emails */
+        #emails-content .dashboard-table {
+            font-size: 0.85rem;
+        }
+        
+        #emails-content .dashboard-table th {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        #emails-content .dashboard-table td {
+            font-size: 0.85rem;
+            padding: 0.6rem 0.75rem;
+        }
+        
+        #emails-content .badge {
+            font-size: 0.6rem;
+        }
+        
         .dashboard-table tbody tr {
             transition: var(--transition);
         }
@@ -699,12 +718,12 @@ function createEmailsTabContent() {
                             <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 1400px;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 70px; text-align: center"><i class="fas fa-star"></i></th>
-                                        <th style="width: 220px">Remitente</th>
-                                        <th style="width: 280px">Asunto</th>
-                                        <th style="width: auto; min-width: 450px">Contenido</th>
-                                        <th style="width: 130px">Fecha</th>
-                                        <th style="width: 150px; text-align: center">Acciones</th>
+                                        <th style="width: 70px; text-align: center; font-size: 0.8rem; font-weight: 600;"><i class="fas fa-star"></i></th>
+                                        <th style="width: 220px; font-size: 0.8rem; font-weight: 600;">Remitente</th>
+                                        <th style="width: 280px; font-size: 0.8rem; font-weight: 600;">Asunto</th>
+                                        <th style="width: auto; min-width: 450px; font-size: 0.8rem; font-weight: 600;">Contenido</th>
+                                        <th style="width: 130px; font-size: 0.8rem; font-weight: 600;">Fecha</th>
+                                        <th style="width: 150px; text-align: center; font-size: 0.8rem; font-weight: 600;">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
@@ -3353,23 +3372,23 @@ function createEmailRow(email) {
         </td>
         <td>
             <div class="d-flex flex-column">
-                <div class="fw-medium" style="word-wrap: break-word; white-space: normal; line-height: 1.3;">${email.sender}</div>
-                ${email.senderType ? `<span class="badge badge-primary" style="font-size: 0.65rem; padding: 0.2rem 0.4rem; margin-top: 0.25rem; width: fit-content;">${email.senderType}</span>` : ''}
+                <div class="fw-medium" style="font-size: 0.85rem; word-wrap: break-word; white-space: normal; line-height: 1.3;">${email.sender}</div>
+                ${email.senderType ? `<span class="badge badge-primary" style="font-size: 0.6rem; padding: 0.15rem 0.35rem; margin-top: 0.2rem; width: fit-content;">${email.senderType}</span>` : ''}
             </div>
         </td>
         <td>
             <div class="d-flex align-items-center">
-                ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 6px;"></i>' : ''}
-                <div class="fw-medium" style="word-wrap: break-word; white-space: normal; line-height: 1.3;">${email.subject}</div>
+                ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 5px;"></i>' : ''}
+                <div class="fw-medium" style="font-size: 0.85rem; word-wrap: break-word; white-space: normal; line-height: 1.3;">${email.subject}</div>
             </div>
         </td>
         <td class="column-summary">
-            <div class="text-muted small" style="line-height: 1.4; word-wrap: break-word; white-space: normal;">${email.preview}</div>
+            <div class="text-muted" style="font-size: 0.8rem; line-height: 1.4; word-wrap: break-word; white-space: normal;">${email.preview}</div>
         </td>
         <td>
             <div class="d-flex flex-column">
-                <div class="small">${email.date}</div>
-                <div class="text-muted small">${email.time}</div>
+                <div style="font-size: 0.8rem;">${email.date}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">${email.time}</div>
             </div>
         </td>
         <td class="column-actions text-center">
@@ -3377,24 +3396,24 @@ function createEmailRow(email) {
                 <button class="btn btn-sm btn-outline-secondary" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 40px; padding: 0.375rem 0.5rem;" title="Acciones de IA">
                     <i class="fas fa-robot"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="emailActions${email.id}">
-                    <li><a class="dropdown-item" href="#" onclick="viewEmailDetails(${email.id}); return false;">
-                        <i class="fas fa-eye me-2"></i> Ver detalles
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="emailActions${email.id}" style="font-size: 0.85rem;">
+                    <li><a class="dropdown-item" href="#" onclick="viewEmailDetails(${email.id}); return false;" style="font-size: 0.85rem;">
+                        <i class="fas fa-eye me-2" style="font-size: 0.8rem;"></i> Ver detalles
                     </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="replyToEmail(${email.id}); return false;">
-                        <i class="fas fa-reply me-2"></i> Responder
+                    <li><a class="dropdown-item" href="#" onclick="replyToEmail(${email.id}); return false;" style="font-size: 0.85rem;">
+                        <i class="fas fa-reply me-2" style="font-size: 0.8rem;"></i> Responder
                     </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="replyWithAI(${email.id}); return false;">
-                        <i class="fas fa-robot me-2"></i> Responder con IA
+                    <li><a class="dropdown-item" href="#" onclick="replyWithAI(${email.id}); return false;" style="font-size: 0.85rem;">
+                        <i class="fas fa-robot me-2" style="font-size: 0.8rem;"></i> Responder con IA
                     </a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" onclick="toggleEmailRead(${email.id}); return false;">
-                        <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'} me-2"></i> 
+                    <li><a class="dropdown-item" href="#" onclick="toggleEmailRead(${email.id}); return false;" style="font-size: 0.85rem;">
+                        <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'} me-2" style="font-size: 0.8rem;"></i> 
                         ${email.read ? 'Marcar como no leído' : 'Marcar como leído'}
                     </a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteEmail(${email.id}); return false;">
-                        <i class="fas fa-trash-alt me-2"></i> Eliminar
+                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteEmail(${email.id}); return false;" style="font-size: 0.85rem;">
+                        <i class="fas fa-trash-alt me-2" style="font-size: 0.8rem;"></i> Eliminar
                     </a></li>
                 </ul>
             </div>
