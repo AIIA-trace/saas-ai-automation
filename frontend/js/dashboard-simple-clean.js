@@ -125,107 +125,339 @@ function addDashboardStyles() {
     if (document.getElementById('dashboard-styles')) return;
     
     // Crear elemento de estilo
-    const styleEl = document.createElement('style');
-    styleEl.id = 'dashboard-styles';
-    styleEl.textContent = `
-        .file-status {
-            margin-top: 5px;
-            min-height: 20px;
-        }
-        .file-status small {
-            font-size: 0.75rem;
-            line-height: 1.2;
-        }
-        .form-section {
-            margin-bottom: 1.5rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid #eee;
-        }
-        .form-section:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-        .form-section h6 {
-            margin-bottom: 1rem;
-            color: #495057;
-        }
-        
-        /* Estilos para el widget de resumen de uso */
-        .usage-summary-widget {
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 1px solid rgba(0,0,0,0.1);
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Variables CSS unificadas con la landing page */
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4cc9f0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --primary-gradient: linear-gradient(135deg, #4361ee 0%, #4cc9f0 100%);
+            --secondary-gradient: linear-gradient(135deg, #3f37c9 0%, #4361ee 100%);
+            --primary-subtle: rgba(67, 97, 238, 0.1);
+            --success-subtle: rgba(40, 167, 69, 0.1);
+            --danger-subtle: rgba(220, 53, 69, 0.1);
+            --border-radius: 12px;
+            --border-radius-sm: 8px;
+            --border-radius-lg: 16px;
+            --border-radius-xl: 24px;
+            --border-radius-pill: 30px;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --transition: all 0.3s ease;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         
-        .usage-summary-widget:hover {
-            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        /* Reset y estilos base */
+        * {
+            box-sizing: border-box;
         }
         
-        .usage-summary-widget .progress {
-            border-radius: 4px;
-            margin-top: 2px;
-            margin-bottom: 8px;
-            background-color: #f0f0f0;
+        body {
+            font-family: var(--font-family);
+            line-height: 1.6;
+            color: var(--dark-color);
         }
         
-        /* Estilo para resaltar secciones */
-        .highlight-section {
-            animation: highlight-pulse 2s ease;
-        }
-        
-        @keyframes highlight-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.5); }
-            70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
-        }
-        
-        /* Estilos para el plan-usage-section */
-        #plan-usage-section {
-            transition: all 0.3s ease;
-            border-radius: 8px;
-        }
-        
-        #plan-usage-section.highlight-section {
-            background-color: rgba(13, 110, 253, 0.05);
-        }
-        
-        /* Estilos para mejorar la visualización de títulos de tablas */
-        .dashboard-table th {
-            white-space: nowrap;
-            overflow: visible;
-            text-overflow: unset;
-            padding: 12px 8px;
-            font-size: 0.875rem;
+        /* Sistema de botones unificado */
+        .btn {
+            border-radius: var(--border-radius-pill);
+            padding: 0.5rem 1.5rem;
             font-weight: 600;
-            line-height: 1.2;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-family: var(--font-family);
+        }
+        
+        .btn-sm {
+            padding: 0.375rem 1rem;
+            font-size: 0.8rem;
+        }
+        
+        .btn-lg {
+            padding: 0.8rem 2rem;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn-primary:hover {
+            background: var(--secondary-gradient);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-outline-primary {
+            background: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+        
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+        
+        .btn-ghost {
+            background: transparent;
+            color: var(--dark-color);
+            border: 1px solid #e9ecef;
+        }
+        
+        .btn-ghost:hover {
+            background: var(--light-color);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        /* Botones de acción específicos */
+        .btn-play-call {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 0.5rem;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            font-size: 1rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-play-call:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: var(--shadow);
+        }
+        
+        /* Sistema de tablas profesional */
+        .dashboard-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .dashboard-table th {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: var(--dark-color);
+            font-weight: 600;
+            font-size: 0.875rem;
+            padding: 1rem 0.75rem;
+            text-align: left;
+            border: none;
+            white-space: nowrap;
+            position: relative;
+        }
+        
+        .dashboard-table th:first-child {
+            border-top-left-radius: var(--border-radius);
+        }
+        
+        .dashboard-table th:last-child {
+            border-top-right-radius: var(--border-radius);
         }
         
         .dashboard-table td {
-            padding: 8px;
+            padding: 0.875rem 0.75rem;
+            border: none;
+            border-bottom: 1px solid #f1f3f4;
+            font-size: 0.875rem;
             vertical-align: middle;
         }
         
-        /* Asegurar que las columnas con ancho fijo no se compriman demasiado */
-        .dashboard-table {
-            min-width: 900px;
+        .dashboard-table tbody tr {
+            transition: var(--transition);
         }
         
-        /* Prevenir que los títulos se corten */
-        .dashboard-table th {
-            min-width: fit-content;
+        .dashboard-table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.02);
         }
         
-        /* Mejorar la legibilidad en pantallas pequeñas */
-        @media (max-width: 768px) {
-            .dashboard-table th {
-                font-size: 0.75rem;
-                padding: 8px 4px;
-            }
+        .dashboard-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Sistema de badges unificado */
+        .badge {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: var(--border-radius-pill);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-success {
+            background: var(--success-subtle);
+            color: var(--success-color);
+        }
+        
+        .badge-warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: #856404;
+        }
+        
+        .badge-danger {
+            background: var(--danger-subtle);
+            color: var(--danger-color);
+        }
+        
+        .badge-primary {
+            background: var(--primary-subtle);
+            color: var(--primary-color);
+        }
+        
+        /* Checkboxes personalizados */
+        .custom-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #dee2e6;
+            border-radius: var(--border-radius-sm);
+            background: white;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+        
+        .custom-checkbox.checked {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .custom-checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        /* Formularios y inputs */
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            font-family: var(--font-family);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+            outline: none;
+        }
+        
+        .form-control::placeholder {
+            color: #6c757d;
+            font-style: italic;
+            opacity: 0.8;
+        }
+        
+        /* Cards y contenedores */
+        .dashboard-card {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow);
+            border: none;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: none;
+            padding: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin: 0;
+        }
+        
+        /* Modales profesionales */
+        .modal-content {
+            border: none;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: none;
+            padding: 1.5rem;
+            border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+        }
+        
+        .modal-title {
+            font-weight: 700;
+            color: var(--dark-color);
+        }
+        
+        .modal-body {
+            padding: 2rem;
+        }
+        
+        .modal-footer {
+            background: #f8f9fa;
+            border: none;
+            padding: 1.5rem;
+            border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
         }
     `;
     
     // Agregar estilos al head
-    document.head.appendChild(styleEl);
+    style.id = 'dashboard-styles';
+    document.head.appendChild(style);
 }
 
 /**
@@ -285,13 +517,13 @@ function createCallsTabContent() {
                                     <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
                                         <thead>
                                             <tr>
-                                                <th style="width: 90px">Gestionado</th>
-                                                <th style="width: 110px">Fecha</th>
-                                                <th style="width: 120px">Número</th>
-                                                <th style="width: 160px">Clasificación IA</th>
-                                                <th style="width: auto; min-width: 200px">Resumen</th>
-                                                <th style="width: 80px">Duración</th>
-                                                <th style="width: 90px">Acciones</th>
+                                                <th style="width: 70px; font-size: 0.85rem; font-weight: 600;">Estado</th>
+                                                <th style="width: 85px; font-size: 0.85rem; font-weight: 600;">Fecha</th>
+                                                <th style="width: 110px; font-size: 0.85rem; font-weight: 600;">Teléfono</th>
+                                                <th style="width: 100px; font-size: 0.85rem; font-weight: 600;">Tipo</th>
+                                                <th style="width: auto; min-width: 300px; font-size: 0.85rem; font-weight: 600;">Resumen</th>
+                                                <th style="width: 70px; font-size: 0.85rem; font-weight: 600;">Tiempo</th>
+                                                <th style="width: 60px; text-align: center; font-size: 0.85rem; font-weight: 600;">Play</th>
                                             </tr>
                                         </thead>
                                         <tbody id="calls-table-body">
@@ -1537,63 +1769,39 @@ function createCallRow(call) {
         row.dataset.urgent = 'true';
     }
     
-    // Columna de checkbox gestionado
+    // Crear checkbox personalizado
     let checkboxClass = 'custom-checkbox';
     if (call.managed) checkboxClass += ' checked';
     
     row.innerHTML = `
-        <td class="column-status text-center">
+        <td class="text-center">
             <div class="${checkboxClass}" id="call-managed-${call.id}" onclick="toggleCheckbox(this)"></div>
         </td>
         <td>
-            <div class="d-flex flex-column">
-                <div class="fw-medium small">${call.date}</div>
-                <div class="text-muted small" style="font-size: 0.7rem;">${call.time}</div>
-            </div>
+            <div class="fw-semibold text-dark mb-1">${call.date}</div>
+            <div class="text-muted small">${call.time}</div>
         </td>
         <td>
-            <div class="d-flex flex-column">
-                <div class="fw-medium small">${call.phone}</div>
-                <div class="text-muted small" style="font-size: 0.7rem;">${call.contactType}</div>
-            </div>
+            <div class="fw-semibold text-dark mb-1">${call.phone}</div>
+            <div class="text-muted small">${call.contactType}</div>
         </td>
         <td>
-            <div class="d-flex flex-column">
-                ${getClassificationBadge(call.classification, call.urgency)}
-                <div class="text-muted small" style="font-size: 0.7rem;">Confianza: ${call.confidence}%</div>
-            </div>
-        </td>
-        <td class="column-summary">
-            <div class="d-flex flex-column">
-                <div class="fw-medium">${call.summary}</div>
-                <div class="text-muted small">${call.details}</div>
-            </div>
+            ${getClassificationBadge(call.classification, call.urgency)}
+            <div class="text-muted small mt-1">${call.confidence}%</div>
         </td>
         <td>
-            <span class="badge-dashboard" style="background: var(--primary-gradient)">${call.duration}</span>
+            <div class="fw-medium text-dark mb-2">${call.summary}</div>
+            <div class="text-muted small lh-sm">${call.details}</div>
         </td>
-        <td class="column-actions">
-            <div class="dropdown">
-                <button class="action-btn" type="button" id="callActions${call.id}" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="callActions${call.id}">
-                    <li><a class="dropdown-item" href="#" onclick="playCallRecording(${call.id}); return false;">
-                        <i class="fas fa-play me-2"></i> Reproducir grabación
-                    </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="viewCallDetails(${call.id}); return false;">
-                        <i class="fas fa-eye me-2"></i> Ver detalles
-                    </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="toggleCallManaged(${call.id}); return false;">
-                        <i class="fas fa-check me-2"></i> ${call.managed ? 'Desmarcar gestionado' : 'Marcar gestionado'}
-                    </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="toggleCallImportant(${call.id}); return false;">
-                        <i class="far fa-star me-2"></i> Marcar importante
-                    </a></li>
-                </ul>
-            </div>
+        <td class="text-center">
+            <span class="badge badge-primary">${call.duration}</span>
         </td>
-    `;
+        <td class="text-center">
+            <button class="btn-play-call" onclick="playCallRecording(${call.id})" title="Reproducir llamada">
+                <i class="fas fa-robot me-1"></i><i class="fas fa-play" style="font-size: 0.8rem;"></i>
+            </button>
+        </td>
+    `
     
     return row;
 }
@@ -1611,35 +1819,35 @@ function getClassificationBadge(classification, urgency) {
     // Badge de clasificación
     switch (classification) {
         case 'pedido':
-            classificationBadge = '<span class="badge-dashboard badge-pedido mb-1">📦 PEDIDO</span>';
+            classificationBadge = '<span class="badge badge-primary mb-1">📦 PEDIDO</span>';
             break;
         case 'consulta':
-            classificationBadge = '<span class="badge-dashboard badge-consulta mb-1">❓ CONSULTA</span>';
+            classificationBadge = '<span class="badge badge-primary mb-1">❓ CONSULTA</span>';
             break;
         case 'reclamación':
-            classificationBadge = '<span class="badge-dashboard badge-reclamacion mb-1">⚠️ RECLAMACIÓN</span>';
+            classificationBadge = '<span class="badge badge-warning mb-1">⚠️ RECLAMACIÓN</span>';
             break;
         default:
-            classificationBadge = `<span class="badge-dashboard mb-1">${classification.toUpperCase()}</span>`;
+            classificationBadge = `<span class="badge badge-primary mb-1">${classification.toUpperCase()}</span>`;
     }
     
     // Badge de urgencia
     switch (urgency) {
         case 'urgente':
-            urgencyBadge = '<span class="badge-dashboard badge-urgente">🚨 URGENTE</span>';
+            urgencyBadge = '<span class="badge badge-danger">🚨 URGENTE</span>';
             break;
         case 'alta':
-            urgencyBadge = '<span class="badge-dashboard badge-alta">ALTA</span>';
+            urgencyBadge = '<span class="badge badge-warning">ALTA</span>';
             break;
         case 'normal':
-            urgencyBadge = '<span class="badge-dashboard badge-normal">NORMAL</span>';
+            urgencyBadge = '<span class="badge badge-success">NORMAL</span>';
             break;
         case 'baja':
-            urgencyBadge = '<span class="badge-dashboard badge-baja">BAJA</span>';
+            urgencyBadge = '<span class="badge badge-success">BAJA</span>';
             break;
         default:
             if (urgency) {
-                urgencyBadge = `<span class="badge-dashboard">${urgency.toUpperCase()}</span>`;
+                urgencyBadge = `<span class="badge badge-primary">${urgency.toUpperCase()}</span>`;
             }
     }
     
@@ -3527,49 +3735,62 @@ function viewEmailDetails(emailId) {
         existingModal.remove();
     }
     
-    // Crear estructura del modal
+    // Crear estructura del modal con diseño profesional
     const modalHTML = `
         <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}-label" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content dashboard-card border-0">
-                    <div class="modal-header border-0">
-                        <h5 class="modal-title" id="${modalId}-label">
-                            <i class="fas fa-envelope me-2"></i>${subject}
-                        </h5>
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle me-3" style="width: 40px; height: 40px; background: var(--primary-gradient); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div>
+                                <h5 class="modal-title mb-0" id="${modalId}-label">${subject}</h5>
+                                <small class="text-muted">Detalles del mensaje</small>
+                            </div>
+                        </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body p-4">
-                        <div class="d-flex justify-content-between mb-4">
-                            <div>
-                                <div class="d-flex align-items-center">
-                                    <div class="icon-circle bg-primary text-white me-3">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fw-medium">${sender}</div>
-                                        ${senderType ? `<span class="badge-dashboard badge-primary mt-1">${senderType}</span>` : ''}
+                    <div class="modal-body">
+                        <!-- Header del email -->
+                        <div class="email-header p-4 mb-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: var(--border-radius); border-left: 4px solid var(--primary-color);">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-3" style="width: 50px; height: 50px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.2rem;">
+                                            ${sender.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold text-dark mb-1">${sender}</div>
+                                            ${senderType ? `<span class="badge badge-primary">${senderType}</span>` : ''}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="text-end">
-                                <div class="fw-medium">${date}</div>
-                                <div class="text-muted small">${time}</div>
+                                <div class="col-md-4 text-end">
+                                    <div class="fw-semibold text-dark">${date}</div>
+                                    <div class="text-muted small">${time}</div>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="dashboard-card p-3">
-                            <div class="email-content">${formattedContent}</div>
+                        <!-- Contenido del email -->
+                        <div class="email-body">
+                            <div class="dashboard-card p-4">
+                                <div class="email-content" style="line-height: 1.6; font-size: 1rem; color: var(--dark-color);">
+                                    ${formattedContent}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="modal-footer border-0">
-                        <button type="button" class="btn-dashboard-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        <button type="button" class="btn-dashboard-primary reply-btn" onclick="replyToEmail(${emailId})">
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>Cerrar
+                        </button>
+                        <button type="button" class="btn btn-primary reply-btn">
                             <i class="fas fa-reply me-2"></i>Responder
                         </button>
-                        <button type="button" class="btn-dashboard-info reply-with-ai-btn" onclick="replyWithAI(${emailId})">
-                            <i class="fas fa-robot me-2"></i>Responder con IA
-                        </button>
-                        <button type="button" class="btn-dashboard-success forward-btn">
+                        <button type="button" class="btn btn-outline-primary forward-btn">
                             <i class="fas fa-share me-2"></i>Reenviar
                         </button>
                     </div>
@@ -3655,7 +3876,7 @@ function viewEmailHistory(emailId) {
                     subject: 'RE: Consulta sobre productos',
                     from: 'soporte@techsolutions.com',
                     to: 'cliente@example.com',
-                    content: 'Estimado cliente, gracias por su respuesta. Adjunto encontrará el catálogo actualizado con los precios que solicitó. Quedamos a su disposición para cualquier duda adicional.',
+                    content: 'Estimado cliente, gracias por su respuesta. Adjunto encontrará el catálogo actualizado con los precios que solicitó.',
                     direction: 'outgoing'
                 },
                 {
@@ -3670,69 +3891,54 @@ function viewEmailHistory(emailId) {
                 {
                     id: emailId + '-1',
                     date: new Date(Date.now() - 10800000).toLocaleString(),
-                    subject: 'RE: Consulta sobre productos',
-                    from: 'soporte@techsolutions.com',
-                    to: 'cliente@example.com',
-                    content: 'Estimado cliente, hemos recibido su consulta sobre nuestros productos. Adjunto encontrará nuestro catálogo con toda la información solicitada. No dude en contactarnos si necesita más detalles.',
-                    direction: 'outgoing'
-                },
-                {
-                    id: emailId + '-0',
-                    date: new Date(Date.now() - 14400000).toLocaleString(),
                     subject: 'Consulta sobre productos',
                     from: 'cliente@example.com',
                     to: 'soporte@techsolutions.com',
-                    content: 'Hola, estoy interesado en conocer más detalles sobre sus productos y servicios. ¿Podrían enviarme un catálogo o información adicional? Gracias de antemano.',
+                    content: 'Buenos días, me gustaría obtener información sobre sus productos y servicios.',
                     direction: 'incoming'
                 }
             ];
             
-            // Actualizar contenido del modal
-            historyContent.innerHTML = `
-                <div class="email-thread">
-                    ${emailHistory.map(email => `
-                        <div class="card border-0 shadow-sm mb-3 ${email.direction === 'incoming' ? 'border-start border-primary' : 'border-start border-success'}">
-                            <div class="card-header bg-transparent">
-                                <div class="row align-items-center">
-                                    <div class="col">
-                                        <strong>${email.direction === 'incoming' ? email.from : email.to}</strong>
-                                        <span class="text-muted ms-2">${email.date}</span>
-                                    </div>
-                                    <div class="col-auto">
-                                        <span class="badge ${email.direction === 'incoming' ? 'bg-primary' : 'bg-success'}">
-                                            ${email.direction === 'incoming' ? 'Recibido' : 'Enviado'}
-                                        </span>
-                                    </div>
-                                </div>
+            // Generar HTML del historial
+            let historyHTML = '';
+            emailHistory.forEach(email => {
+                const isOutgoing = email.direction === 'outgoing';
+                const directionIcon = isOutgoing ? '📤' : '📥';
+                const directionText = isOutgoing ? 'Enviado' : 'Recibido';
+                const cardClass = isOutgoing ? 'border-primary' : 'border-success';
+                
+                historyHTML += `
+                    <div class="card ${cardClass} mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${email.subject}</strong>
+                                <span class="badge ${isOutgoing ? 'badge-primary' : 'badge-success'} ms-2">
+                                    ${directionIcon} ${directionText}
+                                </span>
                             </div>
-                            <div class="card-body">
-                                <h5 class="card-title">${email.subject}</h5>
-                                <p class="card-text">${email.content}</p>
+                            <small class="text-muted">${email.date}</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <div><strong>De:</strong> ${email.from}</div>
+                                <div><strong>Para:</strong> ${email.to}</div>
+                            </div>
+                            <div class="mt-3">
+                                <p class="mb-0">${email.content}</p>
                             </div>
                         </div>
-                    `).join('')}
-                </div>
-                
-                <div class="mt-4">
-                    <button type="button" class="btn btn-primary ai-reply-btn" data-id="${emailId}">
-                        <i class="fas fa-robot me-2"></i>Responder con IA
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary ms-2 manual-reply-btn" data-id="${emailId}">
-                        <i class="fas fa-edit me-2"></i>Responder manualmente
-                    </button>
-                    <button type="button" class="btn btn-outline-success ms-2" onclick="markEmailAsRead(${emailId})">
-                        <i class="fas fa-check me-2"></i>Marcar como leído
-                    </button>
-                </div>
-            `;
+                    </div>
+                `;
+            });
+            
+            historyContent.innerHTML = historyHTML;
         }, 1000);
     }
     
-    // Mostrar modal
     historyModal.show();
-    
-    toastr.info('Cargando historial del email...', 'Historial');
 }
+
+
 
 /**
  * Marcar email como leído
