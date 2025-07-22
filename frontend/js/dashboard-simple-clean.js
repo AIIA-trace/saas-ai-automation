@@ -562,6 +562,130 @@ function addDashboardStyles() {
             justify-content: center;
         }
         
+        /* Estilos unificados para formularios */
+        .form-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.375rem;
+        }
+        
+        .form-control, .form-select {
+            font-size: 0.75rem;
+            padding: 0.375rem 0.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: var(--border-radius);
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25);
+        }
+        
+        .form-control::placeholder {
+            color: #6c757d;
+            font-size: 0.75rem;
+        }
+        
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-check-label {
+            font-size: 0.75rem;
+            color: #495057;
+        }
+        
+        .form-check-input {
+            margin-top: 0.125rem;
+        }
+        
+        .text-muted, small.text-muted {
+            font-size: 0.7rem;
+            color: #6c757d !important;
+        }
+        
+        /* Botones unificados */
+        .btn {
+            font-size: 0.75rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            transition: all 0.15s ease-in-out;
+        }
+        
+        .btn-sm {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .btn-lg {
+            font-size: 0.8rem;
+            padding: 0.5rem 1rem;
+        }
+        
+        /* Botón de conectar cuenta de correo más compacto */
+        .btn-connect-email {
+            max-width: 300px;
+            margin: 0 auto;
+            display: block;
+        }
+        
+        /* Cards y secciones unificadas */
+        .card-header h6, .card-header h5 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+        
+        .card-header h6 i, .card-header h5 i {
+            font-size: 0.8rem;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .card-header {
+            padding: 0.75rem 1rem;
+        }
+        
+        /* Espaciado consistente */
+        .row.g-3 > * {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        /* Nav tabs más compactas */
+        .nav-tabs .nav-link {
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .nav-tabs .nav-link i {
+            font-size: 0.7rem;
+        }
+        
+        /* Checkboxes de horario comercial */
+        .business-hours-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        
+        .business-hours-checkboxes .form-check {
+            margin-right: 0;
+            margin-bottom: 0;
+        }
+        
+        .business-hours-checkboxes .form-check-label {
+            font-size: 0.7rem;
+            padding-left: 0.25rem;
+        }
+        
         /* Sistema de tablas profesional */
         .dashboard-table {
             width: 100%;
@@ -1154,7 +1278,7 @@ function createBotConfigTabContent() {
                                             <input type="hidden" id="business_hours" name="business_hours" value="Lun-Vie: 9:00-18:00">
                                             <div class="card border-light mb-2">
                                                 <div class="card-body p-3">
-                                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                                    <div class="business-hours-checkboxes mb-3">
                                                         <div class="form-check">
                                                             <input class="form-check-input business-day" type="checkbox" id="day-mon" data-day="Lun" checked>
                                                             <label class="form-check-label" for="day-mon">Lun</label>
@@ -1330,8 +1454,8 @@ function createBotConfigTabContent() {
                                                     </div>
                                                     
                                                     <div id="email-oauth-section" class="mt-3">
-                                                        <div class="d-grid gap-2 mb-3">
-                                                            <button type="button" class="btn btn-outline-primary" id="connect-email-btn" disabled>
+                                                        <div class="text-center mb-3">
+                                                            <button type="button" class="btn btn-outline-primary btn-connect-email" id="connect-email-btn" disabled>
                                                                 <i class="fas fa-link me-2"></i>Conectar cuenta de correo
                                                             </button>
                                                         </div>
