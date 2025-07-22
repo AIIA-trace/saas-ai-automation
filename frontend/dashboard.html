@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/pricing-cards.css">
     <link rel="stylesheet" href="css/table-optimizations.css">
     <link rel="stylesheet" href="css/table-optimizations-responsive.css">
+    <link rel="stylesheet" href="css/demo-data.css">
 </head>
 <body>
     <div class="d-flex dashboard-container" id="wrapper">
@@ -74,7 +75,6 @@
                     
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <div class="ms-auto d-flex align-items-center">
-                            <span class="badge rounded-pill me-3" style="background: var(--primary-gradient)">Plan: <span id="user-plan">Profesional</span></span>
                             <div class="dropdown">
                                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown">
                                     <div class="d-flex align-items-center justify-content-center bg-light rounded-circle me-2" style="width: 32px; height: 32px;">
@@ -288,6 +288,28 @@
     
     <!-- Main Dashboard Script (versión modular y limpia) -->
     <script src="js/dashboard-simple-clean.js?v=20250720"></script>
+    
+    <!-- Script de datos de demostración -->
+    <script src="js/demo-data.js"></script>
+    
+    <!-- Inicializar datos de demostración -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Añadir clase de demostración a las tablas
+            const callsTable = document.getElementById('calls-table');
+            const emailsTable = document.getElementById('emails-table');
+            
+            if (callsTable) callsTable.classList.add('demo-data');
+            if (emailsTable) emailsTable.classList.add('demo-data');
+            
+            // Inicializar datos de demostración después de un breve retraso
+            setTimeout(function() {
+                if (typeof initDemoData === 'function') {
+                    initDemoData();
+                }
+            }, 500);
+        });
+    </script>
     
     <script>
         // Configuración de toastr

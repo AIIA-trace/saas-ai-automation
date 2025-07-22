@@ -188,6 +188,40 @@ function addDashboardStyles() {
         #plan-usage-section.highlight-section {
             background-color: rgba(13, 110, 253, 0.05);
         }
+        
+        /* Estilos para mejorar la visualización de títulos de tablas */
+        .dashboard-table th {
+            white-space: nowrap;
+            overflow: visible;
+            text-overflow: unset;
+            padding: 12px 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+        
+        .dashboard-table td {
+            padding: 8px;
+            vertical-align: middle;
+        }
+        
+        /* Asegurar que las columnas con ancho fijo no se compriman demasiado */
+        .dashboard-table {
+            min-width: 900px;
+        }
+        
+        /* Prevenir que los títulos se corten */
+        .dashboard-table th {
+            min-width: fit-content;
+        }
+        
+        /* Mejorar la legibilidad en pantallas pequeñas */
+        @media (max-width: 768px) {
+            .dashboard-table th {
+                font-size: 0.75rem;
+                padding: 8px 4px;
+            }
+        }
     `;
     
     // Agregar estilos al head
@@ -251,12 +285,12 @@ function createCallsTabContent() {
                                     <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
                                         <thead>
                                             <tr>
-                                                <th style="width: 70px">Gestionado</th>
-                                                <th style="width: 100px">Fecha</th>
-                                                <th style="width: 110px">Número</th>
-                                                <th style="width: 130px">Clasificación IA</th>
-                                                <th style="width: auto; min-width: 250px">Resumen</th>
-                                                <th style="width: 70px">Duración</th>
+                                                <th style="width: 90px">Gestionado</th>
+                                                <th style="width: 110px">Fecha</th>
+                                                <th style="width: 120px">Número</th>
+                                                <th style="width: 160px">Clasificación IA</th>
+                                                <th style="width: auto; min-width: 200px">Resumen</th>
+                                                <th style="width: 80px">Duración</th>
                                                 <th style="width: 90px">Acciones</th>
                                             </tr>
                                         </thead>
@@ -337,11 +371,12 @@ function createEmailsTabContent() {
                             <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 30px; text-align: center"><i class="fas fa-star"></i></th>
-                                        <th style="width: 160px">Remitente</th>
-                                        <th style="width: auto; min-width: 300px">Asunto</th>
-                                        <th style="width: 90px">Fecha</th>
-                                        <th style="width: 70px; text-align: center">Acciones</th>
+                                        <th style="width: 50px; text-align: center"><i class="fas fa-star"></i></th>
+                                        <th style="width: 150px">Remitente</th>
+                                        <th style="width: 180px">Asunto</th>
+                                        <th style="width: auto; min-width: 200px">Contenido</th>
+                                        <th style="width: 110px">Fecha</th>
+                                        <th style="width: 100px; text-align: center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
@@ -2917,14 +2952,14 @@ function createEmailRow(email) {
                 ${email.senderType ? `<span class="status-badge mt-1" style="background-color: var(--info-color);">${email.senderType}</span>` : ''}
             </div>
         </td>
-        <td class="column-summary">
-            <div class="d-flex flex-column">
-                <div class="d-flex align-items-center mb-1">
-                    ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 6px;"></i>' : ''}
-                    <div class="fw-medium">${email.subject}</div>
-                </div>
-                <div class="text-muted small">${email.preview}</div>
+        <td>
+            <div class="d-flex align-items-center">
+                ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 6px;"></i>' : ''}
+                <div class="fw-medium text-truncate">${email.subject}</div>
             </div>
+        </td>
+        <td class="column-summary">
+            <div class="text-muted small" style="line-height: 1.3;">${email.preview}</div>
         </td>
         <td>
             <div class="d-flex flex-column">
