@@ -250,172 +250,18 @@ function createCallsTabContent() {
                                     <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
                                         <thead>
                                             <tr>
-                                                <th>Gestionado</th>
-                                                <th>Fecha</th>
-                                                <th>Número</th>
-                                                <th>Clasificación IA</th>
+                                                <th style="width: 80px">Gestionado</th>
+                                                <th style="width: 110px">Fecha</th>
+                                                <th style="width: 120px">Número</th>
+                                                <th style="width: 140px">Clasificación IA</th>
                                                 <th>Resumen</th>
-                                                <th>Duración</th>
-                                                <th>Acciones</th>
+                                                <th style="width: 80px">Duración</th>
+                                                <th style="width: 100px">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody id="calls-table-body">
-                                            <!-- Llamada 1: Pedido -->
-                                            <tr class="call-row" data-id="1" data-type="pedidos" data-urgency="alta" data-urgent="true">
-                                                <td>
-                                                    <div class="custom-checkbox" id="call-managed-1" onclick="toggleCheckbox(this)"></div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex flex-column">
-                                                        <div class="fw-medium">2024-02-20</div>
-                                                        <div class="text-muted small">11:45</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex flex-column">
-                                                        <div class="fw-medium">+34 600 123 456</div>
-                                                        <div class="text-muted small">Contacto registrado</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex flex-column">
-                                                        <span class="badge-dashboard badge-pedido mb-1">📦 PEDIDO</span>
-                                                        <span class="badge-dashboard badge-urgente">🚨 URGENTE</span>
-                                                        <div class="text-muted small mt-1">Confianza: 95%</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex flex-column">
-                                                        <div class="fw-medium">Cliente solicita 200m2 de piel roja</div>
-                                                        <div class="text-muted small">Necesita entrega para el 22 de julio. Cliente María García, pedido urgente para evento. Requiere confirmación de disponibilidad y precio final.</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge-dashboard" style="background: var(--primary-gradient)">04:32</span>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex">
-                                                        <button class="action-btn action-btn-primary play-btn" title="Reproducir grabación">
-                                                            <i class="fas fa-play"></i>
-                                                        </button>
-                                                        <button class="action-btn action-btn-primary" title="Ver detalles completos" onclick="viewCallDetails(1)">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
-                                                        <button class="action-btn action-btn-success manage-btn" title="Marcar/Desmarcar como gestionado" data-managed="false">
-                                                            <i class="fas fa-check"></i>
-                                                        </button>
-                                                        <button class="action-btn action-btn-warning star-btn" title="Marcar como importante">
-                                                            <i class="far fa-star"></i>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            
-                                            <!-- Llamada 2: Consulta -->
-                                            <tr class="call-row" data-id="2" data-type="consultas" data-urgency="baja">
-                                                <td>
-                                                    <div class="custom-checkbox checked" id="call-managed-2" onclick="toggleCheckbox(this)"></div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex flex-column">
-                                                        <div class="fw-medium">2024-02-19</div>
-                                                        <div class="text-muted small">16:20</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex flex-column">
-                                                        <div class="fw-medium">+34 655 789 012</div>
-                                                        <div class="text-muted small">Contacto registrado</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex flex-column">
-                                                        <span class="badge-dashboard badge-consulta mb-1">❓ CONSULTA</span>
-                                                        <span class="badge-dashboard badge-normal">NORMAL</span>
-                                                        <div class="text-muted small mt-1">Confianza: 87%</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex flex-column">
-                                                        <div class="fw-medium">Consulta sobre disponibilidad de pieles</div>
-                                                        <div class="text-muted small">Pregunta por disponibilidad de piel negra y marrón para tapicería. Interesado en precios por metro cuadrado y tiempos de entrega estándar.</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge-dashboard" style="background: var(--primary-gradient)">02:15</span>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex">
-                                                        <button class="action-btn action-btn-primary play-btn" title="Reproducir grabación">
-                                                            <i class="fas fa-play"></i>
-                                                        </button>
-                                                        <button class="action-btn action-btn-primary" title="Ver detalles completos" onclick="viewCallDetails(2)">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
-                                                        <button class="action-btn action-btn-success active manage-btn" title="Desmarcar como gestionado" data-managed="true">
-                                                            <i class="fas fa-undo"></i>
-                                                        </button>
-                                                        <button class="action-btn action-btn-warning star-btn" title="Marcar como importante">
-                                                            <i class="far fa-star"></i>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            
-                                            <!-- Llamada 3: Pedido -->
-                                            <tr class="call-row" data-id="3" data-type="pedidos" data-urgency="media" data-urgent="true">
-                                                <td class="px-3 py-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="call-managed-3">
-                                                        <label class="form-check-label" for="call-managed-3"></label>
-                                                    </div>
-                                                </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-warning rounded-circle me-2" style="width: 8px; height: 8px;"></div>
-                                                        <div>
-                                                            <div class="fw-medium">2024-02-19</div>
-                                                            <small class="text-muted">10:05</small>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td class="px-3 py-2">
-                                                    <div>
-                                                        <div class="fw-medium">+34 622 334 455</div>
-                                                        <small class="text-muted">Contacto registrado</small>
-                                                    </div>
-                                                </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="d-flex flex-column">
-                                                        <span class="badge bg-success mb-1">📦 PEDIDO</span>
-                                                        <span class="badge bg-warning">PRIORITARIO</span>
-                                                        <small class="text-muted mt-1">Confianza: 92%</small>
-                                                    </div>
-                                                </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="fw-medium">Pedido de 50m2 de piel marrón</div>
-                                                    <small class="text-muted">Cliente Juan Pérez solicita 50m2 de piel marrón oscuro para proyecto de restauración. Necesita entrega en 3 semanas. Solicita presupuesto detallado.</small>
-                                                </td>
-                                                <td class="px-3 py-2">
-                                                    <span class="badge bg-primary">03:48</span>
-                                                </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="d-flex">
-                                                        <button class="btn btn-sm btn-outline-secondary me-1 play-btn" title="Escuchar grabación">
-                                                            <i class="fas fa-play"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-outline-primary me-1" title="Ver detalles" onclick="viewCallDetails(3)">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-outline-success manage-btn" title="Marcar como gestionado">
-                                                            <i class="fas fa-check"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-outline-warning ms-1 star-btn" title="Marcar como importante">
-                                                            <i class="far fa-star"></i>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                            <!-- Las llamadas se cargarán dinámicamente -->
+
                                         </tbody>
                                     </table>
                                 </div>
@@ -489,129 +335,15 @@ function createEmailsTabContent() {
                             <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 30px"><i class="fas fa-star"></i></th>
-                                        <th style="width: 15%">Remitente</th>
+                                        <th style="width: 40px; text-align: center"><i class="fas fa-star"></i></th>
+                                        <th style="width: 180px">Remitente</th>
                                         <th>Asunto</th>
-                                        <th style="width: 80px">Fecha</th>
-                                        <th style="width: 40px">Acciones</th>
+                                        <th style="width: 100px">Fecha</th>
+                                        <th style="width: 80px; text-align: center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
-                                    <!-- Los emails se cargarán dinámicamente -->
-                                        <td>Hoy, 10:25</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="1" title="Responder con IA">
-                                                    <i class="fas fa-robot"></i>
-                                                </button>
-                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="1" title="Responder manual">
-                                                    <i class="fas fa-reply"></i>
-                                                </button>
-                                                <button class="btn btn-outline-info history-btn" title="Ver historial">
-                                                    <i class="fas fa-history"></i>
-                                                </button>
-                                                <button class="btn btn-outline-warning read-btn" title="Marcar como leído/no leído">
-                                                    <i class="fas fa-envelope"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    
-                                    <!-- Email 2 - Leído -->
-                                    <tr class="email-row" data-id="2" data-type="read">
-                                        <td><i class="far fa-star text-muted"></i></td>
-                                        <td>María Gómez</td>
-                                        <td>Solicitud de información adicional</td>
-                                        <td>Ayer, 15:40</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="2" title="Responder con IA">
-                                                    <i class="fas fa-robot"></i>
-                                                </button>
-                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="2" title="Responder manual">
-                                                    <i class="fas fa-reply"></i>
-                                                </button>
-                                                <button class="btn btn-outline-info history-btn" title="Ver historial">
-                                                    <i class="fas fa-history"></i>
-                                                </button>
-                                                <button class="btn btn-outline-warning read-btn" title="Marcar como leído/no leído">
-                                                    <i class="fas fa-envelope"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    
-                                    <!-- Email 3 - Spam -->
-                                    <tr class="email-row" data-id="3" data-type="spam">
-                                        <td><i class="far fa-star text-muted"></i></td>
-                                        <td>marketing@ofertas.com <span class="badge bg-danger ms-1">Spam</span></td>
-                                        <td>¡¡¡Oferta especial solo por hoy!!!</td>
-                                        <td>15/05/2023</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="3" title="Responder con IA">
-                                                    <i class="fas fa-robot"></i>
-                                                </button>
-                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="3" title="Responder manual">
-                                                    <i class="fas fa-reply"></i>
-                                                </button>
-                                                <button class="btn btn-outline-info history-btn" title="Ver historial">
-                                                    <i class="fas fa-history"></i>
-                                                </button>
-                                                <button class="btn btn-outline-warning read-btn" title="Marcar como leído/no leído">
-                                                    <i class="fas fa-envelope"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    
-                                    <!-- Email 4 - No leído -->
-                                    <tr class="email-row fw-bold" data-id="4" data-type="unread">
-                                        <td><i class="far fa-star text-muted"></i></td>
-                                        <td>Carlos Rodríguez <span class="badge bg-success ms-1">Nuevo</span></td>
-                                        <td>
-                                            <i class="fas fa-circle text-primary me-1" style="font-size: 8px;"></i>
-                                            Solicitud de presupuesto
-                                        </td>
-                                        <td>14/05/2023</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="4" title="Responder con IA">
-                                                    <i class="fas fa-robot"></i>
-                                                </button>
-                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="4" title="Responder manual">
-                                                    <i class="fas fa-reply"></i>
-                                                </button>
-                                                <button class="btn btn-outline-info history-btn" title="Ver historial">
-                                                    <i class="fas fa-history"></i>
-                                                </button>
-                                                <button class="btn btn-outline-warning read-btn" title="Marcar como leído/no leído">
-                                                    <i class="fas fa-envelope"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    
-                                    <!-- Email 5 - Importante -->
-                                    <tr class="email-row" data-type="important">
-                                        <td><i class="fas fa-star text-warning"></i></td>
-                                        <td>Ana Martínez <span class="badge bg-warning text-dark ms-1">Urgente</span></td>
-                                        <td>Problema con el pedido #12345</td>
-                                        <td>10/05/2023</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary ai-reply-btn" data-id="5" title="Responder con IA">
-                                                    <i class="fas fa-robot"></i>
-                                                </button>
-                                                <button class="btn btn-outline-secondary manual-reply-btn" data-id="5" title="Responder manual">
-                                                    <i class="fas fa-reply"></i>
-                                                </button>
-                                                <button class="btn btn-outline-info" onclick="viewEmailHistory(5)" title="Ver historial">
-                                                    <i class="fas fa-history"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                     <!-- Los emails se cargarán dinámicamente -->
                                 </tbody>
                             </table>
                         </div>
@@ -1773,40 +1505,40 @@ function createCallRow(call) {
     if (call.managed) checkboxClass += ' checked';
     
     row.innerHTML = `
-        <td class="text-center" style="width: 30px;">
+        <td class="column-status text-center">
             <div class="${checkboxClass}" id="call-managed-${call.id}" onclick="toggleCheckbox(this)"></div>
         </td>
-        <td style="width: 70px;">
+        <td>
             <div class="d-flex flex-column">
                 <div class="fw-medium small">${call.date}</div>
                 <div class="text-muted small" style="font-size: 0.7rem;">${call.time}</div>
             </div>
         </td>
-        <td style="width: 90px;">
+        <td>
             <div class="d-flex flex-column">
                 <div class="fw-medium small">${call.phone}</div>
                 <div class="text-muted small" style="font-size: 0.7rem;">${call.contactType}</div>
             </div>
         </td>
-        <td style="width: 100px;">
+        <td>
             <div class="d-flex flex-column">
                 ${getClassificationBadge(call.classification, call.urgency)}
                 <div class="text-muted small" style="font-size: 0.7rem;">Confianza: ${call.confidence}%</div>
             </div>
         </td>
-        <td style="width: calc(100% - 330px);">
+        <td class="column-summary">
             <div class="d-flex flex-column">
-                <div class="fw-medium text-truncate">${call.summary}</div>
-                <div class="text-muted small text-truncate">${call.details}</div>
+                <div class="fw-medium">${call.summary}</div>
+                <div class="text-muted small">${call.details}</div>
             </div>
         </td>
-        <td style="width: 60px;">
+        <td>
             <span class="badge-dashboard" style="background: var(--primary-gradient)">${call.duration}</span>
         </td>
-        <td class="text-center" style="width: 40px;">
+        <td class="column-actions">
             <div class="dropdown">
-                <button class="btn btn-sm btn-dashboard-primary dropdown-toggle p-1" type="button" id="callActions${call.id}" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-robot"></i>
+                <button class="action-btn" type="button" id="callActions${call.id}" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="callActions${call.id}">
                     <li><a class="dropdown-item" href="#" onclick="playCallRecording(${call.id}); return false;">
@@ -3160,35 +2892,35 @@ function createEmailRow(email) {
     if (email.spam) row.dataset.type += 'spam';
     
     row.innerHTML = `
-        <td class="text-center" style="width: 30px;">
+        <td class="column-status text-center">
             <i class="${email.important ? 'fas' : 'far'} fa-star ${email.important ? 'text-warning' : ''}" 
                onclick="toggleEmailFavorite(${email.id}, this)"></i>
         </td>
-        <td style="width: 12%;">
+        <td>
             <div class="d-flex flex-column">
-                <div class="text-truncate small" style="font-size: 0.8rem;">${email.sender}</div>
-                ${email.senderType ? `<span class="badge-dashboard badge-primary mt-1 small" style="font-size: 0.65rem;">${email.senderType}</span>` : ''}
+                <div class="fw-medium">${email.sender}</div>
+                ${email.senderType ? `<span class="status-badge mt-1" style="background-color: var(--info-color);">${email.senderType}</span>` : ''}
             </div>
         </td>
-        <td style="width: calc(100% - 12% - 150px);">
+        <td class="column-summary">
             <div class="d-flex flex-column">
-                <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center mb-1">
                     ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 6px;"></i>' : ''}
-                    <div class="text-truncate small fw-medium">${email.subject}</div>
+                    <div class="fw-medium">${email.subject}</div>
                 </div>
-                <div class="text-muted text-truncate small" style="font-size: 0.75rem;">${email.preview}</div>
+                <div class="text-muted small">${email.preview}</div>
             </div>
         </td>
-        <td style="width: 70px;">
+        <td>
             <div class="d-flex flex-column">
-                <div class="small" style="font-size: 0.8rem;">${email.date}</div>
-                <div class="text-muted small" style="font-size: 0.7rem;">${email.time}</div>
+                <div class="small">${email.date}</div>
+                <div class="text-muted small">${email.time}</div>
             </div>
         </td>
-        <td class="text-center" style="width: 50px;">
+        <td class="column-actions">
             <div class="dropdown">
-                <button class="btn btn-sm btn-dashboard-primary dropdown-toggle p-1" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-robot"></i>
+                <button class="action-btn" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="emailActions${email.id}">
                     <li><a class="dropdown-item" href="#" onclick="viewEmailDetails(${email.id}); return false;">
@@ -7459,156 +7191,54 @@ function initializeUsageTracker() {
  * Mostrar un resumen del uso actual del usuario en la interfaz
  */
 function showUsageSummary() {
-    if (!window.UsageTracker) return;
+    // Esta función ahora solo actualiza los datos en la sección de facturación
+    // y no muestra ningún popup flotante
     
-    // Obtener datos del usuario actual
-    const userId = window.UsageTracker.getCurrentUserId();
-    const usageData = window.UsageTracker.getUsage();
-    const planLimits = window.UsageTracker.getCurrentPlanLimits();
+    // Llamar directamente a la función que actualiza la UI del plan
+    updatePlanUsageUI();
     
-    // Obtener nombre del usuario desde localStorage
-    let userName = 'Usuario';
-    try {
-        const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-        if (userData.name) {
-            userName = userData.name;
-        }
-    } catch (e) {
-        console.warn('Error al obtener datos del usuario:', e);
+    // Eliminar el popup si existe
+    const existingSummary = document.getElementById('usage-summary');
+    if (existingSummary) {
+        existingSummary.remove();
     }
     
-    // Verificar si ya existe el elemento de resumen
-    let summaryElement = document.getElementById('usage-summary');
-    
-    if (!summaryElement) {
-        // Crear el elemento de resumen
-        summaryElement = document.createElement('div');
-        summaryElement.id = 'usage-summary';
-        summaryElement.className = 'usage-summary-widget';
-        summaryElement.style.position = 'fixed';
-        summaryElement.style.bottom = '20px';
-        summaryElement.style.right = '20px';
-        summaryElement.style.backgroundColor = 'white';
-        summaryElement.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-        summaryElement.style.borderRadius = '8px';
-        summaryElement.style.padding = '12px';
-        summaryElement.style.zIndex = '1000';
-        summaryElement.style.minWidth = '250px';
-        summaryElement.style.fontSize = '13px';
-        
-        // Añadir al DOM
-        document.body.appendChild(summaryElement);
+    // Asegurarse de que la sección de uso del plan en facturación esté visible
+    const planUsageSection = document.getElementById('plan-usage-section');
+    if (planUsageSection) {
+        planUsageSection.style.display = 'block';
     }
-    
-    // Formatear los datos para mostrar
-    const callsUsage = usageData.usage.calls || 0;
-    const callsLimit = planLimits.calls === Infinity ? 'Ilimitado' : planLimits.calls;
-    const callsPercentage = planLimits.calls === Infinity ? 0 : Math.min(100, Math.round((callsUsage / planLimits.calls) * 100));
-    
-    const emailsUsage = usageData.usage.emails || 0;
-    const emailsLimit = planLimits.emails === Infinity ? 'Ilimitado' : planLimits.emails;
-    const emailsPercentage = planLimits.emails === Infinity ? 0 : Math.min(100, Math.round((emailsUsage / planLimits.emails) * 100));
-    
-    const usersUsage = usageData.usage.users || 1;
-    const usersLimit = planLimits.users === Infinity ? 'Ilimitado' : planLimits.users;
-    const usersPercentage = planLimits.users === Infinity ? 0 : Math.min(100, Math.round((usersUsage / planLimits.users) * 100));
-    
-    // Determinar el color del plan
-    let planBadgeClass = 'bg-secondary';
-    if (usageData.plan === 'premium') {
-        planBadgeClass = 'bg-warning';
-    } else if (usageData.plan === 'professional') {
-        planBadgeClass = 'bg-primary';
-    }
-    
-    // Actualizar el contenido
-    summaryElement.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-                <strong>${userName}</strong>
-                <span class="badge ${planBadgeClass} ms-1">${usageData.plan || 'básico'}</span>
-            </div>
-            <div>
-                <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="document.getElementById('usage-summary').style.display='none'">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-        <div class="small text-muted mb-2">ID: ${userId}</div>
-        <div class="mb-1">
-            <div class="d-flex justify-content-between">
-                <span>Llamadas:</span>
-                <span>${callsUsage} / ${callsLimit}</span>
-            </div>
-            <div class="progress" style="height: 6px;">
-                <div class="progress-bar ${callsPercentage > 90 ? 'bg-danger' : callsPercentage > 70 ? 'bg-warning' : 'bg-success'}" 
-                     style="width: ${callsPercentage}%" 
-                     aria-valuenow="${callsPercentage}" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100"></div>
-            </div>
-        </div>
-        <div class="mb-1">
-            <div class="d-flex justify-content-between">
-                <span>Emails:</span>
-                <span>${emailsUsage} / ${emailsLimit}</span>
-            </div>
-            <div class="progress" style="height: 6px;">
-                <div class="progress-bar ${emailsPercentage > 90 ? 'bg-danger' : emailsPercentage > 70 ? 'bg-warning' : 'bg-success'}" 
-                     style="width: ${emailsPercentage}%" 
-                     aria-valuenow="${emailsPercentage}" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100"></div>
-            </div>
-        </div>
-        <div class="mb-1">
-            <div class="d-flex justify-content-between">
-                <span>Usuarios:</span>
-                <span>${usersUsage} / ${usersLimit}</span>
-            </div>
-            <div class="progress" style="height: 6px;">
-                <div class="progress-bar ${usersPercentage > 90 ? 'bg-danger' : usersPercentage > 70 ? 'bg-warning' : 'bg-success'}" 
-                     style="width: ${usersPercentage}%" 
-                     aria-valuenow="${usersPercentage}" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100"></div>
-            </div>
-        </div>
-        <div class="mt-2 text-end">
-            <a href="#" class="small text-primary" onclick="showUsageSummaryDetails(); return false;">Ver detalles</a>
-        </div>
-    `;
 }
 
 /**
- * Mostrar detalles completos del uso en un modal
+ * Redirigir a la sección de facturación y mostrar detalles de uso
  */
 function showUsageSummaryDetails() {
     // Obtener información del usuario actual
     const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
-    console.log(`📈 Mostrando detalles de uso para el usuario ${userId}...`);
+    console.log(`📈 Mostrando detalles de uso para el usuario ${userId} en la sección de facturación...`);
     
-    // Registrar la acción en el sistema de seguimiento de uso
-    if (window.UsageTracker) {
-        // Ver detalles de uso puede contar como una acción de usuario en el sistema de seguimiento
-        window.UsageTracker.updateUserCount(1);
-        console.log(`📊 Visualización de detalles de uso registrada para el usuario ${userId}`);
-        
-        // Actualizar la UI del sistema de seguimiento
-        window.UsageTracker.updateUI();
-    }
+    // Actualizar los datos de uso antes de mostrarlos
+    updatePlanUsageUI();
     
-    // Cambiar a la pestaña de facturación
-    const billingTab = document.querySelector('#dashboard-tabs button[data-bs-target="#billing-tab-pane"]');
+    // Cambiar a la pestaña de facturación si no está activa
+    const billingTab = document.getElementById('billing-tab');
     if (billingTab) {
+        // Activar la pestaña de facturación
         const tabInstance = new bootstrap.Tab(billingTab);
         tabInstance.show();
         
-        // Hacer scroll al elemento de uso del plan
+        // Dar tiempo para que se cargue la pestaña y luego desplazarse a la sección de uso
         setTimeout(() => {
             const usageSection = document.getElementById('plan-usage-section');
             if (usageSection) {
+                // Asegurarse de que la sección sea visible
+                usageSection.style.display = 'block';
+                
+                // Desplazarse suavemente a la sección de uso
                 usageSection.scrollIntoView({ behavior: 'smooth' });
+                
+                // Resaltar temporalmente la sección para llamar la atención
                 usageSection.classList.add('highlight-section');
                 
                 // Quitar la clase de resaltado después de un tiempo

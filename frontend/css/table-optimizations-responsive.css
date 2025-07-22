@@ -1,0 +1,87 @@
+/* Optimizaciones adicionales para tablas responsivas */
+
+/* Ajustes para mejorar la visualización en diferentes tamaños de pantalla */
+@media (min-width: 992px) {
+  /* Para pantallas grandes, optimizamos el espacio */
+  .dashboard-table tbody td {
+    padding: 0.625rem 0.5rem;
+  }
+  
+  /* Ajuste del tamaño de fuente para mejor legibilidad */
+  .dashboard-table .fw-medium {
+    font-size: 0.875rem;
+  }
+  
+  .dashboard-table .text-muted.small {
+    font-size: 0.75rem;
+  }
+  
+  /* Optimización de la columna de resumen */
+  .dashboard-table td.column-summary {
+    padding-right: 1rem;
+  }
+  
+  /* Mejora en la visualización de los botones de acción */
+  .dashboard-table .action-btn {
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+  }
+  
+  .dashboard-table tr:hover .action-btn {
+    opacity: 1;
+  }
+}
+
+/* Optimizaciones específicas para la tabla de llamadas */
+#calls-table-body tr {
+  transition: background-color 0.2s ease;
+}
+
+#calls-table-body tr:hover {
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+/* Optimizaciones específicas para la tabla de emails */
+#emails-table-body tr {
+  transition: background-color 0.2s ease;
+}
+
+#emails-table-body tr:hover {
+  background-color: rgba(139, 92, 246, 0.05);
+}
+
+/* Mejoras para la visualización de etiquetas y badges */
+.status-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: white;
+  display: inline-block;
+}
+
+/* Mejoras para la visualización de iconos en las tablas */
+.dashboard-table .fa-star {
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.dashboard-table .fa-star:hover {
+  transform: scale(1.2);
+}
+
+/* Mejoras para la visualización de checkboxes personalizados */
+.custom-checkbox {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* Ajustes para la paginación */
+.dashboard-pagination {
+  margin-top: 0.5rem;
+}
+
+.dashboard-pagination .page-link {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
