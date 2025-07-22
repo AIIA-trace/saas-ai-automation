@@ -548,6 +548,20 @@ function addDashboardStyles() {
             z-index: 2;
         }
         
+        /* Centrar botones en columna de acciones */
+        .column-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+        }
+        
+        .column-actions .dropdown {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
         /* Sistema de tablas profesional */
         .dashboard-table {
             width: 100%;
