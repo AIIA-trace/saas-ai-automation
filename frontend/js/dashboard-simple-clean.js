@@ -169,9 +169,9 @@ function addDashboardStyles() {
         /* Sistema de botones unificado */
         .btn {
             border-radius: var(--border-radius-pill);
-            padding: 0.5rem 1.5rem;
+            padding: 0.35rem 1rem;
             font-weight: 600;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             transition: var(--transition);
             border: none;
             cursor: pointer;
@@ -183,13 +183,13 @@ function addDashboardStyles() {
         }
         
         .btn-sm {
-            padding: 0.375rem 1rem;
-            font-size: 0.8rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.7rem;
         }
         
         .btn-lg {
-            padding: 0.8rem 2rem;
-            font-size: 1rem;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.85rem;
         }
         
         .btn-primary {
@@ -253,12 +253,12 @@ function addDashboardStyles() {
             background: transparent;
             border: 2px solid var(--primary-color);
             color: var(--primary-color);
-            padding: 0.5rem;
+            padding: 0.3rem;
             border-radius: var(--border-radius);
             transition: var(--transition);
-            font-size: 1rem;
-            width: 40px;
-            height: 40px;
+            font-size: 0.8rem;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -269,6 +269,235 @@ function addDashboardStyles() {
             color: white;
             transform: scale(1.1);
             box-shadow: var(--shadow);
+        }
+        
+        /* Botones dashboard compactos */
+        .btn-dashboard-primary {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        
+        .btn-dashboard-primary:hover {
+            background: var(--secondary-gradient);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-dashboard-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        
+        .btn-dashboard-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        
+        .btn-dashboard-success {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        
+        .btn-dashboard-success:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+        
+        .btn-dashboard-info {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        
+        .btn-dashboard-info:hover {
+            background: #138496;
+            transform: translateY(-1px);
+        }
+        
+        /* Navegación compacta */
+        .nav-tabs .nav-link {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: #6c757d;
+            transition: var(--transition);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: transparent;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            color: var(--primary-color);
+            border-bottom-color: rgba(67, 97, 238, 0.3);
+        }
+        
+        /* Filtros compactos */
+        .dashboard-filters {
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+        }
+        
+        .dashboard-filters .form-check-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 0.25rem;
+        }
+        
+        .dashboard-filters .form-check-input {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Dropdowns compactos */
+        .dropdown-menu {
+            font-size: 0.75rem;
+            padding: 0.25rem 0;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 1px solid #e9ecef;
+        }
+        
+        .dropdown-item {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .dropdown-item:hover {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .dropdown-toggle {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border: none;
+            background: transparent;
+        }
+        
+        .dropdown-toggle::after {
+            font-size: 0.6rem;
+        }
+        
+        /* Paginación compacta */
+        .pagination {
+            margin-bottom: 0;
+        }
+        
+        .pagination .page-link {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid #dee2e6;
+            color: var(--primary-color);
+            margin: 0 2px;
+        }
+        
+        .pagination .page-link:hover {
+            background: rgba(67, 97, 238, 0.1);
+            border-color: var(--primary-color);
+        }
+        
+        .pagination .page-item.active .page-link {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        /* Alertas y notificaciones compactas */
+        .alert {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 0.75rem;
+        }
+        
+        .toast {
+            font-size: 0.75rem;
+        }
+        
+        .toast-header {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        .toast-body {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        /* Iconos compactos */
+        .fas, .far, .fab {
+            font-size: 0.75rem;
+        }
+        
+        .card-title .fas,
+        .card-title .far {
+            font-size: 0.85rem;
+        }
+        
+        .nav-link .fas,
+        .nav-link .far {
+            font-size: 0.7rem;
+        }
+        
+        /* Espaciado compacto */
+        .me-1 { margin-right: 0.15rem !important; }
+        .me-2 { margin-right: 0.3rem !important; }
+        .ms-1 { margin-left: 0.15rem !important; }
+        .ms-2 { margin-left: 0.3rem !important; }
+        .mb-1 { margin-bottom: 0.15rem !important; }
+        .mb-2 { margin-bottom: 0.3rem !important; }
+        .mt-1 { margin-top: 0.15rem !important; }
+        .mt-2 { margin-top: 0.3rem !important; }
+        
+        /* Contenedores compactos */
+        .container-fluid {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+        
+        .row {
+            margin-left: -0.375rem;
+            margin-right: -0.375rem;
+        }
+        
+        .col, .col-12, .col-md-6, .col-lg-4 {
+            padding-left: 0.375rem;
+            padding-right: 0.375rem;
         }
         
         /* Sistema de tablas profesional */
@@ -286,8 +515,8 @@ function addDashboardStyles() {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             color: var(--dark-color);
             font-weight: 600;
-            font-size: 0.875rem;
-            padding: 1rem 0.75rem;
+            font-size: 0.75rem;
+            padding: 0.6rem 0.5rem;
             text-align: left;
             border: none;
             white-space: nowrap;
@@ -303,15 +532,15 @@ function addDashboardStyles() {
         }
         
         .dashboard-table td {
-            padding: 0.875rem 0.75rem;
+            padding: 0.5rem 0.5rem;
             border: none;
             border-bottom: 1px solid #f1f3f4;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             vertical-align: middle;
             word-wrap: break-word;
             overflow-wrap: break-word;
             white-space: normal;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         
         /* Evitar corte de texto en celdas específicas */
@@ -386,30 +615,51 @@ function addDashboardStyles() {
         
         /* Estilos específicos para reducir tipografías en emails */
         #emails-content .dashboard-table {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
+            table-layout: fixed;
+            width: 100%;
         }
         
         #emails-content .dashboard-table th {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
+            padding: 0.5rem 0.4rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         #emails-content .dashboard-table td {
-            font-size: 0.85rem;
-            padding: 0.6rem 0.75rem;
+            font-size: 0.75rem;
+            padding: 0.5rem 0.4rem;
+            vertical-align: middle;
+            word-wrap: break-word;
+            overflow: hidden;
         }
         
         #emails-content .badge {
-            font-size: 0.6rem;
+            font-size: 0.55rem;
+            padding: 0.1rem 0.25rem;
         }
         
         /* Mejoras responsive para tabla de emails */
         #emails-content .table-responsive {
             overflow-x: hidden;
+            overflow-y: auto;
         }
         
         #emails-content .dashboard-table {
             min-width: auto;
+            max-width: 100%;
+        }
+        
+        /* Forzar que no haya scroll horizontal */
+        #emails-content {
+            overflow-x: hidden;
+        }
+        
+        #emails-content .container-fluid {
+            overflow-x: hidden;
         }
         
         /* Ajustes para columnas específicas */
@@ -442,12 +692,12 @@ function addDashboardStyles() {
         
         /* Sistema de badges unificado */
         .badge {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.65rem;
             font-weight: 600;
             border-radius: var(--border-radius-pill);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
         
         .badge-success {
@@ -502,8 +752,8 @@ function addDashboardStyles() {
         .form-control {
             border: 2px solid #e9ecef;
             border-radius: var(--border-radius);
-            padding: 0.75rem 1rem;
-            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
             transition: var(--transition);
             font-family: var(--font-family);
         }
@@ -532,11 +782,11 @@ function addDashboardStyles() {
         .card-header {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border: none;
-            padding: 1.5rem;
+            padding: 1rem;
         }
         
         .card-title {
-            font-size: 1.25rem;
+            font-size: 1rem;
             font-weight: 700;
             color: var(--dark-color);
             margin: 0;
@@ -552,7 +802,7 @@ function addDashboardStyles() {
         .modal-header {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border: none;
-            padding: 1.5rem;
+            padding: 1rem;
             border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
         }
         
@@ -562,13 +812,13 @@ function addDashboardStyles() {
         }
         
         .modal-body {
-            padding: 2rem;
+            padding: 1.25rem;
         }
         
         .modal-footer {
             background: #f8f9fa;
             border: none;
-            padding: 1.5rem;
+            padding: 1rem;
             border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
         }
     `;
@@ -739,16 +989,16 @@ function createEmailsTabContent() {
                         
                         
                         <!-- Lista de emails -->
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                            <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: hidden;">
+                            <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: auto;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 50px; text-align: center; font-size: 0.8rem; font-weight: 600;"><i class="fas fa-star"></i></th>
-                                        <th style="width: 180px; font-size: 0.8rem; font-weight: 600;">Remitente</th>
-                                        <th style="width: 200px; font-size: 0.8rem; font-weight: 600;">Asunto</th>
-                                        <th style="width: auto; font-size: 0.8rem; font-weight: 600;">Contenido</th>
-                                        <th style="width: 110px; font-size: 0.8rem; font-weight: 600;">Fecha</th>
-                                        <th style="width: 80px; text-align: center; font-size: 0.8rem; font-weight: 600;">Acciones</th>
+                                        <th style="width: 40px; text-align: center; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-star"></i></th>
+                                        <th style="width: 140px; font-size: 0.75rem; font-weight: 600;">Remitente</th>
+                                        <th style="width: 150px; font-size: 0.75rem; font-weight: 600;">Asunto</th>
+                                        <th style="width: auto; font-size: 0.75rem; font-weight: 600;">Contenido</th>
+                                        <th style="width: 85px; font-size: 0.75rem; font-weight: 600;">Fecha</th>
+                                        <th style="width: 60px; text-align: center; font-size: 0.75rem; font-weight: 600;">Acc.</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
@@ -3557,23 +3807,23 @@ function createEmailRow(email) {
         </td>
         <td>
             <div class="d-flex flex-column">
-                <div class="fw-medium" style="font-size: 0.85rem; word-wrap: break-word; white-space: normal; line-height: 1.3;">${email.sender}</div>
-                ${email.senderType ? `<span class="badge badge-primary" style="font-size: 0.6rem; padding: 0.15rem 0.35rem; margin-top: 0.2rem; width: fit-content;">${email.senderType}</span>` : ''}
+                <div class="fw-medium" style="font-size: 0.75rem; word-wrap: break-word; white-space: normal; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; max-height: 2.4em;">${email.sender}</div>
+                ${email.senderType ? `<span class="badge badge-primary" style="font-size: 0.55rem; padding: 0.1rem 0.25rem; margin-top: 0.1rem; width: fit-content;">${email.senderType}</span>` : ''}
             </div>
         </td>
         <td>
             <div class="d-flex align-items-center">
-                ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 5px;"></i>' : ''}
-                <div class="fw-medium" style="font-size: 0.85rem; word-wrap: break-word; white-space: normal; line-height: 1.3;">${email.subject}</div>
+                ${!email.read ? '<i class="fas fa-circle text-primary me-1" style="font-size: 4px;"></i>' : ''}
+                <div class="fw-medium" style="font-size: 0.75rem; word-wrap: break-word; white-space: normal; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; max-height: 2.4em;">${email.subject}</div>
             </div>
         </td>
         <td class="column-summary">
-            <div class="text-muted" style="font-size: 0.8rem; line-height: 1.4; word-wrap: break-word; white-space: normal;">${email.preview}</div>
+            <div class="text-muted" style="font-size: 0.7rem; line-height: 1.3; word-wrap: break-word; white-space: normal; overflow: hidden; text-overflow: ellipsis; max-height: 3.9em;">${email.preview}</div>
         </td>
         <td>
             <div class="d-flex flex-column">
-                <div style="font-size: 0.8rem;">${email.date}</div>
-                <div class="text-muted" style="font-size: 0.75rem;">${email.time}</div>
+                <div style="font-size: 0.7rem;">${email.date}</div>
+                <div class="text-muted" style="font-size: 0.65rem;">${email.time}</div>
             </div>
         </td>
         <td class="column-actions text-center">
@@ -3581,24 +3831,24 @@ function createEmailRow(email) {
                 <button class="btn-play-call" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false" title="Acciones de IA">
                     <i class="fas fa-robot"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="emailActions${email.id}" style="font-size: 0.85rem;">
-                    <li><a class="dropdown-item" href="#" onclick="viewEmailDetails(${email.id}); return false;" style="font-size: 0.85rem;">
-                        <i class="fas fa-eye me-2" style="font-size: 0.8rem;"></i> Ver detalles
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="emailActions${email.id}" style="font-size: 0.75rem;">
+                    <li><a class="dropdown-item" href="#" onclick="viewEmailDetails(${email.id}); return false;" style="font-size: 0.75rem;">
+                        <i class="fas fa-eye me-2" style="font-size: 0.7rem;"></i> Ver detalles
                     </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="replyToEmail(${email.id}); return false;" style="font-size: 0.85rem;">
-                        <i class="fas fa-reply me-2" style="font-size: 0.8rem;"></i> Responder
+                    <li><a class="dropdown-item" href="#" onclick="replyToEmail(${email.id}); return false;" style="font-size: 0.75rem;">
+                        <i class="fas fa-reply me-2" style="font-size: 0.7rem;"></i> Responder
                     </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="replyWithAI(${email.id}); return false;" style="font-size: 0.85rem;">
-                        <i class="fas fa-robot me-2" style="font-size: 0.8rem;"></i> Responder con IA
+                    <li><a class="dropdown-item" href="#" onclick="replyWithAI(${email.id}); return false;" style="font-size: 0.75rem;">
+                        <i class="fas fa-robot me-2" style="font-size: 0.7rem;"></i> Responder con IA
                     </a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" onclick="toggleEmailRead(${email.id}); return false;" style="font-size: 0.85rem;">
-                        <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'} me-2" style="font-size: 0.8rem;"></i> 
+                    <li><a class="dropdown-item" href="#" onclick="toggleEmailRead(${email.id}); return false;" style="font-size: 0.75rem;">
+                        <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'} me-2" style="font-size: 0.7rem;"></i> 
                         ${email.read ? 'Marcar como no leído' : 'Marcar como leído'}
                     </a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteEmail(${email.id}); return false;" style="font-size: 0.85rem;">
-                        <i class="fas fa-trash-alt me-2" style="font-size: 0.8rem;"></i> Eliminar
+                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteEmail(${email.id}); return false;" style="font-size: 0.75rem;">
+                        <i class="fas fa-trash-alt me-2" style="font-size: 0.7rem;"></i> Eliminar
                     </a></li>
                 </ul>
             </div>
