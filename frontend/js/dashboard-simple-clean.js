@@ -361,6 +361,27 @@ function addDashboardStyles() {
             .dashboard-table {
                 min-width: 1000px;
             }
+            
+            /* Tabla de emails necesita más espacio */
+            #emails-content .dashboard-table {
+                min-width: 1400px;
+            }
+        }
+        
+        /* Estilos específicos para botones de acciones */
+        .column-actions .btn {
+            transition: all 0.2s ease;
+        }
+        
+        .column-actions .btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* Clase para ocultar elementos por búsqueda */
+        .search-hidden {
+            display: none !important;
         }
         
         .dashboard-table tbody tr {
@@ -565,6 +586,28 @@ function createCallsTabContent() {
                                     </div>
                                 </div>
                                 
+                                <!-- Buscador de llamadas -->
+                                <div class="dashboard-filters p-3 border-bottom">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white border-end-0">
+                                                    <i class="fas fa-search text-muted"></i>
+                                                </span>
+                                                <input type="text" class="form-control border-start-0" id="search-calls-input" 
+                                                       placeholder="Buscar llamadas..." 
+                                                       style="box-shadow: none; border-left: none;">
+                                                <button class="btn btn-outline-secondary" type="button" id="clear-calls-search" 
+                                                        style="display: none;" title="Limpiar búsqueda">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                                            <small class="text-muted" id="calls-search-results">Mostrando todas las llamadas</small>
+                                        </div>
+                                    </div>
+                                </div>
                                 
                                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
                                     <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 1000px;">
@@ -652,16 +695,16 @@ function createEmailsTabContent() {
                         
                         
                         <!-- Lista de emails -->
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: hidden;">
-                            <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 1100px;">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: auto;">
+                            <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 1400px;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 60px; text-align: center"><i class="fas fa-star"></i></th>
-                                        <th style="width: 180px">Remitente</th>
-                                        <th style="width: 220px">Asunto</th>
-                                        <th style="width: auto; min-width: 300px">Contenido</th>
-                                        <th style="width: 120px">Fecha</th>
-                                        <th style="width: 120px; text-align: center">Acciones</th>
+                                        <th style="width: 70px; text-align: center"><i class="fas fa-star"></i></th>
+                                        <th style="width: 220px">Remitente</th>
+                                        <th style="width: 280px">Asunto</th>
+                                        <th style="width: auto; min-width: 450px">Contenido</th>
+                                        <th style="width: 130px">Fecha</th>
+                                        <th style="width: 150px; text-align: center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
@@ -1738,6 +1781,80 @@ function updateLastUpdateTime() {
 }
 
 /**
+ * Buscar llamadas por término de búsqueda
+ * @param {string} searchTerm - Término de búsqueda
+ */
+function searchCalls(searchTerm) {
+    console.log(`🔍 Buscando llamadas con término: "${searchTerm}"`);
+    
+    const callsTableBody = document.getElementById('calls-table-body');
+    const searchResultsElement = document.getElementById('calls-search-results');
+    
+    if (!callsTableBody) {
+        console.error('❌ No se encontró el tbody de la tabla de llamadas');
+        return;
+    }
+    
+    const allRows = callsTableBody.querySelectorAll('.call-row');
+    let visibleCount = 0;
+    
+    if (!searchTerm) {
+        // Remover clase de búsqueda si no hay término
+        allRows.forEach(row => {
+            row.classList.remove('search-hidden');
+            // Solo contar las que no están ocultas por filtros
+            if (!row.classList.contains('d-none')) {
+                visibleCount++;
+            }
+        });
+        
+        if (searchResultsElement) {
+            searchResultsElement.textContent = 'Mostrando todas las llamadas';
+        }
+        return;
+    }
+    
+    // Convertir término de búsqueda a minúsculas para búsqueda insensible a mayúsculas
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    allRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        let found = false;
+        
+        // Buscar en todas las celdas de la fila
+        cells.forEach(cell => {
+            const cellText = cell.textContent.toLowerCase();
+            if (cellText.includes(searchTermLower)) {
+                found = true;
+            }
+        });
+        
+        if (found) {
+            row.classList.remove('search-hidden');
+            // Solo contar las que no están ocultas por filtros
+            if (!row.classList.contains('d-none')) {
+                visibleCount++;
+            }
+        } else {
+            row.classList.add('search-hidden');
+        }
+    });
+    
+    // Actualizar contador de resultados
+    if (searchResultsElement) {
+        if (visibleCount === 0) {
+            searchResultsElement.textContent = 'No se encontraron llamadas';
+        } else if (visibleCount === 1) {
+            searchResultsElement.textContent = '1 llamada encontrada';
+        } else {
+            searchResultsElement.textContent = `${visibleCount} llamadas encontradas`;
+        }
+    }
+    
+    console.log(`✅ Búsqueda completada: ${visibleCount} llamadas encontradas`);
+}
+
+/**
  * Cargar datos de llamadas desde la API
  */
 function loadCallsData() {
@@ -2357,6 +2474,33 @@ function setupEventListeners() {
             loadCallsData();
             updateLastUpdateTime();
             toastr.info('Actualizando registro de llamadas...', 'Actualización');
+        });
+    }
+    
+    // Event listeners para el buscador de llamadas
+    const searchCallsInput = document.getElementById('search-calls-input');
+    const clearCallsSearch = document.getElementById('clear-calls-search');
+    
+    if (searchCallsInput) {
+        searchCallsInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            searchCalls(searchTerm);
+            
+            // Mostrar/ocultar botón de limpiar
+            if (clearCallsSearch) {
+                clearCallsSearch.style.display = searchTerm ? 'block' : 'none';
+            }
+        });
+    }
+    
+    if (clearCallsSearch) {
+        clearCallsSearch.addEventListener('click', function() {
+            if (searchCallsInput) {
+                searchCallsInput.value = '';
+                searchCalls('');
+                this.style.display = 'none';
+                searchCallsInput.focus();
+            }
         });
     }
     
@@ -3209,8 +3353,8 @@ function createEmailRow(email) {
         </td>
         <td>
             <div class="d-flex flex-column">
-                <div class="fw-medium">${email.sender}</div>
-                ${email.senderType ? `<span class="status-badge mt-1" style="background-color: var(--info-color);">${email.senderType}</span>` : ''}
+                <div class="fw-medium" style="word-wrap: break-word; white-space: normal; line-height: 1.3;">${email.sender}</div>
+                ${email.senderType ? `<span class="badge badge-primary" style="font-size: 0.65rem; padding: 0.2rem 0.4rem; margin-top: 0.25rem; width: fit-content;">${email.senderType}</span>` : ''}
             </div>
         </td>
         <td>
@@ -3228,9 +3372,9 @@ function createEmailRow(email) {
                 <div class="text-muted small">${email.time}</div>
             </div>
         </td>
-        <td class="column-actions">
+        <td class="column-actions text-center">
             <div class="dropdown">
-                <button class="action-btn" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn btn-sm btn-outline-secondary" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 40px; padding: 0.375rem 0.5rem;">
                     <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="emailActions${email.id}">
