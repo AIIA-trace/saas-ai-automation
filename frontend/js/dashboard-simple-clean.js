@@ -1968,7 +1968,7 @@ function createCallRow(call) {
         </td>
         <td class="text-center">
             <button class="btn-play-call" onclick="playCallRecording(${call.id})" title="Reproducir llamada">
-                <i class="fas fa-robot me-1"></i><i class="fas fa-play" style="font-size: 0.8rem;"></i>
+                <i class="fas fa-play"></i>
             </button>
         </td>
     `
@@ -3374,8 +3374,8 @@ function createEmailRow(email) {
         </td>
         <td class="column-actions text-center">
             <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 40px; padding: 0.375rem 0.5rem;">
-                    <i class="fas fa-ellipsis-v"></i>
+                <button class="btn btn-sm btn-outline-secondary" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 40px; padding: 0.375rem 0.5rem;" title="Acciones de IA">
+                    <i class="fas fa-robot"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="emailActions${email.id}">
                     <li><a class="dropdown-item" href="#" onclick="viewEmailDetails(${email.id}); return false;">
