@@ -1,0 +1,61 @@
+/* 
+ * Estilos específicos para los formularios de perfil
+ * Mejora el espaciado y la apariencia de los campos
+ */
+
+/* Mejora del espaciado en los campos del formulario de perfil */
+#profile-content .form-control,
+#profile-content .form-select,
+#security-content .form-control {
+  padding: 0.75rem 1rem;
+  height: auto;
+  font-size: 0.95rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+#profile-content .form-control:focus,
+#profile-content .form-select:focus,
+#security-content .form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+}
+
+/* Mejora del espaciado en las etiquetas */
+#profile-content .form-label,
+#security-content .form-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #495057;
+}
+
+/* Añadir más espacio entre los campos */
+#profile-content .row.g-3 {
+  row-gap: 1.25rem !important;
+}
+
+/* Mejorar el espaciado interno de la sección de perfil */
+#profile-content {
+  padding: 1.5rem;
+}
+
+/* Mejorar el aspecto del botón de guardar */
+#save-account-btn {
+  padding: 0.5rem 1.25rem;
+  font-weight: 500;
+}
+
+/* Añadir espacio en el contenedor principal */
+#accountTabsContent {
+  padding: 0 !important;
+}
+
+/* Añadir espacio entre las pestañas y el contenido */
+#accountTabs {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}

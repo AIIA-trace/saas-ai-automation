@@ -1,0 +1,130 @@
+/* Estilos para las tarjetas de planes */
+:root {
+    --primary: #4361ee;
+    --secondary: #3f37c9;
+    --accent: #4cc9f0;
+    --light: #f8f9fa;
+    --dark: #212529;
+    --success: #28a745;
+    --danger: #dc3545;
+    --primary-subtle: rgba(67, 97, 238, 0.1);
+}
+
+/* Pricing Cards */
+.pricing-card {
+    position: relative;
+    border: none;
+    border-radius: 12px;
+    background-color: white;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.pricing-card-header {
+    padding: 15px !important;
+    padding-bottom: 10px !important;
+}
+
+.pricing-card-body {
+    padding: 10px 15px !important;
+}
+
+.pricing-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.pricing-popular {
+    border: 2px solid var(--primary);
+    z-index: 2;
+}
+
+.popular-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--primary);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-bottom-left-radius: 8px;
+    z-index: 3;
+}
+
+.pricing-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.pricing-price {
+    margin-top: 5px;
+}
+
+.pricing-price .currency {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-right: 2px;
+    align-self: flex-start;
+    margin-top: 0.5rem;
+}
+
+.pricing-price .amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--primary);
+}
+
+.pricing-price .period {
+    font-size: 1rem;
+    color: var(--secondary);
+    margin-left: 4px;
+    align-self: flex-end;
+    margin-bottom: 0.5rem;
+}
+
+.pricing-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pricing-features li {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-size: 0.85rem;
+}
+
+.pricing-features li:last-child {
+    border-bottom: none;
+}
+
+.pricing-features .feature-icon {
+    margin-right: 8px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+}
+
+.pricing-features .feature-icon i {
+    font-size: 0.8rem;
+}
+
+.pricing-features li.disabled .feature-icon {
+    color: #adb5bd;
+}
+
+.pricing-features li.disabled span {
+    color: #adb5bd;
+    text-decoration: line-through;
+}

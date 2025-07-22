@@ -61,6 +61,15 @@
   background: var(--primary-gradient);
   color: white;
   margin-right: 0.75rem;
+  position: relative;
+}
+
+.dashboard-navbar .brand-icon i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
 }
 
 .dashboard-navbar .navbar-brand {

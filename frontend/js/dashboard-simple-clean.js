@@ -47,6 +47,21 @@ function adaptOtherContextSimple(config) {
         // Configurar carga de archivos
         setupFileUploadHandlers();
         
+        // Inicializar sistema de seguimiento de uso para el usuario actual
+        if (window.UsageTracker) {
+            // Obtener el ID del usuario actual
+            const userId = window.UsageTracker.getCurrentUserId();
+            console.log(`📊 Inicializando sistema de seguimiento de uso para el usuario ${userId}...`);
+            
+            // Inicializar el sistema de seguimiento
+            window.UsageTracker.initialize();
+            
+            // Actualizar la UI con los datos del usuario
+            window.UsageTracker.updateUI();
+            
+            console.log(`✅ Sistema de seguimiento de uso inicializado para el usuario ${userId}`);
+        }
+        
         console.log('✅ Dashboard simple inicializado correctamente');
         
     } catch (error) {
@@ -134,6 +149,45 @@ function addDashboardStyles() {
             margin-bottom: 1rem;
             color: #495057;
         }
+        
+        /* Estilos para el widget de resumen de uso */
+        .usage-summary-widget {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .usage-summary-widget:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .usage-summary-widget .progress {
+            border-radius: 4px;
+            margin-top: 2px;
+            margin-bottom: 8px;
+            background-color: #f0f0f0;
+        }
+        
+        /* Estilo para resaltar secciones */
+        .highlight-section {
+            animation: highlight-pulse 2s ease;
+        }
+        
+        @keyframes highlight-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+        }
+        
+        /* Estilos para el plan-usage-section */
+        #plan-usage-section {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+        
+        #plan-usage-section.highlight-section {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
     `;
     
     // Agregar estilos al head
@@ -155,7 +209,7 @@ function createCallsTabContent() {
                         <div class="dashboard-card">
                             <div class="card-header">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title"><i class="fas fa-phone-alt"></i>Registro de Llamadas</h5>
+                                    <h5 class="card-title"><i class="fas fa-phone me-2"></i>Registro de Llamadas</h5>
                                     <button class="btn-dashboard-primary" id="refresh-calls-btn">
                                         <i class="fas fa-sync-alt me-2"></i>Actualizar
                                     </button>
@@ -384,9 +438,9 @@ function createEmailsTabContent() {
         <div class="tab-pane animate-fadeIn" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <div class="dashboard-card">
-                    <div class="dashboard-card-header">
+                    <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Gestión de Emails <span class="badge-dashboard badge-primary ms-2" id="email-count">0</span></h5>
+                            <h5 class="card-title"><i class="fas fa-envelope me-2"></i>Gestión de Emails <span class="badge-dashboard badge-primary ms-2" id="email-count">0</span></h5>
                             <div>
                                 <button class="btn-dashboard-primary" id="refresh-emails-btn">
                                     <i class="fas fa-sync me-2"></i>Actualizar
@@ -394,7 +448,7 @@ function createEmailsTabContent() {
                             </div>
                         </div>
                     </div>
-                    <div class="dashboard-card-body p-0">
+                    <div class="card-body p-0">
                         <!-- Filtros de emails -->
                         <div class="dashboard-filters p-3 border-bottom">
                             <div class="row align-items-center">
@@ -627,30 +681,30 @@ function createBotConfigTabContent() {
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <label for="company_name" class="form-label">Nombre de la Empresa</label>
-                                            <input type="text" class="form-control" id="company_name" name="company_name" value="Tech Solutions S.L." required>
+                                            <input type="text" class="form-control" id="company_name" name="company_name" placeholder="Nombre de tu empresa" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="contact_email" class="form-label">Email de Contacto</label>
-                                            <input type="email" class="form-control" id="contact_email" name="contact_email" value="info@techsolutions.com" required>
+                                            <input type="email" class="form-control" id="contact_email" name="contact_email" placeholder="email@tuempresa.com" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="main_phone" class="form-label">Teléfono Principal</label>
-                                            <input type="tel" class="form-control" id="main_phone" name="main_phone" value="+34 91 123 4567" required>
+                                            <input type="tel" class="form-control" id="main_phone" name="main_phone" placeholder="+34 XXX XXX XXX" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="address" class="form-label">Dirección</label>
-                                            <input type="text" class="form-control" id="address" name="address" value="Calle Mayor 123, 28001 Madrid">
+                                            <input type="text" class="form-control" id="address" name="address" placeholder="Dirección de tu empresa">
                                         </div>
                                         <div class="col-12">
                                             <label for="company_description" class="form-label">Descripción de la Empresa</label>
-                                            <textarea class="form-control" id="company_description" name="company_description" rows="3" placeholder="Describe brevemente a qué se dedica tu empresa...">Empresa líder en soluciones tecnológicas para negocios, especializada en software de gestión y automatización de procesos.</textarea>
+                                            <textarea class="form-control" id="company_description" name="company_description" rows="3" placeholder="Describe brevemente a qué se dedica tu empresa..."></textarea>
                                             <small class="text-muted">Esta descripción ayuda al bot a entender mejor el contexto de tu negocio.</small>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="industry" class="form-label">Sector empresarial</label>
                                             <select class="form-select" id="industry" name="industry" required>
-                                                <option value="">Selecciona un sector</option>
-                                                <option value="retail" selected>Comercio (Retail)</option>
+                                                <option value="" selected>Selecciona un sector</option>
+                                                <option value="retail">Comercio (Retail)</option>
                                                 <option value="restaurant">Restaurante</option>
                                                 <option value="beauty">Belleza</option>
                                                 <option value="legal">Legal</option>
@@ -812,6 +866,100 @@ function createBotConfigTabContent() {
                                 </div>
                                 <div class="card-body">
                                     <div class="row g-3">
+                                        <!-- Integración con proveedores de correo -->
+                                        <div class="col-12">
+                                            <div class="card border-primary mb-4">
+                                                <div class="card-header bg-primary bg-opacity-10">
+                                                    <h6 class="mb-0"><i class="fas fa-plug me-2"></i>Integración con proveedores de correo</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <p class="text-muted mb-3">Conecta tu cuenta de correo para permitir que el bot gestione automáticamente tus emails.</p>
+                                                    
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <label for="email_provider" class="form-label">Proveedor de correo</label>
+                                                            <select class="form-select" id="email_provider" name="email_provider">
+                                                                <option value="" selected>Selecciona un proveedor</option>
+                                                                <option value="google">Google (Gmail)</option>
+                                                                <option value="microsoft">Microsoft (Outlook)</option>
+                                                                <option value="yahoo">Yahoo Mail</option>
+                                                                <option value="other">Otro (IMAP/SMTP)</option>
+                                                            </select>
+                                                        </div>
+                                                        
+                                                        <div class="col-md-6">
+                                                            <label for="outgoing_email" class="form-label">Email de Salida</label>
+                                                            <input type="email" class="form-control" id="outgoing_email" name="outgoing_email" placeholder="tucorreo@ejemplo.com" required>
+                                                            <div class="form-text">Email desde el que se enviarán las respuestas automáticas</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div id="email-oauth-section" class="mt-3">
+                                                        <div class="d-grid gap-2 mb-3">
+                                                            <button type="button" class="btn btn-outline-primary" id="connect-email-btn" disabled>
+                                                                <i class="fas fa-link me-2"></i>Conectar cuenta de correo
+                                                            </button>
+                                                        </div>
+                                                        <div id="email-connection-status" class="d-none alert alert-info">
+                                                            <i class="fas fa-info-circle me-2"></i>No hay ninguna cuenta conectada.
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div id="email-manual-section" class="d-none mt-3">
+                                                        <div class="row g-3 mb-3">
+                                                            <div class="col-md-6">
+                                                                <label for="email_password" class="form-label">Contraseña o clave de aplicación</label>
+                                                                <input type="password" class="form-control" id="email_password" name="email_password" placeholder="Contraseña o clave de aplicación">
+                                                                <small class="text-muted">Recomendamos usar una clave de aplicación específica.</small>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label for="recipient_email" class="form-label">Email de Recepción</label>
+                                                                <input type="email" class="form-control" id="recipient_email" name="recipient_email" placeholder="info@tuempresa.com">
+                                                                <div class="form-text">Email donde se recibirán las copias de las respuestas</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row g-3 mb-3">
+                                                            <div class="col-md-6">
+                                                                <label for="imap_server" class="form-label">Servidor IMAP</label>
+                                                                <input type="text" class="form-control" id="imap_server" name="imap_server" placeholder="imap.ejemplo.com">
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label for="imap_port" class="form-label">Puerto IMAP</label>
+                                                                <input type="number" class="form-control" id="imap_port" name="imap_port" placeholder="993">
+                                                            </div>
+                                                        </div>
+                                                        <div class="row g-3 mb-3">
+                                                            <div class="col-md-6">
+                                                                <label for="smtp_server" class="form-label">Servidor SMTP</label>
+                                                                <input type="text" class="form-control" id="smtp_server" name="smtp_server" placeholder="smtp.ejemplo.com">
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label for="smtp_port" class="form-label">Puerto SMTP</label>
+                                                                <input type="number" class="form-control" id="smtp_port" name="smtp_port" placeholder="587">
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-3 form-check">
+                                                            <input type="checkbox" class="form-check-input" id="use_ssl" name="use_ssl" checked>
+                                                            <label class="form-check-label" for="use_ssl">Usar conexión segura (SSL/TLS)</label>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Consentimiento de acceso a correo -->
+                                                    <div class="mt-3 p-3 bg-light rounded">
+                                                        <div class="mb-3 form-check">
+                                                            <input type="checkbox" class="form-check-input" id="email_consent" name="email_consent">
+                                                            <label class="form-check-label fw-bold" for="email_consent">
+                                                                Doy mi consentimiento para que la plataforma acceda a los datos de mi correo electrónico
+                                                            </label>
+                                                        </div>
+                                                        <p class="text-muted small mb-0">
+                                                            Al marcar esta casilla, autorizo expresamente a la plataforma a: (1) acceder y leer los correos electrónicos de la cuenta configurada, (2) enviar respuestas automáticas en mi nombre, y (3) procesar el contenido de los mensajes con el único fin de proporcionar los servicios solicitados. Entiendo que puedo revocar este permiso en cualquier momento desde la configuración. Mis datos serán tratados de acuerdo con la <a href="#" data-bs-toggle="modal" data-bs-target="#privacyPolicyModal">política de privacidad</a>.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
                                         <!-- Columna izquierda: Opciones de activación -->
                                         <div class="col-md-6">
                                             <div class="card border-light h-100">
@@ -847,25 +995,6 @@ function createBotConfigTabContent() {
                                             </div>
                                         </div>
                                         
-                                        <!-- Configuración de correos electrónicos -->
-                                        <div class="col-md-6">
-                                            <div class="card border-light">
-                                                <div class="card-body p-3">
-                                                    <h6 class="card-subtitle mb-3 text-muted">Correos de Gestión</h6>
-                                                    <div class="mb-3">
-                                                        <label for="outgoing_email" class="form-label">Email de Salida</label>
-                                                        <input type="email" class="form-control" id="outgoing_email" name="outgoing_email" value="soporte@techsolutions.com" required placeholder="correo@tuempresa.com">
-                                                        <div class="form-text">Email desde el que se enviarán las respuestas automáticas</div>
-                                                    </div>
-                                                    <div>
-                                                        <label for="recipient_email" class="form-label">Email de Recepción</label>
-                                                        <input type="email" class="form-control" id="recipient_email" name="recipient_email" value="info@techsolutions.com" required placeholder="info@tuempresa.com">
-                                                        <div class="form-text">Email donde se recibirán las copias de las respuestas</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
                                         <!-- Configuración adicional -->
                                         <div class="col-md-6">
                                             <div class="card border-light">
@@ -873,7 +1002,21 @@ function createBotConfigTabContent() {
                                                     <h6 class="card-subtitle mb-3 text-muted">Información Adicional</h6>
                                                     <div>
                                                         <label for="website" class="form-label">Sitio Web</label>
-                                                        <input type="url" class="form-control" id="website" name="website" value="https://www.techsolutions.com" required placeholder="https://www.tuempresa.com">
+                                                        <input type="url" class="form-control" id="website" name="website" placeholder="https://www.tuempresa.com" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Reglas de reenvío -->
+                                        <div class="col-md-6">
+                                            <div class="card border-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Reglas de reenvío</h6>
+                                                    <div>
+                                                        <label for="forward_rules" class="form-label">Reglas de reenvío</label>
+                                                        <textarea class="form-control" id="forward_rules" name="forward_rules" rows="3" placeholder="Especifica reglas para el reenvío automático de emails..."></textarea>
+                                                        <small class="text-muted">Ejemplo: "reenviar emails con asunto 'urgente' a support@miempresa.com"</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -893,6 +1036,17 @@ Tel: {TELEFONO}
 Email: {EMAIL}
 Web: {WEB}</textarea>
                                                     <div class="form-text">Puedes usar las variables: {NOMBRE}, {CARGO}, {EMPRESA}, {TELEFONO}, {EMAIL}, {WEB}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Mensaje de respuesta automática -->
+                                        <div class="col-12">
+                                            <div class="card border-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted">Respuesta Automática</h6>
+                                                    <label for="auto_reply_message" class="form-label">Mensaje de respuesta automática</label>
+                                                    <textarea class="form-control" id="auto_reply_message" name="auto_reply_message" rows="3" placeholder="Gracias por su mensaje. Nos pondremos en contacto con usted lo antes posible..."></textarea>
                                                 </div>
                                             </div>
                                         </div>
@@ -1010,7 +1164,7 @@ function createAccountTabContent() {
                             <div class="tab-pane fade show active" id="profile-content" role="tabpanel" aria-labelledby="profile-tab">
                                 <div class="row">
                                     <div class="col-12">
-                                        <div class="row g-3">
+                                        <div class="row g-3 px-3 py-4">
                                             <div class="col-md-6">
                                                 <label for="account_name" class="form-label">Nombre</label>
                                                 <input type="text" class="form-control" id="account_name" value="Usuario">
@@ -1151,97 +1305,159 @@ function createBillingTabContent() {
                                 
                                 <div class="row mb-4">
                                     <div class="col-md-4">
-                                        <div class="card h-100">
-                                            <div class="card-header bg-light">
-                                                <h6 class="mb-0">Plan Básico</h6>
+                                        <div class="pricing-card h-100">
+                                            <div class="pricing-card-header p-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h3 class="pricing-title mb-0">Básico</h3>
+                                                </div>
+                                                <div class="pricing-price">
+                                                    <div class="d-flex align-items-end">
+                                                        <span class="currency">€</span>
+                                                        <span class="amount">19,99</span>
+                                                        <span class="period">/mes</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="card-body p-3">
-                                                <div class="fw-bold fs-4 mb-2">19,99€ <small class="text-muted fs-6">/mes</small></div>
-                                                <ul class="list-unstyled small">
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 100 llamadas/mes</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 500 emails/mes</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 1 usuario</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Soporte básico</li>
+                                            <div class="pricing-card-body p-3">
+                                                <ul class="pricing-features">
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>100 llamadas/mes</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>500 emails/mes</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>1 usuario</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>Soporte básico</span>
+                                                    </li>
                                                 </ul>
-                                                <button class="btn btn-sm btn-outline-primary w-100 mt-2">Cambiar plan</button>
+                                                <button class="btn btn-outline-primary w-100 rounded-pill py-2 mt-3">Cambiar plan</button>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="card h-100 border-primary">
-                                            <div class="card-header bg-primary text-white">
-                                                <h6 class="mb-0 d-flex justify-content-between align-items-center">
-                                                    Plan Profesional
-                                                    <span class="badge bg-white text-primary">Actual</span>
-                                                </h6>
+                                        <div class="pricing-card pricing-popular h-100">
+                                            <div class="popular-badge">Plan Actual</div>
+                                            <div class="pricing-card-header p-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h3 class="pricing-title mb-0">Profesional</h3>
+                                                </div>
+                                                <div class="pricing-price">
+                                                    <div class="d-flex align-items-end">
+                                                        <span class="currency">€</span>
+                                                        <span class="amount">49,99</span>
+                                                        <span class="period">/mes</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="card-body p-3">
-                                                <div class="fw-bold fs-4 mb-2">49,99€ <small class="text-muted fs-6">/mes</small></div>
-                                                <ul class="list-unstyled small">
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 1.000 llamadas/mes</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 5.000 emails/mes</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 5 usuarios</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Soporte prioritario</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Respuestas IA ilimitadas</li>
+                                            <div class="pricing-card-body p-3">
+                                                <ul class="pricing-features">
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>1.000 llamadas/mes</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>5.000 emails/mes</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>5 usuarios</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>Soporte prioritario</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>Respuestas IA ilimitadas</span>
+                                                    </li>
                                                 </ul>
-                                                <button class="btn btn-sm btn-outline-primary w-100 mt-2" disabled>Plan Actual</button>
+                                                <button class="btn btn-primary w-100 rounded-pill py-2 mt-3" disabled>Plan Actual</button>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="card h-100">
-                                            <div class="card-header bg-dark text-white">
-                                                <h6 class="mb-0 d-flex justify-content-between align-items-center">
-                                                    Plan Enterprise
+                                        <div class="pricing-card h-100">
+                                            <div class="pricing-card-header p-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h3 class="pricing-title mb-0">Enterprise</h3>
                                                     <span class="badge bg-warning">Premium</span>
-                                                </h6>
+                                                </div>
+                                                <div class="pricing-price">
+                                                    <div class="d-flex align-items-end">
+                                                        <span class="currency">€</span>
+                                                        <span class="amount">99,99</span>
+                                                        <span class="period">/mes</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="card-body p-3">
-                                                <div class="fw-bold fs-4 mb-2">99,99€ <small class="text-muted fs-6">/mes</small></div>
-                                                <ul class="list-unstyled small">
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Llamadas ilimitadas</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Emails ilimitados</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> 15 usuarios</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> Soporte 24/7</li>
-                                                    <li class="mb-1"><i class="fas fa-check text-success me-1"></i> API personalizada</li>
+                                            <div class="pricing-card-body p-3">
+                                                <ul class="pricing-features">
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>Llamadas ilimitadas</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>Emails ilimitados</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>15 usuarios</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>Soporte 24/7</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>API personalizada</span>
+                                                    </li>
                                                 </ul>
-                                                <button class="btn btn-sm btn-dark w-100 mt-2" id="upgrade-plan-btn">Actualizar Plan</button>
+                                                <button class="btn btn-outline-primary w-100 rounded-pill py-2 mt-3" id="upgrade-plan-btn">Actualizar Plan</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="card border-0 shadow-sm">
+                                <div class="card border-0 shadow-sm" id="plan-usage-section">
                                     <div class="card-header bg-light py-2">
-                                        <h6 class="mb-0 small">Uso Actual del Plan</h6>
+                                        <h6 class="mb-0 small card-title">Uso Actual del Plan</h6>
                                     </div>
                                     <div class="card-body p-3">
                                         <div class="row g-3">
                                             <div class="col-md-4">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <small class="text-muted">Llamadas</small>
-                                                    <small class="text-muted">650 / 1.000</small>
+                                                    <small class="text-muted" id="plan-usage-calls-count">0 / 1.000</small>
                                                 </div>
                                                 <div class="progress" style="height: 8px;">
-                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    <div class="progress-bar bg-primary" id="plan-usage-calls-progress" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <small class="text-muted">Emails</small>
-                                                    <small class="text-muted">2.100 / 5.000</small>
+                                                    <small class="text-muted" id="plan-usage-emails-count">0 / 5.000</small>
                                                 </div>
                                                 <div class="progress" style="height: 8px;">
-                                                    <div class="progress-bar bg-success" role="progressbar" style="width: 42%;" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    <div class="progress-bar bg-success" id="plan-usage-emails-progress" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <small class="text-muted">Usuarios</small>
-                                                    <small class="text-muted">4 / 5</small>
+                                                    <small class="text-muted" id="plan-usage-users-count">1 / 5</small>
                                                 </div>
                                                 <div class="progress" style="height: 8px;">
-                                                    <div class="progress-bar bg-warning" role="progressbar" style="width: 80%;" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    <div class="progress-bar bg-warning" id="plan-usage-users-progress" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1468,69 +1684,54 @@ function updateLastUpdateTime() {
 }
 
 /**
- * Cargar datos de llamadas desde la API (simulado)
+ * Cargar datos de llamadas desde la API
  */
 function loadCallsData() {
-    console.log('📞 Cargando datos de llamadas...');
+    console.log('📞 Cargando datos de llamadas desde el backend...');
     
-    // Simular llamada a API con datos de ejemplo
-    // En producción, esto sería una llamada fetch real a la API
-    setTimeout(() => {
-        const callsData = [
-            {
-                id: 1,
-                date: '2024-02-20',
-                time: '11:45',
-                phone: '+34 600 123 456',
-                contactType: 'Contacto registrado',
-                classification: 'pedido',
-                urgency: 'urgente',
-                confidence: 95,
-                summary: 'Cliente solicita 200m2 de piel roja',
-                details: 'Necesita entrega para el 22 de julio. Cliente María García, pedido urgente para evento. Requiere confirmación de disponibilidad y precio final.',
-                duration: '04:32',
-                managed: false
-            },
-            {
-                id: 2,
-                date: '2024-02-19',
-                time: '16:20',
-                phone: '+34 655 789 012',
-                contactType: 'Contacto registrado',
-                classification: 'consulta',
-                urgency: 'normal',
-                confidence: 87,
-                summary: 'Consulta sobre disponibilidad de pieles',
-                details: 'Pregunta por disponibilidad de piel negra y marrón para tapicería. Interesado en precios por metro cuadrado y tiempos de entrega estándar.',
-                duration: '02:15',
-                managed: true
-            },
-            {
-                id: 3,
-                date: '2024-02-18',
-                time: '09:10',
-                phone: '+34 633 456 789',
-                contactType: 'Cliente nuevo',
-                classification: 'reclamación',
-                urgency: 'alta',
-                confidence: 92,
-                summary: 'Reclamación por calidad del producto',
-                details: 'Cliente insatisfecho con la calidad de la piel recibida. Menciona que el color no coincide con lo solicitado y hay imperfecciones en algunas áreas.',
-                duration: '06:45',
-                managed: false
-            }
-        ];
-        
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
+    // Mostrar indicador de carga
+    const callsTableBody = document.getElementById('calls-table-body');
+    if (callsTableBody) {
+        callsTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando llamadas...</p></td></tr>';
+    }
+    
+    // Realizar petición al backend
+    fetch('/api/calls', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(callsData => {
         // Limpiar tabla de llamadas
-        const callsTableBody = document.getElementById('calls-table-body');
         if (callsTableBody) {
             callsTableBody.innerHTML = '';
             
-            // Generar filas de llamadas con el nuevo diseño moderno
-            callsData.forEach(call => {
-                const callRow = createCallRow(call);
-                callsTableBody.appendChild(callRow);
-            });
+            if (callsData.length === 0) {
+                // Mostrar mensaje si no hay datos
+                callsTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No hay llamadas registradas</td></tr>';
+            } else {
+                // Generar filas de llamadas con el nuevo diseño moderno
+                callsData.forEach(call => {
+                    const callRow = createCallRow(call);
+                    callsTableBody.appendChild(callRow);
+                });
+            }
             
             // Actualizar contador
             updateCallsCount();
@@ -1540,7 +1741,15 @@ function loadCallsData() {
         }
         
         console.log(`✅ ${callsData.length} llamadas cargadas correctamente`);
-    }, 500);
+    })
+    .catch(error => {
+        console.error('❌ Error al cargar datos de llamadas:', error);
+        toastr.error('Error al cargar datos de llamadas', 'Error');
+        
+        if (callsTableBody) {
+            callsTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="alert alert-danger">Error al cargar datos: ${error.message}</div></td></tr>`;
+        }
+    });
 }
 
 /**
@@ -1751,6 +1960,14 @@ function filterCalls(type) {
 function playCallRecording(callId) {
     console.log(`▶️ Reproduciendo grabación de llamada ID: ${callId}`);
     
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
     // Mostrar modal de reproducción
     const playModal = new bootstrap.Modal(document.getElementById('play-call-modal'));
     
@@ -1760,7 +1977,7 @@ function playCallRecording(callId) {
         modalTitle.textContent = `Reproducción de llamada #${callId}`;
     }
     
-    // Simular carga de audio
+    // Preparar reproductor de audio
     const audioPlayer = document.getElementById('call-audio-player');
     if (audioPlayer) {
         // Deshabilitar controles mientras se carga
@@ -1772,10 +1989,23 @@ function playCallRecording(callId) {
             loadingSpinner.classList.remove('d-none');
         }
         
-        // Simular carga de audio (en producción cargaría de la API)
-        setTimeout(() => {
-            // URL de ejemplo (en producción sería dinámica)
-            audioPlayer.src = `https://example.com/calls/audio-${callId}.mp3`;
+        // Cargar audio desde el backend
+        fetch(`/api/calls/${callId}/recording`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.blob();
+        })
+        .then(audioBlob => {
+            // Crear URL para el blob de audio
+            const audioUrl = URL.createObjectURL(audioBlob);
+            audioPlayer.src = audioUrl;
             audioPlayer.controls = true;
             
             // Ocultar spinner
@@ -1788,7 +2018,24 @@ function playCallRecording(callId) {
                 console.warn('Reproducción automática bloqueada por el navegador:', e);
                 toastr.info('Haga clic en reproducir para escuchar la grabación', 'Listo para reproducir');
             });
-        }, 1500);
+            
+            console.log('✅ Grabación cargada correctamente');
+        })
+        .catch(error => {
+            console.error('❌ Error al cargar la grabación:', error);
+            toastr.error('Error al cargar la grabación', 'Error');
+            
+            // Ocultar spinner y mostrar mensaje de error
+            if (loadingSpinner) {
+                loadingSpinner.classList.add('d-none');
+            }
+            
+            // Mostrar mensaje de error en el reproductor
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'alert alert-danger mt-3';
+            errorMessage.textContent = `Error al cargar la grabación: ${error.message}`;
+            audioPlayer.parentNode.appendChild(errorMessage);
+        });
     }
     
     // Mostrar modal
@@ -1882,11 +2129,61 @@ function markCallAsManaged(callId) {
         toastr.success(`Llamada #${callId} marcada como gestionada`, 'Estado actualizado');
     }
     
-    // En producción, aquí se enviaría la actualización a la API
-    // Simular llamada a API
-    setTimeout(() => {
-        console.log(`API: Llamada ${callId} estado actualizado a ${!isManaged ? 'gestionada' : 'pendiente'}`);
-    }, 500);
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
+    // Enviar actualización al backend
+    fetch(`/api/calls/${callId}/status`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            managed: !isManaged
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log(`✅ API: Llamada ${callId} estado actualizado a ${!isManaged ? 'gestionada' : 'pendiente'}`);
+    })
+    .catch(error => {
+        console.error('❌ Error al actualizar estado de la llamada:', error);
+        toastr.error('Error al actualizar estado de la llamada', 'Error');
+        
+        // Revertir cambios en la UI en caso de error
+        if (!isManaged) {
+            callRow.classList.remove('managed');
+            if (checkbox) checkbox.classList.remove('checked');
+            if (manageBtn) {
+                manageBtn.setAttribute('data-managed', 'false');
+                manageBtn.classList.remove('active');
+                const icon = manageBtn.querySelector('i');
+                if (icon) icon.className = 'fas fa-check';
+                manageBtn.title = 'Marcar como gestionado';
+            }
+        } else {
+            callRow.classList.add('managed');
+            if (checkbox) checkbox.classList.add('checked');
+            if (manageBtn) {
+                manageBtn.setAttribute('data-managed', 'true');
+                manageBtn.classList.add('active');
+                const icon = manageBtn.querySelector('i');
+                if (icon) icon.className = 'fas fa-undo';
+                manageBtn.title = 'Desmarcar como gestionado';
+            }
+        }
+    });
     
     // Actualizar contador
     updateCallsCount();
@@ -1897,7 +2194,23 @@ function markCallAsManaged(callId) {
  * @param {number} callId - ID de la llamada
  */
 function viewCallDetails(callId) {
-    console.log(`👁️ Ver detalles de llamada ID: ${callId}`);
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`👁️ Ver detalles de llamada ID: ${callId} por el usuario ${userId}`);
+    
+    // Registrar la llamada en el sistema de seguimiento de uso
+    if (window.UsageTracker) {
+        window.UsageTracker.trackCall();
+        console.log(`📊 Llamada registrada para el usuario ${userId}`);
+        
+        // Actualizar la UI del sistema de seguimiento
+        window.UsageTracker.updateUI();
+        
+        // Actualizar el resumen de uso si está visible
+        if (typeof showUsageSummary === 'function') {
+            showUsageSummary();
+        }
+    }
     
     // Mostrar modal de detalles
     const detailsModal = new bootstrap.Modal(document.getElementById('call-details-modal'));
@@ -2214,8 +2527,11 @@ function initDashboard() {
     // Configurar event listeners
     setupEventListeners();
     
-    // Cargar datos iniciales
-    loadInitialData();
+    // Cargar datos de llamadas y emails
+    loadSimpleData({});
+    
+    // Cargar datos existentes del perfil y configuración desde el backend
+    loadExistingData();
     
     // Desactivar mensajes temporales excepto advertencias
     disableTemporaryMessages();
@@ -2272,19 +2588,264 @@ function refreshDashboardData() {
 }
 
 /**
- * Cargar datos existentes del dashboard
+ * Cargar datos existentes desde el backend
  */
 function loadExistingData() {
-    console.log('📥 Cargando datos existentes...');
+    console.log('📂 Cargando datos existentes desde el backend...');
     
-    // Datos de ejemplo (en producción vendrían de la API)
-    const existingData = {
-        company_name: 'TechSolutions S.L.',
-        contact_email: 'info@techsolutions.com',
-        main_phone: '+34 912 345 678',
-        website: 'https://www.techsolutions.com',
-        address: 'Calle Mayor 123, 28001 Madrid',
-        industry: 'technology',
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
+    // Cargar datos de perfil
+    loadProfileData(token);
+    
+    // Cargar configuración del bot
+    loadBotConfiguration(token);
+    
+    // Cargar configuración de emails
+    loadEmailConfiguration(token);
+}
+
+/**
+ * Cargar datos de perfil desde el backend
+ * @param {string} token - Token de autenticación
+ */
+function loadProfileData(token) {
+    console.log('👤 Cargando datos de perfil...');
+    
+    fetch('/api/profile', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(profileData => {
+        // Rellenar campos del formulario con los datos del perfil
+        document.getElementById('company_name').value = profileData.companyName || '';
+        document.getElementById('contact_email').value = profileData.email || '';
+        document.getElementById('main_phone').value = profileData.phone || '';
+        document.getElementById('address').value = profileData.address || '';
+        document.getElementById('company_description').value = profileData.description || '';
+        
+        // Seleccionar la industria si está definida
+        if (profileData.industry) {
+            const industrySelect = document.getElementById('industry');
+            if (industrySelect) {
+                for (let i = 0; i < industrySelect.options.length; i++) {
+                    if (industrySelect.options[i].value === profileData.industry) {
+                        industrySelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        console.log('✅ Datos de perfil cargados correctamente');
+    })
+    .catch(error => {
+        console.error('❌ Error al cargar datos de perfil:', error);
+        toastr.error('Error al cargar datos de perfil', 'Error');
+    });
+}
+
+/**
+ * Cargar configuración del bot desde el backend
+ * @param {string} token - Token de autenticación
+ */
+function loadBotConfiguration(token) {
+    console.log('🤖 Cargando configuración del bot...');
+    
+    fetch('/api/config/bot', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(botConfig => {
+        // Rellenar campos del formulario con la configuración del bot
+        if (botConfig.welcomeMessage) {
+            document.getElementById('welcome_message').value = botConfig.welcomeMessage;
+        }
+        
+        if (botConfig.businessHours) {
+            document.getElementById('business_hours').value = botConfig.businessHours;
+        }
+        
+        // Establecer personalidad del bot
+        if (botConfig.personality) {
+            const personalityRadios = document.querySelectorAll('input[name="bot_personality"]');
+            personalityRadios.forEach(radio => {
+                if (radio.value === botConfig.personality) {
+                    radio.checked = true;
+                }
+            });
+        }
+        
+        // Cargar FAQs si existen
+        if (botConfig.faqs && botConfig.faqs.length > 0) {
+            // Limpiar FAQs existentes
+            const faqContainer = document.getElementById('faq-items-container');
+            if (faqContainer) {
+                faqContainer.innerHTML = '';
+            }
+            
+            // Añadir FAQs desde la configuración
+            botConfig.faqs.forEach(faq => addFaqItemToDOM(faq));
+            
+            // Actualizar mensaje de no hay preguntas
+            updateNoFaqsMessage();
+        }
+        
+        // Cargar archivos de contexto si existen
+        if (botConfig.contextFiles && botConfig.contextFiles.length > 0) {
+            const filesList = document.getElementById('context-files-list');
+            if (filesList) {
+                filesList.innerHTML = '';
+                
+                botConfig.contextFiles.forEach(file => {
+                    const fileItem = document.createElement('li');
+                    fileItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    fileItem.innerHTML = `
+                        <span>
+                            <i class="fas fa-file-alt me-2"></i>
+                            ${file.name}
+                        </span>
+                        <span class="badge bg-success rounded-pill">${file.size} KB</span>
+                    `;
+                    filesList.appendChild(fileItem);
+                });
+            }
+        }
+        
+        console.log('✅ Configuración del bot cargada correctamente');
+    })
+    .catch(error => {
+        console.error('❌ Error al cargar configuración del bot:', error);
+        toastr.error('Error al cargar configuración del bot', 'Error');
+    });
+}
+
+/**
+ * Cargar configuración de emails desde el backend
+ * @param {string} token - Token de autenticación
+ */
+function loadEmailConfiguration(token) {
+    console.log('📧 Cargando configuración de emails...');
+    
+    fetch('/api/config/email', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(emailConfig => {
+        // Rellenar campos del formulario con la configuración de emails
+        if (emailConfig.forwardRules) {
+            document.getElementById('forward_rules').value = emailConfig.forwardRules;
+        }
+        
+        if (emailConfig.defaultRecipients) {
+            document.getElementById('recipient_email').value = emailConfig.defaultRecipients;
+        }
+        
+        if (emailConfig.autoReplyEnabled !== undefined) {
+            document.getElementById('auto_reply').checked = emailConfig.autoReplyEnabled;
+        }
+        
+        if (emailConfig.autoReplyMessage) {
+            document.getElementById('auto_reply_message').value = emailConfig.autoReplyMessage;
+        }
+        
+        if (emailConfig.outgoingEmail) {
+            document.getElementById('outgoing_email').value = emailConfig.outgoingEmail;
+        }
+        
+        if (emailConfig.website) {
+            document.getElementById('website').value = emailConfig.website;
+        }
+        
+        if (emailConfig.emailLanguage) {
+            document.getElementById('email_language').value = emailConfig.emailLanguage;
+        }
+        
+        if (emailConfig.emailSignature) {
+            document.getElementById('email_signature').value = emailConfig.emailSignature;
+        }
+        
+        // Cargar configuración de proveedor de correo
+        if (emailConfig.provider) {
+            const emailProviderSelect = document.getElementById('email_provider');
+            if (emailProviderSelect) {
+                emailProviderSelect.value = emailConfig.provider;
+                
+                // Disparar el evento change para actualizar la UI
+                const event = new Event('change');
+                emailProviderSelect.dispatchEvent(event);
+            }
+        }
+        
+        // Cargar configuración manual de IMAP/SMTP si existe
+        if (emailConfig.provider === 'other') {
+            if (emailConfig.imapServer) document.getElementById('imap_server').value = emailConfig.imapServer;
+            if (emailConfig.imapPort) document.getElementById('imap_port').value = emailConfig.imapPort;
+            if (emailConfig.smtpServer) document.getElementById('smtp_server').value = emailConfig.smtpServer;
+            if (emailConfig.smtpPort) document.getElementById('smtp_port').value = emailConfig.smtpPort;
+            if (emailConfig.useSSL !== undefined) document.getElementById('use_ssl').checked = emailConfig.useSSL;
+        }
+        
+        // Cargar estado de consentimiento
+        if (emailConfig.emailConsent !== undefined) {
+            const emailConsentCheckbox = document.getElementById('email_consent');
+            if (emailConsentCheckbox) {
+                emailConsentCheckbox.checked = emailConfig.emailConsent;
+            }
+        }
+        
+        // Cargar estado de conexión con el proveedor de correo
+        if (emailConfig.connected) {
+            // Actualizar UI para mostrar que está conectado
+            updateEmailConnectionStatus({
+                connected: true,
+                provider: emailConfig.provider,
+                email: emailConfig.outgoingEmail
+            });
+        }
+        
+        console.log('✅ Configuración de emails cargada correctamente');
+    })
+    .catch(error => {
+        console.error('❌ Error al cargar configuración de emails:', error);
+        toastr.error('Error al cargar configuración de emails', 'Error');
+    });
+}
+
+/**
         company_description: 'Empresa líder en soluciones tecnológicas para negocios, especializada en software de gestión y automatización de procesos.',
         primary_language: 'es',
         bot_personality: 'professional',
@@ -2394,6 +2955,12 @@ function updateCallsCount() {
 function playCallRecording(callId) {
     console.log(`🔊 Reproduciendo grabación de llamada ID: ${callId}`);
     
+    // Registrar acción en el sistema de seguimiento
+    if (window.UsageTracker) {
+        window.UsageTracker.trackCall();
+        window.UsageTracker.updateUI();
+    }
+    
     // Simular reproducción de audio
     const audioPlayer = document.getElementById('audio-player') || createAudioPlayer();
     audioPlayer.classList.remove('d-none');
@@ -2500,66 +3067,54 @@ function updateEmailsCount() {
 }
 
 /**
- * Cargar datos de emails desde la API (simulado)
+ * Cargar datos de emails desde la API
  */
 function loadEmailsData() {
-    console.log('📧 Cargando datos de emails...');
+    console.log('📫 Cargando datos de emails desde el backend...');
     
-    // Simular llamada a API con datos de ejemplo
-    // En producción, esto sería una llamada fetch real a la API
-    setTimeout(() => {
-        const emailsData = [
-            {
-                id: 1,
-                sender: 'Juan Pérez',
-                senderType: 'Cliente',
-                subject: 'Consulta sobre productos premium',
-                preview: 'Buenas tardes, me gustaría obtener más información sobre sus productos premium, especialmente...',
-                content: 'Buenas tardes,\n\nMe gustaría obtener más información sobre sus productos premium, especialmente sobre las pieles sintéticas para tapicería. Necesito conocer precios, disponibilidad y tiempos de entrega para un proyecto importante.\n\nGracias de antemano,\nJuan Pérez\nDirector de Proyectos\nInteriorismo Moderno S.L.',
-                date: 'Hoy',
-                time: '10:25',
-                read: false,
-                important: true,
-                spam: false
-            },
-            {
-                id: 2,
-                sender: 'María García',
-                senderType: 'Proveedor',
-                subject: 'Actualización de catálogo 2024',
-                preview: 'Adjunto encontrará nuestro nuevo catálogo de productos para 2024 con todas las novedades...',
-                content: 'Estimado cliente,\n\nAdjunto encontrará nuestro nuevo catálogo de productos para 2024 con todas las novedades y actualizaciones de precios. Hemos incorporado nuevas líneas de productos que podrían ser de su interés.\n\nNo dude en contactarnos para cualquier consulta.\n\nSaludos cordiales,\nMaría García\nDepartamento Comercial\nProveedores Unidos S.A.',
-                date: 'Ayer',
-                time: '16:40',
-                read: true,
-                important: false,
-                spam: false
-            },
-            {
-                id: 3,
-                sender: 'newsletter@marketing.com',
-                senderType: '',
-                subject: '¡Ofertas especiales solo este mes!',
-                preview: 'Descubra nuestras ofertas exclusivas para clientes VIP. ¡Solo durante este mes!...',
-                content: '¡Ofertas especiales solo este mes!\n\nDescubra nuestras ofertas exclusivas para clientes VIP. ¡Solo durante este mes! Aproveche descuentos de hasta el 50% en productos seleccionados.\n\nHaga clic aquí para ver todas las ofertas.\n\nSi no desea recibir más emails como este, haga clic aquí para darse de baja.',
-                date: '18/02/2024',
-                time: '09:15',
-                read: true,
-                important: false,
-                spam: true
-            }
-        ];
-        
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
+    // Mostrar indicador de carga
+    const emailsTableBody = document.getElementById('emails-table-body');
+    if (emailsTableBody) {
+        emailsTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando emails...</p></td></tr>';
+    }
+    
+    // Realizar petición al backend
+    fetch('/api/emails', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(emailsData => {
         // Limpiar tabla de emails
-        const emailsTableBody = document.getElementById('emails-table-body');
         if (emailsTableBody) {
             emailsTableBody.innerHTML = '';
             
-            // Generar filas de emails con el nuevo diseño moderno
-            emailsData.forEach(email => {
-                const emailRow = createEmailRow(email);
-                emailsTableBody.appendChild(emailRow);
-            });
+            if (emailsData.length === 0) {
+                // Mostrar mensaje si no hay datos
+                emailsTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No hay emails registrados</td></tr>';
+            } else {
+                // Generar filas de emails con el nuevo diseño moderno
+                emailsData.forEach(email => {
+                    const emailRow = createEmailRow(email);
+                    emailsTableBody.appendChild(emailRow);
+                });
+            }
             
             // Actualizar contador
             updateEmailsCount();
@@ -2577,7 +3132,15 @@ function loadEmailsData() {
         }
         
         console.log(`✅ ${emailsData.length} emails cargados correctamente`);
-    }, 500);
+    })
+    .catch(error => {
+        console.error('❌ Error al cargar datos de emails:', error);
+        toastr.error('Error al cargar datos de emails', 'Error');
+        
+        if (emailsTableBody) {
+            emailsTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4"><div class="alert alert-danger">Error al cargar datos: ${error.message}</div></td></tr>`;
+        }
+    });
 }
 
 /**
@@ -2607,7 +3170,7 @@ function createEmailRow(email) {
                 ${email.senderType ? `<span class="badge-dashboard badge-primary mt-1 small" style="font-size: 0.65rem;">${email.senderType}</span>` : ''}
             </div>
         </td>
-        <td style="width: calc(100% - 12% - 140px);">
+        <td style="width: calc(100% - 12% - 150px);">
             <div class="d-flex flex-column">
                 <div class="d-flex align-items-center">
                     ${!email.read ? '<i class="fas fa-circle text-primary me-2" style="font-size: 6px;"></i>' : ''}
@@ -2622,7 +3185,7 @@ function createEmailRow(email) {
                 <div class="text-muted small" style="font-size: 0.7rem;">${email.time}</div>
             </div>
         </td>
-        <td class="text-center" style="width: 40px;">
+        <td class="text-center" style="width: 50px;">
             <div class="dropdown">
                 <button class="btn btn-sm btn-dashboard-primary dropdown-toggle p-1" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-robot"></i>
@@ -2962,10 +3525,59 @@ function toggleEmailFavorite(emailId, starIcon) {
         }
     }
     
-    // En producción, aquí se enviaría la actualización a la API
-    setTimeout(() => {
-        console.log(`API: Email ${emailId} estado de favorito actualizado a ${!isImportant}`);
-    }, 300);
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
+    // Enviar actualización al backend
+    fetch(`/api/emails/${emailId}/favorite`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            favorite: !isImportant
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log(`✅ API: Email ${emailId} estado de favorito actualizado a ${!isImportant}`);
+    })
+    .catch(error => {
+        console.error('❌ Error al actualizar estado de favorito:', error);
+        toastr.error('Error al actualizar estado de favorito', 'Error');
+        
+        // Revertir cambios en la UI en caso de error
+        if (isImportant) {
+            // Revertir a favorito
+            starIcon.classList.replace('far', 'fas');
+            starIcon.classList.add('text-warning');
+            
+            // Actualizar dataset
+            if (emailRow && !emailRow.dataset.type.includes('important')) {
+                emailRow.dataset.type = (emailRow.dataset.type + ' important').trim();
+            }
+        } else {
+            // Revertir a no favorito
+            starIcon.classList.replace('fas', 'far');
+            starIcon.classList.remove('text-warning');
+            
+            // Actualizar dataset
+            if (emailRow) {
+                emailRow.dataset.type = emailRow.dataset.type.replace('important', '').trim();
+            }
+        }
+    });
 }
 
 /**
@@ -2973,7 +3585,9 @@ function toggleEmailFavorite(emailId, starIcon) {
  * @param {number} emailId - ID del email
  */
 function toggleEmailRead(emailId) {
-    console.log(`📣 Alternando estado de leído para email ID: ${emailId}`);
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`📣 Alternando estado de leído para email ID: ${emailId} por el usuario ${userId}`);
     
     const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
     if (!emailRow) return;
@@ -3022,6 +3636,20 @@ function toggleEmailRead(emailId) {
         
         // Actualizar dataset
         emailRow.dataset.type = (emailRow.dataset.type || '').replace('unread', '').trim();
+        
+        // Registrar el email en el sistema de seguimiento de uso cuando se marca como leído
+        if (!isRead && window.UsageTracker) {
+            window.UsageTracker.trackEmail();
+            console.log(`📊 Email registrado para el usuario ${userId}`);
+            
+            // Actualizar la UI del sistema de seguimiento
+            window.UsageTracker.updateUI();
+            
+            // Actualizar el resumen de uso si está visible
+            if (typeof showUsageSummary === 'function') {
+                showUsageSummary();
+            }
+        }
         
         toastr.success(`Email #${emailId} marcado como leído`, 'Estado actualizado');
     }
@@ -3357,11 +3985,52 @@ function markEmailAsRead(emailId) {
         toastr.success(`Email #${emailId} marcado como leído`, 'Estado actualizado');
     }
     
-    // En producción, aquí se enviaría la actualización a la API
-    // Simular llamada a API
-    setTimeout(() => {
-        console.log(`API: Email ${emailId} estado actualizado a ${!isRead ? 'no leído' : 'leído'}`);
-    }, 500);
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
+    // Enviar actualización al backend
+    fetch(`/api/emails/${emailId}/read`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            read: isRead
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log(`✅ API: Email ${emailId} estado actualizado a ${!isRead ? 'no leído' : 'leído'}`);
+    })
+    .catch(error => {
+        console.error('❌ Error al actualizar estado del email:', error);
+        toastr.error('Error al actualizar estado del email', 'Error');
+        
+        // Revertir cambios en la UI en caso de error
+        if (!isRead) {
+            // Revertir a leído
+            emailRow.classList.remove('fw-bold');
+            emailRow.dataset.type = emailRow.dataset.type.replace('unread', '').trim();
+            if (emailRow.dataset.type === '') {
+                emailRow.dataset.type = 'read';
+            }
+        } else {
+            // Revertir a no leído
+            emailRow.classList.add('fw-bold');
+            emailRow.dataset.type = emailRow.dataset.type.includes('unread') ? emailRow.dataset.type : `unread ${emailRow.dataset.type}`;
+        }
+    });
     
     // Si estamos filtrando por 'unread', actualizar visibilidad
     const unreadFilter = document.getElementById('filter-unread');
@@ -3814,11 +4483,53 @@ function toggleCallImportance(callId, starBtn) {
         toastr.success(`Llamada #${callId} marcada como importante`, 'Actualizado');
     }
     
-    // En producción, aquí se enviaría la actualización a la API
-    // Simular llamada a API
-    setTimeout(() => {
-        console.log(`API: Llamada ${callId} importancia actualizada a ${!isStarred ? 'importante' : 'normal'}`);
-    }, 500);
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
+    // Enviar actualización al backend
+    fetch(`/api/calls/${callId}/importance`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            important: !isStarred
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log(`✅ API: Llamada ${callId} importancia actualizada a ${!isStarred ? 'importante' : 'normal'}`);
+    })
+    .catch(error => {
+        console.error('❌ Error al actualizar importancia de la llamada:', error);
+        toastr.error('Error al actualizar importancia de la llamada', 'Error');
+        
+        // Revertir cambios en la UI en caso de error
+        if (isStarred) {
+            // Revertir a importante
+            starBtn.querySelector('i').classList.remove('far');
+            starBtn.querySelector('i').classList.add('fas');
+            starBtn.classList.remove('btn-outline-warning');
+            starBtn.classList.add('btn-warning');
+        } else {
+            // Revertir a normal
+            starBtn.querySelector('i').classList.remove('fas');
+            starBtn.querySelector('i').classList.add('far');
+            starBtn.classList.remove('btn-warning');
+            starBtn.classList.add('btn-outline-warning');
+        }
+    });
 }
 
 /**
@@ -3973,20 +4684,195 @@ function setupBusinessHoursSelector() {
 }
 
 /**
+ * Actualizar la interfaz de usuario con los datos de uso del plan
+ */
+function updatePlanUsageUI() {
+    const userId = window.UsageTracker?.getCurrentUserId();
+    console.log(`📈 Actualizando UI con datos de uso del plan para el usuario ${userId}...`);
+    
+    if (!window.UsageTracker) {
+        console.error('Sistema de seguimiento de uso no inicializado');
+        return;
+    }
+    
+    // Obtener datos de uso actuales del usuario específico
+    const usageData = window.UsageTracker.getUsage();
+    if (!usageData || !usageData.usage) {
+        console.error('No se encontraron datos de uso para el usuario actual');
+        return;
+    }
+    
+    const planLimits = window.UsageTracker.getCurrentPlanLimits();
+    
+    // Obtener información del usuario actual desde localStorage
+    let userName = 'Usuario';
+    try {
+        const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        if (userData.name) {
+            userName = userData.name;
+        }
+    } catch (e) {
+        console.warn('Error al obtener datos del usuario:', e);
+    }
+    
+    // Actualizar título de la sección con el nombre del usuario
+    const usageSectionTitle = document.querySelector('#plan-usage-section .card-title');
+    if (usageSectionTitle) {
+        usageSectionTitle.textContent = `Uso del Plan - ${userName} (ID: ${userId})`;
+    }
+    
+    // Actualizar información del plan actual
+    const planName = usageData.plan || 'básico';
+    const planNameFormatted = planName.charAt(0).toUpperCase() + planName.slice(1);
+    const planInfoElement = document.querySelector('#plan-info');
+    if (!planInfoElement) {
+        // Crear elemento para mostrar información del plan si no existe
+        const planInfo = document.createElement('div');
+        planInfo.id = 'plan-info';
+        planInfo.className = 'alert alert-info mb-3 py-2 small';
+        planInfo.innerHTML = `<strong>Plan actual:</strong> <span class="badge bg-primary">${planNameFormatted}</span>`;
+        
+        // Insertar antes de la primera fila de uso
+        const firstRow = document.querySelector('#plan-usage-section .card-body .row');
+        if (firstRow) {
+            firstRow.parentNode.insertBefore(planInfo, firstRow);
+        }
+    } else {
+        // Actualizar el elemento existente
+        const badgeElement = planInfoElement.querySelector('.badge');
+        if (badgeElement) {
+            badgeElement.textContent = planNameFormatted;
+            
+            // Actualizar clase del badge según el plan
+            badgeElement.className = 'badge';
+            if (planName === 'premium') {
+                badgeElement.classList.add('bg-warning');
+            } else if (planName === 'professional') {
+                badgeElement.classList.add('bg-primary');
+            } else {
+                badgeElement.classList.add('bg-secondary');
+            }
+        }
+    }
+    
+    // Actualizar contadores
+    const callsCountElement = document.getElementById('plan-usage-calls-count');
+    const emailsCountElement = document.getElementById('plan-usage-emails-count');
+    const usersCountElement = document.getElementById('plan-usage-users-count');
+    
+    // Actualizar barras de progreso
+    const callsProgressElement = document.getElementById('plan-usage-calls-progress');
+    const emailsProgressElement = document.getElementById('plan-usage-emails-progress');
+    const usersProgressElement = document.getElementById('plan-usage-users-progress');
+    
+    if (callsCountElement && callsProgressElement) {
+        const callsValue = usageData.usage.calls || 0;
+        const callsLimit = planLimits.calls;
+        const callsPercentage = callsLimit === Infinity ? 0 : Math.min(100, Math.round((callsValue / callsLimit) * 100));
+        
+        callsCountElement.textContent = callsLimit === Infinity ? 
+            `${callsValue} / Ilimitado` : 
+            `${callsValue} / ${callsLimit.toLocaleString()}`;
+        
+        callsProgressElement.style.width = `${callsPercentage}%`;
+        callsProgressElement.setAttribute('aria-valuenow', callsPercentage);
+        
+        // Cambiar color según el porcentaje
+        if (callsPercentage > 90) {
+            callsProgressElement.classList.remove('bg-success', 'bg-warning');
+            callsProgressElement.classList.add('bg-danger');
+        } else if (callsPercentage > 70) {
+            callsProgressElement.classList.remove('bg-success', 'bg-danger');
+            callsProgressElement.classList.add('bg-warning');
+        } else {
+            callsProgressElement.classList.remove('bg-warning', 'bg-danger');
+            callsProgressElement.classList.add('bg-success');
+        }
+    }
+    
+    if (emailsCountElement && emailsProgressElement) {
+        const emailsValue = usageData.usage.emails || 0;
+        const emailsLimit = planLimits.emails;
+        const emailsPercentage = emailsLimit === Infinity ? 0 : Math.min(100, Math.round((emailsValue / emailsLimit) * 100));
+        
+        emailsCountElement.textContent = emailsLimit === Infinity ? 
+            `${emailsValue} / Ilimitado` : 
+            `${emailsValue} / ${emailsLimit.toLocaleString()}`;
+        
+        emailsProgressElement.style.width = `${emailsPercentage}%`;
+        emailsProgressElement.setAttribute('aria-valuenow', emailsPercentage);
+        
+        // Cambiar color según el porcentaje
+        if (emailsPercentage > 90) {
+            emailsProgressElement.classList.remove('bg-success', 'bg-warning');
+            emailsProgressElement.classList.add('bg-danger');
+        } else if (emailsPercentage > 70) {
+            emailsProgressElement.classList.remove('bg-success', 'bg-danger');
+            emailsProgressElement.classList.add('bg-warning');
+        } else {
+            emailsProgressElement.classList.remove('bg-warning', 'bg-danger');
+            emailsProgressElement.classList.add('bg-success');
+        }
+    }
+    
+    if (usersCountElement && usersProgressElement) {
+        const usersValue = usageData.usage.users || 1;
+        const usersLimit = planLimits.users;
+        const usersPercentage = usersLimit === Infinity ? 0 : Math.min(100, Math.round((usersValue / usersLimit) * 100));
+        
+        usersCountElement.textContent = usersLimit === Infinity ? 
+            `${usersValue} / Ilimitado` : 
+            `${usersValue} / ${usersLimit}`;
+        
+        usersProgressElement.style.width = `${usersPercentage}%`;
+        usersProgressElement.setAttribute('aria-valuenow', usersPercentage);
+        
+        // Cambiar color según el porcentaje
+        if (usersPercentage > 90) {
+            usersProgressElement.classList.remove('bg-success', 'bg-warning');
+            usersProgressElement.classList.add('bg-danger');
+        } else if (usersPercentage > 70) {
+            usersProgressElement.classList.remove('bg-success', 'bg-danger');
+            usersProgressElement.classList.add('bg-warning');
+        } else {
+            usersProgressElement.classList.remove('bg-warning', 'bg-danger');
+            usersProgressElement.classList.add('bg-success');
+        }
+    }
+}
+
+/**
  * Configurar funcionalidades de la cuenta
  */
 function setupAccountFeatures() {
-    console.log('👤 Configurando funcionalidades de la cuenta...');
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`👤 Configurando funcionalidades de la cuenta para el usuario ${userId}...`);
     
     // Botón para guardar cambios en la cuenta
     const saveAccountBtn = document.getElementById('save-account-btn');
     if (saveAccountBtn) {
         saveAccountBtn.addEventListener('click', function() {
-            console.log('💾 Guardando cambios en la cuenta...');
+            console.log(`💾 Guardando cambios en la cuenta para el usuario ${userId}...`);
             toastr.info('Guardando cambios...', 'Procesando');
             
             // Simular guardado
             setTimeout(() => {
+                // Registrar la acción en el sistema de seguimiento de uso
+                if (window.UsageTracker) {
+                    // Guardar cambios en la cuenta puede contar como una acción de usuario en el sistema de seguimiento
+                    window.UsageTracker.updateUserCount(1);
+                    console.log(`📊 Cambios en la cuenta registrados para el usuario ${userId}`);
+                    
+                    // Actualizar la UI del sistema de seguimiento
+                    window.UsageTracker.updateUI();
+                    
+                    // Actualizar el resumen de uso si está visible
+                    if (typeof showUsageSummary === 'function') {
+                        showUsageSummary();
+                    }
+                }
+                
                 toastr.success('Cambios guardados correctamente', 'Éxito');
             }, 1500);
         });
@@ -3997,7 +4883,23 @@ function setupAccountFeatures() {
     if (accountForm) {
         accountForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            console.log('📝 Formulario de cuenta enviado');
+            console.log(`📝 Formulario de cuenta enviado por el usuario ${userId}`);
+            
+            // Registrar la acción en el sistema de seguimiento de uso
+            if (window.UsageTracker) {
+                // El envío del formulario de cuenta puede contar como una acción de usuario en el sistema de seguimiento
+                window.UsageTracker.updateUserCount(1);
+                console.log(`📊 Formulario de cuenta registrado para el usuario ${userId}`);
+                
+                // Actualizar la UI del sistema de seguimiento
+                window.UsageTracker.updateUI();
+                
+                // Actualizar el resumen de uso si está visible
+                if (typeof showUsageSummary === 'function') {
+                    showUsageSummary();
+                }
+            }
+            
             toastr.success('Datos de cuenta actualizados', 'Éxito');
         });
     }
@@ -4017,19 +4919,78 @@ function setupAccountFeatures() {
  * Configurar funcionalidades de facturación
  */
 function setupBillingFeatures() {
-    console.log('💳 Configurando funcionalidades de facturación...');
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`💳 Configurando funcionalidades de facturación para el usuario ${userId}...`);
     
     // Botón para ver facturas
     const viewInvoicesBtn = document.getElementById('view-invoices-btn');
     if (viewInvoicesBtn) {
         viewInvoicesBtn.addEventListener('click', function() {
-            console.log('💸 Mostrando facturas...');
+            console.log(`💸 Mostrando facturas para el usuario ${userId}...`);
             toastr.info('Cargando facturas...', 'Procesando');
+            
+            // Registrar la acción en el sistema de seguimiento de uso
+            if (window.UsageTracker) {
+                // Ver facturas puede contar como una acción de usuario en el sistema de seguimiento
+                window.UsageTracker.updateUserCount(1);
+                console.log(`📊 Visualización de facturas registrada para el usuario ${userId}`);
+                
+                // Actualizar la UI del sistema de seguimiento
+                window.UsageTracker.updateUI();
+                
+                // Actualizar el resumen de uso si está visible
+                if (typeof showUsageSummary === 'function') {
+                    showUsageSummary();
+                }
+            }
             
             // Simular carga de facturas
             setTimeout(() => {
                 showInvoicesModal();
             }, 1000);
+        });
+    }
+    
+    // Botón para actualizar plan
+    const upgradePlanBtn = document.getElementById('upgrade-plan-btn');
+    if (upgradePlanBtn) {
+        upgradePlanBtn.addEventListener('click', function() {
+            console.log(`⬆️ Solicitando actualización de plan para el usuario ${userId}...`);
+            
+            // Registrar la acción en el sistema de seguimiento de uso
+            if (window.UsageTracker) {
+                // La solicitud de actualización de plan puede contar como una acción de usuario en el sistema de seguimiento
+                window.UsageTracker.updateUserCount(1);
+                console.log(`📊 Solicitud de actualización de plan registrada para el usuario ${userId}`);
+                
+                // Actualizar la UI del sistema de seguimiento
+                window.UsageTracker.updateUI();
+                
+                // Actualizar el resumen de uso si está visible
+                if (typeof showUsageSummary === 'function') {
+                    showUsageSummary();
+                }
+            }
+            
+            showUpgradePlanModal();
+        });
+    }
+    
+    // Actualizar la UI con los datos de uso del plan
+    if (window.UsageTracker) {
+        // Obtener el ID del usuario actual
+        const userId = window.UsageTracker.getCurrentUserId();
+        console.log(`📊 Configurando seguimiento de uso para el usuario ${userId}...`);
+        
+        // Actualizar la UI inicial
+        updatePlanUsageUI();
+        
+        // Configurar evento para actualizar la UI cuando cambie el uso
+        document.addEventListener('usageUpdated', function(event) {
+            const updatedUserId = event.detail?.userId || window.UsageTracker.getCurrentUserId();
+            console.log(`📊 Evento de actualización de uso recibido para usuario ${updatedUserId}:`, event.detail);
+            updatePlanUsageUI();
         });
     }
     
@@ -4397,7 +5358,6 @@ function toggleBotStatus(isActive) {
         toastr.success('🚀 Bot activado correctamente', 'Bot Activo');
     }
     
-    // Simular llamada al backend para actualizar estado
     updateBotStatusOnServer(isActive);
 }
 
@@ -4635,28 +5595,32 @@ function sendManualResponse(emailId) {
  * Guardar configuración unificada del bot
  */
 function saveUnifiedConfig() {
-    console.log('💾 Guardando configuración unificada del bot...');
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`💾 Guardando configuración unificada del bot para el usuario ${userId}...`);
     
     // Recopilar todos los datos del formulario
     const config = {
-        // Datos de la empresa
-        company_name: document.getElementById('company_name')?.value || '',
-        contact_email: document.getElementById('contact_email')?.value || '',
-        main_phone: document.getElementById('main_phone')?.value || '',
-        website: document.getElementById('website')?.value || '',
-        address: document.getElementById('address')?.value || '',
-        industry: document.getElementById('industry')?.value || '',
-        company_description: document.getElementById('company_description')?.value || '',
+        // Información de empresa
+        companyName: document.getElementById('company_name')?.value || '',
+        companyDescription: document.getElementById('company_description')?.value || '',
+        companySector: document.getElementById('company_sector')?.value || '',
+        companyPhone: document.getElementById('company_phone')?.value || '',
+        companyEmail: document.getElementById('company_email')?.value || '',
+        companyWebsite: document.getElementById('company_website')?.value || '',
         
         // Configuración general
-        primary_language: document.getElementById('primary_language')?.value || 'es',
-        bot_personality: document.getElementById('bot_personality')?.value || 'professional',
-        timezone: document.getElementById('timezone')?.value || 'Europe/Madrid',
+        botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',
+        botPersonality: document.getElementById('bot_personality')?.value || 'professional',
+        welcomeMessage: document.getElementById('welcome_message')?.value || 'Bienvenido a nuestro asistente virtual',
+        businessHours: document.getElementById('business_hours')?.value || 'Lun-Vie: 9:00-18:00',
         
-        // Horarios (unificados)
-        opening_time: document.getElementById('opening_time')?.value || '09:00',
-        closing_time: document.getElementById('closing_time')?.value || '18:00',
-        working_days: {
+        // Configuración de horarios
+        workingHours: {
+            opening: document.getElementById('opening_hour')?.value || '09:00',
+            closing: document.getElementById('closing_hour')?.value || '18:00'
+        },
+        workingDays: {
             monday: document.getElementById('monday')?.checked || false,
             tuesday: document.getElementById('tuesday')?.checked || false,
             wednesday: document.getElementById('wednesday')?.checked || false,
@@ -4667,86 +5631,246 @@ function saveUnifiedConfig() {
         },
         
         // Configuración de llamadas
-        twilio_phone_number: document.getElementById('twilio_phone_number')?.value || '',
-        welcome_message: document.getElementById('welcome_message')?.value || '',
+        callConfig: {
+            enabled: document.getElementById('enable_calls')?.checked || false,
+            voiceId: document.getElementById('voice_id')?.value || '',
+            language: document.getElementById('voice_language')?.value || 'es-ES',
+            confirmationMessage: document.getElementById('confirmation_message')?.value || ''
+        },
         
         // Configuración de emails
-        incoming_email: document.getElementById('incoming_email')?.value || '',
-        notification_email: document.getElementById('notification_email')?.value || '',
-        check_frequency: parseInt(document.getElementById('check_frequency')?.value) || 15,
-        confidence_level: parseFloat(document.getElementById('confidence_level')?.value) || 0.8,
-        response_tone: document.getElementById('response_tone')?.value || 'professional',
-        email_signature: document.getElementById('email_signature')?.value || '',
+        emailConfig: {
+            enabled: document.getElementById('email_bot_active')?.checked || false,
+            provider: document.getElementById('email_provider')?.value || '',
+            outgoingEmail: document.getElementById('outgoing_email')?.value || '',
+            recipientEmail: document.getElementById('recipient_email')?.value || '',
+            forwardRules: document.getElementById('forward_rules')?.value || '',
+            autoReply: document.getElementById('auto_reply')?.checked || false,
+            autoReplyMessage: document.getElementById('auto_reply_message')?.value || '',
+            emailLanguage: document.getElementById('email_language')?.value || 'es-ES',
+            emailSignature: document.getElementById('email_signature')?.value || '',
+            website: document.getElementById('website')?.value || '',
+            emailConsent: document.getElementById('email_consent')?.checked || false
+        },
+        
+        // Configuración manual de IMAP/SMTP (solo si el proveedor es 'other')
+        emailManualConfig: document.getElementById('email_provider')?.value === 'other' ? {
+            imapServer: document.getElementById('imap_server')?.value || '',
+            imapPort: document.getElementById('imap_port')?.value || '',
+            smtpServer: document.getElementById('smtp_server')?.value || '',
+            smtpPort: document.getElementById('smtp_port')?.value || '',
+            useSSL: document.getElementById('use_ssl')?.checked || true
+        } : null,
         
         // Configuración avanzada de IA
-        auto_priority: document.getElementById('auto_priority')?.checked || false,
-        include_context: document.getElementById('include_context')?.checked || false,
-        auto_classify: document.getElementById('auto_classify')?.checked || false,
-        require_approval: document.getElementById('require_approval')?.checked || false,
-        notify_urgent: document.getElementById('notify_urgent')?.checked || false,
-        daily_summary: document.getElementById('daily_summary')?.checked || false,
+        aiConfig: {
+            temperature: parseFloat(document.getElementById('ai_temperature')?.value || '0.7'),
+            maxTokens: parseInt(document.getElementById('ai_max_tokens')?.value || '150'),
+            topP: parseFloat(document.getElementById('ai_top_p')?.value || '0.9'),
+            frequencyPenalty: parseFloat(document.getElementById('ai_frequency_penalty')?.value || '0.0'),
+            presencePenalty: parseFloat(document.getElementById('ai_presence_penalty')?.value || '0.0')
+        },
         
         // Archivos de contexto
-        files: {
-            inventory: document.getElementById('inventory_file')?.files[0] || null,
-            catalog: document.getElementById('catalog_file')?.files[0] || null,
-            pricing: document.getElementById('pricing_file')?.files[0] || null,
-            info: document.getElementById('info_file')?.files[0] || null
-        }
+        files: collectContextFiles()
     };
+    
+    console.log('📝 Configuración recopilada:', config);
     
     // Validar campos requeridos
     const requiredFields = [
-        { field: 'company_name', name: 'Nombre de la Empresa' },
-        { field: 'contact_email', name: 'Email de Contacto' },
-        { field: 'industry', name: 'Sector' }
+        { id: 'company_name', label: 'Nombre de empresa' },
+        { id: 'company_email', label: 'Email de empresa' }
     ];
     
-    const missingFields = [];
-    requiredFields.forEach(({ field, name }) => {
-        if (!config[field] || config[field].trim() === '') {
-            missingFields.push(name);
-            document.getElementById(field)?.classList.add('is-invalid');
-        } else {
-            document.getElementById(field)?.classList.remove('is-invalid');
+    for (const field of requiredFields) {
+        const element = document.getElementById(field.id);
+        if (!element?.value) {
+            toastr.error(`El campo ${field.label} es obligatorio`, 'Error');
+            element?.focus();
+            return;
         }
-    });
+    }
     
     // Validar formato de email
-    const emailFields = ['contact_email', 'incoming_email', 'notification_email'];
-    emailFields.forEach(field => {
-        const value = config[field];
-        if (value && !isValidEmail(value)) {
-            missingFields.push(`Formato de ${field.replace('_', ' ')} inválido`);
-            document.getElementById(field)?.classList.add('is-invalid');
-        } else if (value) {
-            document.getElementById(field)?.classList.remove('is-invalid');
-        }
-    });
-    
-    if (missingFields.length > 0) {
-        toastr.error(`Campos requeridos: ${missingFields.join(', ')}`, 'Error de Validación');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const companyEmail = document.getElementById('company_email')?.value;
+    if (companyEmail && !emailRegex.test(companyEmail)) {
+        toastr.error('El formato del email de empresa no es válido', 'Error');
+        document.getElementById('company_email')?.focus();
         return;
     }
     
-    // Simular guardado
+    // Validar emails
+    const outgoingEmail = document.getElementById('outgoing_email')?.value;
+    if (outgoingEmail && !emailRegex.test(outgoingEmail)) {
+        toastr.error('El formato del email de salida no es válido', 'Error');
+        document.getElementById('outgoing_email')?.focus();
+        return;
+    }
+    
+    const recipientEmail = document.getElementById('recipient_email')?.value;
+    if (recipientEmail && !emailRegex.test(recipientEmail)) {
+        toastr.error('El formato del email de recepción no es válido', 'Error');
+        document.getElementById('recipient_email')?.focus();
+        return;
+    }
+    
+    // Validar consentimiento si se ha seleccionado un proveedor de correo
+    const emailProvider = document.getElementById('email_provider')?.value;
+    const emailConsent = document.getElementById('email_consent')?.checked;
+    
+    if (emailProvider && !emailConsent) {
+        toastr.error('Debes dar tu consentimiento para acceder a tu correo electrónico', 'Error');
+        document.getElementById('email_consent')?.focus();
+        return;
+    }
+    
+    // Validar configuración manual si se ha seleccionado "other"
+    if (emailProvider === 'other') {
+        const imapServer = document.getElementById('imap_server')?.value;
+        const imapPort = document.getElementById('imap_port')?.value;
+        const smtpServer = document.getElementById('smtp_server')?.value;
+        const smtpPort = document.getElementById('smtp_port')?.value;
+        
+        if (!imapServer || !imapPort || !smtpServer || !smtpPort) {
+            toastr.error('Debes completar todos los campos de configuración manual de correo', 'Error');
+            return;
+        }
+    }
+    
+    // Mostrar notificación de guardado
     toastr.info('Guardando configuración...', 'Procesando');
     
-    setTimeout(() => {
-        console.log('✅ Configuración guardada:', config);
+    // Preparar datos para enviar al backend
+    const botConfig = {
+        welcomeMessage: config.welcomeMessage,
+        voiceId: config.callConfig.voiceId,
+        language: config.callConfig.language,
+        confirmationMessage: config.callConfig.confirmationMessage,
+        personality: config.botPersonality,
+        workingHours: config.workingHours,
+        workingDays: config.workingDays,
+        contextFiles: {}
+    };
+    
+    // Obtener token de autenticación
+    const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    if (!authToken) {
+        toastr.error('No se encontró token de autenticación', 'Error');
+        return;
+    }
+    
+    // Enviar la configuración del bot al backend
+    fetch('/api/config/bot', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify(botConfig)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('✅ Configuración del bot guardada:', data);
+        
+        // Ahora enviar la configuración de emails
+        return fetch('/api/config/email', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                enabled: config.emailConfig.enabled,
+                provider: config.emailConfig.provider,
+                outgoingEmail: config.emailConfig.outgoingEmail,
+                recipientEmail: config.emailConfig.recipientEmail,
+                forwardRules: config.emailConfig.forwardRules,
+                autoReply: config.emailConfig.autoReply,
+                autoReplyMessage: config.emailConfig.autoReplyMessage,
+                emailLanguage: config.emailConfig.emailLanguage,
+                emailSignature: config.emailConfig.emailSignature,
+                website: config.emailConfig.website,
+                emailConsent: config.emailConfig.emailConsent,
+                manualConfig: config.emailManualConfig
+            })
+        });
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error al guardar configuración de emails');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('✅ Configuración de emails guardada:', data);
+        
+        // Actualizar perfil de empresa
+        return fetch('/api/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                companyName: config.companyName,
+                email: config.companyEmail,
+                phone: config.companyPhone,
+                website: config.companyWebsite,
+                industry: config.companySector
+            })
+        });
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error al actualizar perfil de empresa');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('✅ Perfil de empresa actualizado:', data);
         
         // Procesar archivos si existen
-        processContextFiles(config.files);
+        if (config.files && config.files.length > 0) {
+            return processContextFilesWithBackend(config.files);
+        }
+        return Promise.resolve();
+    })
+    .then(() => {
+        // Registrar la acción en el sistema de seguimiento de uso
+        if (window.UsageTracker) {
+            // Incrementar contador de configuraciones guardadas
+            window.UsageTracker.updateUserCount(1);
+            console.log(`📊 Configuración del bot registrada para el usuario ${window.UsageTracker.getCurrentUserId()}`);
+            
+            // Actualizar la UI del sistema de seguimiento
+            window.UsageTracker.updateUI();
+            
+            // Actualizar el resumen de uso si está visible
+            if (typeof showUsageSummary === 'function') {
+                showUsageSummary();
+            }
+        }
         
         toastr.success('Configuración guardada correctamente', '¡Éxito!');
-    }, 1500);
+    })
+    .catch(error => {
+        console.error('Error guardando configuración:', error);
+        toastr.error('Error al guardar la configuración: ' + error.message, 'Error');
+    });
 }
 
-/**
- * Probar configuración del bot
- */
+// ...
 function testBotConfiguration() {
-    console.log('🤖 Probando configuración del bot...');
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`🤖 Probando configuración del bot para el usuario ${userId}...`);
     
     // Mostrar spinner de carga
     toastr.info('Probando configuración del bot...', 'Procesando');
@@ -4759,191 +5883,135 @@ function testBotConfiguration() {
     // Recopilar preguntas frecuentes
     const faqs = collectFaqItems();
     
-    // Simular prueba del bot
-    setTimeout(() => {
-        // Mostrar modal con resultados de la prueba
-        showBotTestModal(companyName, businessHours, botPersonality, faqs);
-    }, 2000);
-}
-
-/**
- * Mostrar modal con resultados de la prueba del bot
- * @param {string} companyName - Nombre de la empresa
- * @param {string} businessHours - Horario comercial
- * @param {string} botPersonality - Personalidad del bot
- * @param {Array} faqs - Preguntas frecuentes
- */
-function showBotTestModal(companyName, businessHours, botPersonality, faqs) {
-    console.log('💬 Mostrando resultados de prueba del bot');
+    // Preparar datos para la prueba
+    const testData = {
+        companyName,
+        businessHours,
+        botPersonality,
+        faqs,
+        testMessage: "Hola, me gustaría obtener información sobre sus servicios"
+    };
     
-    // Determinar personalidad del bot para el mensaje
-    let botStyle = 'profesional y eficiente';
-    if (botPersonality === 'friendly') {
-        botStyle = 'amigable y cercano';
-    } else if (botPersonality === 'formal') {
-        botStyle = 'formal y serio';
-    }
-    
-    // Crear HTML para las preguntas frecuentes
-    let faqsHtml = '';
-    if (faqs.length > 0) {
-        faqsHtml = `
-            <div class="mt-3">
-                <h6 class="mb-2">Preguntas frecuentes cargadas:</h6>
-                <ul class="list-group">
-                    ${faqs.map((faq, index) => `
-                        <li class="list-group-item">
-                            <strong>P${index + 1}:</strong> ${faq.question}<br>
-                            <small class="text-muted">R: ${faq.answer}</small>
-                        </li>
-                    `).join('')}
-                </ul>
-            </div>
-        `;
-    } else {
-        faqsHtml = `
-            <div class="alert alert-warning mt-3">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                No se han configurado preguntas frecuentes. Recomendamos añadir al menos 3-5 preguntas para mejorar la experiencia del usuario.
-            </div>
-        `;
-    }
-    
-    const modalHTML = `
-        <div class="modal fade" id="botTestModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title">
-                            <i class="fas fa-robot me-2"></i>Resultados de Prueba del Bot
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body p-4">
-                        <div class="d-flex align-items-center mb-4">
-                            <div class="me-3">
-                                <div class="avatar bg-light rounded-circle p-2" style="width: 80px; height: 80px;">
-                                    <i class="fas fa-robot text-success" style="font-size: 2.5rem;"></i>
+    // Enviar solicitud al backend para probar el bot
+    fetch('/api/bot/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify(testData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error al probar la configuración del bot');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('✅ Prueba del bot completada:', data);
+        
+        // Mostrar resultado de la prueba
+        const responseMessage = data.response || 'La configuración del bot parece correcta.';
+        
+        // Crear un modal para mostrar la respuesta del bot
+        const modalId = 'botTestResponseModal';
+        let modal = document.getElementById(modalId);
+        
+        if (!modal) {
+            // Crear el modal si no existe
+            const modalHTML = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">Resultado de la prueba del bot</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <strong>Mensaje de prueba:</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>${testData.testMessage}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <h5 class="mb-1">Bot de ${companyName}</h5>
-                                <p class="mb-0 text-muted">Configuración probada con éxito</p>
-                            </div>
-                        </div>
-                        
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <strong>¡Prueba exitosa!</strong> El bot está correctamente configurado y listo para responder consultas de clientes.
-                        </div>
-                        
-                        <div class="card mb-3">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0">Configuración actual</h6>
-                            </div>
-                            <div class="card-body">
-                                <ul class="list-group list-group-flush">
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <span>Horario comercial:</span>
-                                        <span class="badge bg-primary">${businessHours}</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <span>Personalidad del bot:</span>
-                                        <span class="badge bg-info">${botStyle}</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <span>Preguntas frecuentes:</span>
-                                        <span class="badge bg-${faqs.length > 0 ? 'success' : 'warning'}">${faqs.length} configuradas</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <div class="card mb-3">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0">Ejemplo de respuesta del bot</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="chat-message">
-                                    <div class="message bot-message">
-                                        <div class="message-content">
-                                            Hola, soy el asistente virtual de ${companyName}. ¿En qué puedo ayudarte hoy? Nuestro horario de atención es ${businessHours}.
-                                        </div>
-                                        <div class="message-time">Ahora</div>
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <strong>Respuesta del bot:</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>${responseMessage}</p>
                                     </div>
                                 </div>
                             </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
                         </div>
-                        
-                        ${faqsHtml}
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        <button type="button" class="btn btn-success" id="save-test-config-btn">
-                            <i class="fas fa-save me-2"></i>Guardar y Activar Bot
-                        </button>
                     </div>
                 </div>
-            </div>
-        </div>
-    `;
-    
-    // Eliminar modal existente si hay uno
-    const existingModal = document.getElementById('botTestModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Añadir modal al DOM
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Mostrar modal
-    const modal = new bootstrap.Modal(document.getElementById('botTestModal'));
-    modal.show();
-    
-    // Configurar botón de guardar
-    const saveButton = document.getElementById('save-test-config-btn');
-    if (saveButton) {
-        saveButton.addEventListener('click', function() {
-            // Simular guardado y activación
-            toastr.info('Activando configuración del bot...', 'Procesando');
+            `;
             
-            setTimeout(() => {
-                toastr.success('Bot activado correctamente', '¡Éxito!');
-                modal.hide();
-            }, 1500);
-        });
-    }
+            // Añadir el modal al DOM
+            const modalContainer = document.createElement('div');
+            modalContainer.innerHTML = modalHTML;
+            document.body.appendChild(modalContainer.firstChild);
+            
+            modal = document.getElementById(modalId);
+        } else {
+            // Actualizar el contenido del modal si ya existe
+            modal.querySelector('.modal-body').innerHTML = `
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <strong>Mensaje de prueba:</strong>
+                    </div>
+                    <div class="card-body">
+                        <p>${testData.testMessage}</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <strong>Respuesta del bot:</strong>
+                    </div>
+                    <div class="card-body">
+                        <p>${responseMessage}</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Mostrar el modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        // Registrar la prueba en el sistema de seguimiento de uso
+        if (window.UsageTracker) {
+            // Las pruebas del bot pueden contar como llamadas en el sistema de seguimiento
+            window.UsageTracker.trackCall();
+            console.log(`📊 Prueba del bot registrada para el usuario ${userId}`);
+            
+            // Actualizar la UI del sistema de seguimiento
+            window.UsageTracker.updateUI();
+            
+            // Actualizar el resumen de uso si está visible
+            if (typeof showUsageSummary === 'function') {
+                showUsageSummary();
+            }
+        }
+        
+        toastr.success('Prueba del bot completada', '¡Éxito!');
+    })
+    .catch(error => {
+        console.error('Error probando configuración del bot:', error);
+        toastr.error('Error al probar la configuración del bot: ' + error.message, 'Error');
+    });
     
-    // Añadir estilos para el chat
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-        .chat-message {
-            display: flex;
-            flex-direction: column;
-        }
-        .message {
-            max-width: 80%;
-            margin-bottom: 10px;
-            padding: 10px 15px;
-            border-radius: 15px;
-            position: relative;
-        }
-        .bot-message {
-            align-self: flex-start;
-            background-color: #f0f2f5;
-        }
-        .message-content {
-            margin-bottom: 5px;
-        }
-        .message-time {
-            font-size: 0.7rem;
-            color: #999;
-            text-align: right;
-        }
-    `;
-    document.head.appendChild(styleElement);
+    // La prueba del bot ahora se maneja con la API real
 }
+
+// La función showBotTestModal ha sido eliminada porque ahora usamos la API real
+// y mostramos los resultados en un modal generado dinámicamente en la función testBotConfiguration
 
 /**
  * Inicializar el gestor de preguntas frecuentes
@@ -4962,32 +6030,49 @@ function setupFaqManager() {
 }
 
 /**
- * Cargar preguntas frecuentes de ejemplo
+ * Cargar preguntas frecuentes desde el backend
  */
 function loadSampleFaqs() {
-    const sampleFaqs = [
-        {
-            id: 1,
-            question: '¿Cuáles son los horarios de atención?',
-            answer: 'Nuestro horario de atención al cliente es de lunes a viernes de 9:00 a 18:00 horas.'
-        },
-        {
-            id: 2,
-            question: '¿Cómo puedo solicitar una devolución?',
-            answer: 'Para solicitar una devolución, debe contactar con nuestro departamento de atención al cliente en un plazo de 14 días desde la recepción del producto, adjuntando el número de pedido y el motivo de la devolución.'
-        },
-        {
-            id: 3,
-            question: '¿Qué métodos de pago aceptan?',
-            answer: 'Aceptamos tarjetas de crédito/débito (Visa, Mastercard, American Express), PayPal y transferencia bancaria.'
+    console.log('💬 Cargando preguntas frecuentes desde el backend...');
+    
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
+    // Realizar petición al backend
+    fetch('/api/bot/faqs', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
         }
-    ];
-    
-    // Añadir preguntas de ejemplo al DOM
-    sampleFaqs.forEach(faq => addFaqItemToDOM(faq));
-    
-    // Actualizar la visualización del mensaje de no hay preguntas
-    updateNoFaqsMessage();
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(faqs => {
+        // Añadir preguntas al DOM
+        if (faqs && faqs.length > 0) {
+            faqs.forEach(faq => addFaqItemToDOM(faq));
+            console.log(`✅ ${faqs.length} preguntas frecuentes cargadas correctamente`);
+        } else {
+            console.log('ℹ️ No hay preguntas frecuentes configuradas');
+        }
+        
+        // Actualizar la visualización del mensaje de no hay preguntas
+        updateNoFaqsMessage();
+    })
+    .catch(error => {
+        console.error('❌ Error al cargar preguntas frecuentes:', error);
+        toastr.error('Error al cargar preguntas frecuentes', 'Error');
+    });
 }
 
 /**
@@ -5010,6 +6095,10 @@ function updateNoFaqsMessage() {
  * Añadir nueva pregunta frecuente
  */
 function addNewFaqItem() {
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`💬 Añadiendo nueva pregunta frecuente para el usuario ${userId}...`);
+    
     const newFaq = {
         id: Date.now(), // Usar timestamp como ID temporal
         question: '',
@@ -5017,6 +6106,21 @@ function addNewFaqItem() {
     };
     
     addFaqItemToDOM(newFaq);
+    
+    // Registrar la acción en el sistema de seguimiento de uso
+    if (window.UsageTracker) {
+        // Añadir FAQ puede contar como una acción de usuario en el sistema de seguimiento
+        window.UsageTracker.updateUserCount(1);
+        console.log(`📊 Nueva pregunta frecuente registrada para el usuario ${userId}`);
+        
+        // Actualizar la UI del sistema de seguimiento
+        window.UsageTracker.updateUI();
+        
+        // Actualizar el resumen de uso si está visible
+        if (typeof showUsageSummary === 'function') {
+            showUsageSummary();
+        }
+    }
     
     // Enfocar el nuevo campo de pregunta
     setTimeout(() => {
@@ -5074,6 +6178,10 @@ function addFaqItemToDOM(faq) {
  * @param {number} faqId - ID de la pregunta a eliminar
  */
 function deleteFaqItem(faqId) {
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`🗑️ Eliminando pregunta frecuente ID: ${faqId} para el usuario ${userId}...`);
+    
     const faqItem = document.getElementById(`faq-item-${faqId}`);
     if (faqItem) {
         // Animación de desvanecimiento antes de eliminar
@@ -5084,6 +6192,22 @@ function deleteFaqItem(faqId) {
             faqItem.remove();
             renumberFaqItems();
             updateNoFaqsMessage(); // Actualizar mensaje de no hay preguntas
+            
+            // Registrar la acción en el sistema de seguimiento de uso
+            if (window.UsageTracker) {
+                // La eliminación de FAQ puede contar como una acción de usuario en el sistema de seguimiento
+                window.UsageTracker.updateUserCount(1);
+                console.log(`📊 Eliminación de pregunta frecuente registrada para el usuario ${userId}`);
+                
+                // Actualizar la UI del sistema de seguimiento
+                window.UsageTracker.updateUI();
+                
+                // Actualizar el resumen de uso si está visible
+                if (typeof showUsageSummary === 'function') {
+                    showUsageSummary();
+                }
+            }
+            
             toastr.success('Pregunta eliminada correctamente', 'FAQ');
         }, 300);
     }
@@ -5134,23 +6258,43 @@ function collectFaqItems() {
  * @param {Object} files - Archivos a procesar (opcional)
  */
 function processContextFiles(files = null) {
-    console.log('📁 Procesando archivos de contexto...');
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`📁 Procesando archivos de contexto para el usuario ${userId}...`);
     
     // Si se pasan archivos específicos (desde saveUnifiedConfig)
     if (files) {
+        let fileCount = 0;
         Object.keys(files).forEach(fileType => {
             const file = files[fileType];
             if (file) {
                 processFile(file);
+                fileCount++;
             }
         });
+        
+        // Registrar la subida de archivos en el sistema de seguimiento de uso
+        if (fileCount > 0 && window.UsageTracker) {
+            // Cada archivo subido cuenta como una acción de usuario
+            window.UsageTracker.updateUserCount(fileCount);
+            console.log(`📊 ${fileCount} archivos de contexto registrados para el usuario ${userId}`);
+            
+            // Actualizar la UI del sistema de seguimiento
+            window.UsageTracker.updateUI();
+            
+            // Actualizar el resumen de uso si está visible
+            if (typeof showUsageSummary === 'function') {
+                showUsageSummary();
+            }
+        }
+        
         return;
     }
     
     // Si no se pasan archivos, usar el input de archivos context_files
     const contextFilesInput = document.getElementById('context_files');
     if (!contextFilesInput || !contextFilesInput.files || contextFilesInput.files.length === 0) {
-        console.log('No hay archivos seleccionados');
+        console.log(`No hay archivos seleccionados para el usuario ${userId}`);
         return;
     }
     
@@ -5161,12 +6305,104 @@ function processContextFiles(files = null) {
     }
     
     // Procesar cada archivo seleccionado
+    const fileCount = contextFilesInput.files.length;
     Array.from(contextFilesInput.files).forEach(file => {
         processFile(file);
     });
     
+    // Registrar la subida de archivos en el sistema de seguimiento de uso
+    if (window.UsageTracker) {
+        // Cada archivo subido cuenta como una acción de usuario
+        window.UsageTracker.updateUserCount(fileCount);
+        console.log(`📊 ${fileCount} archivos de contexto registrados para el usuario ${userId}`);
+        
+        // Actualizar la UI del sistema de seguimiento
+        window.UsageTracker.updateUI();
+        
+        // Actualizar el resumen de uso si está visible
+        if (typeof showUsageSummary === 'function') {
+            showUsageSummary();
+        }
+    }
+    
     // Actualizar la lista de archivos
     updateContextFilesList();
+}
+
+/**
+ * Procesar archivos de contexto (versión simulada)
+ * @param {Object} files - Archivos de contexto
+ */
+function processContextFilesSimulated(files) {
+    if (!files) return;
+    
+    console.log('📂 Procesando archivos de contexto:', files);
+    
+    // Simular procesamiento de archivos
+    Object.entries(files).forEach(([type, file]) => {
+        if (file) {
+            console.log(`📄 Procesando archivo ${type}: ${file.name}`);
+            // En producción, aquí se subiría el archivo al servidor
+        }
+    });
+}
+
+/**
+ * Procesar archivos de contexto con el backend
+ * @param {Array} files - Archivos de contexto
+ * @returns {Promise} - Promesa que se resuelve cuando todos los archivos han sido procesados
+ */
+function processContextFilesWithBackend(files) {
+    if (!files || files.length === 0) {
+        return Promise.resolve();
+    }
+    
+    console.log('📂 Procesando archivos de contexto con el backend:', files);
+    
+    // Crear un array de promesas para subir cada archivo
+    const uploadPromises = files.map(file => {
+        // Crear un objeto FormData para enviar el archivo
+        const formData = new FormData();
+        formData.append('fileType', file.type || 'info');
+        formData.append('fileName', file.name);
+        formData.append('fileContent', file.content || '');
+        formData.append('fileSize', file.size || 0);
+        
+        // Enviar el archivo al backend
+        return fetch('/api/bot/upload-context', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error al subir archivo ${file.name}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`✅ Archivo ${file.name} subido correctamente:`, data);
+            return data;
+        })
+        .catch(error => {
+            console.error(`Error al subir archivo ${file.name}:`, error);
+            toastr.error(`Error al subir archivo ${file.name}: ${error.message}`, 'Error');
+            throw error;
+        });
+    });
+    
+    // Devolver una promesa que se resuelve cuando todos los archivos han sido procesados
+    return Promise.all(uploadPromises)
+        .then(results => {
+            console.log('✅ Todos los archivos procesados correctamente:', results);
+            return results;
+        })
+        .catch(error => {
+            console.error('Error procesando archivos:', error);
+            throw error;
+        });
 }
 
 /**
@@ -5203,13 +6439,16 @@ function processFile(file) {
  * Configurar los manejadores de eventos para la carga de archivos
  */
 function setupFileUploadHandlers() {
-    console.log('📎 Configurando manejadores de carga de archivos...');
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`📎 Configurando manejadores de carga de archivos para el usuario ${userId}...`);
     
     // Manejar cambios en el input de archivos de contexto
     const contextFilesInput = document.getElementById('context_files');
     if (contextFilesInput) {
         contextFilesInput.addEventListener('change', () => {
             if (contextFilesInput.files.length > 0) {
+                console.log(`📎 Archivos seleccionados (${contextFilesInput.files.length}) por el usuario ${userId}`);
                 processContextFiles();
             }
         });
@@ -5237,11 +6476,15 @@ function setupExistingFileDeleteButtons() {
  * @param {Event} event - Evento de click
  */
 function handleFileDelete(event) {
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    
     const button = event.currentTarget;
     const listItem = button.closest('li');
     
     if (listItem) {
         const fileName = listItem.querySelector('div').textContent.trim();
+        console.log(`🗑️ Eliminando archivo ${fileName} para el usuario ${userId}...`);
         
         // Animación de desvanecimiento
         listItem.style.transition = 'opacity 0.3s';
@@ -5249,6 +6492,22 @@ function handleFileDelete(event) {
         
         setTimeout(() => {
             listItem.remove();
+            
+            // Registrar la acción en el sistema de seguimiento de uso
+            if (window.UsageTracker) {
+                // La eliminación de archivos puede contar como una acción de usuario en el sistema de seguimiento
+                window.UsageTracker.updateUserCount(1);
+                console.log(`📊 Eliminación de archivo registrada para el usuario ${userId}`);
+                
+                // Actualizar la UI del sistema de seguimiento
+                window.UsageTracker.updateUI();
+                
+                // Actualizar el resumen de uso si está visible
+                if (typeof showUsageSummary === 'function') {
+                    showUsageSummary();
+                }
+            }
+            
             toastr.success(`Archivo ${fileName} eliminado`, 'Archivo Eliminado');
         }, 300);
     }
@@ -5458,34 +6717,75 @@ function showUpgradePlanModal() {
  * Procesar actualización de plan
  */
 function processPlanUpgrade() {
-    console.log('💳 Procesando actualización de plan...');
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    let userName = 'Usuario';
+    
+    try {
+        const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        if (userData.name) {
+            userName = userData.name;
+        }
+    } catch (e) {
+        console.warn('Error al obtener datos del usuario:', e);
+    }
+    
+    console.log(`💳 Procesando actualización de plan para el usuario ${userName} (ID: ${userId})...`);
     
     // Mostrar spinner de carga
-    toastr.info('Procesando actualización de plan...', 'Procesando');
+    toastr.info(`Procesando actualización de plan para ${userName}...`, 'Procesando');
+    
+    // Actualizar el sistema de seguimiento de uso con el plan premium
+    if (window.UsageTracker) {
+        // Guardar el plan anterior para referencia
+        const previousPlan = window.UsageTracker.getUsage().plan || 'básico';
+        
+        // Cambiar al plan premium
+        window.UsageTracker.changePlan('premium');
+        
+        // Actualizar la UI
+        window.UsageTracker.updateUI();
+        
+        // Registrar el cambio en la consola
+        console.log(`✅ Plan actualizado para el usuario ${userId}: ${previousPlan} → premium`);
+    }
     
     // Simular procesamiento
     setTimeout(() => {
-        toastr.success('¡Plan actualizado correctamente! Ahora tienes el Plan Enterprise.', 'Actualización Completada');
+        toastr.success(`¡Plan actualizado correctamente para ${userName}! Ahora tienes el Plan Enterprise.`, 'Actualización Completada');
         
         // Actualizar UI
-        updatePlanUI('enterprise');
+        updatePlanUI('enterprise', userId, userName);
     }, 2000);
 }
 
 /**
  * Actualizar UI después de cambio de plan
  * @param {string} planType - Tipo de plan ('professional', 'enterprise')
+ * @param {string} userId - ID del usuario
+ * @param {string} userName - Nombre del usuario
  */
-function updatePlanUI(planType) {
+function updatePlanUI(planType, userId = 'desconocido', userName = 'Usuario') {
+    console.log(`📊 Actualizando UI para el plan ${planType} del usuario ${userName} (ID: ${userId})...`);
+    
     // Actualizar alerta de información de plan
     const planAlert = document.querySelector('#plan-content .alert-info');
     if (planAlert) {
         const planTitle = planAlert.querySelector('.alert-heading');
         const planText = planAlert.querySelector('p');
         
+        // Obtener fecha de vencimiento (1 año a partir de hoy)
+        const today = new Date();
+        const expirationDate = new Date(today.setFullYear(today.getFullYear() + 1));
+        const formattedDate = expirationDate.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+        
         if (planType === 'enterprise') {
-            planTitle.textContent = 'Plan Enterprise';
-            planText.textContent = 'Tu plan actual vence el 15/08/2025. La renovación automática está activada.';
+            planTitle.textContent = `Plan Enterprise - ${userName}`;
+            planText.innerHTML = `Tu plan actual vence el <strong>${formattedDate}</strong>. La renovación automática está activada.`;
         }
     }
     
@@ -5890,6 +7190,12 @@ function replyToEmail(emailId) {
     const sender = emailRow.querySelector('td:nth-child(2) div:first-child')?.textContent || '';
     const subject = emailRow.querySelector('td:nth-child(3) .fw-medium')?.textContent || '';
     
+    // Registrar acción en el sistema de seguimiento
+    if (window.UsageTracker) {
+        window.UsageTracker.trackEmail();
+        window.UsageTracker.updateUI();
+    }
+    
     // Crear modal para respuesta
     createReplyModal(emailId, sender, subject, false);
 }
@@ -5912,6 +7218,12 @@ function replyWithAI(emailId) {
     // Obtener datos del email desde la fila
     const sender = emailRow.querySelector('td:nth-child(2) div:first-child')?.textContent || '';
     const subject = emailRow.querySelector('td:nth-child(3) .fw-medium')?.textContent || '';
+    
+    // Registrar acción en el sistema de seguimiento
+    if (window.UsageTracker) {
+        window.UsageTracker.trackEmail();
+        window.UsageTracker.updateUI();
+    }
     
     // Crear modal para respuesta con IA
     createReplyModal(emailId, sender, subject, true);
@@ -6068,7 +7380,9 @@ function regenerateAIReply(emailId) {
  * @param {number} emailId - ID del email
  */
 function sendReply(emailId) {
-    console.log(`📤 Enviando respuesta al email ID: ${emailId}`);
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`📤 Enviando respuesta al email ID: ${emailId} por el usuario ${userId}`);
     
     const content = document.getElementById(`reply-content-${emailId}`).value.trim();
     if (!content) {
@@ -6078,6 +7392,12 @@ function sendReply(emailId) {
     
     // Mostrar spinner de carga
     toastr.info('Enviando respuesta...', 'Procesando');
+    
+    // Registrar el email en el sistema de seguimiento de uso
+    if (window.UsageTracker) {
+        window.UsageTracker.trackEmail();
+        console.log(`📊 Email registrado para el usuario ${userId}`);
+    }
     
     // Simular envío
     setTimeout(() => {
@@ -6094,8 +7414,210 @@ function sendReply(emailId) {
             toggleEmailRead(emailId);
         }
         
+        // Actualizar la UI del sistema de seguimiento
+        if (window.UsageTracker) {
+            window.UsageTracker.updateUI();
+        }
+        
         toastr.success('Respuesta enviada correctamente', 'Enviado');
     }, 1000);
+}
+
+/**
+ * Inicializar sistema de seguimiento de uso para el usuario actual
+ */
+function initializeUsageTracker() {
+    if (!window.UsageTracker) {
+        console.error('Sistema de seguimiento de uso no disponible');
+        return;
+    }
+    
+    // Obtener el ID del usuario actual
+    const userId = window.UsageTracker.getCurrentUserId();
+    
+    // Inicializar el sistema
+    window.UsageTracker.initialize();
+    
+    // Actualizar la UI
+    window.UsageTracker.updateUI();
+    
+    // Mostrar resumen de uso en la interfaz
+    showUsageSummary();
+    
+    // Configurar actualización periódica del resumen
+    setInterval(showUsageSummary, 60000); // Actualizar cada minuto
+    
+    // Configurar evento para actualizar el resumen cuando cambie el uso
+    document.addEventListener('usageUpdated', function() {
+        showUsageSummary();
+    });
+    
+    console.log(`Sistema de seguimiento de uso inicializado para el usuario ${userId}`);
+}
+
+/**
+ * Mostrar un resumen del uso actual del usuario en la interfaz
+ */
+function showUsageSummary() {
+    if (!window.UsageTracker) return;
+    
+    // Obtener datos del usuario actual
+    const userId = window.UsageTracker.getCurrentUserId();
+    const usageData = window.UsageTracker.getUsage();
+    const planLimits = window.UsageTracker.getCurrentPlanLimits();
+    
+    // Obtener nombre del usuario desde localStorage
+    let userName = 'Usuario';
+    try {
+        const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        if (userData.name) {
+            userName = userData.name;
+        }
+    } catch (e) {
+        console.warn('Error al obtener datos del usuario:', e);
+    }
+    
+    // Verificar si ya existe el elemento de resumen
+    let summaryElement = document.getElementById('usage-summary');
+    
+    if (!summaryElement) {
+        // Crear el elemento de resumen
+        summaryElement = document.createElement('div');
+        summaryElement.id = 'usage-summary';
+        summaryElement.className = 'usage-summary-widget';
+        summaryElement.style.position = 'fixed';
+        summaryElement.style.bottom = '20px';
+        summaryElement.style.right = '20px';
+        summaryElement.style.backgroundColor = 'white';
+        summaryElement.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+        summaryElement.style.borderRadius = '8px';
+        summaryElement.style.padding = '12px';
+        summaryElement.style.zIndex = '1000';
+        summaryElement.style.minWidth = '250px';
+        summaryElement.style.fontSize = '13px';
+        
+        // Añadir al DOM
+        document.body.appendChild(summaryElement);
+    }
+    
+    // Formatear los datos para mostrar
+    const callsUsage = usageData.usage.calls || 0;
+    const callsLimit = planLimits.calls === Infinity ? 'Ilimitado' : planLimits.calls;
+    const callsPercentage = planLimits.calls === Infinity ? 0 : Math.min(100, Math.round((callsUsage / planLimits.calls) * 100));
+    
+    const emailsUsage = usageData.usage.emails || 0;
+    const emailsLimit = planLimits.emails === Infinity ? 'Ilimitado' : planLimits.emails;
+    const emailsPercentage = planLimits.emails === Infinity ? 0 : Math.min(100, Math.round((emailsUsage / planLimits.emails) * 100));
+    
+    const usersUsage = usageData.usage.users || 1;
+    const usersLimit = planLimits.users === Infinity ? 'Ilimitado' : planLimits.users;
+    const usersPercentage = planLimits.users === Infinity ? 0 : Math.min(100, Math.round((usersUsage / planLimits.users) * 100));
+    
+    // Determinar el color del plan
+    let planBadgeClass = 'bg-secondary';
+    if (usageData.plan === 'premium') {
+        planBadgeClass = 'bg-warning';
+    } else if (usageData.plan === 'professional') {
+        planBadgeClass = 'bg-primary';
+    }
+    
+    // Actualizar el contenido
+    summaryElement.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <strong>${userName}</strong>
+                <span class="badge ${planBadgeClass} ms-1">${usageData.plan || 'básico'}</span>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="document.getElementById('usage-summary').style.display='none'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="small text-muted mb-2">ID: ${userId}</div>
+        <div class="mb-1">
+            <div class="d-flex justify-content-between">
+                <span>Llamadas:</span>
+                <span>${callsUsage} / ${callsLimit}</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar ${callsPercentage > 90 ? 'bg-danger' : callsPercentage > 70 ? 'bg-warning' : 'bg-success'}" 
+                     style="width: ${callsPercentage}%" 
+                     aria-valuenow="${callsPercentage}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100"></div>
+            </div>
+        </div>
+        <div class="mb-1">
+            <div class="d-flex justify-content-between">
+                <span>Emails:</span>
+                <span>${emailsUsage} / ${emailsLimit}</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar ${emailsPercentage > 90 ? 'bg-danger' : emailsPercentage > 70 ? 'bg-warning' : 'bg-success'}" 
+                     style="width: ${emailsPercentage}%" 
+                     aria-valuenow="${emailsPercentage}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100"></div>
+            </div>
+        </div>
+        <div class="mb-1">
+            <div class="d-flex justify-content-between">
+                <span>Usuarios:</span>
+                <span>${usersUsage} / ${usersLimit}</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar ${usersPercentage > 90 ? 'bg-danger' : usersPercentage > 70 ? 'bg-warning' : 'bg-success'}" 
+                     style="width: ${usersPercentage}%" 
+                     aria-valuenow="${usersPercentage}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100"></div>
+            </div>
+        </div>
+        <div class="mt-2 text-end">
+            <a href="#" class="small text-primary" onclick="showUsageSummaryDetails(); return false;">Ver detalles</a>
+        </div>
+    `;
+}
+
+/**
+ * Mostrar detalles completos del uso en un modal
+ */
+function showUsageSummaryDetails() {
+    // Obtener información del usuario actual
+    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+    console.log(`📈 Mostrando detalles de uso para el usuario ${userId}...`);
+    
+    // Registrar la acción en el sistema de seguimiento de uso
+    if (window.UsageTracker) {
+        // Ver detalles de uso puede contar como una acción de usuario en el sistema de seguimiento
+        window.UsageTracker.updateUserCount(1);
+        console.log(`📊 Visualización de detalles de uso registrada para el usuario ${userId}`);
+        
+        // Actualizar la UI del sistema de seguimiento
+        window.UsageTracker.updateUI();
+    }
+    
+    // Cambiar a la pestaña de facturación
+    const billingTab = document.querySelector('#dashboard-tabs button[data-bs-target="#billing-tab-pane"]');
+    if (billingTab) {
+        const tabInstance = new bootstrap.Tab(billingTab);
+        tabInstance.show();
+        
+        // Hacer scroll al elemento de uso del plan
+        setTimeout(() => {
+            const usageSection = document.getElementById('plan-usage-section');
+            if (usageSection) {
+                usageSection.scrollIntoView({ behavior: 'smooth' });
+                usageSection.classList.add('highlight-section');
+                
+                // Quitar la clase de resaltado después de un tiempo
+                setTimeout(() => {
+                    usageSection.classList.remove('highlight-section');
+                }, 2000);
+            }
+        }, 500);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -6114,6 +7636,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Inicializar el dashboard con la nueva función que desactiva los mensajes temporales
         initDashboard();
+        
+        // Inicializar el sistema de seguimiento de uso
+        if (window.UsageTracker) {
+            initializeUsageTracker();
+        }
         
         // Inicializar dropdowns de Bootstrap después de cargar el contenido
         setTimeout(() => {
