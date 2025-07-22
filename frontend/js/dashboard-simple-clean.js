@@ -246,17 +246,23 @@ function createCallsTabContent() {
                                     </div>
                                 </div>
                                 
+                                <!-- Aviso de datos de demostración -->
+                                <div class="demo-data-notice mb-3" id="calls-demo-notice">
+                                    <i class="fas fa-info-circle icon"></i>
+                                    Mostrando datos de ejemplo. Estos serán reemplazados automáticamente cuando se carguen datos reales.
+                                </div>
+                                
                                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
                                     <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
                                         <thead>
                                             <tr>
-                                                <th style="width: 80px">Gestionado</th>
-                                                <th style="width: 110px">Fecha</th>
-                                                <th style="width: 120px">Número</th>
-                                                <th style="width: 140px">Clasificación IA</th>
-                                                <th>Resumen</th>
-                                                <th style="width: 80px">Duración</th>
-                                                <th style="width: 100px">Acciones</th>
+                                                <th style="width: 70px">Gestionado</th>
+                                                <th style="width: 100px">Fecha</th>
+                                                <th style="width: 110px">Número</th>
+                                                <th style="width: 130px">Clasificación IA</th>
+                                                <th style="width: auto; min-width: 250px">Resumen</th>
+                                                <th style="width: 70px">Duración</th>
+                                                <th style="width: 90px">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody id="calls-table-body">
@@ -330,16 +336,22 @@ function createEmailsTabContent() {
                             </div>
                         </div>
                         
+                        <!-- Aviso de datos de demostración -->
+                        <div class="demo-data-notice mb-3" id="emails-demo-notice">
+                            <i class="fas fa-info-circle icon"></i>
+                            Mostrando datos de ejemplo. Estos serán reemplazados automáticamente cuando se carguen datos reales.
+                        </div>
+                        
                         <!-- Lista de emails -->
                         <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: hidden;">
                             <table class="dashboard-table" style="width: 100%; table-layout: fixed;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 40px; text-align: center"><i class="fas fa-star"></i></th>
-                                        <th style="width: 180px">Remitente</th>
-                                        <th>Asunto</th>
-                                        <th style="width: 100px">Fecha</th>
-                                        <th style="width: 80px; text-align: center">Acciones</th>
+                                        <th style="width: 30px; text-align: center"><i class="fas fa-star"></i></th>
+                                        <th style="width: 160px">Remitente</th>
+                                        <th style="width: auto; min-width: 300px">Asunto</th>
+                                        <th style="width: 90px">Fecha</th>
+                                        <th style="width: 70px; text-align: center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">

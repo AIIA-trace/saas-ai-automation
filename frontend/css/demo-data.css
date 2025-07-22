@@ -1,0 +1,74 @@
+/* Estilos para datos de demostración */
+
+/* Indicador visual para tablas con datos de demostración */
+table.demo-data thead {
+    position: relative;
+}
+
+table.demo-data thead::after {
+    content: "DATOS DE DEMOSTRACIÓN";
+    position: absolute;
+    top: -10px;
+    right: 10px;
+    background-color: rgba(var(--info-rgb), 0.9);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilo sutil para indicar que son datos de ejemplo */
+table.demo-data tbody tr {
+    background-color: rgba(var(--light-rgb), 0.4);
+}
+
+table.demo-data tbody tr:hover {
+    background-color: rgba(var(--light-rgb), 0.7);
+}
+
+/* Animación de carga para los datos de demostración */
+@keyframes demoDataPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.demo-data-loading {
+    animation: demoDataPulse 2s infinite;
+}
+
+/* Estilo para el botón de cargar datos reales cuando hay datos de demostración */
+.demo-data-active .load-real-data-btn {
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(var(--primary-rgb), 0.3);
+    transition: all 0.2s ease;
+}
+
+.demo-data-active .load-real-data-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(var(--primary-rgb), 0.4);
+}
+
+/* Estilo para la notificación de datos de demostración */
+.demo-data-notice {
+    background-color: rgba(var(--info-rgb), 0.1);
+    border-left: 4px solid rgba(var(--info-rgb), 1);
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.85rem;
+}
+
+.demo-data-notice .icon {
+    color: rgba(var(--info-rgb), 1);
+    margin-right: 0.5rem;
+}
