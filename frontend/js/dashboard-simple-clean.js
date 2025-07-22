@@ -2259,8 +2259,9 @@ function setupEventListeners() {
 function initDashboard() {
     console.log('💻 Inicializando dashboard...');
     
-    // Crear estructura del dashboard
-    createDashboardStructure();
+    // Crear estructura del dashboard usando las funciones existentes
+    createSimpleTabs();
+    createTabsContent();
     
     // Configurar event listeners
     setupEventListeners();
