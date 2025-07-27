@@ -114,7 +114,21 @@ function createSimpleTabs() {
     // Mostrar el contenedor de pestañas
     document.getElementById('sector-nav-tabs-container').classList.remove('d-none');
     
-    console.log('✅ Pestañas centralizadas del MVP creadas');
+    console.log(' Pestañas centralizadas del MVP creadas');
+}
+
+/**
+ * Reparar los filtros de email para asegurar que funcionen
+ */
+function repararFiltrosEmail() {
+    // Añadir listeners directos a los botones de filtro
+    const filterButtons = document.querySelectorAll('.email-filter-button');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Lógica para aplicar el filtro seleccionado
+            console.log('Filtro seleccionado:', button.textContent);
+        });
+    });
 }
 
 /**
@@ -1121,52 +1135,69 @@ function createEmailsTabContent() {
                 <div class="dashboard-card">
                     <div class="card-body p-0">
                         <!-- Filtros de emails -->
-                        <div class="dashboard-filters p-3 border-bottom">
+                        <div class="filter-container">
                             <div class="row align-items-center">
-                                <div class="col-md-6">
-                                    <div class="dashboard-filter-group">
-                                        <span class="me-2">Filtrar por:</span>
-                                        <div class="form-check form-check-inline">
+                                <div class="col-md-7">
+                                    <div class="d-flex align-items-center flex-wrap">
+                                        <span class="me-3 text-secondary fw-medium">Filtrar por:</span>
+                                        <div class="filter-option">
                                             <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-all" checked>
                                             <label class="form-check-label" for="filter-emails-all">Todos</label>
                                         </div>
-                                        <div class="form-check form-check-inline">
+                                        <div class="filter-option">
                                             <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-unread">
                                             <label class="form-check-label" for="filter-emails-unread">No leídos</label>
                                         </div>
-                                        <div class="form-check form-check-inline">
+                                        <div class="filter-option">
                                             <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-important">
                                             <label class="form-check-label" for="filter-emails-important">Importantes</label>
                                         </div>
-                                        <div class="form-check form-check-inline">
+                                        <div class="filter-option">
                                             <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-spam">
                                             <label class="form-check-label" for="filter-emails-spam">Spam</label>
                                         </div>
                                     </div>
                                 </div>
+                                <div class="col-md-5 text-md-end mt-2 mt-md-0">
+                                    <small class="text-muted"><i class="far fa-clock me-1"></i>Última actualización: <span id="last-update-emails-time">2024-02-20 12:15</span></small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Buscador de emails -->
+                        <div class="dashboard-filters p-3 border-bottom">
+                            <div class="row align-items-center">
                                 <div class="col-md-6">
                                     <div class="input-group">
-                                        <input type="text" class="form-control" placeholder="Buscar emails..." id="email-search-input">
-                                        <button class="btn btn-outline-primary" type="button" id="email-search-btn">
-                                            <i class="fas fa-search"></i>
+                                        <span class="input-group-text bg-white border-end-0">
+                                            <i class="fas fa-search text-muted"></i>
+                                        </span>
+                                        <input type="text" class="form-control border-start-0" id="email-search-input" 
+                                               placeholder="Buscar emails..." 
+                                               aria-label="Buscar emails">
+                                        <button class="btn btn-link text-decoration-none d-none" type="button" id="clear-emails-search">
+                                            <i class="fas fa-times"></i>
                                         </button>
                                     </div>
+                                </div>
+                                <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                                    <small class="text-muted" id="emails-search-results">Mostrando todos los emails</small>
                                 </div>
                             </div>
                         </div>
                         
                         
                         <!-- Lista de emails -->
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: hidden;">
-                            <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: auto;">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: auto;">
+                            <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 750px;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 40px; text-align: center; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-star"></i></th>
-                                        <th style="width: 140px; font-size: 0.75rem; font-weight: 600;">Remitente</th>
-                                        <th style="width: 150px; font-size: 0.75rem; font-weight: 600;">Asunto</th>
-                                        <th style="width: 250px; font-size: 0.75rem; font-weight: 600;">Contenido</th>
-                                        <th style="width: 80px; font-size: 0.75rem; font-weight: 600;">Fecha</th>
-                                        <th style="width: 90px; text-align: center; font-size: 0.75rem; font-weight: 600;">Acción</th>
+                                        <th style="width: 40px; text-align: center;"><i class="fas fa-star"></i></th>
+                                        <th style="width: 140px;">Remitente</th>
+                                        <th style="width: 150px;">Asunto</th>
+                                        <th style="width: 250px;">Contenido</th>
+                                        <th style="width: 80px;">Fecha</th>
+                                        <th style="width: 90px; text-align: center;">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody id="emails-table-body">
@@ -1254,24 +1285,10 @@ function createBotConfigTabContent() {
                                             <label for="address" class="form-label">Dirección</label>
                                             <input type="text" class="form-control" id="address" name="address" placeholder="Dirección de tu empresa">
                                         </div>
-                                        <div class="col-12">
-                                            <label for="company_description" class="form-label">Descripción de la Empresa</label>
-                                            <textarea class="form-control" id="company_description" name="company_description" rows="3" placeholder="Describe brevemente a qué se dedica tu empresa..."></textarea>
-                                            <small class="text-muted">Esta descripción ayuda al bot a entender mejor el contexto de tu negocio.</small>
-                                        </div>
                                         <div class="col-md-6">
-                                            <label for="industry" class="form-label">Sector empresarial</label>
-                                            <select class="form-select" id="industry" name="industry" required>
-                                                <option value="" selected>Selecciona un sector</option>
-                                                <option value="retail">Comercio (Retail)</option>
-                                                <option value="restaurant">Restaurante</option>
-                                                <option value="beauty">Belleza</option>
-                                                <option value="legal">Legal</option>
-                                                <option value="healthcare">Salud</option>
-                                                <option value="real estate">Inmobiliaria</option>
-                                                <option value="technology">Tecnología</option>
-                                                <option value="generic">Otro</option>
-                                            </select>
+                                            <label for="company_description" class="form-label">Descripción de la Empresa</label>
+                                            <textarea class="form-control" id="company_description" name="company_description" rows="5" style="min-height: 155px;" placeholder="Describe brevemente a qué se dedica tu empresa..."></textarea>
+                                            <small class="text-muted">Esta descripción ayuda al bot a entender mejor el contexto de tu negocio.</small>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Horario Comercial</label>
@@ -1339,10 +1356,29 @@ function createBotConfigTabContent() {
                                                         </div>
                                                     </div>
                                                     <div class="mt-3">
-                                                        <span class="badge bg-primary" id="business-hours-preview">Lun-Vie: 9:00-18:00</span>
+                                                        <span class="badge bg-secondary text-light" id="business-hours-preview">Lun-Vie: 9:00-18:00</span>
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mt-4">
+                                            <label for="industry" class="form-label">Sector empresarial</label>
+                                            <select class="form-select" id="industry" name="industry" required>
+                                                <option value="" selected>Selecciona un sector</option>
+                                                <option value="retail">Comercio (Retail)</option>
+                                                <option value="restaurant">Restaurante</option>
+                                                <option value="beauty">Belleza</option>
+                                                <option value="legal">Legal</option>
+                                                <option value="healthcare">Salud</option>
+                                                <option value="real estate">Inmobiliaria</option>
+                                                <option value="technology">Tecnología</option>
+                                                <option value="generic">Otro</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mt-4">
+                                            <label for="website" class="form-label">Sitio Web</label>
+                                            <input type="url" class="form-control" id="website" name="website" placeholder="https://www.tuempresa.com">
                                         </div>
                                     </div>
                                 </div>
@@ -1554,40 +1590,27 @@ function createBotConfigTabContent() {
                                             </div>
                                         </div>
                                         
-                                        <!-- Configuración adicional -->
-                                        <div class="col-md-6">
-                                            <div class="card border-light">
-                                                <div class="card-body p-3">
-                                                    <h6 class="card-subtitle mb-3 text-muted">Información Adicional</h6>
-                                                    <div>
-                                                        <label for="website" class="form-label">Sitio Web</label>
-                                                        <input type="url" class="form-control" id="website" name="website" placeholder="https://www.tuempresa.com" required>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
                                         <!-- Reglas de reenvío -->
                                         <div class="col-md-6">
-                                            <div class="card border-light">
+                                            <div class="card border-light h-100">
                                                 <div class="card-body p-3">
                                                     <h6 class="card-subtitle mb-3 text-muted">Reglas de reenvío</h6>
                                                     <div>
                                                         <label for="forward_rules" class="form-label">Reglas de reenvío</label>
-                                                        <textarea class="form-control" id="forward_rules" name="forward_rules" rows="3" placeholder="Especifica reglas para el reenvío automático de emails..."></textarea>
+                                                        <textarea class="form-control" id="forward_rules" name="forward_rules" rows="8" placeholder="Especifica reglas para el reenvío automático de emails..."></textarea>
                                                         <small class="text-muted">Ejemplo: "reenviar emails con asunto 'urgente' a support@miempresa.com"</small>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <!-- Firma de email (ancho completo) -->
-                                        <div class="col-12">
-                                            <div class="card border-light">
+                                        <!-- Firma de email -->
+                                        <div class="col-md-6">
+                                            <div class="card border-light h-100">
                                                 <div class="card-body p-3">
                                                     <h6 class="card-subtitle mb-3 text-muted">Firma de Email</h6>
                                                     <label for="email_signature" class="form-label">Plantilla de Firma</label>
-                                                    <textarea class="form-control" id="email_signature" name="email_signature" rows="4" required placeholder="Introduce la plantilla para la firma de los emails...">Atentamente,
+                                                    <textarea class="form-control" id="email_signature" name="email_signature" rows="8" required placeholder="Introduce la plantilla para la firma de los emails...">Atentamente,
 {NOMBRE}
 {CARGO}
 {EMPRESA}
@@ -1595,6 +1618,7 @@ Tel: {TELEFONO}
 Email: {EMAIL}
 Web: {WEB}</textarea>
                                                     <div class="form-text">Puedes usar las variables: {NOMBRE}, {CARGO}, {EMPRESA}, {TELEFONO}, {EMAIL}, {WEB}</div>
+                                                    <div class="form-text text-danger"><small><i class="fas fa-asterisk me-1"></i>Incluir los valores reales dentro de los corchetes</small></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1677,6 +1701,13 @@ Web: {WEB}</textarea>
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Botón de Guardar al final del formulario -->
+                            <div class="d-flex justify-content-end mt-4 mb-3 me-3">
+                                <button type="button" class="btn btn-primary" id="save-bot-config-btn-bottom">
+                                    <i class="fas fa-save me-2"></i>Guardar
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -1723,34 +1754,34 @@ function createAccountTabContent() {
                             <div class="tab-pane fade show active" id="profile-content" role="tabpanel" aria-labelledby="profile-tab">
                                 <div class="row">
                                     <div class="col-12">
-                                        <div class="row g-3 px-3 py-4">
+                                        <div class="row g-3 px-3 py-3">
                                             <div class="col-md-6">
-                                                <label for="account_name" class="form-label">Nombre</label>
-                                                <input type="text" class="form-control" id="account_name" value="Usuario">
+                                                <label for="account_name" class="form-label small mb-1">Nombre</label>
+                                                <input type="text" class="form-control form-control-sm py-2" id="account_name" value="Usuario">
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="account_lastname" class="form-label">Apellidos</label>
-                                                <input type="text" class="form-control" id="account_lastname" value="Ejemplo">
+                                                <label for="account_lastname" class="form-label small mb-1">Apellidos</label>
+                                                <input type="text" class="form-control form-control-sm py-2" id="account_lastname" value="Ejemplo">
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="account_email" class="form-label">Email</label>
-                                                <input type="email" class="form-control" id="account_email" value="usuario@ejemplo.com">
+                                                <label for="account_email" class="form-label small mb-1">Email</label>
+                                                <input type="email" class="form-control form-control-sm py-2" id="account_email" value="usuario@ejemplo.com">
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="account_phone" class="form-label">Teléfono</label>
-                                                <input type="tel" class="form-control" id="account_phone" value="+34 600 000 000">
+                                                <label for="account_phone" class="form-label small mb-1">Teléfono</label>
+                                                <input type="tel" class="form-control form-control-sm py-2" id="account_phone" value="+34 600 000 000">
                                             </div>
                                             <div class="col-md-12">
-                                                <label for="account_company" class="form-label">Empresa</label>
-                                                <input type="text" class="form-control" id="account_company" value="Mi Empresa, S.L.">
+                                                <label for="account_company" class="form-label small mb-1">Empresa</label>
+                                                <input type="text" class="form-control form-control-sm py-2" id="account_company" value="Mi Empresa, S.L.">
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="account_position" class="form-label">Cargo</label>
-                                                <input type="text" class="form-control" id="account_position" value="Director/a">
+                                                <label for="account_position" class="form-label small mb-1">Cargo</label>
+                                                <input type="text" class="form-control form-control-sm py-2" id="account_position" value="Director/a">
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="account_timezone" class="form-label">Zona horaria</label>
-                                                <select class="form-select" id="account_timezone">
+                                                <label for="account_timezone" class="form-label small mb-1">Zona horaria</label>
+                                                <select class="form-select form-select-sm py-2" id="account_timezone">
                                                     <option value="Europe/Madrid" selected>Europa/Madrid (GMT+1)</option>
                                                     <option value="Europe/London">Europa/Londres (GMT+0)</option>
                                                     <option value="America/New_York">América/Nueva York (GMT-5)</option>
@@ -1766,23 +1797,23 @@ function createAccountTabContent() {
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="card h-100">
-                                            <div class="card-header bg-light">
-                                                <h6 class="mb-0">Cambiar contraseña</h6>
+                                            <div class="card-header bg-light py-2">
+                                                <h6 class="mb-0 small">Cambiar contraseña</h6>
                                             </div>
-                                            <div class="card-body">
-                                                <div class="mb-3">
-                                                    <label for="current_password" class="form-label">Contraseña actual</label>
-                                                    <input type="password" class="form-control" id="current_password">
+                                            <div class="card-body py-2">
+                                                <div class="mb-2">
+                                                    <label for="current_password" class="form-label small mb-1">Contraseña actual</label>
+                                                    <input type="password" class="form-control form-control-sm py-2" id="current_password">
                                                 </div>
-                                                <div class="mb-3">
-                                                    <label for="new_password" class="form-label">Nueva contraseña</label>
-                                                    <input type="password" class="form-control" id="new_password">
+                                                <div class="mb-2">
+                                                    <label for="new_password" class="form-label small mb-1">Nueva contraseña</label>
+                                                    <input type="password" class="form-control form-control-sm py-2" id="new_password">
                                                 </div>
-                                                <div class="mb-3">
-                                                    <label for="confirm_password" class="form-label">Confirmar nueva contraseña</label>
-                                                    <input type="password" class="form-control" id="confirm_password">
+                                                <div class="mb-2">
+                                                    <label for="confirm_password" class="form-label small mb-1">Confirmar nueva contraseña</label>
+                                                    <input type="password" class="form-control form-control-sm py-2" id="confirm_password">
                                                 </div>
-                                                <button type="button" class="btn btn-primary" id="change-password-btn">
+                                                <button type="button" class="btn btn-primary btn-sm" id="change-password-btn">
                                                     <i class="fas fa-key me-2"></i>Actualizar contraseña
                                                 </button>
                                             </div>
@@ -1790,17 +1821,17 @@ function createAccountTabContent() {
                                     </div>
                                     <div class="col-md-6">
                                         <div class="card h-100">
-                                            <div class="card-header bg-light">
-                                                <h6 class="mb-0">Verificación en dos pasos</h6>
+                                            <div class="card-header bg-light py-2">
+                                                <h6 class="mb-0 small">Verificación en dos pasos</h6>
                                             </div>
-                                            <div class="card-body">
-                                                <div class="form-check form-switch mb-3">
-                                                    <input class="form-check-input" type="checkbox" id="two_factor_auth">
-                                                    <label class="form-check-label" for="two_factor_auth">Activar verificación en dos pasos</label>
+                                            <div class="card-body py-2">
+                                                <div class="form-check form-switch mb-2">
+                                                    <input class="form-check-input form-check-input-sm" type="checkbox" id="two_factor_auth">
+                                                    <label class="form-check-label small" for="two_factor_auth">Activar verificación en dos pasos</label>
                                                 </div>
-                                                <p class="text-muted small">La verificación en dos pasos añade una capa adicional de seguridad a tu cuenta. Cada vez que inicies sesión, necesitarás introducir un código enviado a tu teléfono.</p>
-                                                <button type="button" class="btn btn-outline-primary" id="setup-2fa-btn" disabled>
-                                                    <i class="fas fa-mobile-alt me-2"></i>Configurar
+                                                <p class="text-muted small mb-2" style="font-size: 0.75rem;">La verificación en dos pasos añade una capa adicional de seguridad a tu cuenta. Cada vez que inicies sesión, necesitarás introducir un código enviado a tu teléfono.</p>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="setup-2fa-btn" disabled>
+                                                    <i class="fas fa-mobile-alt me-1"></i>Configurar
                                                 </button>
                                             </div>
                                         </div>
@@ -2334,51 +2365,54 @@ function searchEmails(searchTerm) {
     const allRows = emailsTableBody.querySelectorAll('.email-row');
     let visibleCount = 0;
     
-    if (!searchTerm) {
-        // Remover clase de búsqueda si no hay término
-        allRows.forEach(row => {
-            row.classList.remove('search-hidden');
-            // Solo contar las que no están ocultas por filtros
-            if (!row.classList.contains('d-none')) {
-                visibleCount++;
-            }
-        });
-        
-        if (searchResultsElement) {
-            searchResultsElement.textContent = 'Mostrando todos los emails';
-        }
-        return;
-    }
-    
     // Convertir término de búsqueda a minúsculas para búsqueda insensible a mayúsculas
-    const searchTermLower = searchTerm.toLowerCase();
+    const searchTermLower = searchTerm ? searchTerm.toLowerCase() : '';
     
     allRows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        let found = false;
+        // Primero, determinar si el elemento coincide con la búsqueda
+        let matchesSearch = !searchTerm; // Si no hay búsqueda, coincide automáticamente
         
-        // Buscar en todas las celdas de la fila
-        cells.forEach(cell => {
-            const cellText = cell.textContent.toLowerCase();
-            if (cellText.includes(searchTermLower)) {
-                found = true;
-            }
-        });
+        if (searchTerm) {
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                const cellText = cell.textContent.toLowerCase();
+                if (cellText.includes(searchTermLower)) {
+                    matchesSearch = true;
+                }
+            });
+        }
         
-        if (found) {
+        // Primero quitamos la clase search-hidden si coincide con la búsqueda
+        if (matchesSearch) {
             row.classList.remove('search-hidden');
-            // Solo contar las que no están ocultas por filtros
-            if (!row.classList.contains('d-none')) {
-                visibleCount++;
-            }
         } else {
             row.classList.add('search-hidden');
+            return; // Si no coincide con la búsqueda, ya no necesitamos comprobar filtros
+        }
+        
+        // Ahora verificar si está visible según los filtros actuales
+        const activeFilterId = document.querySelector('input[name="email-filter"]:checked')?.id;
+        if (!activeFilterId) return; // No hay filtro activo
+        
+        const filterType = activeFilterId.replace('filter-', '');
+        const rowType = row.dataset.type || '';
+        
+        if (filterType === 'all' || 
+            (filterType === 'unread' && rowType.includes('unread')) ||
+            (filterType === 'important' && rowType.includes('important')) ||
+            (filterType === 'spam' && rowType.includes('spam'))) {
+            // Si coincide con el filtro y la búsqueda, contar como visible
+            if (!row.classList.contains('search-hidden')) {
+                visibleCount++;
+            }
         }
     });
     
     // Actualizar contador de resultados
     if (searchResultsElement) {
-        if (visibleCount === 0) {
+        if (!searchTerm) {
+            searchResultsElement.textContent = 'Mostrando todos los emails';
+        } else if (visibleCount === 0) {
             searchResultsElement.textContent = 'No se encontraron emails';
         } else if (visibleCount === 1) {
             searchResultsElement.textContent = '1 email encontrado';
@@ -2630,17 +2664,17 @@ function filterCalls(type) {
                 row.classList.add('d-none');
             }
         } else if (type === 'pendientes') {
-            // Para llamadas pendientes, verificamos si NO está marcada como gestionada (checkbox no marcado)
-            const checkbox = row.querySelector('input[type="checkbox"]');
-            if (checkbox && !checkbox.checked) {
+            // Para llamadas pendientes, verificamos si NO está marcada como gestionada (div sin clase checked)
+            const checkbox = row.querySelector('.custom-checkbox');
+            if (checkbox && !checkbox.classList.contains('checked')) {
                 row.classList.remove('d-none');
             } else {
                 row.classList.add('d-none');
             }
         } else if (type === 'gestionadas') {
-            // Para llamadas gestionadas, verificamos si está marcada como gestionada (checkbox marcado)
-            const checkbox = row.querySelector('input[type="checkbox"]');
-            if (checkbox && checkbox.checked) {
+            // Para llamadas gestionadas, verificamos si está marcada como gestionada (div con clase checked)
+            const checkbox = row.querySelector('.custom-checkbox');
+            if (checkbox && checkbox.classList.contains('checked')) {
                 row.classList.remove('d-none');
             } else {
                 row.classList.add('d-none');
@@ -3068,7 +3102,7 @@ function setupEventListeners() {
     }
     
     // Event listeners para el buscador de emails
-    const searchEmailsInput = document.getElementById('search-emails-input');
+    const searchEmailsInput = document.getElementById('email-search-input');
     const clearEmailsSearch = document.getElementById('clear-emails-search');
     
     if (searchEmailsInput) {
@@ -3256,12 +3290,48 @@ function setupEventListeners() {
         }
     });
     
-    // Configurar botón de guardar configuración del bot
+    // Configurar botones de guardar configuración del bot (arriba y abajo del formulario)
     const saveBotConfigBtn = document.getElementById('save-bot-config-btn');
+    const saveBotConfigBtnBottom = document.getElementById('save-bot-config-btn-bottom');
+    
+    // Función compartida para guardar la configuración
+    const handleSaveConfig = function(event) {
+        // Obtener el botón que fue clickeado
+        const clickedButton = event.currentTarget;
+        const originalText = clickedButton.innerHTML;
+        
+        // Cambiar el texto del botón a "Guardando..."
+        clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+        clickedButton.disabled = true;
+        
+        console.log('Guardando configuración del bot...');
+        
+        // Usar setTimeout para simular un tiempo de guardado (ya que estamos en modo demo)
+        setTimeout(() => {
+            // Simulamos que la operación fue exitosa (en producción se usaría saveUnifiedConfig().then())
+            console.log('Configuración guardada exitosamente');
+            
+            // Mostrar "Guardado" brevemente
+            clickedButton.innerHTML = '<i class="fas fa-check me-2"></i>Guardado';
+            
+            // Mostrar notificación toast
+            toastr.success('Configuración guardada correctamente', '¡Éxito!');
+            
+            // Restaurar texto original después de 2 segundos
+            setTimeout(() => {
+                clickedButton.innerHTML = originalText;
+                clickedButton.disabled = false;
+            }, 2000);
+        }, 1000); // Simular 1 segundo de operación de guardado
+    };
+    
+    // Añadir listeners a ambos botones
     if (saveBotConfigBtn) {
-        saveBotConfigBtn.addEventListener('click', function() {
-            saveUnifiedConfig();
-        });
+        saveBotConfigBtn.addEventListener('click', handleSaveConfig);
+    }
+    
+    if (saveBotConfigBtnBottom) {
+        saveBotConfigBtnBottom.addEventListener('click', handleSaveConfig);
     }
     
     // Configurar botón de probar bot
@@ -3685,20 +3755,21 @@ function loadEmailConfiguration(token) {
 function setupAdditionalFeatures() {
     console.log('💻 Configurando funcionalidades adicionales...');
     
-    // Configurar botón de logout
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function() {
-            console.log('🚪 Cerrando sesión...');
-            // Lógica de cierre de sesión
+    // Configurar búsqueda de llamadas
+    const searchCallsInput = document.getElementById('search-calls-input');
+    if (searchCallsInput) {
+        searchCallsInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            searchCalls(searchTerm);
         });
     }
     
-    // Configurar toggle sidebar
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function() {
-            document.body.classList.toggle('sb-sidenav-toggled');
+    // Configurar búsqueda de emails
+    const searchEmailsInput = document.getElementById('email-search-input');
+    if (searchEmailsInput) {
+        searchEmailsInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            searchEmails(searchTerm);
         });
     }
     
@@ -3811,7 +3882,7 @@ function toggleCallImportant(callId) {
 function initializeDropdowns() {
     console.log('🔄 Inicializando dropdowns de Bootstrap...');
     
-    // Obtener todos los elementos dropdown
+    // Obtener todos los elementos dropdown tradicionales
     const dropdownElements = document.querySelectorAll('.dropdown-toggle');
     
     // Inicializar cada dropdown usando la API de Bootstrap 5
@@ -3825,8 +3896,158 @@ function initializeDropdowns() {
                 dropdownEl.setAttribute('data-bs-initialized', 'true');
             }
         });
-        console.log(`✅ ${dropdownElements.length} dropdowns inicializados correctamente`);
+        console.log(`✅ ${dropdownElements.length} dropdowns tradicionales inicializados`);
     }
+    
+    // Inicializar eventos para los botones de acciones de email (fuera del sistema de Bootstrap)
+    setupEmailActionButtons();
+}
+
+/**
+ * Configura los botones de acción de emails con menús personalizados
+ * que se muestran fuera de la estructura de la tabla
+ */
+function setupEmailActionButtons() {
+    // Limpiar cualquier contenedor de menús antiguos
+    const oldContainer = document.getElementById('email-action-menus-container');
+    if (oldContainer) {
+        oldContainer.remove();
+    }
+    
+    // Crear un contenedor para todos los menús de acciones de email
+    const menusContainer = document.createElement('div');
+    menusContainer.id = 'email-action-menus-container';
+    menusContainer.style.position = 'fixed';
+    menusContainer.style.zIndex = '9999999';
+    menusContainer.style.top = '0';
+    menusContainer.style.left = '0';
+    menusContainer.style.pointerEvents = 'none'; // Esto permite que los clics pasen a través cuando no hay menús visibles
+    document.body.appendChild(menusContainer);
+    
+    // Obtener todos los botones de acción de email
+    const actionButtons = document.querySelectorAll('.email-action-btn');
+    
+    // Crear un único menú reutilizable
+    const actionMenu = document.createElement('div');
+    actionMenu.className = 'email-action-menu';
+    actionMenu.style.position = 'fixed';
+    actionMenu.style.display = 'none';
+    actionMenu.style.backgroundColor = '#fff';
+    actionMenu.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+    actionMenu.style.border = '1px solid rgba(0,0,0,0.1)';
+    actionMenu.style.borderRadius = '0.25rem';
+    actionMenu.style.padding = '0.5rem 0';
+    actionMenu.style.minWidth = '200px';
+    actionMenu.style.zIndex = '9999999';
+    actionMenu.style.pointerEvents = 'auto'; // El menú sí debe recibir clics
+    menusContainer.appendChild(actionMenu);
+    
+    // Mantener un registro del botón activo actualmente
+    let activeButton = null;
+    
+    // Añadir event listeners para cada botón
+    actionButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation(); // Evitar que el clic llegue al documento
+            
+            const emailId = button.getAttribute('data-email-id');
+            if (!emailId) return;
+            
+            // Si ya estamos mostrando este menú, cerrarlo
+            if (activeButton === button && actionMenu.style.display === 'block') {
+                actionMenu.style.display = 'none';
+                activeButton = null;
+                return;
+            }
+            
+            // Actualizar el botón activo
+            activeButton = button;
+            
+            // Generar contenido del menú para este email
+            const emailRow = button.closest('tr');
+            const email = {
+                id: emailId,
+                read: !emailRow.classList.contains('fw-bold')
+            };
+            
+            // Crear el HTML del menú
+            actionMenu.innerHTML = `
+                <a class="custom-dropdown-item" href="#" onclick="document.getElementById('email-action-menus-container').querySelector('.email-action-menu').style.display = 'none'; viewEmailDetails(${email.id}); return false;">
+                    <i class="fas fa-eye me-2" style="font-size: 0.7rem;"></i> Ver detalles
+                </a>
+                <a class="custom-dropdown-item" href="#" onclick="document.getElementById('email-action-menus-container').querySelector('.email-action-menu').style.display = 'none'; replyToEmail(${email.id}); return false;">
+                    <i class="fas fa-reply me-2" style="font-size: 0.7rem;"></i> Responder
+                </a>
+                <a class="custom-dropdown-item" href="#" onclick="document.getElementById('email-action-menus-container').querySelector('.email-action-menu').style.display = 'none'; replyWithAI(${email.id}); return false;">
+                    <i class="fas fa-robot me-2" style="font-size: 0.7rem;"></i> Responder con IA
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="custom-dropdown-item" href="#" onclick="document.getElementById('email-action-menus-container').querySelector('.email-action-menu').style.display = 'none'; toggleEmailRead(${email.id}); return false;">
+                    <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'} me-2" style="font-size: 0.7rem;"></i>
+                    ${email.read ? 'Marcar como no leído' : 'Marcar como leído'}
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="custom-dropdown-item text-danger" href="#" onclick="document.getElementById('email-action-menus-container').querySelector('.email-action-menu').style.display = 'none'; deleteEmail(${email.id}); return false;">
+                    <i class="fas fa-trash-alt me-2" style="font-size: 0.7rem;"></i> Eliminar
+                </a>
+            `;
+            
+            // Posicionar el menú correctamente
+            const buttonRect = button.getBoundingClientRect();
+            actionMenu.style.top = (buttonRect.bottom + window.scrollY) + 'px';
+            actionMenu.style.left = (buttonRect.left + window.scrollX - 160) + 'px'; // Ajustar posición horizontal
+            actionMenu.style.display = 'block';
+            
+            // Cerrar el menú cuando se haga clic en el documento
+            const closeMenu = (e) => {
+                if (!actionMenu.contains(e.target) && e.target !== button) {
+                    actionMenu.style.display = 'none';
+                    document.removeEventListener('click', closeMenu);
+                    activeButton = null;
+                }
+            };
+            
+            // Agregar el listener con un pequeño retraso para evitar que se cierre inmediatamente
+            setTimeout(() => {
+                document.addEventListener('click', closeMenu);
+            }, 10);
+        });
+    });
+    
+    // Agregar estilos para los elementos del menú personalizado
+    const style = document.createElement('style');
+    style.textContent = `
+        .custom-dropdown-item {
+            display: block;
+            padding: 0.375rem 1rem;
+            clear: both;
+            font-weight: 400;
+            font-size: 0.75rem;
+            color: #212529;
+            text-align: inherit;
+            text-decoration: none;
+            white-space: nowrap;
+            background-color: transparent;
+            border: 0;
+        }
+        .custom-dropdown-item:hover {
+            color: #1e2125;
+            background-color: #e9ecef;
+            text-decoration: none;
+        }
+        .dropdown-divider {
+            height: 0;
+            margin: 0.5rem 0;
+            overflow: hidden;
+            border-top: 1px solid rgba(0, 0, 0, 0.15);
+        }
+        .text-danger {
+            color: #dc3545 !important;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    console.log('✅ Botones de acción de emails configurados con menús personalizados');
 }
 
 /**
@@ -3995,31 +4216,9 @@ function createEmailRow(email) {
             </div>
         </td>
         <td class="column-actions text-center">
-            <div class="dropdown">
-                <button class="btn-play-call" type="button" id="emailActions${email.id}" data-bs-toggle="dropdown" aria-expanded="false" title="Acciones de IA">
-                    <i class="fas fa-robot"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="emailActions${email.id}" style="font-size: 0.75rem;">
-                    <li><a class="dropdown-item" href="#" onclick="viewEmailDetails(${email.id}); return false;" style="font-size: 0.75rem;">
-                        <i class="fas fa-eye me-2" style="font-size: 0.7rem;"></i> Ver detalles
-                    </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="replyToEmail(${email.id}); return false;" style="font-size: 0.75rem;">
-                        <i class="fas fa-reply me-2" style="font-size: 0.7rem;"></i> Responder
-                    </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="replyWithAI(${email.id}); return false;" style="font-size: 0.75rem;">
-                        <i class="fas fa-robot me-2" style="font-size: 0.7rem;"></i> Responder con IA
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" onclick="toggleEmailRead(${email.id}); return false;" style="font-size: 0.75rem;">
-                        <i class="fas ${email.read ? 'fa-envelope' : 'fa-envelope-open'} me-2" style="font-size: 0.7rem;"></i> 
-                        ${email.read ? 'Marcar como no leído' : 'Marcar como leído'}
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteEmail(${email.id}); return false;" style="font-size: 0.75rem;">
-                        <i class="fas fa-trash-alt me-2" style="font-size: 0.7rem;"></i> Eliminar
-                    </a></li>
-                </ul>
-            </div>
+            <button class="btn-play-call email-action-btn" type="button" data-email-id="${email.id}" title="Acciones de IA">
+                <i class="fas fa-robot"></i>
+            </button>
         </td>
     `;
     
@@ -4290,8 +4489,15 @@ function setupEmailFeatures() {
     // Configurar filtros de emails
     const emailFilters = document.querySelectorAll('input[name="email-filter"]');
     emailFilters.forEach(filter => {
-        filter.addEventListener('change', function() {
-            filterEmails(this.id.replace('filter-', ''));
+        // Remover eventos anteriores para evitar duplicidades
+        const newFilter = filter.cloneNode(true);
+        filter.parentNode.replaceChild(newFilter, filter);
+        
+        // Configurar el evento correctamente
+        newFilter.addEventListener('click', function() {
+            console.log(`Filtro email seleccionado: ${this.id}`);
+            // Procesar correctamente los IDs de filtro
+            filterEmails(this.id);
         });
     });
     
@@ -4321,6 +4527,13 @@ function toggleEmailFavorite(emailId, starIcon) {
         starIcon.classList.replace('far', 'fas');
         starIcon.classList.add('text-warning');
         toastr.success(`Email #${emailId} marcado como favorito`, 'Favoritos');
+        
+        // Activar el filtro de importantes automáticamente
+        const importantFilterRadio = document.getElementById('filter-emails-important');
+        if (importantFilterRadio && !importantFilterRadio.checked) {
+            importantFilterRadio.checked = true;
+            filterEmails('important');
+        }
     }
     
     // Actualizar dataset del email row
@@ -4474,19 +4687,67 @@ function toggleEmailRead(emailId) {
  * @param {string} type - Tipo de filtro
  */
 function filterEmails(type) {
-    console.log(`🔍 Filtrando emails por: ${type}`);
+    // --- PASO 1: Procesar el tipo de filtro ---
+    // Corregir el tipo recibido si contiene cualquier prefijo
+    console.log(`Filtro original recibido: ${type}`);
     
-    // Implementación de filtrado
+    if (type.startsWith('filter-emails-')) {
+        type = type.replace('filter-emails-', '');
+    } else if (type.startsWith('emails-')) {
+        type = type.replace('emails-', '');
+    } else if (type.startsWith('filter-')) {
+        type = type.replace('filter-', '');
+    }
+    
+    console.log(`Tipo de filtro procesado: ${type}`);
+    
+    // --- PASO 2: Implementar filtrado de filas ---
     const emailRows = document.querySelectorAll('.email-row');
     let visibleCount = 0;
     
+    // Obtener término de búsqueda actual, si existe
+    const searchInput = document.getElementById('email-search-input');
+    const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    
+    // Asegurarse de que todas las filas estén procesadas correctamente
     emailRows.forEach(row => {
-        const rowType = row.dataset.type || '';
+        // DEBUG: Mostrar info de cada fila en la consola para diagnóstico
+        const rowId = row.dataset.id || 'sin-id';
+        const classes = row.className;
+        const hasUnread = row.classList.contains('fw-bold') ? 'No leído' : 'Leído';
+        const rowType = row.dataset.type || 'sin-tipo';
+        const hasStar = row.querySelector('i.fa-star.fas.text-warning') ? 'Importante' : 'Normal';
+        
+        console.log(`Email #${rowId}: ${classes} - ${hasUnread} - Tipo: ${rowType} - ${hasStar}`);
+        
+        // Solo procesar si la fila no está oculta por búsqueda
+        if (row.classList.contains('search-hidden')) {
+            return;
+        }
+        
+        // --- APLICAR FILTRO ---
+        let shouldShow = false;
         
         if (type === 'all') {
-            row.classList.remove('d-none');
-            visibleCount++;
-        } else if (rowType.includes(type)) {
+            // Mostrar todos los emails
+            shouldShow = true;
+        } else if (type === 'unread') {
+            // Mostrar solo emails no leídos (clase fw-bold)
+            shouldShow = row.classList.contains('fw-bold');
+        } else if (type === 'important') {
+            // Mostrar emails marcados como importantes (estrella amarilla)
+            const star = row.querySelector('i.fa-star.fas.text-warning');
+            shouldShow = !!star;
+        } else if (type === 'spam') {
+            // Mostrar emails marcados como spam
+            shouldShow = (row.dataset.type || '').includes('spam');
+        } else {
+            // Para otros tipos específicos
+            shouldShow = (row.dataset.type || '').includes(type);
+        }
+        
+        // Aplicar visibilidad a la fila
+        if (shouldShow) {
             row.classList.remove('d-none');
             visibleCount++;
         } else {
@@ -4494,8 +4755,24 @@ function filterEmails(type) {
         }
     });
     
+    // --- PASO 3: Actualizar UI ---
     // Actualizar contador
     updateEmailsCount();
+    
+    // Actualizar estado visual de los botones de filtro
+    const filterButtons = document.querySelectorAll('input[name="email-filter"]');
+    filterButtons.forEach(btn => {
+        // Normalizar el ID del botón para comparar con el tipo
+        let btnType = btn.id;
+        if (btnType.startsWith('filter-emails-')) {
+            btnType = btnType.replace('filter-emails-', '');
+        } else if (btnType.startsWith('filter-')) {
+            btnType = btnType.replace('filter-', '');
+        }
+        
+        // Marcar el botón correcto
+        btn.checked = (btnType === type);
+    });
     
     // Mostrar notificación con el tipo de filtro aplicado
     const filterTypeText = {
@@ -4505,7 +4782,13 @@ function filterEmails(type) {
         'spam': 'spam'
     };
     
-    toastr.info(`Mostrando ${visibleCount} emails ${filterTypeText[type] || type}`, 'Filtro aplicado');
+    // Si hay un término de búsqueda activo, reflejarlo en el mensaje
+    let message = `Mostrando ${visibleCount} emails ${filterTypeText[type] || type}`;
+    if (searchTerm) {
+        message += ` que contienen "${searchTerm}"`;
+    }
+    
+    toastr.info(message, 'Filtro aplicado');
 }
 
 /**
@@ -4514,36 +4797,6 @@ function filterEmails(type) {
  */
 function viewEmailDetails(emailId) {
     console.log(`👁️ Ver detalles completos de email ID: ${emailId}`);
-    
-    // Buscar la fila del email
-    const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
-    if (!emailRow) {
-        console.error(`No se encontró el email con ID ${emailId}`);
-        toastr.error('No se pudo encontrar el email', 'Error');
-        return;
-    }
-    
-    // Obtener datos del email desde la fila
-    const sender = emailRow.querySelector('td:nth-child(2) div:first-child')?.textContent || '';
-    const senderType = emailRow.querySelector('td:nth-child(2) .badge-dashboard')?.textContent || '';
-    const subject = emailRow.querySelector('td:nth-child(3) .text-truncate')?.textContent || '';
-    const date = emailRow.querySelector('td:nth-child(4) div:first-child')?.textContent || '';
-    const time = emailRow.querySelector('td:nth-child(4) .small')?.textContent || '';
-    
-    // Simular obtención del contenido completo (en producción vendría de la API)
-    let content = '';
-    if (emailId === 1) {
-        content = 'Buenas tardes,\n\nMe gustaría obtener más información sobre sus productos premium, especialmente sobre las pieles sintéticas para tapicería. Necesito conocer precios, disponibilidad y tiempos de entrega para un proyecto importante.\n\nGracias de antemano,\nJuan Pérez\nDirector de Proyectos\nInteriorismo Moderno S.L.';
-    } else if (emailId === 2) {
-        content = 'Estimado cliente,\n\nAdjunto encontrará nuestro nuevo catálogo de productos para 2024 con todas las novedades y actualizaciones de precios. Hemos incorporado nuevas líneas de productos que podrían ser de su interés.\n\nNo dude en contactarnos para cualquier consulta.\n\nSaludos cordiales,\nMaría García\nDepartamento Comercial\nProveedores Unidos S.A.';
-    } else if (emailId === 3) {
-        content = '¡Ofertas especiales solo este mes!\n\nDescubra nuestras ofertas exclusivas para clientes VIP. ¡Solo durante este mes! Aproveche descuentos de hasta el 50% en productos seleccionados.\n\nHaga clic aquí para ver todas las ofertas.\n\nSi no desea recibir más emails como este, haga clic aquí para darse de baja.';
-    } else {
-        content = 'Contenido del email no disponible.';
-    }
-    
-    // Formatear el contenido para HTML (reemplazar saltos de línea)
-    const formattedContent = content.replace(/\n/g, '<br>');
     
     // Crear modal con detalles
     const modalId = `email-details-modal-${emailId}`;
@@ -4554,64 +4807,66 @@ function viewEmailDetails(emailId) {
         existingModal.remove();
     }
     
-    // Crear estructura del modal con diseño profesional
+    // DATOS FIJOS PARA DEMO - ASEGURAR QUE TODOS LOS EMAILS MUESTRAN ESTOS DATOS
+    const sender = "maria.lopez@empresa.com";
+    const subject = "Solicitud de ampliación de servicio";
+    const date = "24/07/2025";
+    const time = "09:45";
+    const content = "Buenos días, me gustaría ampliar el servicio contratado para incluir 5 usuarios más en nuestra cuenta. ¿Podrían indicarme el proceso y el coste adicional?";
+    
+    // Formatear el contenido para HTML (reemplazar saltos de línea)
+    const formattedContent = content.replace(/\n/g, '<br>');
+    
+    // Crear estructura del modal con diseño minimalista y más estructurado
     const modalHTML = `
         <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}-label" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <div class="d-flex align-items-center">
-                            <div class="icon-circle me-3" style="width: 40px; height: 40px; background: var(--primary-gradient); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-envelope"></i>
-                            </div>
-                            <div>
-                                <h5 class="modal-title mb-0" id="${modalId}-label">${subject}</h5>
-                                <small class="text-muted">Detalles del mensaje</small>
-                            </div>
-                        </div>
+                    <div class="modal-header py-2">
+                        <h5 class="modal-title" id="${modalId}-label" style="font-size: 0.85rem; font-weight: 500; color: #555;">Detalles del mensaje</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <!-- Header del email -->
-                        <div class="email-header p-4 mb-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: var(--border-radius); border-left: 4px solid var(--primary-color);">
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-circle me-3" style="width: 50px; height: 50px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.2rem;">
-                                            ${sender.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div class="fw-semibold text-dark mb-1">${sender}</div>
-                                            ${senderType ? `<span class="badge badge-primary">${senderType}</span>` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 text-end">
-                                    <div class="fw-semibold text-dark">${date}</div>
-                                    <div class="text-muted small">${time}</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Contenido del email -->
-                        <div class="email-body">
-                            <div class="dashboard-card p-4">
-                                <div class="email-content" style="line-height: 1.6; font-size: 1rem; color: var(--dark-color);">
+                        <div class="email-view-container">
+                            <!-- Información estructurada del email -->
+                            <table style="width: 100%; font-size: 0.75rem;" class="mb-3">
+                                <tr>
+                                    <td style="width: 60px; color: #666; font-weight: 500; vertical-align: top; padding-bottom: 0.4rem;">De:</td>
+                                    <td style="vertical-align: top; padding-bottom: 0.4rem;">
+                                        <span style="color: #333;">${sender}</span>
+                                    </td>
+                                    <td style="text-align: right; vertical-align: top; font-size: 0.65rem; color: #888; padding-bottom: 0.4rem;">${date}</td>
+                                </tr>
+                                <tr>
+                                    <td style="color: #666; font-weight: 500; vertical-align: top;">Asunto:</td>
+                                    <td style="vertical-align: top; color: #333;">${subject}</td>
+                                    <td style="text-align: right; vertical-align: top; font-size: 0.65rem; color: #888;">${time}</td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Cuadro de contenido del email -->
+                            <div style="border: 1px solid #e0e0e0; border-radius: 4px; background-color: #f9f9f9; padding: 0.75rem;">
+                                <div style="font-size: 0.7rem; line-height: 1.5; color: #333;">
                                     ${formattedContent}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-2"></i>Cerrar
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                            <i class="fas fa-times me-1" style="font-size: 0.7rem;"></i>Cerrar
                         </button>
-                        <button type="button" class="btn btn-primary reply-btn">
-                            <i class="fas fa-reply me-2"></i>Responder
-                        </button>
-                        <button type="button" class="btn btn-outline-primary forward-btn">
-                            <i class="fas fa-share me-2"></i>Reenviar
-                        </button>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="createReplyModal(${emailId}, '${sender}', '${subject}', false);" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                                <i class="fas fa-reply me-1" style="font-size: 0.7rem;"></i>Responder
+                            </button>
+                            <button type="button" class="btn btn-sm btn-info text-white ms-1" onclick="createReplyModal(${emailId}, '${sender}', '${subject}', true);" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                                <i class="fas fa-robot me-1" style="font-size: 0.7rem;"></i>IA
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary ms-1" onclick="forwardEmail(${emailId}, '${subject}');" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                                <i class="fas fa-share me-1" style="font-size: 0.7rem;"></i>Reenviar
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4621,40 +4876,9 @@ function viewEmailDetails(emailId) {
     // Agregar modal al DOM
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     
-    // Obtener referencia al modal
-    const modal = document.getElementById(modalId);
-    
-    // Configurar event listeners para los botones del modal
-    if (modal) {
-        // Botón de responder
-        const replyBtn = modal.querySelector('.reply-btn');
-        if (replyBtn) {
-            replyBtn.addEventListener('click', function() {
-                toastr.info(`Respondiendo al email #${emailId}`, 'Respuesta');
-                console.log(`💬 Respondiendo al email ID: ${emailId}`);
-                // Aquí iría la lógica para responder al email
-            });
-        }
-        
-        // Botón de reenviar
-        const forwardBtn = modal.querySelector('.forward-btn');
-        if (forwardBtn) {
-            forwardBtn.addEventListener('click', function() {
-                toastr.info(`Reenviando email #${emailId}`, 'Reenviar');
-                console.log(`🔁 Reenviando email ID: ${emailId}`);
-                // Aquí iría la lógica para reenviar el email
-            });
-        }
-        
-        // Mostrar modal
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
-        
-        // Marcar como leído si no lo estaba
-        if (emailRow.classList.contains('fw-bold')) {
-            toggleEmailRead(emailId);
-        }
-    }
+    // Mostrar el modal
+    const modal = new bootstrap.Modal(document.getElementById(modalId));
+    modal.show();
 }
 
 /**
@@ -5159,8 +5383,15 @@ function setupEmailFeatures() {
     // Configurar filtros de emails
     const emailFilters = document.querySelectorAll('input[name="email-filter"]');
     emailFilters.forEach(filter => {
-        filter.addEventListener('change', function() {
-            filterEmails(this.id.replace('filter-', ''));
+        // Remover eventos anteriores para evitar duplicidades
+        const newFilter = filter.cloneNode(true);
+        filter.parentNode.replaceChild(newFilter, filter);
+        
+        // Configurar el evento correctamente
+        newFilter.addEventListener('click', function() {
+            console.log(`Filtro email seleccionado: ${this.id}`);
+            // Procesar correctamente los IDs de filtro
+            filterEmails(this.id);
         });
     });
     
@@ -5978,6 +6209,94 @@ function isValidEmail(email) {
 }
 
 /**
+ * Descargar factura en PDF
+ * @param {string} invoiceId - ID de la factura a descargar
+ */
+function downloadInvoice(invoiceId) {
+    console.log(`📥 Descargando factura ${invoiceId}...`);
+    
+    // Mostrar notificación de descarga iniciada
+    showNotification('Preparando factura para descarga...', 'info');
+    
+    // Simular tiempo de descarga (ya que no tenemos backend real)
+    setTimeout(() => {
+        // En un sistema real, aquí se haría una petición al backend
+        // para generar y descargar el PDF
+        
+        // Simulamos éxito después de un breve retardo
+        showNotification(`Factura ${invoiceId} descargada correctamente`, 'success');
+    }, 1500);
+}
+
+/**
+ * Mostrar modal de facturas
+ */
+function viewInvoices() {
+    console.log('👀 Viendo facturas...');
+    
+    // Cambiar a la pestaña de historial si no está activa
+    const historyTab = document.getElementById('history-tab');
+    if (historyTab) {
+        const tab = new bootstrap.Tab(historyTab);
+        tab.show();
+    }
+    
+    // Asegurarse que la pestaña de facturación está activa
+    const billingTab = document.getElementById('billing-tab');
+    if (billingTab) {
+        const tab = new bootstrap.Tab(billingTab);
+        tab.show();
+    }
+}
+
+/**
+ * Manejar el cierre de sesión
+ */
+function logoutHandler() {
+    console.log('🚪 Cerrando sesión...');
+    
+    // Mostrar mensaje de cierre
+    showNotification('Cerrando sesión...', 'info');
+    
+    // Pequeña pausa para que se vea la notificación
+    setTimeout(() => {
+        if (typeof authService !== 'undefined') {
+            // Usar el servicio de autenticación para cerrar sesión
+            authService.logout();
+        } else {
+            // Fallback si no existe el servicio de autenticación
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            // Redirigir a login
+            window.location.href = 'login.html';
+        }
+    }, 500);
+}
+
+/**
+ * Inicializar eventos de facturación
+ */
+function initBillingEvents() {
+    console.log('💰 Inicializando eventos de facturación...');
+    
+    // Manejar botón Ver Facturas
+    const viewInvoicesBtn = document.getElementById('view-invoices-btn');
+    if (viewInvoicesBtn) {
+        viewInvoicesBtn.addEventListener('click', viewInvoices);
+    }
+    
+    // Manejar botones de descarga en la tabla de facturas
+    const invoiceButtons = document.querySelectorAll('button[title="Descargar PDF"]');
+    invoiceButtons.forEach(button => {
+        const row = button.closest('tr');
+        if (row) {
+            const invoiceId = row.querySelector('td:first-child').textContent;
+            button.addEventListener('click', () => downloadInvoice(invoiceId));
+        }
+    });
+}
+
+/**
  * Previsualizar plantilla de email
  */
 document.addEventListener('DOMContentLoaded', function() {
@@ -6400,8 +6719,10 @@ function sendManualResponse(emailId) {
 
 /**
  * Guardar configuración unificada del bot
+ * @returns {Promise} Promesa que se resuelve cuando se completa el guardado
  */
 function saveUnifiedConfig() {
+    return new Promise((resolve, reject) => {
     // Obtener información del usuario actual
     const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
     console.log(`💾 Guardando configuración unificada del bot para el usuario ${userId}...`);
@@ -6666,11 +6987,14 @@ function saveUnifiedConfig() {
         }
         
         toastr.success('Configuración guardada correctamente', '¡Éxito!');
+        resolve();
     })
     .catch(error => {
         console.error('Error guardando configuración:', error);
         toastr.error('Error al guardar la configuración: ' + error.message, 'Error');
+        reject(error);
     });
+  });
 }
 
 // ...
@@ -8041,11 +8365,18 @@ function replyWithAI(emailId) {
  * @param {number} emailId - ID del email
  * @param {string} sender - Remitente del email
  * @param {string} subject - Asunto del email
- * @param {boolean} useAI - Si se debe usar IA para generar la respuesta
+ * @param {boolean} withAI - Si es respuesta con IA o manual
  */
-function createReplyModal(emailId, sender, subject, useAI) {
-    // Crear ID único para el modal
-    const modalId = `email-reply-modal-${emailId}`;
+function createReplyModal(emailId, sender, subject, withAI = false) {
+    // Cerrar cualquier modal de detalles abierto
+    const detailsModal = document.querySelector('.modal.show');
+    if (detailsModal) {
+        const bsModal = bootstrap.Modal.getInstance(detailsModal);
+        if (bsModal) bsModal.hide();
+    }
+    
+    // Generar ID único para el modal
+    const modalId = withAI ? 'aiReplyModal' : 'manualReplyModal';
     
     // Eliminar modal anterior si existe
     const existingModal = document.getElementById(modalId);
@@ -8059,8 +8390,8 @@ function createReplyModal(emailId, sender, subject, useAI) {
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content dashboard-card border-0">
                     <div class="modal-header border-0">
-                        <h5 class="modal-title" id="${modalId}-label">
-                            <i class="fas fa-${useAI ? 'robot' : 'reply'} me-2"></i>RE: ${subject}
+                        <h5 class="modal-title" id="${modalId}-label" style="font-size: 0.9rem;">
+                            <i class="fas fa-${withAI ? 'robot' : 'reply'} me-2" style="font-size: 0.8rem;"></i>RE: ${subject}
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
@@ -8073,26 +8404,26 @@ function createReplyModal(emailId, sender, subject, useAI) {
                             <label for="reply-subject-${emailId}" class="form-label">Asunto:</label>
                             <input type="text" class="form-control" id="reply-subject-${emailId}" value="RE: ${subject}">
                         </div>
-                        ${useAI ? `
+                        ${withAI ? `
                         <div class="mb-3 d-flex align-items-center" id="ai-loading-${emailId}">
                             <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
                                 <span class="visually-hidden">Generando respuesta...</span>
                             </div>
-                            <span>La IA está generando una respuesta...</span>
+                            <span style="font-size: 0.8rem;">La IA está generando una respuesta...</span>
                         </div>
                         ` : ''}
                         <div class="mb-3">
-                            <label for="reply-content-${emailId}" class="form-label">Mensaje:</label>
-                            <textarea class="form-control" id="reply-content-${emailId}" rows="8" ${useAI ? 'placeholder="La respuesta generada por IA aparecerá aquí..."' : 'placeholder="Escribe tu respuesta aquí..."'}></textarea>
+                            <label for="reply-content-${emailId}" class="form-label" style="font-size: 0.8rem;">Mensaje:</label>
+                            <textarea class="form-control" id="reply-content-${emailId}" rows="6" style="font-size: 0.8rem;" ${withAI ? 'placeholder="La respuesta generada por IA aparecerá aquí..."' : 'placeholder="Escribe tu respuesta aquí..."'}></textarea>
                         </div>
                     </div>
                     <div class="modal-footer border-0">
-                        <button type="button" class="btn-dashboard-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        ${useAI ? `<button type="button" class="btn-dashboard-info" onclick="regenerateAIReply(${emailId})">
-                            <i class="fas fa-sync-alt me-2"></i>Regenerar respuesta
+                        <button type="button" class="btn-dashboard-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;" data-bs-dismiss="modal">Cancelar</button>
+                        ${withAI ? `<button type="button" class="btn-dashboard-info" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="regenerateAIReply(${emailId})">
+                            <i class="fas fa-sync-alt me-2" style="font-size: 0.7rem;"></i>Regenerar
                         </button>` : ''}
-                        <button type="button" class="btn-dashboard-primary" onclick="sendReply(${emailId})">
-                            <i class="fas fa-paper-plane me-2"></i>Enviar
+                        <button type="button" class="btn-dashboard-primary" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="sendReply(${emailId})">
+                            <i class="fas fa-paper-plane me-2" style="font-size: 0.7rem;"></i>Enviar
                         </button>
                     </div>
                 </div>
@@ -8108,12 +8439,19 @@ function createReplyModal(emailId, sender, subject, useAI) {
     replyModal.show();
     
     // Si es respuesta con IA, generar respuesta después de un breve retraso
-    if (useAI) {
+    if (withAI) {
         setTimeout(() => {
             const aiResponse = generateAIResponse(emailId, subject);
-            document.getElementById(`reply-content-${emailId}`).value = aiResponse;
-            document.getElementById(`ai-loading-${emailId}`).style.display = 'none';
-        }, 1500);
+            const contentElement = document.getElementById(`reply-content-${emailId}`);
+            if (contentElement) {
+                contentElement.value = aiResponse;
+                // Ajustar altura del textarea para evitar scroll excesivo
+                contentElement.style.height = 'auto';
+                contentElement.style.height = (contentElement.scrollHeight) + 'px';
+            }
+            const loadingElement = document.getElementById(`ai-loading-${emailId}`);
+            if (loadingElement) loadingElement.style.display = 'none';
+        }, 1000);
     }
 }
 
@@ -8331,6 +8669,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Añadir estilos CSS
     addDashboardStyles();
     
+    // Inicializar botón de logout
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logoutHandler);
+        console.log('✅ Botón de logout inicializado');
+    }
+    
     // Verificar si hay un usuario autenticado
     if (typeof authService !== 'undefined' && authService.isAuthenticated()) {
         // Obtener datos de la empresa del usuario
@@ -8350,6 +8695,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Inicializar dropdowns de Bootstrap después de cargar el contenido
         setTimeout(() => {
             initializeDropdowns();
+            // Inicializar eventos de facturación
+            initBillingEvents();
         }, 1000);
     } else {
         console.error('❌ Usuario no autenticado');

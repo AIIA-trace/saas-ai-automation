@@ -334,7 +334,7 @@ class AuthService {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     // Redirigir a la página de login
-    window.location.href = '/login.html';
+    window.location.href = 'login.html';
   }
   
   /**

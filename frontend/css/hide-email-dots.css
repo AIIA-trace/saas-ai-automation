@@ -1,0 +1,13 @@
+/**
+ * hide-email-dots.css
+ * 
+ * Este archivo CSS oculta específicamente los puntos azules (círculos)
+ * que aparecen al inicio de cada asunto de correo en la tabla de emails,
+ * pero mantiene intacta la estructura y el formato de la tabla.
+ */
+
+/* Ocultar solo los puntos azules pequeños junto al asunto */
+.email-row td .d-flex.align-items-center i.fas.fa-circle.text-primary,
+.email-row td i.fas.fa-circle.text-primary.me-1 {
+    display: none !important;
+}

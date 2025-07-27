@@ -7,12 +7,12 @@
 #profile-content .form-control,
 #profile-content .form-select,
 #security-content .form-control {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   height: auto;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   border: 1px solid #dee2e6;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
 }
 
@@ -27,24 +27,26 @@
 #profile-content .form-label,
 #security-content .form-label {
   font-weight: 500;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   color: #495057;
+  font-size: 0.75rem;
 }
 
-/* Añadir más espacio entre los campos */
+/* Reducir espacio entre los campos */
 #profile-content .row.g-3 {
-  row-gap: 1.25rem !important;
+  row-gap: 0.25rem !important;
 }
 
 /* Mejorar el espaciado interno de la sección de perfil */
 #profile-content {
-  padding: 1.5rem;
+  padding: 0.25rem;
 }
 
 /* Mejorar el aspecto del botón de guardar */
 #save-account-btn {
-  padding: 0.5rem 1.25rem;
+  padding: 0.25rem 0.65rem;
   font-weight: 500;
+  font-size: 0.75rem;
 }
 
 /* Añadir espacio en el contenedor principal */

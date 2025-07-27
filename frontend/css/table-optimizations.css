@@ -7,6 +7,140 @@
   border-spacing: 0;
   margin-bottom: 0;
   table-layout: fixed;
+  position: relative;
+}
+
+/* Asegurar que los dropdowns aparezcan por encima de las filas */
+.dropdown-menu {
+  z-index: 1000000 !important;
+}
+
+/* Asegurar que los botones con dropdown tengan el z-index correcto */
+.dashboard-table .dropdown {
+  position: relative !important;
+  z-index: 1000000 !important;
+}
+
+/* Solución radical para el menú dropdown del robot */
+.dropdown-menu.show {
+  z-index: 9999999 !important;
+  position: fixed !important; /* Cambiado a fixed para romper jerarquía del DOM */
+  transform: none !important;
+  min-width: 200px !important;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+  border: 1px solid rgba(0,0,0,0.1) !important;
+  background-color: #fff !important;
+}
+
+/* Estilos para el modal de correo electrónico minimalista */
+.email-details-modal {
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.email-details-modal .modal-header {
+  padding: 0.5rem 1rem;
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.email-details-modal .modal-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #555;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-details-modal .modal-body {
+  padding: 1rem;
+  background-color: #fff;
+}
+
+.email-details-modal .modal-footer {
+  padding: 0.5rem 1rem;
+  justify-content: space-between;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+}
+
+/* Estilos para la información del email */
+.email-details-modal .email-metadata {
+  margin-bottom: 1rem;
+}
+
+.email-details-modal .email-metadata .d-flex {
+  margin-bottom: 0.35rem;
+}
+
+/* Estilos para etiquetas y texto */
+.email-details-modal .fw-medium {
+  font-weight: 500;
+}
+
+/* Estilo para el contenedor del cuerpo del email */
+.email-details-modal .email-body {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 0.75rem;
+  min-height: 80px;
+  white-space: pre-line;
+}
+
+.email-details-modal .email-content {
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: #333;
+}
+
+/* Estilos para botones simplificados */
+.email-details-modal .btn-dashboard-outline,
+.email-details-modal .btn-dashboard-primary,
+.email-details-modal .btn-dashboard-info,
+.email-details-modal .btn-dashboard-secondary {
+  font-size: 0.7rem !important;
+  padding: 0.25rem 0.65rem !important;
+  transition: all 0.15s ease !important;
+}
+
+.email-details-modal .modal-footer div {
+  display: flex;
+}
+
+.email-details-modal .email-header {
+  padding: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.email-details-modal .fw-semibold {
+  font-size: 0.8rem;
+}
+
+.email-details-modal p,
+.email-details-modal .email-content {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* Ajustes para botones en modales */
+.email-details-modal .btn {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+}
+
+/* Solución específica y radical para el dropdown del robot */
+.column-actions .dropdown-menu {
+  position: fixed !important; /* Cambio a fixed para sacar del flujo del documento */
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  min-width: 200px !important;
 }
 
 /* Optimización de cabeceras */
@@ -14,10 +148,10 @@
   background-color: rgba(249, 250, 251, 0.9);
   color: var(--text-secondary);
   font-weight: 600;
-  padding: 0.75rem 0.5rem;
-  font-size: 0.8125rem;
+  padding: 0.4rem 0.3rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.02em;
   border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
   overflow: hidden;
@@ -26,12 +160,14 @@
 
 /* Optimización de celdas */
 .dashboard-table tbody td {
-  padding: 0.75rem 0.5rem;
+  padding: 0.35rem 0.3rem;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
-  font-size: 0.875rem;
+  font-size: 0.65rem;
   vertical-align: middle;
-  line-height: 1.4;
+  line-height: 1.2;
+  height: 40px; /* Altura fija para todas las celdas (reducida) */
+  box-sizing: border-box;
 }
 
 /* Columna de resumen - permitir múltiples líneas con límite */
@@ -58,6 +194,21 @@
   white-space: nowrap;
 }
 
+/* Botones de acción */
+.dashboard-table .btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background-color: transparent;
+  transition: all 0.15s ease;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  margin-right: 0.25rem;
+}
+
 /* Botones de acción en tablas */
 .dashboard-table .action-btn {
   padding: 0.25rem 0.5rem;
@@ -73,6 +224,35 @@
   background-color: var(--primary-color);
   color: white;
   border-color: var(--primary-color);
+}
+
+/* Botón de play para llamadas */
+.btn-play-call {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin: 0 auto; /* Centrar horizontalmente */
+}
+
+.btn-play-call:hover {
+  background-color: var(--primary-dark);
+  transform: scale(1.05);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Asegurar que la celda del botón play esté centrada */
+.dashboard-table td.text-center {
+  text-align: center;
+  vertical-align: middle;
 }
 
 /* Etiquetas de estado */
@@ -133,4 +313,83 @@
 /* Ajustes específicos para la tabla de emails */
 #emails-table-body .column-summary {
   padding-right: 10px;
+}
+
+/* Correcciones para la alineación de filas en emails */
+#emails-table-body tr {
+  height: 40px !important;
+  line-height: 1;
+  display: table-row;
+  vertical-align: middle;
+  border-color: inherit;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+#emails-table-body tr td {
+  vertical-align: middle;
+  height: 40px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box;
+  border-bottom: none !important;
+  font-size: 0.65rem !important;
+}
+
+/* Mejoras para los dropdowns de acciones */
+.dropdown-menu.show {
+  display: block !important;
+  position: absolute !important;
+  z-index: 999999 !important;
+  transform: none !important;
+  margin-top: 0 !important;
+  top: auto !important;
+  left: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  min-width: 100px !important;
+  font-size: 0.6rem !important;
+}
+
+/* Ajustes específicos para los elementos del dropdown */
+.dropdown-menu.show .dropdown-item {
+  font-size: 0.6rem !important;
+  padding: 0.25rem 0.5rem !important;
+  white-space: nowrap !important;
+}
+
+/* Estilos para el botón de robot */
+.btn-action[data-bs-toggle="dropdown"] {
+  position: relative;
+  z-index: 1000000;
+  padding: 0.2rem 0.4rem !important;
+  font-size: 0.65rem !important;
+}
+
+/* Reducción adicional de tamaños para botones en tablas */
+.dashboard-table .btn {
+  padding: 0.2rem 0.35rem !important;
+  font-size: 0.6rem !important;
+  line-height: 1 !important;
+}
+
+/* Reducir iconos */
+.dashboard-table .fas, 
+.dashboard-table .far, 
+.dashboard-table .fa,
+.dashboard-table .btn i {
+  font-size: 0.65rem !important;
+}
+
+/* Reducción para badges */
+.dashboard-table .badge {
+  padding: 0.15rem 0.35rem !important;
+  font-size: 0.55rem !important;
+}
+
+/* Asegurar que todas las celdas tengan la misma altura */
+.dashboard-table tr {
+  border-bottom: 1px solid var(--border-color);
 }
