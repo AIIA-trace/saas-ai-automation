@@ -6256,7 +6256,7 @@ function logoutHandler() {
     console.log('🚪 Cerrando sesión...');
     
     // Mostrar mensaje de cierre
-    showNotification('Cerrando sesión...', 'info');
+    toastr.info('Cerrando sesión...', 'Sesión');
     
     // Pequeña pausa para que se vea la notificación
     setTimeout(() => {
