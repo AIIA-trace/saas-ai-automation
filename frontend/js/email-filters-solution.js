@@ -114,10 +114,8 @@ function initEmailFiltersFix() {
     
     console.log('✅ Solución para filtros de email aplicada correctamente');
     
-    // Mostrar notificación sólo si la librería toastr está disponible
-    if (typeof toastr !== 'undefined') {
-        toastr.success('Filtros de email activados', 'Sistema listo');
-    }
+    // Notificación eliminada para evitar popups
+    console.log('Filtros de email activados');
 }
 
 /**
@@ -215,18 +213,18 @@ function applyEmailFilter(type) {
         console.log(`Filtro aplicado. Mostrando ${visibleCount} de ${emailRows.length} emails`);
     }
     
-    // 4. Mostrar notificación con el resultado (si toastr está disponible)
-    if (typeof toastr !== 'undefined') {
-        const filterLabels = {
-            'all': 'todos',
-            'unread': 'no leídos',
-            'important': 'importantes',
-            'spam': 'spam'
-        };
-        
-        const message = `Mostrando ${visibleCount} emails ${filterLabels[type] || type}`;
-        toastr.info(message, 'Filtro aplicado');
+    // 4. Registrar el resultado en consola sin mostrar notificaciones
+    let message;
+    
+    if (visibleCount === emailRows.length) {
+        message = 'Mostrando todos los emails';
+    } else if (visibleCount === 0) {
+        message = 'No hay emails que coincidan con el filtro';
+    } else {
+        message = `Mostrando ${visibleCount} de ${emailRows.length} emails`;
     }
+    
+    console.log(`Filtro aplicado: ${message}`);
 }
 
 /**

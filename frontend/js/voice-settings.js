@@ -36,7 +36,7 @@ async function initVoiceSettingsPage() {
         setupEventListeners();
     } catch (error) {
         console.error('Error inicializando página de voz:', error);
-        toastr.error('Error al cargar la configuración de voz', 'Error');
+        console.error('Error al cargar la configuración de voz');
     } finally {
         // Ocultar indicador de carga
         document.getElementById('loading-indicator').classList.add('d-none');
@@ -97,7 +97,7 @@ async function loadVoiceSettings() {
         return voiceConfig;
     } catch (error) {
         console.error('Error cargando configuración de voz:', error);
-        toastr.error('No se pudo cargar tu configuración de voz', 'Error');
+        console.error('No se pudo cargar tu configuración de voz');
         return null;
     }
 }
@@ -141,7 +141,7 @@ async function loadAvailableVoices() {
         
     } catch (error) {
         console.error('Error cargando voces disponibles:', error);
-        toastr.error('No se pudieron cargar las voces disponibles', 'Error');
+        console.error('No se pudieron cargar las voces disponibles');
         
         // Agregar opción por defecto en caso de error
         const voiceSelect = document.getElementById('voice-selection');
@@ -260,7 +260,7 @@ function setupEventListeners() {
     // Botón de cerrar sesión
     document.getElementById('logout-btn').addEventListener('click', function() {
         authService.logout();
-        toastr.success('Sesión cerrada correctamente');
+        console.log('Sesión cerrada correctamente');
         setTimeout(() => {
             window.location.href = 'login.html';
         }, 1000);
@@ -277,12 +277,12 @@ async function previewVoice() {
     const audioPlayer = document.getElementById('preview-player');
     
     if (!voiceId) {
-        toastr.warning('Por favor selecciona una voz primero', 'Aviso');
+        console.warn('Por favor selecciona una voz primero');
         return;
     }
     
     if (!previewText) {
-        toastr.warning('Ingresa algún texto para previsualizar', 'Aviso');
+        console.warn('Ingresa algún texto para previsualizar');
         return;
     }
     
@@ -315,10 +315,10 @@ async function previewVoice() {
         audioContainer.classList.remove('d-none');
         audioPlayer.play();
         
-        toastr.success('Audio generado correctamente', 'Éxito');
+        console.log('Audio generado correctamente');
     } catch (error) {
         console.error('Error generando previsualización de voz:', error);
-        toastr.error('Error al generar previsualización de voz', 'Error');
+        console.error('Error al generar previsualización de voz');
     } finally {
         // Restaurar estado del botón
         const previewBtn = document.getElementById('preview-btn');
@@ -335,7 +335,7 @@ async function saveVoiceSettings() {
     const language = document.getElementById('language-selection').value;
     
     if (!voiceId) {
-        toastr.warning('Por favor selecciona una voz', 'Aviso');
+        console.warn('Por favor selecciona una voz');
         return;
     }
     
@@ -360,10 +360,10 @@ async function saveVoiceSettings() {
 
         if (!response.ok) throw new Error('Error al guardar la configuración de voz');
 
-        toastr.success('Configuración de voz guardada correctamente', 'Éxito');
+        console.log('Configuración de voz guardada correctamente');
     } catch (error) {
         console.error('Error guardando configuración de voz:', error);
-        toastr.error('Error al guardar la configuración de voz', 'Error');
+        console.error('Error al guardar la configuración de voz');
     } finally {
         // Restaurar estado del botón
         const saveBtn = document.getElementById('save-voice-settings');
@@ -406,10 +406,10 @@ async function saveCallMessages() {
 
         if (!response.ok) throw new Error('Error al guardar los mensajes de llamada');
 
-        toastr.success('Mensajes de llamada guardados correctamente', 'Éxito');
+        console.log('Mensajes de llamada guardados correctamente');
     } catch (error) {
         console.error('Error guardando mensajes de llamada:', error);
-        toastr.error('Error al guardar los mensajes de llamada', 'Error');
+        console.error('Error al guardar los mensajes de llamada');
     } finally {
         // Restaurar estado del botón
         const saveBtn = document.getElementById('save-call-settings');
@@ -427,12 +427,12 @@ async function purchasePhoneNumber() {
     const smsCapability = document.getElementById('sms-capability').checked;
     
     if (!areaCode) {
-        toastr.warning('Por favor ingresa un código de área', 'Aviso');
+        console.warn('Por favor ingresa un código de área');
         return;
     }
     
     if (!voiceCapability && !smsCapability) {
-        toastr.warning('Debes seleccionar al menos una capacidad', 'Aviso');
+        console.warn('Debes seleccionar al menos una capacidad');
         return;
     }
     
@@ -462,13 +462,13 @@ async function purchasePhoneNumber() {
 
         const data = await response.json();
         
-        toastr.success(`Número adquirido correctamente: ${data.phoneNumber}`, 'Éxito');
+        console.log(`Número adquirido correctamente: ${data.phoneNumber}`);
         
         // Recargar lista de números
         await loadPhoneNumbers();
     } catch (error) {
         console.error('Error comprando número de teléfono:', error);
-        toastr.error('Error al comprar el número de teléfono', 'Error');
+        console.error('Error al comprar el número de teléfono');
     } finally {
         // Restaurar estado del botón
         const purchaseBtn = document.getElementById('purchase-number');
@@ -496,12 +496,12 @@ async function releasePhoneNumber(twilioSid) {
 
         if (!response.ok) throw new Error('Error al liberar el número de teléfono');
 
-        toastr.success('Número liberado correctamente', 'Éxito');
+        console.log('Número liberado correctamente');
         
         // Recargar lista de números
         await loadPhoneNumbers();
     } catch (error) {
         console.error('Error liberando número de teléfono:', error);
-        toastr.error('Error al liberar el número de teléfono', 'Error');
+        console.error('Error al liberar el número de teléfono');
     }
 }

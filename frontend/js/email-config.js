@@ -439,11 +439,11 @@ class EmailConfig {
                 this.updateConfigUI();
             } else {
                 console.error('Error cargando configuración de emails');
-                toastr.error('Error cargando configuración de emails');
+                // Ya tenemos un console.error en la línea anterior
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error de conexión al cargar configuración');
+            // Ya tenemos un console.error en la línea anterior
         }
     }
 
@@ -671,13 +671,13 @@ class EmailConfig {
 
             if (response.ok) {
                 this.currentConfig = await response.json();
-                toastr.success('Configuración de emails guardada correctamente');
+                console.log('Configuración de emails guardada correctamente');
             } else {
                 throw new Error('Error guardando configuración');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error guardando configuración de emails');
+            console.error('Error guardando configuración de emails');
         }
     }
 
@@ -744,14 +744,14 @@ class EmailConfig {
             if (response.ok) {
                 await this.loadEmailAccounts();
                 bootstrap.Modal.getInstance(document.getElementById('addEmailAccountModal')).hide();
-                toastr.success('Cuenta de email añadida correctamente');
+                console.log('Cuenta de email añadida correctamente');
             } else {
                 const error = await response.json();
                 throw new Error(error.error || 'Error añadiendo cuenta');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error(error.message || 'Error añadiendo cuenta de email');
+            console.error(error.message || 'Error añadiendo cuenta de email');
         }
     }
 
@@ -761,17 +761,17 @@ class EmailConfig {
             const account = this.accounts.find(acc => acc.id === accountId);
             if (!account) return;
 
-            toastr.info('Probando conexión...', 'Verificando cuenta');
+            console.log('Probando conexión... Verificando cuenta');
 
             // Aquí podrías añadir un endpoint específico para probar la conexión
             // Por ahora, simulamos la prueba
             setTimeout(() => {
-                toastr.success('Conexión exitosa', 'Cuenta verificada');
+                console.log('Conexión exitosa - Cuenta verificada');
             }, 2000);
 
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error probando la cuenta de email');
+            console.error('Error probando la cuenta de email');
         }
     }
 
@@ -791,13 +791,13 @@ class EmailConfig {
 
             if (response.ok) {
                 await this.loadEmailAccounts();
-                toastr.success('Cuenta eliminada correctamente');
+                console.log('Cuenta eliminada correctamente');
             } else {
                 throw new Error('Error eliminando cuenta');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error eliminando cuenta de email');
+            console.error('Error eliminando cuenta de email');
         }
     }
 
@@ -830,14 +830,14 @@ class EmailConfig {
             if (response.ok) {
                 await this.loadEmailTemplates();
                 bootstrap.Modal.getInstance(document.getElementById('addEmailTemplateModal')).hide();
-                toastr.success('Plantilla añadida correctamente');
+                console.log('Plantilla añadida correctamente');
             } else {
                 const error = await response.json();
                 throw new Error(error.error || 'Error añadiendo plantilla');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error(error.message || 'Error añadiendo plantilla');
+            console.error(error.message || 'Error añadiendo plantilla');
         }
     }
 
@@ -876,13 +876,13 @@ class EmailConfig {
 
             if (response.ok) {
                 await this.loadEmailTemplates();
-                toastr.success('Plantilla eliminada correctamente');
+                console.log('Plantilla eliminada correctamente');
             } else {
                 throw new Error('Error eliminando plantilla');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error eliminando plantilla');
+            console.error('Error eliminando plantilla');
         }
     }
 }

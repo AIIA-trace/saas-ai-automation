@@ -234,7 +234,7 @@ function overrideEmailFunctions() {
                 // Actualizar dataset
                 emailRow.dataset.type = (emailRow.dataset.type || '').replace('unread', '').trim();
                 
-                toastr.success(`Email #${emailId} marcado como leído`, 'Estado actualizado');
+                console.log(`Email #${emailId} marcado como leído`);
             } else {
                 // Marcar como no leído
                 indicator.classList.replace('far', 'fas');
@@ -249,7 +249,7 @@ function overrideEmailFunctions() {
                     emailRow.dataset.type = (emailRow.dataset.type + ' unread').trim();
                 }
                 
-                toastr.info(`Email #${emailId} marcado como no leído`, 'Estado actualizado');
+                console.log(`Email #${emailId} marcado como no leído`);
             }
             
             // Notificar al servidor el cambio de estado

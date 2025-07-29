@@ -132,10 +132,7 @@ function aplicarFiltroEmail(type) {
         'spam': 'spam'
     };
     
-    // Mostrar notificación
-    if (window.toastr) {
-        toastr.info(`Mostrando ${visibleCount} emails ${filterNames[type] || type}`, 'Filtro aplicado');
-    }
+    // Ya usamos console.log en la siguiente línea para mostrar información
     
     console.log(`✅ Filtro aplicado. Mostrando ${visibleCount} de ${emailRows.length} emails`);
 }

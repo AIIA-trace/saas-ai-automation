@@ -109,7 +109,7 @@ function toggleEmailReadStatus(emailId, emailRow) {
         // Actualizar dataset
         emailRow.dataset.type = (emailRow.dataset.type || '').replace('unread', '').trim();
         
-        toastr.success(`Email #${emailId} marcado como leído`, 'Estado actualizado');
+        console.log(`Email #${emailId} marcado como leído - Estado actualizado`);
     } else {
         // Marcar como no leído
         emailRow.classList.add('fw-bold');
@@ -119,7 +119,7 @@ function toggleEmailReadStatus(emailId, emailRow) {
             emailRow.dataset.type = (emailRow.dataset.type + ' unread').trim();
         }
         
-        toastr.info(`Email #${emailId} marcado como no leído`, 'Estado actualizado');
+        console.log(`Email #${emailId} marcado como no leído - Estado actualizado`);
     }
     
     // Notificar al servidor el cambio de estado

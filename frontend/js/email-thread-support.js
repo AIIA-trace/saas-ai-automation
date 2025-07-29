@@ -36,7 +36,7 @@ function implementThreadSupport() {
         const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
         if (!emailRow) {
             console.error(`No se encontró el email con ID ${emailId}`);
-            toastr.error('No se pudo encontrar el email', 'Error');
+            console.error('No se pudo encontrar el email');
             return;
         }
         

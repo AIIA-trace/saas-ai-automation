@@ -269,13 +269,13 @@ class AccountManager {
                 const data = await response.json();
                 this.userProfile = { ...this.userProfile, ...data.profile };
                 this.updateProfileUI();
-                toastr.success('Perfil actualizado correctamente');
+                console.log('Perfil actualizado correctamente');
             } else {
-                toastr.error('Error actualizando el perfil');
+                console.error('Error actualizando el perfil');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error actualizando el perfil');
+            console.error('Error actualizando el perfil');
         } finally {
             if (saveBtn) {
                 saveBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
@@ -291,12 +291,12 @@ class AccountManager {
         const confirmPassword = document.getElementById('confirmPassword').value;
 
         if (newPassword !== confirmPassword) {
-            toastr.error('Las contraseñas no coinciden');
+            console.error('Las contraseñas no coinciden');
             return;
         }
 
         if (newPassword.length < 8) {
-            toastr.error('La contraseña debe tener al menos 8 caracteres');
+            console.error('La contraseña debe tener al menos 8 caracteres');
             return;
         }
 
@@ -323,14 +323,14 @@ class AccountManager {
                 document.getElementById('passwordForm').reset();
                 this.securitySettings.passwordLastChanged = new Date().toISOString();
                 this.updateSecurityUI();
-                toastr.success('Contraseña cambiada correctamente');
+                console.log('Contraseña cambiada correctamente');
             } else {
                 const error = await response.json();
-                toastr.error(error.message || 'Error cambiando la contraseña');
+                console.error(error.message || 'Error cambiando la contraseña');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error cambiando la contraseña');
+            console.error('Error cambiando la contraseña');
         } finally {
             if (saveBtn) {
                 saveBtn.innerHTML = '<i class="fas fa-key"></i> Cambiar Contraseña';
@@ -366,13 +366,13 @@ class AccountManager {
 
             if (response.ok) {
                 this.securitySettings = { ...this.securitySettings, ...securityData };
-                toastr.success('Configuración de seguridad actualizada');
+                console.log('Configuración de seguridad actualizada');
             } else {
-                toastr.error('Error actualizando la configuración');
+                console.error('Error actualizando la configuración');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error actualizando la configuración');
+            console.error('Error actualizando la configuración');
         } finally {
             if (saveBtn) {
                 saveBtn.innerHTML = '<i class="fas fa-shield-alt"></i> Guardar Configuración';
@@ -388,13 +388,13 @@ class AccountManager {
 
         // Validar tipo de archivo
         if (!file.type.startsWith('image/')) {
-            toastr.error('Por favor selecciona una imagen válida');
+            console.error('Por favor selecciona una imagen válida');
             return;
         }
 
         // Validar tamaño (max 2MB)
         if (file.size > 2 * 1024 * 1024) {
-            toastr.error('La imagen debe ser menor a 2MB');
+            console.error('La imagen debe ser menor a 2MB');
             return;
         }
 
@@ -414,13 +414,13 @@ class AccountManager {
                 const data = await response.json();
                 this.userProfile.avatar = data.avatarUrl;
                 this.updateAvatarUI();
-                toastr.success('Avatar actualizado correctamente');
+                console.log('Avatar actualizado correctamente');
             } else {
-                toastr.error('Error subiendo el avatar');
+                console.error('Error subiendo el avatar');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error subiendo el avatar');
+            console.error('Error subiendo el avatar');
         }
     }
 
@@ -441,13 +441,13 @@ class AccountManager {
             if (response.ok) {
                 this.userProfile.avatar = '';
                 this.updateAvatarUI();
-                toastr.success('Avatar eliminado correctamente');
+                console.log('Avatar eliminado correctamente');
             } else {
-                toastr.error('Error eliminando el avatar');
+                console.error('Error eliminando el avatar');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error eliminando el avatar');
+            console.error('Error eliminando el avatar');
         }
     }
 
@@ -466,11 +466,11 @@ class AccountManager {
                 const data = await response.json();
                 this.show2FASetupModal(data.qrCode, data.secret);
             } else {
-                toastr.error('Error configurando 2FA');
+                console.error('Error configurando 2FA');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error configurando 2FA');
+            console.error('Error configurando 2FA');
         }
     }
 
@@ -501,13 +501,13 @@ class AccountManager {
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-                toastr.success('Datos descargados correctamente');
+                console.log('Datos descargados correctamente');
             } else {
-                toastr.error('Error descargando los datos');
+                console.error('Error descargando los datos');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error descargando los datos');
+            console.error('Error descargando los datos');
         }
     }
 
@@ -515,7 +515,7 @@ class AccountManager {
     async deleteAccount() {
         const confirmation = prompt('Para eliminar tu cuenta, escribe "ELIMINAR CUENTA":');
         if (confirmation !== 'ELIMINAR CUENTA') {
-            toastr.info('Eliminación cancelada');
+            console.log('Eliminación cancelada');
             return;
         }
 
@@ -532,17 +532,17 @@ class AccountManager {
             });
 
             if (response.ok) {
-                toastr.success('Cuenta eliminada correctamente');
+                console.log('Cuenta eliminada correctamente');
                 setTimeout(() => {
                     authService.logout();
                     window.location.href = '/login.html';
                 }, 2000);
             } else {
-                toastr.error('Error eliminando la cuenta');
+                console.error('Error eliminando la cuenta');
             }
         } catch (error) {
             console.error('Error:', error);
-            toastr.error('Error eliminando la cuenta');
+            console.error('Error eliminando la cuenta');
         }
     }
 

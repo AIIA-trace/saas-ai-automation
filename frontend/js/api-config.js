@@ -25,6 +25,34 @@ if (typeof window.API_CONFIG === 'undefined') {
       ME: '/api/auth/me'
     },
     
+    // Endpoints principales del dashboard
+    DASHBOARD: {
+      // Configuración de cliente
+      CLIENT_CONFIG: '/api/config',
+      UPDATE_PROFILE: '/api/profile',
+      
+      // Configuración del bot
+      BOT_CONFIG: '/api/config/bot',
+      BOT_UPLOAD_CONTEXT: '/api/bot/upload-context',
+      
+      // Configuración de email
+      EMAIL_CONFIG: '/api/config/email',
+      EMAIL_TEMPLATES: '/api/config/email/templates',
+      
+      // Notificaciones
+      NOTIFICATIONS_CONFIG: '/api/config/notifications',
+      
+      // Llamadas y emails
+      CALLS: '/api/logs/calls',
+      EMAILS: '/api/logs/emails',
+      CALL_DETAIL: '/api/logs/calls/{callId}',
+      EMAIL_DETAIL: '/api/logs/emails/{emailId}',
+      
+      // Facturación
+      INVOICES: '/api/billing/invoices',
+      SUBSCRIPTION: '/api/billing/subscription'
+    },
+    
     // Endpoints específicos por sector
     RESTAURANT: {
       ORDERS: '/api/clients/{clientId}/orders/active',

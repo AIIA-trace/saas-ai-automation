@@ -674,7 +674,7 @@ class CompanySetup {
         if (companyName && !companyName.value.trim()) {
             companyName.classList.add('is-invalid');
             isValid = false;
-            toastr.error('Por favor ingresa el nombre de la empresa');
+            console.error('Por favor ingresa el nombre de la empresa');
         } else if (companyName) {
             companyName.classList.remove('is-invalid');
         }
@@ -684,7 +684,7 @@ class CompanySetup {
         if (industry && !industry.value) {
             industry.classList.add('is-invalid');
             isValid = false;
-            toastr.error('Por favor selecciona una industria');
+            console.error('Por favor selecciona una industria');
         } else if (industry) {
             industry.classList.remove('is-invalid');
         }
@@ -704,7 +704,7 @@ class CompanySetup {
             if (!field.value.trim()) {
                 field.classList.add('is-invalid');
                 isValid = false;
-                toastr.error(`Por favor completa el campo ${field.name || 'requerido'}`);
+                console.error(`Por favor completa el campo ${field.name || 'requerido'}`);
             } else {
                 field.classList.remove('is-invalid');
             }
@@ -724,7 +724,7 @@ class CompanySetup {
         if (botName && !botName.value.trim()) {
             botName.classList.add('is-invalid');
             isValid = false;
-            toastr.error('Por favor ingresa un nombre para tu asistente AI');
+            console.error('Por favor ingresa un nombre para tu asistente AI');
         } else if (botName) {
             botName.classList.remove('is-invalid');
         }
@@ -744,7 +744,7 @@ class CompanySetup {
             if (!field.value.trim()) {
                 field.classList.add('is-invalid');
                 isValid = false;
-                toastr.error(`Por favor completa el campo ${field.name || 'requerido'}`);
+                console.error(`Por favor completa el campo ${field.name || 'requerido'}`);
             } else {
                 field.classList.remove('is-invalid');
             }
@@ -764,7 +764,7 @@ class CompanySetup {
         if (phoneSetup && !phoneSetup.value) {
             phoneSetup.classList.add('is-invalid');
             isValid = false;
-            toastr.error('Por favor selecciona una opción para la configuración del teléfono');
+            console.error('Por favor selecciona una opción para la configuración del teléfono');
         } else if (phoneSetup) {
             phoneSetup.classList.remove('is-invalid');
         }

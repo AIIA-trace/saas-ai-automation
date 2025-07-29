@@ -128,7 +128,7 @@ function sendForwardedEmail(originalEmailId) {
         if (modal) modal.hide();
         
         // Mostrar notificación de éxito
-        toastr.success('El email ha sido reenviado correctamente', 'Email reenviado');
+        console.log('El email ha sido reenviado correctamente');
         
         // Restaurar botón
         sendButton.disabled = false;

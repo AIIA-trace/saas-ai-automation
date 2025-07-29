@@ -47,8 +47,8 @@ function overrideToggleEmailFavorite() {
                             emailRow.dataset.type = (emailRow.dataset.type + ' unread').trim();
                         }
                         
-                        // Notificar discretamente
-                        toastr.info(`Email #${emailId} marcado como no leído`, 'Estado actualizado');
+                        // Notificar en consola
+                        console.log(`Email #${emailId} marcado como no leído - Estado actualizado`);
                         
                         // Notificar al servidor el cambio de estado (silenciosamente)
                         notifyServerEmailUnread(emailId);
