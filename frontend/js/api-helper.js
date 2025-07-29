@@ -52,8 +52,12 @@ window.ApiHelper = {
         };
         
         if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
+        // IMPORTANTE: La API espera el token sin el prefijo "Bearer "
+        headers['Authorization'] = token;
+        
+        // Guardar el formato original para debugging
+        console.log('🔑 Formato de token usado:', token);
+    }
         
         return headers;
     },
