@@ -3393,16 +3393,11 @@ function setupEventListeners() {
             }
         };
         
-        // Obtener token de autenticación del localStorage
-        const token = localStorage.getItem('auth_token');
+        console.log('🔧 Usando ApiHelper para guardar la configuración');
         
-        // Enviar datos al servidor
-        fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.BOT_CONFIG, {
+        // Usar el sistema ApiHelper para manejar la petición API
+        window.ApiHelper.fetchApi('/api/config/bot', {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify(botConfigData)
         })
         .then(response => {
@@ -7062,12 +7057,8 @@ function saveUnifiedConfig() {
         console.log('✅ Configuración del bot guardada:', data);
         
         // Ahora enviar la configuración de emails
-        return fetch('/api/config/email', {
+        return window.ApiHelper.fetchApi('/api/config/email', {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
             body: JSON.stringify({
                 enabled: config.emailConfig.enabled,
                 provider: config.emailConfig.provider,
@@ -7094,12 +7085,8 @@ function saveUnifiedConfig() {
         console.log('✅ Configuración de emails guardada:', data);
         
         // Actualizar perfil de empresa
-        return fetch('/api/profile', {
+        return window.ApiHelper.fetchApi('/api/profile', {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
             body: JSON.stringify({
                 companyName: config.companyName,
                 email: config.companyEmail,
