@@ -76,7 +76,8 @@ class RouteGuard {
             }
             
             console.log('AuthService disponible');
-            console.log('Token en localStorage:', !!localStorage.getItem('auth_token'));
+            console.log('Token en localStorage (auth_token):', !!localStorage.getItem('auth_token'));
+            console.log('Token en localStorage (authToken):', !!localStorage.getItem('authToken'));
             console.log('isAuthenticated():', authService.isAuthenticated());
             
             // Verificar si el usuario está autenticado
