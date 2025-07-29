@@ -225,6 +225,8 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <!-- Override para desactivar los toasts -->
+    <script src="js/toastr-override.js"></script>
     
     <!-- Configuración y servicios -->
     <script src="js/api-config.js"></script>
@@ -263,19 +265,11 @@
             // Usar el servicio de autenticación
             authService.login(email, password)
                 .then(data => {
-                    // Mostrar mensaje de éxito
-                    toastr.success('Inicio de sesión exitoso', '¡Bienvenido!');
-                    
-                    // Redireccionar al dashboard con un pequeño delay para mostrar el toast
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1000);
+                    // Redireccionar inmediatamente al dashboard
+                    window.location.href = 'dashboard.html';
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    
-                    // Mostrar mensaje de error
-                    toastr.error(error.message || 'Error de conexión', 'Error de acceso');
                     
                     // Show error in form alert
                     const loginAlert = document.getElementById('loginAlert');
