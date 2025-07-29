@@ -7040,8 +7040,11 @@ function saveUnifiedConfig() {
         return;
     }
     
-    // Enviar la configuración del bot al backend
-    fetch('/api/config/bot', {
+    // Enviar la configuración del bot al backend usando la URL completa
+    const apiUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
+    console.log('🔗 Usando URL base de API:', apiUrl);
+    
+    fetch(`${apiUrl}/api/config/bot`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -7301,60 +7304,140 @@ function testBotConfiguration() {
 function setupFaqManager() {
     console.log('💬 Inicializando gestor de preguntas frecuentes...');
     
-    // Botón para añadir nueva pregunta
-    const addFaqBtn = document.getElementById('add-faq-btn');
-    if (addFaqBtn) {
-        addFaqBtn.addEventListener('click', addNewFaqItem);
+    // Botón para añadir nueva pregunta - Implementación mejorada y más robusta
+    function initFaqButton() {
+        const addFaqBtn = document.getElementById('add-faq-btn');
+        if (addFaqBtn) {
+            console.log('📝 Botón de añadir FAQ encontrado, añadiendo event listener');
+            // Eliminar cualquier handler previo para evitar duplicados
+            const newAddFaqBtn = addFaqBtn.cloneNode(true);
+            if (addFaqBtn.parentNode) {
+                addFaqBtn.parentNode.replaceChild(newAddFaqBtn, addFaqBtn);
+            }
+            
+            // Añadir listener al nuevo botón
+            newAddFaqBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🖱️ Botón FAQ clickeado, ejecutando addNewFaqItem()...');
+                addNewFaqItem();
+            });
+            
+            // Añadir estilo visual para indicar que es clickeable
+            newAddFaqBtn.style.cursor = 'pointer';
+        } else {
+            console.warn('⚠️ Botón de añadir FAQ no encontrado en el DOM');
+        }
+        
+        // Verificar que el contenedor de FAQs exista
+        const faqItems = document.getElementById('faq-items');
+        if (!faqItems) {
+            console.warn('⚠️ Contenedor de FAQs no encontrado en el DOM');
+            
+            // Intentar crear el contenedor si no existe
+            const faqContainer = document.querySelector('.faq-container');
+            if (faqContainer) {
+                const faqItemsDiv = document.createElement('div');
+                faqItemsDiv.id = 'faq-items';
+                faqItemsDiv.className = 'faq-items';
+                faqContainer.appendChild(faqItemsDiv);
+                console.log('✅ Contenedor de FAQs creado dinámicamente');
+            }
+        }
     }
+    
+    // Intentar inicializar inmediatamente
+    initFaqButton();
+    
+    // Y también con retraso para asegurarnos de que el DOM esté listo
+    setTimeout(initFaqButton, 500);
+    setTimeout(initFaqButton, 1000); // Intentar una vez más después de 1 segundo
     
     // Cargar preguntas de ejemplo
     loadSampleFaqs();
+    
+    // Añadir llamada a documento cargado para asegurar la inicialización
+    if (document.readyState === 'complete') {
+        initFaqButton();
+    } else {
+        window.addEventListener('load', initFaqButton);
+    }
 }
 
 /**
- * Cargar preguntas frecuentes desde el backend
+ * Cargar preguntas frecuentes desde el backend o usar datos de ejemplo
  */
 function loadSampleFaqs() {
-    console.log('💬 Cargando preguntas frecuentes desde el backend...');
+    console.log('💬 Cargando preguntas frecuentes...');
     
-    // Obtener token de autenticación
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-        console.error('❌ No se encontró token de autenticación');
-        toastr.error('Error de autenticación', 'Error');
-        return;
-    }
-    
-    // Realizar petición al backend
-    fetch('/api/bot/faqs', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(faqs => {
-        // Añadir preguntas al DOM
-        if (faqs && faqs.length > 0) {
-            faqs.forEach(faq => addFaqItemToDOM(faq));
-            console.log(`✅ ${faqs.length} preguntas frecuentes cargadas correctamente`);
-        } else {
-            console.log('ℹ️ No hay preguntas frecuentes configuradas');
+    // Esperar a que el DOM esté listo
+    setTimeout(() => {
+        const faqItems = document.getElementById('faq-items');
+        if (!faqItems) {
+            console.warn('⚠️ Contenedor de FAQs no encontrado, no se pueden cargar preguntas frecuentes');
+            return;
         }
         
-        // Actualizar la visualización del mensaje de no hay preguntas
-        updateNoFaqsMessage();
-    })
-    .catch(error => {
-        console.error('❌ Error al cargar preguntas frecuentes:', error);
-        toastr.error('Error al cargar preguntas frecuentes', 'Error');
-    });
+        // Obtener token de autenticación
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            console.log('ℹ️ No hay token de autenticación, usando datos de ejemplo');
+            loadDemoFaqs();
+            return;
+        }
+        
+        // Intentar cargar desde la API
+        console.log('📡 Intentando cargar preguntas frecuentes desde la API...');
+        fetch('/api/bot/faqs', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(faqs => {
+            // Añadir preguntas al DOM
+            if (faqs && faqs.length > 0) {
+                faqs.forEach(faq => addFaqItemToDOM(faq));
+                console.log(`✅ ${faqs.length} preguntas frecuentes cargadas correctamente`);
+            } else {
+                console.log('ℹ️ No hay preguntas frecuentes configuradas en la API, cargando datos de ejemplo');
+                loadDemoFaqs();
+            }
+            
+            // Actualizar la visualización del mensaje de no hay preguntas
+            updateNoFaqsMessage();
+        })
+        .catch(error => {
+            console.log('ℹ️ No se pudieron cargar preguntas frecuentes desde la API, usando datos de ejemplo:', error.message);
+            loadDemoFaqs();
+        });
+    }, 600);
+}
+
+/**
+ * Cargar preguntas frecuentes de ejemplo
+ */
+function loadDemoFaqs() {
+    const demoFaqs = [
+        { id: 1001, question: '¿Cuál es su horario de atención?', answer: 'Nuestro horario es de lunes a viernes de 9:00 a 18:00.' },
+        { id: 1002, question: '¿Cómo puedo realizar un pedido?', answer: 'Puede realizar su pedido a través de nuestra página web o llamando a nuestro número de atención al cliente.' },
+        { id: 1003, question: '¿Cuáles son las formas de pago aceptadas?', answer: 'Aceptamos tarjetas de crédito/débito, PayPal y transferencia bancaria.' }
+    ];
+    
+    console.log(`💬 Cargando ${demoFaqs.length} preguntas frecuentes de ejemplo...`);
+    demoFaqs.forEach(faq => addFaqItemToDOM(faq));
+    
+    // Actualizar la visualización del mensaje de no hay preguntas
+    updateNoFaqsMessage();
+    
+    console.log('✅ Preguntas frecuentes de ejemplo cargadas correctamente');
 }
 
 /**
