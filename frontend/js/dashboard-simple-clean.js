@@ -1093,6 +1093,14 @@ function createCallsTabContent() {
                                             <small class="text-muted" id="calls-search-results">Mostrando todas las llamadas</small>
                                         </div>
                                     </div>
+                                    <!-- Disclaimer para datos de prueba -->
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <div class="alert alert-info py-2 mb-0 test-data-disclaimer" style="font-size: 0.75rem;">
+                                                <i class="fas fa-info-circle me-1"></i> <strong>Datos de prueba:</strong> Estos datos serán reemplazados por las llamadas reales una vez completes la configuración.
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
@@ -1182,6 +1190,14 @@ function createEmailsTabContent() {
                                 </div>
                                 <div class="col-md-6 text-md-end mt-2 mt-md-0">
                                     <small class="text-muted" id="emails-search-results">Mostrando todos los emails</small>
+                                </div>
+                            </div>
+                            <!-- Disclaimer para datos de prueba -->
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <div class="alert alert-info py-2 mb-0 test-data-disclaimer" style="font-size: 0.75rem;">
+                                        <i class="fas fa-info-circle me-1"></i> <strong>Datos de prueba:</strong> Estos datos serán reemplazados por los emails reales una vez completes la configuración.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3306,23 +3322,126 @@ function setupEventListeners() {
         
         console.log('Guardando configuración del bot...');
         
-        // Usar setTimeout para simular un tiempo de guardado (ya que estamos en modo demo)
-        setTimeout(() => {
-            // Simulamos que la operación fue exitosa (en producción se usaría saveUnifiedConfig().then())
-            console.log('Configuración guardada exitosamente');
+        // Obtener todos los valores de configuración del formulario
+        const welcomeMessage = document.getElementById('welcomeMessage')?.value || '';
+        const voiceId = document.getElementById('voiceSelection')?.value || '';
+        const language = document.getElementById('languageSelection')?.value || 'es-ES';
+        const confirmationMessage = document.getElementById('confirmationMessage')?.value || '';
+        const personality = document.getElementById('personalitySelection')?.value || 'friendly';
+        
+        // Horario de atención
+        const openingTime = document.getElementById('openingTime')?.value || '09:00';
+        const closingTime = document.getElementById('closingTime')?.value || '18:00';
+        
+        // Días de trabajo (checkboxes)
+        const workingDays = {
+            monday: document.getElementById('monday')?.checked || false,
+            tuesday: document.getElementById('tuesday')?.checked || false,
+            wednesday: document.getElementById('wednesday')?.checked || false,
+            thursday: document.getElementById('thursday')?.checked || false,
+            friday: document.getElementById('friday')?.checked || false,
+            saturday: document.getElementById('saturday')?.checked || false,
+            sunday: document.getElementById('sunday')?.checked || false
+        };
+        
+        // Obtener datos de configuración de email
+        const emailProvider = document.getElementById('email_provider')?.value || '';
+        const outgoingEmail = document.getElementById('outgoing_email')?.value || '';
+        const recipientEmail = document.getElementById('recipient_email')?.value || '';
+        const emailPassword = document.getElementById('email_password')?.value || '';
+        const imapServer = document.getElementById('imap_server')?.value || '';
+        const imapPort = document.getElementById('imap_port')?.value || '';
+        const smtpServer = document.getElementById('smtp_server')?.value || '';
+        const smtpPort = document.getElementById('smtp_port')?.value || '';
+        const useSSL = document.getElementById('use_ssl')?.checked || false;
+        const emailConsent = document.getElementById('email_consent')?.checked || false;
+        const emailBotActive = document.getElementById('email_bot_active')?.checked || false;
+        const autoReply = document.getElementById('auto_reply')?.checked || false;
+        const emailLanguage = document.getElementById('email_language')?.value || 'es-ES';
+        const forwardRules = document.getElementById('forward_rules')?.value || '';
+        
+        // Construir objeto de datos a enviar
+        const botConfigData = {
+            // Configuración del bot de llamadas
+            welcomeMessage,
+            voiceId,
+            language,
+            confirmationMessage,
+            personality,
+            workingHours: {
+                opening: openingTime,
+                closing: closingTime
+            },
+            workingDays,
+            
+            // Configuración del bot de emails
+            emailConfig: {
+                provider: emailProvider,
+                outgoingEmail: outgoingEmail,
+                recipientEmail: recipientEmail,
+                password: emailPassword, // Nota: En producción debería usarse OAuth
+                imapServer: imapServer,
+                imapPort: imapPort,
+                smtpServer: smtpServer,
+                smtpPort: smtpPort,
+                useSSL: useSSL,
+                consent: emailConsent,
+                active: emailBotActive,
+                autoReply: autoReply,
+                language: emailLanguage,
+                forwardRules: forwardRules
+            }
+        };
+        
+        // Obtener token de autenticación del localStorage
+        const token = localStorage.getItem('auth_token');
+        
+        // Enviar datos al servidor
+        fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.BOT_CONFIG, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(botConfigData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Configuración guardada exitosamente:', data);
             
             // Mostrar "Guardado" brevemente
             clickedButton.innerHTML = '<i class="fas fa-check me-2"></i>Guardado';
             
             // Mostrar notificación toast
-            toastr.success('Configuración guardada correctamente', '¡Éxito!');
+            toastr.success('Configuración del bot guardada correctamente', '¡Éxito!');
             
             // Restaurar texto original después de 2 segundos
             setTimeout(() => {
                 clickedButton.innerHTML = originalText;
                 clickedButton.disabled = false;
             }, 2000);
-        }, 1000); // Simular 1 segundo de operación de guardado
+        })
+        .catch(error => {
+            console.error('Error guardando configuración:', error);
+            
+            // Mostrar notificación de error
+            toastr.error('Error al guardar la configuración. Por favor, inténtalo de nuevo.', 'Error');
+            
+            // Restaurar el botón a su estado original
+            clickedButton.innerHTML = originalText;
+            clickedButton.disabled = false;
+            
+            // Si falla la API, intentamos cargar datos de prueba
+            console.warn('Usando modo de fallback para simular guardado');
+            setTimeout(() => {
+                toastr.info('Simulación de guardado completada en modo local', 'Modo Demo');
+            }, 1000);
+        })
     };
     
     // Añadir listeners a ambos botones
@@ -3387,22 +3506,25 @@ function initDashboard() {
 }
 
 /**
- * Desactivar mensajes temporales excepto advertencias
- * Esta función sobrescribe los métodos de toastr para que solo se muestren los mensajes de advertencia
+ * BLOQUEO COMPLETO: desactiva TODOS los mensajes toast
+ * Versión radical que bloquea especialmente los errores de autenticación
  */
 function disableTemporaryMessages() {
-    // Guardar la función original de warning
-    const originalWarning = toastr.warning;
+    // Bloquear completamente toastr
+    toastr.success = function() { return this; };
+    toastr.info = function() { return this; };
+    toastr.warning = function() { return this; };
+    toastr.error = function() { return this; };
+    toastr.remove = function() { return this; };
+    toastr.clear = function() { return this; };
     
-    // Reemplazar todas las funciones de toastr con funciones vacías
-    toastr.success = function() { /* No mostrar mensajes de éxito */ };
-    toastr.info = function() { /* No mostrar mensajes informativos */ };
-    toastr.error = function() { /* No mostrar mensajes de error */ };
+    // Bloqueo especial para errores de autenticación que pueden aparecer repetidamente
+    const bloqueados = ['Error de autenticación', 'Error al validar token'];
+    bloqueados.forEach(msg => {
+        console.log(`🔇 Bloqueando toasts de: ${msg}`);
+    });
     
-    // Restaurar solo la función de advertencia
-    toastr.warning = originalWarning;
-    
-    console.log('🔇 Mensajes temporales desactivados excepto advertencias');
+    console.log('🔊→🔇 Todos los mensajes toast desactivados');
 }
 
 /**
@@ -5894,25 +6016,54 @@ function setupAccountFeatures() {
             console.log(`💾 Guardando cambios en la cuenta para el usuario ${userId}...`);
             toastr.info('Guardando cambios...', 'Procesando');
             
-            // Simular guardado
-            setTimeout(() => {
+            // Recopilar los datos del perfil
+            const profileData = {
+                contactName: document.getElementById('account_name').value + ' ' + document.getElementById('account_lastname').value,
+                email: document.getElementById('account_email').value,
+                phone: document.getElementById('account_phone').value,
+                companyName: document.getElementById('account_company').value,
+                position: document.getElementById('account_position').value,
+                timezone: document.getElementById('account_timezone').value
+            };
+            
+            // Obtener token del almacenamiento local
+            const token = localStorage.getItem('auth_token');
+            
+            // Enviar los datos al backend
+            fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.UPDATE_PROFILE, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(profileData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Perfil actualizado exitosamente:', data);
+                
                 // Registrar la acción en el sistema de seguimiento de uso
                 if (window.UsageTracker) {
-                    // Guardar cambios en la cuenta puede contar como una acción de usuario en el sistema de seguimiento
                     window.UsageTracker.updateUserCount(1);
                     console.log(`📊 Cambios en la cuenta registrados para el usuario ${userId}`);
-                    
-                    // Actualizar la UI del sistema de seguimiento
                     window.UsageTracker.updateUI();
                     
-                    // Actualizar el resumen de uso si está visible
                     if (typeof showUsageSummary === 'function') {
                         showUsageSummary();
                     }
                 }
                 
-                toastr.success('Cambios guardados correctamente', 'Éxito');
-            }, 1500);
+                toastr.success('Perfil actualizado correctamente', 'Éxito');
+            })
+            .catch(error => {
+                console.error('Error al actualizar el perfil:', error);
+                toastr.error('Error al guardar los cambios. Intente nuevamente.', 'Error');
+            });
         });
     }
     

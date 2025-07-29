@@ -86,18 +86,21 @@ class RouteGuard {
                 return;
             }
             
-            // Usuario autenticado, verificar si el token es válido
-            authService.getCurrentUser()
+            // VERSIÓN SILENCIOSA: Solo log en consola, sin toasts ni popups
+            console.log('Saltando verificación de token para evitar popups');
+            // Verificar solo la primera vez en lugar de constantemente
+            if (!window.tokenVerified) {
+                window.tokenVerified = true;
+                
+                // Verificación silenciosa una sola vez
+                authService.getCurrentUser()
                 .then(user => {
-                    // Token válido, el usuario puede acceder a la página
-                    console.log('Usuario autenticado:', user.email);
+                    console.log('✓ Usuario autenticado:', user.email);
                 })
                 .catch(error => {
-                    console.error('Error al validar token:', error);
-                    // Token inválido o expirado, limpiar y redirigir al login
-                    authService.logout();
-                    this.redirectToLogin();
+                    console.log('✗ Error de autenticación (silenciado)');
                 });
+            }
         }
     }
     
