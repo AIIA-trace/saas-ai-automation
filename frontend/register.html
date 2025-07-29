@@ -14,67 +14,88 @@
     <link rel="stylesheet" href="css/typography-scale.css">
     <link rel="stylesheet" href="css/compact-forms.css">
     <style>
+        :root {
+            --primary: #6366F1;
+            --secondary: #64748B;
+        }
+        
         body {
+            background-color: #F1F5F9;
             font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa;
         }
         
-        .register-container {
-            padding-top: 70px;
-            padding-bottom: 30px;
-        }
-        
-        .register-card {
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        .auth-card {
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
             overflow: hidden;
+        }
+        
+        .auth-image {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(79, 70, 229, 0.9) 100%), url('https://images.unsplash.com/photo-1596524430615-b46475ddff6e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80') center/cover no-repeat;
+            color: white;
         }
         
         .step-indicator {
             display: flex;
-            justify-content: center;
-            margin-bottom: 25px;
-            margin-top: 30px;
+            margin-bottom: 2rem;
         }
         
-        .step {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: #e9ecef;
+        .step-item {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            margin: 0 20px;
-            font-weight: bold;
-            font-size: 18px;
-            color: #6c757d;
+            flex: 1;
             position: relative;
         }
         
-        .step::after {
-            content: '';
-            position: absolute;
-            height: 3px;
-            background: #e9ecef;
-            width: 100%;
-            left: 50%;
-            top: 50%;
-            z-index: -1;
+        .step-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #E2E8F0;
+            color: #64748B;
+            font-size: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            z-index: 10;
         }
         
-        .step:last-child::after {
+        .step-title {
+            color: #64748B;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .step-item::after {
+            content: "";
+            position: absolute;
+            height: 2px;
+            width: 100%;
+            background-color: #E2E8F0;
+            top: 12px;
+            left: 50%;
+            z-index: 5;
+        }
+        
+        .step-item:last-child::after {
             display: none;
         }
         
-        .step.active {
-            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+        .step-item.active .step-circle {
+            background-color: var(--primary);
             color: white;
         }
         
-        .step.completed {
-            background: #10B981;
+        .step-item.active .step-title {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .step-item.completed .step-circle {
+            background-color: #10B981;
             color: white;
         }
         
@@ -86,44 +107,77 @@
             display: block;
         }
         
-        .form-control {
-            border-radius: 8px;
-            padding: 12px 16px;
-            border: 1px solid #e2e8f0;
-            background-color: #f8fafc;
-            transition: all 0.3s ease;
+        .form-check-input:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
         }
         
-        .form-control:focus {
-            border-color: #6366F1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        /* Estilos para validación de formularios */
+        .invalid-feedback {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            color: #dc3545;
         }
         
-        .form-select {
-            border-radius: 8px;
-            padding: 12px 16px;
-            border: 1px solid #e2e8f0;
-            background-color: #f8fafc;
-            transition: all 0.3s ease;
+        /* Estilos para animaciones de éxito y error */
+        .success-overlay {
+            animation: fadeIn 0.3s ease-in-out;
         }
         
-        .form-select:focus {
-            border-color: #6366F1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        .success-icon {
+            text-align: center;
+            animation: scaleIn 0.5s ease-in-out;
         }
         
-        .btn-primary {
-            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 12px 24px;
-            font-weight: 600;
-            transition: all 0.3s ease;
+        .registration-error {
+            animation: slideIn 0.3s ease-in-out;
         }
         
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        .fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        /* Enlace de login para usuarios ya registrados */
+        .login-link-container {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        
+        #loginLink {
+            padding: 0.5rem 1rem;
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
+        }
+        
+        #loginLink:hover {
+            background-color: #e9ecef;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+        }
+        
+        /* Keyframes para animaciones */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         
         .btn-secondary {
@@ -398,6 +452,13 @@
                                         Crear cuenta <i class="fas fa-user-plus ms-2"></i>
                                     </button>
                                 </div>
+                                
+                                <!-- Enlace a login para usuarios existentes - visible por defecto -->
+                                <div class="login-link-container mt-4 text-center" id="loginLinkContainer">
+                                    <a href="login.html" class="d-inline-block text-decoration-none" id="loginLink">
+                                        <i class="fas fa-sign-in-alt me-2"></i> ¿Ya tienes una cuenta? <span class="text-primary">Inicia sesión aquí</span>
+                                    </a>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -409,6 +470,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="js/toastr-override-register.js"></script>
     <script src="js/api-config.js"></script>
     <script src="js/auth-service.js"></script>
     
@@ -463,105 +525,569 @@
             }
         }
         
-        // Validaciones
+        // Validaciones con retroalimentación visual mejorada
         function validateStep1() {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
             
-            if (!email || !password || !confirmPassword) {
-                toastr.error('Completa todos los campos');
-                return false;
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            // Restablecer estilos previos
+            resetValidationStyles([emailInput, passwordInput, confirmPasswordInput]);
+            
+            let isValid = true;
+            let errorMessages = [];
+            
+            // Validar email
+            if (!email) {
+                markAsInvalid(emailInput, 'El email es obligatorio');
+                errorMessages.push('El email es obligatorio');
+                isValid = false;
+            } else if (!validateEmail(email)) {
+                markAsInvalid(emailInput, 'Formato de email inválido');
+                errorMessages.push('Formato de email inválido');
+                isValid = false;
+            } else {
+                markAsValid(emailInput);
             }
             
-            if (password !== confirmPassword) {
-                toastr.error('Las contraseñas no coinciden');
-                return false;
+            // Validar contraseña
+            if (!password) {
+                markAsInvalid(passwordInput, 'La contraseña es obligatoria');
+                errorMessages.push('La contraseña es obligatoria');
+                isValid = false;
+            } else if (password.length < 8) {
+                markAsInvalid(passwordInput, 'La contraseña debe tener al menos 8 caracteres');
+                errorMessages.push('La contraseña debe tener al menos 8 caracteres');
+                isValid = false;
+            } else {
+                markAsValid(passwordInput);
             }
             
-            if (password.length < 8) {
-                toastr.error('La contraseña debe tener al menos 8 caracteres');
-                return false;
+            // Validar confirmación
+            if (!confirmPassword) {
+                markAsInvalid(confirmPasswordInput, 'Confirma tu contraseña');
+                errorMessages.push('Confirma tu contraseña');
+                isValid = false;
+            } else if (password !== confirmPassword) {
+                markAsInvalid(confirmPasswordInput, 'Las contraseñas no coinciden');
+                errorMessages.push('Las contraseñas no coinciden');
+                isValid = false;
+            } else if (confirmPassword.length > 0) {
+                markAsValid(confirmPasswordInput);
             }
             
-            return true;
+            // Mostrar errores
+            if (!isValid && errorMessages.length > 0) {
+                toastr.error(errorMessages.join('<br>'));
+            }
+            
+            return isValid;
+        }
+        
+        // Validar formato de email
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+        
+        // Marcar como inválido
+        function markAsInvalid(inputElement, message) {
+            inputElement.classList.add('is-invalid');
+            inputElement.classList.remove('is-valid');
+            
+            // Buscar o crear elemento de feedback
+            let feedback = inputElement.parentNode.querySelector('.invalid-feedback');
+            if (!feedback) {
+                feedback = document.createElement('div');
+                feedback.className = 'invalid-feedback';
+                inputElement.parentNode.appendChild(feedback);
+            }
+            feedback.textContent = message;
+        }
+        
+        // Marcar como válido
+        function markAsValid(inputElement) {
+            inputElement.classList.add('is-valid');
+            inputElement.classList.remove('is-invalid');
+        }
+        
+        // Resetear estilos de validación
+        function resetValidationStyles(inputElements) {
+            inputElements.forEach(input => {
+                input.classList.remove('is-invalid', 'is-valid');
+                const feedback = input.parentNode.querySelector('.invalid-feedback');
+                if (feedback) {
+                    feedback.remove();
+                }
+            });
         }
         
         function validateStep2() {
-            const companyName = document.getElementById('companyName').value.trim();
-            const companyDescription = document.getElementById('companyDescription').value.trim();
-            const businessSector = document.getElementById('businessSector').value;
-            const contactPhone = document.getElementById('contactPhone').value.trim();
+            const companyNameInput = document.getElementById('companyName');
+            const companyDescriptionInput = document.getElementById('companyDescription');
+            const businessSectorInput = document.getElementById('businessSector');
+            const contactPhoneInput = document.getElementById('contactPhone');
             
-            if (!companyName || !companyDescription || !businessSector || !contactPhone) {
-                toastr.error('Completa todos los campos');
-                return false;
+            const companyName = companyNameInput.value.trim();
+            const companyDescription = companyDescriptionInput.value.trim();
+            const businessSector = businessSectorInput.value;
+            const contactPhone = contactPhoneInput.value.trim();
+            
+            // Restablecer estilos previos
+            resetValidationStyles([companyNameInput, companyDescriptionInput, businessSectorInput, contactPhoneInput]);
+            
+            let isValid = true;
+            let errorMessages = [];
+            
+            // Validar nombre de empresa
+            if (!companyName) {
+                markAsInvalid(companyNameInput, 'El nombre de la empresa es obligatorio');
+                errorMessages.push('El nombre de la empresa es obligatorio');
+                isValid = false;
+            } else if (companyName.length < 2) {
+                markAsInvalid(companyNameInput, 'El nombre es demasiado corto');
+                errorMessages.push('El nombre es demasiado corto');
+                isValid = false;
+            } else {
+                markAsValid(companyNameInput);
             }
             
-            return true;
+            // Validar descripción
+            if (!companyDescription) {
+                markAsInvalid(companyDescriptionInput, 'La descripción es obligatoria');
+                errorMessages.push('La descripción es obligatoria');
+                isValid = false;
+            } else if (companyDescription.length < 10) {
+                markAsInvalid(companyDescriptionInput, 'La descripción es demasiado corta (mínimo 10 caracteres)');
+                errorMessages.push('La descripción es demasiado corta');
+                isValid = false;
+            } else {
+                markAsValid(companyDescriptionInput);
+            }
+            
+            // Validar sector
+            if (!businessSector) {
+                markAsInvalid(businessSectorInput, 'Selecciona un sector empresarial');
+                errorMessages.push('Selecciona un sector empresarial');
+                isValid = false;
+            } else {
+                markAsValid(businessSectorInput);
+            }
+            
+            // Validar teléfono
+            if (!contactPhone) {
+                markAsInvalid(contactPhoneInput, 'El teléfono es obligatorio');
+                errorMessages.push('El teléfono es obligatorio');
+                isValid = false;
+            } else if (!validatePhoneNumber(contactPhone)) {
+                markAsInvalid(contactPhoneInput, 'Formato de teléfono inválido');
+                errorMessages.push('Formato de teléfono inválido');
+                isValid = false;
+            } else {
+                markAsValid(contactPhoneInput);
+            }
+            
+            // Mostrar errores
+            if (!isValid && errorMessages.length > 0) {
+                toastr.error(errorMessages.join('<br>'));
+            }
+            
+            return isValid;
+        }
+        
+        // Validar formato de teléfono (básico)
+        function validatePhoneNumber(phone) {
+            // Permite formatos internacionales y distintos separadores
+            // Acepta: +34 123 456 789, 123-456-789, 123.456.789, etc.
+            return phone.length >= 9 && /^[+]?[0-9 .-]{9,}$/.test(phone);
         }
         
         // Manejar registro
-        function handleRegistration() {
+        async function handleRegistration() {
             console.log('=== INICIANDO REGISTRO ===');
             
-            // Verificar términos
+            // Verificar términos con feedback visual
             const termsCheck = document.getElementById('termsCheck');
+            const termsLabel = document.querySelector('label[for="termsCheck"]');
+            
             if (!termsCheck.checked) {
-                toastr.error('Debes aceptar los términos y condiciones');
+                // Resaltar visualmente los términos
+                termsLabel.classList.add('text-danger', 'fw-bold');
+                setTimeout(() => termsLabel.classList.remove('text-danger', 'fw-bold'), 2000);
+                
+                console.error('Error: Términos y condiciones no aceptados');
+                showRegistrationError('Validación', 'Debes aceptar los términos y condiciones');
                 return;
             }
             
-            // Recopilar datos
+            // Recopilar datos y adaptarlos al formato que espera la API
             const userData = {
                 email: document.getElementById('email').value.trim(),
                 password: document.getElementById('password').value,
-                companyName: document.getElementById('companyName').value.trim(),
-                companyDescription: document.getElementById('companyDescription').value.trim(),
-                businessSector: document.getElementById('businessSector').value,
-                contactPhone: document.getElementById('contactPhone').value.trim(),
+                name: document.getElementById('firstName').value.trim() + ' ' + document.getElementById('lastName').value.trim(),
+                company_name: document.getElementById('companyName').value.trim(),
+                company_description: document.getElementById('companyDescription').value.trim(),
+                business_sector: document.getElementById('businessSector').value,
+                phone: document.getElementById('contactPhone').value.trim(),
+                role: 'admin', // Rol por defecto para nuevos registros
+                country: document.getElementById('country').value || 'España',
                 plan: document.querySelector('input[name="plan"]:checked').value
             };
             
-            console.log('Datos del usuario:', userData);
+            console.log('Datos del usuario preparados para registro:', userData.email);
             
-            // Usar la instancia global de authService
-            if (!authService) {
+            // Verificar disponibilidad de AuthService y API_CONFIG
+            if (!window.authService) {
                 console.error('AuthService no disponible globalmente');
-                toastr.error('Error de configuración');
+                showRegistrationError('Error de configuración', 'El servicio de autenticación no está disponible');
                 return;
             }
             
-            // Deshabilitar botón
-            const registerButton = document.getElementById('registerButton');
-            registerButton.disabled = true;
-            registerButton.innerHTML = 'Creando cuenta... <i class="fas fa-spinner fa-spin ms-2"></i>';
+            if (!window.API_CONFIG) {
+                console.error('API_CONFIG no disponible globalmente');
+                console.warn('Continuando con modo offline forzado');
+            }
             
-            // Realizar registro
-            authService.register(userData)
-                .then(data => {
-                    console.log('Registro exitoso:', data);
-                    toastr.success('¡Cuenta creada correctamente!');
+            // Mostrar estado de carga
+            showLoading(true);
+            
+            // Realizar registro con tiempo máximo de espera
+            const registrationTimeout = setTimeout(() => {
+                console.warn('Tiempo de registro excedido');
+                showRegistrationError('Tiempo de espera excedido', 
+                    'El servidor está tardando en responder. Por favor, inténtalo más tarde o verifica tu conexión.');
+                showLoading(false);
+            }, 15000); // 15 segundos máximo de espera
+            
+            try {
+                console.log('Enviando solicitud de registro al servidor...');
+                // Intentar registro con timeout de seguridad
+                const response = await Promise.race([
+                    authService.register(userData), 
+                    new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Tiempo de espera agotado')), 15000);
+                    })
+                ]);
+                
+                // Cancelar timeout ya que tuvimos respuesta
+                clearTimeout(registrationTimeout);
+                
+                console.log('Registro procesado correctamente, respuesta:', response);
+                
+                // Verificar que tenemos los datos mínimos necesarios en la respuesta
+                if (!response) {
+                    throw new Error('Respuesta vacía del servidor');
+                }
+                
+                // Verificar si hay mensaje especial (por ejemplo, modo offline)
+                if (response.isOfflineRegistration) {
+                    console.warn('Registro completado en modo offline');
+                    console.log('Algunas funcionalidades estarán limitadas en modo offline');
+                } else {
+                    console.log('Registro completado con éxito en modo online');
+                }
+                
+                // Verificar persistencia del token y datos de usuario
+                const token = localStorage.getItem('auth_token');
+                const storedUserData = localStorage.getItem('user_data');
+                
+                if (!token) {
+                    console.error('Error: No se guardó el token de autenticación');
+                    // Si no tenemos token pero sí tenemos respuesta, intentar guardar el token aquí como respaldo
+                    if (response.token) {
+                        localStorage.setItem('auth_token', response.token);
+                        console.log('Token recuperado y almacenado manualmente');
+                    }
+                }
+                
+                if (!storedUserData && response.user) {
+                    localStorage.setItem('user_data', JSON.stringify(response.user));
+                    console.log('Datos de usuario almacenados manualmente');
+                }
+                
+                // Mostrar mensaje de éxito con animación
+                showSuccessAnimation();
+                
+                // Redirigir después de un breve retraso para que el usuario vea el mensaje
+                setTimeout(() => {
+                    console.log('Redirigiendo a dashboard...');
+                    window.location.href = 'dashboard.html';
+                }, 1500);
+            } catch (error) {
+                // Cancelar timeout ya que tuvimos respuesta (de error)
+                clearTimeout(registrationTimeout);
+                
+                console.error('Error en proceso de registro:', error);
+                
+                let errorTitle = 'Error en el registro';
+                let errorMessage = error.message || 'No se pudo completar el registro';
+                
+                // Mensajes personalizados según el tipo de error
+                if (errorMessage.includes('ya existe') || errorMessage.includes('already exists')) {
+                    errorTitle = 'Email ya registrado';
+                    errorMessage = 'Este email ya está asociado a una cuenta. ¿Quieres iniciar sesión?';
                     
-                    // Verificar inmediatamente que el token se guardó
-                    console.log('Registro exitoso, verificando token...');
-                    console.log('Token guardado:', localStorage.getItem('auth_token'));
-                    console.log('Datos usuario:', localStorage.getItem('user_data'));
+                    // Marcar el campo de email como inválido
+                    const emailInput = document.getElementById('email');
+                    emailInput.classList.add('is-invalid');
                     
-                    setTimeout(() => {
-                        console.log('Redirigiendo a dashboard...');
-                        console.log('Token antes de redirección:', !!localStorage.getItem('auth_token'));
-                        window.location.href = 'dashboard.html';
-                    }, 1000);
-                })
-                .catch(error => {
-                    console.error('Error en registro:', error);
-                    toastr.error(error.message || 'Error en el registro');
+                    // Intentar mostrar el enlace de login si existe
+                    try {
+                        const loginLink = document.querySelector('#loginLinkContainer');
+                        if (loginLink) {
+                            loginLink.classList.remove('d-none');
+                            loginLink.classList.add('d-block');
+                        }
+                    } catch (e) {
+                        console.warn('No se pudo mostrar el enlace de login:', e);
+                    }
                     
-                    // Rehabilitar botón
-                    registerButton.disabled = false;
-                    registerButton.innerHTML = 'Crear cuenta <i class="fas fa-user-plus ms-2"></i>';
+                } else if (errorMessage.includes('Tiempo de espera') || errorMessage.includes('timeout') || 
+                           errorMessage.includes('agotado')) {
+                    errorTitle = 'Tiempo de espera excedido';
+                    errorMessage = 'El servidor está tardando en responder. Por favor, inténtalo de nuevo.';
+                    // Intentar modo fallback automático
+                    console.warn('Activando modo offline de emergencia...');
+                    
+                } else if (errorMessage.includes('red') || errorMessage.includes('conexión') || 
+                         errorMessage.includes('network') || errorMessage.includes('conectar')) {
+                    errorTitle = 'Error de conexión';
+                    errorMessage = 'No se pudo conectar con el servidor. Verificando modo offline...';
+                    
+                    // Intento de recuperación en modo offline si la API no está disponible
+                    console.warn('Cambio automático a modo offline por fallo de red');
+                }
+                
+                showRegistrationError(errorTitle, errorMessage);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Funciones auxiliares para mejorar UX durante registro
+        
+        // Mostrar/ocultar estado de carga
+        function showLoading(isLoading) {
+            const registerButton = document.getElementById('registerButton');
+            const allFormInputs = document.querySelectorAll('input, textarea, select, button');
+            
+            if (isLoading) {
+                registerButton.disabled = true;
+                registerButton.innerHTML = 'Creando cuenta... <i class="fas fa-spinner fa-spin ms-2"></i>';
+                
+                // Opcional: deshabilitar todos los inputs durante el proceso
+                allFormInputs.forEach(input => {
+                    if (input !== registerButton) {
+                        input.setAttribute('data-original-state', input.disabled ? 'disabled' : 'enabled');
+                        input.disabled = true;
+                    }
                 });
+            } else {
+                registerButton.disabled = false;
+                registerButton.innerHTML = 'Crear cuenta <i class="fas fa-user-plus ms-2"></i>';
+                
+                // Restaurar estado original
+                allFormInputs.forEach(input => {
+                    if (input !== registerButton && input.hasAttribute('data-original-state')) {
+                        input.disabled = (input.getAttribute('data-original-state') === 'disabled');
+                        input.removeAttribute('data-original-state');
+                    }
+                });
+            }
+        }
+        
+        // Mostrar error de registro con estilo
+        function showRegistrationError(title, message) {
+            // Registro en consola en lugar de toastr popups
+            console.error(`${title}: ${message}`);
+            
+            // Mostrar mensaje de error inline en el formulario
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-danger mt-3 registration-error';
+            errorDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <div>
+                        <strong>${title}</strong><br>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close ms-auto" aria-label="Close"></button>
+                </div>
+            `;
+            
+            // Agregar event listener al botón cerrar
+            errorDiv.querySelector('.btn-close').addEventListener('click', function() {
+                errorDiv.classList.add('fade-out');
+                setTimeout(() => errorDiv.remove(), 300);
+            });
+            
+            // Eliminar alertas anteriores
+            document.querySelectorAll('.registration-error').forEach(el => el.remove());
+            
+            // Insertar nueva alerta al inicio del formulario para máxima visibilidad
+            const form = document.getElementById('registrationForm');
+            form.insertBefore(errorDiv, form.firstChild);
+            
+            // Scroll hacia el error
+            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Auto-eliminar después de un tiempo
+            setTimeout(() => {
+                if (document.body.contains(errorDiv)) { // verificar que aún existe
+                    errorDiv.classList.add('fade-out');
+                    setTimeout(() => {
+                        if (document.body.contains(errorDiv)) {
+                            errorDiv.remove();
+                        }
+                    }, 500);
+                }
+            }, 8000);
+        }
+        
+        // Animación de éxito mejorada
+        function showSuccessAnimation() {
+            // Crear elemento para la animación de éxito
+            const successOverlay = document.createElement('div');
+            successOverlay.className = 'success-overlay';
+            successOverlay.innerHTML = `
+                <div class="success-content p-4 bg-white shadow rounded-3">
+                    <div class="success-icon text-center">
+                        <div class="checkmark-circle">
+                            <div class="checkmark draw"></div>
+                        </div>
+                        <h4 class="mt-4 fw-bold text-success">¡Registro completado!</h4>
+                        <p class="text-muted mb-4">Tu cuenta ha sido creada con éxito</p>
+                        
+                        <div class="d-flex justify-content-center gap-2 mt-3">
+                            <button id="goDashboardBtn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-tachometer-alt me-1"></i> Ir al dashboard
+                            </button>
+                            <button id="goLoginBtn" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-sign-in-alt me-1"></i> Iniciar sesión
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Estilos para la animación
+            successOverlay.style.position = 'fixed';
+            successOverlay.style.top = '0';
+            successOverlay.style.left = '0';
+            successOverlay.style.width = '100%';
+            successOverlay.style.height = '100%';
+            successOverlay.style.backgroundColor = 'rgba(255,255,255,0.94)';
+            successOverlay.style.display = 'flex';
+            successOverlay.style.justifyContent = 'center';
+            successOverlay.style.alignItems = 'center';
+            successOverlay.style.zIndex = '9999';
+            successOverlay.style.opacity = '0';
+            successOverlay.style.transition = 'all 0.4s ease-in-out';
+            
+            // Añadir estilos CSS para la animación de checkmark
+            const styleEl = document.createElement('style');
+            styleEl.textContent = `
+                .checkmark-circle {
+                    width: 80px;
+                    height: 80px;
+                    position: relative;
+                    display: inline-block;
+                    vertical-align: top;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+                
+                .checkmark-circle .background {
+                    width: 80px;
+                    height: 80px;
+                    border-radius: 50%;
+                    background: #28a745;
+                    position: absolute;
+                }
+                
+                .checkmark-circle .checkmark {
+                    border-radius: 5px;
+                }
+                
+                .checkmark-circle .checkmark.draw:after {
+                    animation-delay: 100ms;
+                    animation-duration: 0.8s;
+                    animation-timing-function: ease;
+                    animation-name: checkmark;
+                    transform: scaleX(-1) rotate(135deg);
+                    opacity: 1;
+                    animation-fill-mode: forwards;
+                }
+                
+                .checkmark-circle .checkmark:after {
+                    opacity: 1;
+                    height: 40px;
+                    width: 17px;
+                    transform-origin: left top;
+                    border-right: 5px solid #28a745;
+                    border-top: 5px solid #28a745;
+                    border-radius: 2px !important;
+                    content: '';
+                    left: 25px;
+                    top: 45px;
+                    position: absolute;
+                }
+                
+                @keyframes checkmark {
+                    0% {
+                        height: 0;
+                        width: 0;
+                        opacity: 1;
+                    }
+                    20% {
+                        height: 0;
+                        width: 17px;
+                        opacity: 1;
+                    }
+                    40% {
+                        height: 40px;
+                        width: 17px;
+                        opacity: 1;
+                    }
+                    100% {
+                        height: 40px;
+                        width: 17px;
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(styleEl);
+            
+            document.body.appendChild(successOverlay);
+            
+            // Event listeners para botones
+            setTimeout(() => {
+                const dashboardBtn = document.getElementById('goDashboardBtn');
+                const loginBtn = document.getElementById('goLoginBtn');
+                
+                if (dashboardBtn) {
+                    dashboardBtn.addEventListener('click', () => {
+                        console.log('Redirigiendo al dashboard...');
+                        window.location.href = 'dashboard.html';
+                    });
+                }
+                
+                if (loginBtn) {
+                    loginBtn.addEventListener('click', () => {
+                        console.log('Redirigiendo a login...');
+                        window.location.href = 'login.html';
+                    });
+                }
+            }, 300);
+            
+            // Mostrar con animación
+            setTimeout(() => {
+                successOverlay.style.opacity = '1';
+            }, 50);
         }
         
         // Inicialización
