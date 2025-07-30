@@ -193,9 +193,18 @@ class AuthService {
         
         if (!response.ok) {
           console.error('Error en respuesta:', data);
+          // Si es un error 401 o 400, son credenciales inválidas, no problema de API
+          if (response.status === 401 || response.status === 400) {
+            throw new Error(data.error || 'Credenciales inválidas');
+          }
           throw new Error(data.error || 'Error en el inicio de sesión');
         }
       } catch (apiError) {
+        // Solo entrar en modo offline si es un error de conexión, no de credenciales
+        if (apiError.message.includes('Credenciales inválidas') || 
+            apiError.message.includes('Error en el inicio de sesión')) {
+          throw apiError; // Re-lanzar errores de credenciales
+        }
         console.warn('API no disponible, intentando login en modo offline', apiError);
         
         // Verificar si hay un usuario offline con estas credenciales
