@@ -3674,13 +3674,43 @@ function loadProfileData() {
     console.log('👤 Cargando datos de perfil...');
     
     window.ApiHelper.fetchApi({ url: '/api/profile', auth: 'jwt' }, { method: 'GET' })
-    .then(profileData => {
+    .then(response => {
+        console.log('📥 Respuesta completa del perfil:', response);
+        
+        // Extraer datos del cliente de la respuesta
+        const profileData = response.client || response;
+        console.log('👤 Datos del perfil extraídos:', profileData);
+        
         // Rellenar campos del formulario con los datos del perfil
-        document.getElementById('company_name').value = profileData.companyName || '';
-        document.getElementById('contact_email').value = profileData.email || '';
-        document.getElementById('main_phone').value = profileData.phone || '';
-        document.getElementById('address').value = profileData.address || '';
-        document.getElementById('company_description').value = profileData.description || '';
+        const companyNameField = document.getElementById('company_name');
+        if (companyNameField) {
+            companyNameField.value = profileData.companyName || '';
+            console.log('✅ Campo company_name cargado:', profileData.companyName);
+        }
+        
+        const contactEmailField = document.getElementById('contact_email');
+        if (contactEmailField) {
+            contactEmailField.value = profileData.email || '';
+            console.log('✅ Campo contact_email cargado:', profileData.email);
+        }
+        
+        const mainPhoneField = document.getElementById('main_phone');
+        if (mainPhoneField) {
+            mainPhoneField.value = profileData.phone || '';
+            console.log('✅ Campo main_phone cargado:', profileData.phone);
+        }
+        
+        const addressField = document.getElementById('address');
+        if (addressField) {
+            addressField.value = profileData.address || '';
+            console.log('✅ Campo address cargado:', profileData.address);
+        }
+        
+        const descriptionField = document.getElementById('company_description');
+        if (descriptionField) {
+            descriptionField.value = profileData.description || '';
+            console.log('✅ Campo company_description cargado:', profileData.description);
+        }
         
         // Seleccionar la industria si está definida
         if (profileData.industry) {
@@ -3689,6 +3719,7 @@ function loadProfileData() {
                 for (let i = 0; i < industrySelect.options.length; i++) {
                     if (industrySelect.options[i].value === profileData.industry) {
                         industrySelect.selectedIndex = i;
+                        console.log('✅ Industria seleccionada:', profileData.industry);
                         break;
                     }
                 }

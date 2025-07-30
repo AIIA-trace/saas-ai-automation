@@ -85,6 +85,42 @@ router.get('/config', authenticate, async (req, res) => {
   }
 });
 
+// Obtener perfil del cliente
+router.get('/profile', authenticate, async (req, res) => {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: {
+        id: true,
+        companyName: true,
+        contactName: true,
+        email: true,
+        phone: true,
+        website: true,
+        industry: true,
+        address: true,
+        timezone: true,
+        language: true,
+        createdAt: true,
+        updatedAt: true
+        // Excluir password y apiKey por seguridad
+      }
+    });
+    
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+    
+    return res.json({
+      success: true,
+      client: client
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo perfil: ${error.message}`);
+    return res.status(500).json({ error: 'Error obteniendo perfil' });
+  }
+});
+
 // Actualizar perfil del cliente
 router.put('/profile', authenticate, async (req, res) => {
   try {

@@ -68,7 +68,21 @@ window.ApiHelper = {
             if (response.ok) {
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('application/json')) {
-                    return await response.json();
+                    const text = await response.text();
+                    
+                    // Verificar si hay contenido antes de parsear JSON
+                    if (!text || text.trim() === '') {
+                        console.warn('⚠️ Respuesta vacía del servidor');
+                        return {}; // Devolver objeto vacío en lugar de fallar
+                    }
+                    
+                    try {
+                        return JSON.parse(text);
+                    } catch (jsonError) {
+                        console.error('❌ Error parseando JSON:', jsonError);
+                        console.error('📄 Contenido recibido:', text);
+                        return {}; // Devolver objeto vacío en lugar de fallar
+                    }
                 }
             }
             
