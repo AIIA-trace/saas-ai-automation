@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Token Expirado</title>
+</head>
+<body>
+    <h1>Simulador de Token Expirado</h1>
+    <p>Esta página simula un token JWT expirado para probar el sistema de redirección.</p>
+    
+    <button onclick="setExpiredToken()">Establecer Token Expirado</button>
+    <button onclick="goToDashboard()">Ir al Dashboard</button>
+    <button onclick="clearTokens()">Limpiar Tokens</button>
+    
+    <div id="status"></div>
+
+    <script>
+        function setExpiredToken() {
+            // Token JWT expirado (exp: 1640995200 = 1 enero 2022)
+            const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEyMyIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNjQwOTk1MjAwfQ.invalid_signature';
+            
+            localStorage.setItem('auth_token', expiredToken);
+            localStorage.setItem('authToken', expiredToken);
+            localStorage.setItem('user_data', JSON.stringify({
+                id: '123',
+                email: 'test@example.com',
+                role: 'user'
+            }));
+            
+            document.getElementById('status').innerHTML = '<p style="color: green;">✅ Token expirado establecido</p>';
+        }
+        
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+        
+        function clearTokens() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('api_key');
+            localStorage.removeItem('auth_timestamp');
+            
+            document.getElementById('status').innerHTML = '<p style="color: blue;">🧹 Tokens limpiados</p>';
+        }
+        
+        // Mostrar estado actual
+        window.onload = function() {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                document.getElementById('status').innerHTML = '<p style="color: orange;">⚠️ Hay un token en localStorage</p>';
+            } else {
+                document.getElementById('status').innerHTML = '<p style="color: gray;">ℹ️ No hay tokens</p>';
+            }
+        }
+    </script>
+</body>
+</html>

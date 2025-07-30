@@ -8,13 +8,8 @@ if (typeof window.API_CONFIG === 'undefined') {
   
   // Crear objeto de configuración global
   window.API_CONFIG = {
-    // URL base de la API - Siempre usar Render para pruebas
+    // URL base de la API - Usar Render para producción
     apiBaseUrl: 'https://saas-ai-automation.onrender.com',
-    
-    // Descomentar esta línea para usar backend local cuando esté disponible
-    // apiBaseUrl: window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
-    //   ? 'http://localhost:10000'
-    //   : 'https://saas-ai-automation.onrender.com',
   
     // Endpoints de autenticación
     AUTH: {

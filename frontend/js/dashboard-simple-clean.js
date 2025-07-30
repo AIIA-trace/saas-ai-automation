@@ -1694,23 +1694,11 @@ Web: {WEB}</textarea>
                                         <div class="col-12">
                                             <label class="form-label">Archivos Actuales</label>
                                             <ul class="list-group" id="context-files-list">
-                                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <i class="fas fa-file-pdf text-danger me-2"></i>
-                                                        Catálogo_Productos_2023.pdf
-                                                    </div>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </li>
-                                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <i class="fas fa-file-word text-primary me-2"></i>
-                                                        Preguntas_Frecuentes.docx
-                                                    </div>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                                <!-- Los archivos de contexto se cargarán dinámicamente desde el backend -->
+                                                <li class="list-group-item text-center text-muted py-3" id="no-context-files-message">
+                                                    <i class="fas fa-file-upload fa-2x mb-2"></i>
+                                                    <div>No hay archivos de contexto configurados</div>
+                                                    <small>Sube archivos para que el bot tenga más información</small>
                                                 </li>
                                             </ul>
                                         </div>
@@ -3555,29 +3543,139 @@ function refreshDashboardData() {
  * Cargar datos existentes desde el backend
  */
 function loadExistingData() {
+    console.log('🚨 ===== INICIANDO CARGA DE DATOS EXISTENTES =====');
     console.log('📂 Cargando datos existentes desde el backend...');
+    console.log('🕰️ Timestamp:', new Date().toISOString());
+    console.log('🌐 URL actual:', window.location.href);
+    console.log('📍 Función llamada desde:', new Error().stack.split('\n')[2]);
     
-    // Obtener token de autenticación
-    const token = localStorage.getItem('authToken');
+    // Obtener token de autenticación con múltiples intentos
+    const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    console.log('🔑 Token encontrado:', !!token);
+    console.log('🔑 Token valor:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
+    
     if (!token) {
-        console.error('❌ No se encontró token de autenticación');
+        console.error('❌ No se encontró token de autenticación en ninguna clave');
+        console.error('🔍 Claves en localStorage:', Object.keys(localStorage));
         toastr.error('Error de autenticación', 'Error');
         return;
     }
     
+    // Verificar que el DOM esté listo
+    console.log('🎯 Elementos en DOM antes del delay:', document.querySelectorAll('input, select, textarea').length);
+    
     // Añadir un pequeño delay para asegurar que el DOM esté completamente renderizado
     setTimeout(() => {
         console.log('🔄 Iniciando carga de datos después del renderizado del DOM...');
+        console.log('🎯 Elementos en DOM después del delay:', document.querySelectorAll('input, select, textarea').length);
+        console.log('📋 Elementos específicos del bot:');
+        console.log('   - company_name:', !!document.getElementById('company_name'));
+        console.log('   - company_address:', !!document.getElementById('company_address'));
+        console.log('   - enable_calls:', !!document.getElementById('enable_calls'));
+        console.log('   - email_signature:', !!document.getElementById('email_signature'));
+        console.log('   - faq-items-container:', !!document.getElementById('faq-items-container'));
+        console.log('   - context-files-list:', !!document.getElementById('context-files-list'));
         
-        // Cargar datos de perfil
+        // PRIMERO: Cargar datos del registro desde localStorage
+        console.log('📝 Cargando datos del registro desde localStorage...');
+        loadRegistrationData();
+        
+        // Cargar datos de perfil desde backend
+        console.log('👤 Iniciando carga de datos de perfil...');
         loadProfileData(token);
         
         // Cargar configuración del bot
+        console.log('🤖 Iniciando carga de configuración del bot...');
         loadBotConfiguration(token);
         
         // Cargar configuración de emails
+        console.log('📧 Iniciando carga de configuración de emails...');
         loadEmailConfiguration(token);
-    }, 100); // 100ms debería ser suficiente para el renderizado
+        
+        console.log('✅ Todas las funciones de carga iniciadas');
+    }, 500); // Aumentar a 500ms para asegurar renderizado completo
+}
+
+/**
+ * Cargar datos del registro desde localStorage
+ * Estos son los datos que el usuario ingresó durante el proceso de registro
+ */
+function loadRegistrationData() {
+    console.log('📝 ===== CARGANDO DATOS DEL REGISTRO =====');
+    
+    try {
+        // Buscar datos del usuario en localStorage
+        const userData = localStorage.getItem('user_data');
+        const companyData = localStorage.getItem('companyData');
+        
+        console.log('📊 Datos disponibles en localStorage:');
+        console.log('   - user_data:', !!userData);
+        console.log('   - companyData:', !!companyData);
+        console.log('🔍 Todas las claves en localStorage:', Object.keys(localStorage));
+        
+        let registrationData = {};
+        
+        // Parsear datos del usuario
+        if (userData) {
+            try {
+                const parsedUserData = JSON.parse(userData);
+                console.log('👤 Datos del usuario parseados:', parsedUserData);
+                registrationData = { ...registrationData, ...parsedUserData };
+            } catch (e) {
+                console.error('❌ Error parseando user_data:', e);
+            }
+        }
+        
+        // Parsear datos de la empresa
+        if (companyData) {
+            try {
+                const parsedCompanyData = JSON.parse(companyData);
+                console.log('🏢 Datos de la empresa parseados:', parsedCompanyData);
+                registrationData = { ...registrationData, ...parsedCompanyData };
+            } catch (e) {
+                console.error('❌ Error parseando companyData:', e);
+            }
+        }
+        
+        console.log('📋 Datos de registro combinados:', registrationData);
+        
+        // Cargar datos en los campos del formulario
+        if (Object.keys(registrationData).length > 0) {
+            console.log('📝 Cargando datos en el formulario...');
+            
+            // Función auxiliar para establecer valores de forma segura
+            const safeSetValue = (id, value, label) => {
+                const element = document.getElementById(id);
+                if (element && value) {
+                    element.value = value;
+                    console.log(`✅ ${label} cargado: ${value}`);
+                } else if (!element) {
+                    console.warn(`⚠️ Elemento ${id} no encontrado`);
+                } else {
+                    console.warn(`⚠️ Valor vacío para ${label}`);
+                }
+            };
+            
+            // Cargar datos de la empresa
+            safeSetValue('company_name', registrationData.companyName || registrationData.company_name || registrationData.name, 'Nombre de empresa');
+            safeSetValue('company_description', registrationData.description || registrationData.company_description, 'Descripción de empresa');
+            safeSetValue('company_sector', registrationData.sector || registrationData.industry, 'Sector de empresa');
+            safeSetValue('company_phone', registrationData.phone || registrationData.company_phone, 'Teléfono de empresa');
+            safeSetValue('company_email', registrationData.email || registrationData.company_email, 'Email de empresa');
+            safeSetValue('company_website', registrationData.website || registrationData.company_website, 'Website de empresa');
+            
+            // Cargar datos del contacto
+            safeSetValue('contact_email', registrationData.email || registrationData.contactEmail, 'Email de contacto');
+            safeSetValue('contact_name', registrationData.contactName || registrationData.name, 'Nombre de contacto');
+            
+            console.log('✅ Datos del registro cargados en el formulario');
+        } else {
+            console.warn('⚠️ No se encontraron datos de registro para cargar');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cargando datos del registro:', error);
+    }
 }
 
 /**
@@ -3634,10 +3732,14 @@ function loadProfileData(token) {
  * @param {string} token - Token de autenticación
  */
 function loadBotConfiguration(token) {
+    console.log('🚨 ===== INICIANDO CARGA DE CONFIGURACIÓN DEL BOT =====');
     console.log('💾 Cargando configuración del bot...');
     console.log('🕰️ Timestamp:', new Date().toISOString());
     console.log('🔑 Token presente:', !!token);
+    console.log('🔑 Token valor:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
     console.log('🎯 Elementos en DOM:', document.querySelectorAll('input, select, textarea').length);
+    console.log('🌐 URL actual:', window.location.href);
+    console.log('📍 Función llamada desde:', new Error().stack.split('\n')[2]);
     
     // Usar la URL base de la API configurada
     const apiUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
@@ -3819,6 +3921,23 @@ function loadBotConfiguration(token) {
                     return {...file, id: key};
                 });
                 
+                // Si no hay archivos, mostrar mensaje de "no hay archivos"
+                if (filesArray.length === 0) {
+                    const noFilesMessage = document.createElement('li');
+                    noFilesMessage.className = 'list-group-item text-center text-muted py-3';
+                    noFilesMessage.id = 'no-context-files-message';
+                    noFilesMessage.innerHTML = `
+                        <i class="fas fa-file-upload fa-2x mb-2"></i>
+                        <div>No hay archivos de contexto configurados</div>
+                        <small>Sube archivos para que el bot tenga más información</small>
+                    `;
+                    filesList.appendChild(noFilesMessage);
+                    console.log('⚠️ No hay archivos de contexto, mostrando mensaje');
+                    return; // Salir temprano si no hay archivos
+                }
+                
+                console.log(`📁 Cargando ${filesArray.length} archivos de contexto...`);
+                
                 filesArray.forEach(file => {
                     const fileItem = document.createElement('li');
                     fileItem.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
@@ -3849,13 +3968,25 @@ function loadBotConfiguration(token) {
                 });
                 
                 // Configurar eventos para eliminar archivos
-                document.querySelectorAll('.delete-file').forEach(button => {
+                console.log('🔧 Configurando eventos para botones de eliminar...');
+                const deleteButtons = document.querySelectorAll('.delete-file');
+                console.log(`🔍 Botones de eliminar encontrados: ${deleteButtons.length}`);
+                
+                deleteButtons.forEach((button, index) => {
+                    console.log(`🔘 Configurando botón ${index + 1}:`, {
+                        fileId: button.dataset.fileId,
+                        element: button
+                    });
+                    
                     button.addEventListener('click', function(e) {
                         e.preventDefault();
                         const fileId = this.dataset.fileId;
+                        console.log(`🗑️ Botón de eliminar clickeado para archivo: ${fileId}`);
                         deleteContextFile(fileId);
                     });
                 });
+                
+                console.log('✅ Eventos de eliminar configurados correctamente');
                 
                 // Actualizar contador de archivos
                 const countBadge = document.getElementById('context-files-count');
@@ -3879,6 +4010,10 @@ function loadBotConfiguration(token) {
  * @param {string} fileId - ID del archivo a eliminar
  */
 function deleteContextFile(fileId) {
+    console.log('🚨 ===== INICIANDO ELIMINACIÓN DE ARCHIVO =====');
+    console.log('🔑 FileId recibido:', fileId);
+    console.log('🔑 Tipo de fileId:', typeof fileId);
+    
     if (!fileId) {
         console.error('❌ ID de archivo no especificado');
         return;
@@ -3888,12 +4023,32 @@ function deleteContextFile(fileId) {
     
     // Eliminar del DOM
     const fileItem = document.querySelector(`li[data-file-id="${fileId}"]`);
+    console.log('🔍 Elemento DOM encontrado:', !!fileItem);
+    console.log('🔍 Selector usado:', `li[data-file-id="${fileId}"]`);
+    
     if (fileItem) {
+        console.log('✅ Eliminando elemento del DOM...');
         fileItem.remove();
+        console.log('✅ Elemento eliminado del DOM');
+    } else {
+        console.warn('⚠️ No se encontró el elemento en el DOM');
+        // Intentar con todos los elementos para debug
+        const allItems = document.querySelectorAll('li[data-file-id]');
+        console.log('🔍 Todos los elementos con data-file-id:', 
+            Array.from(allItems).map(item => ({
+                id: item.dataset.fileId,
+                element: item
+            }))
+        );
     }
+    
+    // Verificar estado de window.contextFilesData
+    console.log('🔍 window.contextFilesData existe:', !!window.contextFilesData);
+    console.log('🔍 window.contextFilesData contenido:', window.contextFilesData);
     
     // Eliminar del objeto global de archivos
     if (window.contextFilesData && window.contextFilesData[fileId]) {
+        console.log('✅ Archivo encontrado en datos globales');
         // Marcar como eliminado para que processContextFilesWithBackend lo elimine del backend
         window.contextFilesData[fileId].deleted = true;
         console.log(`✅ Archivo ${fileId} marcado para eliminación`);
@@ -3901,17 +4056,42 @@ function deleteContextFile(fileId) {
         // Actualizar contador de archivos
         const countBadge = document.getElementById('context-files-count');
         const filesList = document.getElementById('context-files-list');
+        console.log('🔍 Elementos de contador:', {
+            countBadge: !!countBadge,
+            filesList: !!filesList
+        });
+        
         if (countBadge && filesList) {
             const remainingFiles = filesList.querySelectorAll('li').length;
+            console.log(`📊 Archivos restantes: ${remainingFiles}`);
             countBadge.textContent = remainingFiles;
             countBadge.style.display = remainingFiles > 0 ? 'inline' : 'none';
+            
+            // Si no quedan archivos, mostrar mensaje de "no hay archivos"
+            if (remainingFiles === 0) {
+                const noFilesMessage = document.createElement('li');
+                noFilesMessage.className = 'list-group-item text-center text-muted py-3';
+                noFilesMessage.id = 'no-context-files-message';
+                noFilesMessage.innerHTML = `
+                    <i class="fas fa-file-upload fa-2x mb-2"></i>
+                    <div>No hay archivos de contexto configurados</div>
+                    <small>Sube archivos para que el bot tenga más información</small>
+                `;
+                filesList.appendChild(noFilesMessage);
+                console.log('⚠️ Último archivo eliminado, mostrando mensaje de "no hay archivos"');
+            }
         }
         
+        console.log('✅ Archivo eliminado correctamente');
         toastr.success('Archivo eliminado correctamente', 'Éxito');
     } else {
         console.error('❌ No se encontró el archivo en los datos guardados');
+        console.error('🔍 Claves disponibles en contextFilesData:', 
+            window.contextFilesData ? Object.keys(window.contextFilesData) : 'NO DATA');
         toastr.error('No se pudo eliminar el archivo', 'Error');
     }
+    
+    console.log('🏁 ===== ELIMINACIÓN DE ARCHIVO COMPLETADA =====');
 }
 
 /**
@@ -7371,7 +7551,7 @@ function saveUnifiedConfig() {
             
             // Guardar configuración del bot en la API
             return window.ApiHelper.fetchApi('/api/config/bot', {
-                method: 'POST',
+                method: 'PUT',
                 body: JSON.stringify(botConfig)
             });
         })
@@ -9286,8 +9466,17 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Botón de logout inicializado');
     }
     
-    // Verificar si hay un usuario autenticado
-    if (typeof authService !== 'undefined' && authService.isAuthenticated()) {
+    // Verificar si hay un usuario autenticado usando el token JWT
+    const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    const userData = localStorage.getItem('user_data');
+    
+    console.log('🔐 Verificando autenticación...');
+    console.log('🔑 Token presente:', !!token);
+    console.log('👤 Datos de usuario presentes:', !!userData);
+    
+    if (token && userData) {
+        console.log('✅ Usuario autenticado, inicializando dashboard...');
+        
         // Obtener datos de la empresa del usuario
         const companyData = JSON.parse(localStorage.getItem('companyData') || '{}');
         
@@ -9309,7 +9498,9 @@ document.addEventListener('DOMContentLoaded', function() {
             initBillingEvents();
         }, 1000);
     } else {
-        console.error('❌ Usuario no autenticado');
+        console.error('❌ Usuario no autenticado - Token o datos de usuario faltantes');
+        console.error('🔑 Token:', token ? 'PRESENTE' : 'AUSENTE');
+        console.error('👤 User data:', userData ? 'PRESENTE' : 'AUSENTE');
         window.location.href = 'login.html';
     }
 });

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Configuración Bot - Render</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .log-success {
+            color: #28a745;
+        }
+        .log-error {
+            color: #dc3545;
+        }
+        .log-info {
+            color: #007bff;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Configuración Bot - Render</h1>
+        <p>Prueba específica para verificar la carga de configuración del bot en el entorno de Render.</p>
+        
+        <div class="input-group">
+            <label for="render-token">Token de Autenticación (Render):</label>
+            <input type="text" id="render-token" placeholder="Pega aquí tu token JWT de Render">
+        </div>
+        
+        <div>
+            <button class="btn" onclick="testRenderLogin()">1. Probar Login en Render</button>
+            <button class="btn" onclick="testLoadBotConfig()">2. Cargar Config Bot</button>
+            <button class="btn btn-success" onclick="testSaveBotConfig()">3. Guardar Config de Prueba</button>
+            <button class="btn btn-danger" onclick="clearLogs()">Limpiar Logs</button>
+        </div>
+        
+        <div class="log-area" id="log-area">
+            <div class="log-entry log-info">🚀 Listo para probar...</div>
+        </div>
+    </div>
+
+    <script>
+        const RENDER_API_URL = 'https://saas-ai-automation.onrender.com';
+        
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('log-area');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLogs() {
+            document.getElementById('log-area').innerHTML = '<div class="log-entry log-info">🚀 Logs limpiados...</div>';
+        }
+        
+        async function testRenderLogin() {
+            log('🔐 Probando login en Render...', 'info');
+            
+            try {
+                const response = await fetch(`${RENDER_API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                log(`📡 Respuesta del servidor: ${response.status} ${response.statusText}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ Login exitoso', 'success');
+                    log(`🔑 Token recibido: ${data.token ? data.token.substring(0, 20) + '...' : 'NO TOKEN'}`, 'info');
+                    
+                    // Guardar token automáticamente
+                    if (data.token) {
+                        document.getElementById('render-token').value = data.token;
+                        log('💾 Token guardado automáticamente en el campo', 'success');
+                    }
+                } else {
+                    const errorData = await response.text();
+                    log(`❌ Error en login: ${errorData}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error de conexión: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLoadBotConfig() {
+            const token = document.getElementById('render-token').value.trim();
+            
+            if (!token) {
+                log('❌ Por favor, ingresa un token de autenticación', 'error');
+                return;
+            }
+            
+            log('📥 Cargando configuración del bot desde Render...', 'info');
+            log(`🔑 Usando token: ${token.substring(0, 20)}...`, 'info');
+            
+            try {
+                const response = await fetch(`${RENDER_API_URL}/api/config/bot`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`📡 Respuesta del servidor: ${response.status} ${response.statusText}`, 'info');
+                
+                if (response.ok) {
+                    const botConfig = await response.json();
+                    log('✅ Configuración cargada exitosamente', 'success');
+                    log(`📊 Datos recibidos:`, 'info');
+                    log(`   - Empresa: ${botConfig.company?.name || 'No configurada'}`, 'info');
+                    log(`   - Dirección: ${botConfig.company?.address || 'No configurada'}`, 'info');
+                    log(`   - Llamadas habilitadas: ${botConfig.callConfig?.enabled || false}`, 'info');
+                    log(`   - Grabación: ${botConfig.callConfig?.recordCalls || false}`, 'info');
+                    log(`   - Transcripción: ${botConfig.callConfig?.transcribeCalls || false}`, 'info');
+                    log(`   - Firma email: ${botConfig.emailConfig?.emailSignature ? 'Configurada' : 'No configurada'}`, 'info');
+                    log(`   - FAQs: ${botConfig.faqs ? botConfig.faqs.length : 0} preguntas`, 'info');
+                    log(`   - Archivos contexto: ${botConfig.contextFiles ? botConfig.contextFiles.length : 0} archivos`, 'info');
+                    
+                    // Mostrar datos completos en consola
+                    console.log('📊 Configuración completa del bot:', botConfig);
+                } else {
+                    const errorData = await response.text();
+                    log(`❌ Error al cargar configuración: ${response.status} - ${errorData}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error de conexión: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testSaveBotConfig() {
+            const token = document.getElementById('render-token').value.trim();
+            
+            if (!token) {
+                log('❌ Por favor, ingresa un token de autenticación', 'error');
+                return;
+            }
+            
+            log('💾 Guardando configuración de prueba en Render...', 'info');
+            
+            const testConfig = {
+                company: {
+                    name: 'Empresa de Prueba',
+                    address: 'Calle Falsa 123, Madrid, España',
+                    phone: '+34 123 456 789',
+                    email: 'contacto@empresaprueba.com',
+                    website: 'https://empresaprueba.com'
+                },
+                callConfig: {
+                    enabled: true,
+                    recordCalls: true,
+                    transcribeCalls: true,
+                    voiceId: 'es-ES-Standard-A',
+                    language: 'es-ES'
+                },
+                emailConfig: {
+                    emailSignature: 'Saludos cordiales,\nEquipo de Atención al Cliente\nEmpresa de Prueba'
+                },
+                faqs: [
+                    {
+                        question: '¿Cuál es el horario de atención?',
+                        answer: 'Nuestro horario de atención es de lunes a viernes de 9:00 a 18:00.'
+                    },
+                    {
+                        question: '¿Cómo puedo contactar con soporte?',
+                        answer: 'Puedes contactarnos por teléfono, email o a través de nuestro chat en línea.'
+                    }
+                ],
+                contextFiles: [
+                    {
+                        id: 'test-file-1',
+                        name: 'Manual_Usuario.pdf',
+                        type: 'pdf',
+                        size: 1024000,
+                        uploadDate: new Date().toISOString()
+                    }
+                ],
+                aiConfig: {
+                    temperature: 0.7,
+                    maxTokens: 2000,
+                    personality: 'professional'
+                },
+                workingHours: {
+                    monday: { enabled: true, start: '09:00', end: '18:00' },
+                    tuesday: { enabled: true, start: '09:00', end: '18:00' },
+                    wednesday: { enabled: true, start: '09:00', end: '18:00' },
+                    thursday: { enabled: true, start: '09:00', end: '18:00' },
+                    friday: { enabled: true, start: '09:00', end: '18:00' },
+                    saturday: { enabled: false, start: '09:00', end: '14:00' },
+                    sunday: { enabled: false, start: '09:00', end: '14:00' }
+                }
+            };
+            
+            try {
+                const response = await fetch(`${RENDER_API_URL}/api/config/bot`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testConfig)
+                });
+                
+                log(`📡 Respuesta del servidor: ${response.status} ${response.statusText}`, 'info');
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log('✅ Configuración de prueba guardada exitosamente', 'success');
+                    log('🔄 Ahora puedes probar cargar la configuración para verificar la persistencia', 'info');
+                } else {
+                    const errorData = await response.text();
+                    log(`❌ Error al guardar configuración: ${response.status} - ${errorData}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error de conexión: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-cargar token si existe en localStorage
+        window.addEventListener('load', function() {
+            const savedToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+            if (savedToken) {
+                document.getElementById('render-token').value = savedToken;
+                log('🔑 Token cargado automáticamente desde localStorage', 'success');
+            }
+        });
+    </script>
+</body>
+</html>

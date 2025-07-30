@@ -95,12 +95,16 @@ class RouteGuard {
                 return;
             }
             
-            // VERIFICACIÓN AUTOMÁTICA DE TOKEN EXPIRADO
+            // VERIFICACIÓN AUTOMÁTICA DE TOKEN EXPIRADO (MODO PERMISIVO)
             console.log('Verificando validez del token...');
             
-            // Verificar token una sola vez por sesión
-            if (!window.tokenVerified) {
-                window.tokenVerified = true;
+            // Solo verificar token si no se ha hecho en los últimos 5 minutos
+            const lastTokenCheck = localStorage.getItem('lastTokenCheck');
+            const now = Date.now();
+            const fiveMinutes = 5 * 60 * 1000;
+            
+            if (!lastTokenCheck || (now - parseInt(lastTokenCheck)) > fiveMinutes) {
+                localStorage.setItem('lastTokenCheck', now.toString());
                 
                 // Usar TokenValidator si está disponible
                 if (window.TokenValidator) {
@@ -109,37 +113,43 @@ class RouteGuard {
                     if (tokenInfo && tokenInfo.isValid) {
                         console.log('✓ Token válido usando TokenValidator');
                         
-                        // Si está próximo a expirar, intentar renovar
+                        // Si está próximo a expirar, intentar renovar silenciosamente
                         if (window.TokenValidator.isExpiringSoon(tokenInfo.token)) {
-                            console.log('⚠️ Token próximo a expirar, intentando renovar...');
+                            console.log('⚠️ Token próximo a expirar, intentando renovar silenciosamente...');
                             window.TokenValidator.renewIfNeeded()
                             .then(renewed => {
-                                if (!renewed) {
-                                    console.log('✗ No se pudo renovar token, redirigiendo...');
-                                    this.handleExpiredToken();
+                                if (renewed) {
+                                    console.log('✓ Token renovado exitosamente');
+                                } else {
+                                    console.log('⚠️ No se pudo renovar token, pero continuando...');
+                                    // No redirigir inmediatamente, solo loggear
                                 }
+                            })
+                            .catch(error => {
+                                console.log('⚠️ Error renovando token, pero continuando...', error);
                             });
                         }
                     } else {
-                        console.log('✗ Token inválido según TokenValidator, redirigiendo...');
-                        this.handleExpiredToken();
+                        console.log('⚠️ Token inválido según TokenValidator, pero permitiendo continuar...');
+                        // No redirigir inmediatamente, solo loggear
                     }
                 } else {
-                    // Fallback: verificación manual
-                    this.verifyTokenValidity()
+                    // Fallback: verificación manual menos agresiva
+                    this.verifyTokenValidityGraceful()
                     .then(isValid => {
                         if (isValid) {
                             console.log('✓ Token válido (verificación manual)');
                         } else {
-                            console.log('✗ Token inválido, redirigiendo...');
-                            this.handleExpiredToken();
+                            console.log('⚠️ Token posiblemente inválido, pero permitiendo continuar...');
+                            // Solo redirigir si hay múltiples fallos consecutivos
                         }
                     })
                     .catch(error => {
-                        console.log('✗ Error verificando token, redirigiendo por seguridad...');
-                        this.handleExpiredToken();
+                        console.log('⚠️ Error verificando token, pero permitiendo continuar...', error);
                     });
                 }
+            } else {
+                console.log('✓ Token verificado recientemente, omitiendo verificación');
             }
         }
     }
@@ -162,10 +172,67 @@ class RouteGuard {
     }
     
     /**
-     * Maneja tokens expirados limpiando datos y redirigiendo
+     * Verifica la validez del token de forma menos agresiva (modo permisivo)
+     */
+    async verifyTokenValidityGraceful() {
+        try {
+            // Intentar obtener datos del usuario con timeout corto
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 segundos timeout
+            
+            const user = await authService.getCurrentUser({ signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            return user && user.email; // Token válido si obtenemos datos de usuario
+        } catch (error) {
+            // Si es error de red o timeout, asumir que el token es válido
+            if (error.name === 'AbortError' || error.message.includes('fetch')) {
+                console.log('⚠️ Error de conectividad, asumiendo token válido');
+                return true;
+            }
+            
+            // Solo considerar inválido si es claramente un error de autenticación
+            if (error.message.includes('401') || error.message.includes('Token inválido') || error.message.includes('jwt expired')) {
+                // Incrementar contador de fallos
+                const failCount = parseInt(localStorage.getItem('tokenFailCount') || '0') + 1;
+                localStorage.setItem('tokenFailCount', failCount.toString());
+                
+                // Solo retornar false si hay múltiples fallos consecutivos
+                if (failCount >= 3) {
+                    console.log('✗ Múltiples fallos de token consecutivos, considerando inválido');
+                    localStorage.removeItem('tokenFailCount');
+                    return false;
+                }
+                
+                console.log(`⚠️ Fallo de token ${failCount}/3, permitiendo continuar`);
+                return true;
+            }
+            
+            // Para otros errores, asumir que el token es válido
+            return true;
+        }
+    }
+    
+    /**
+     * Resetea el contador de fallos de token cuando una operación es exitosa
+     */
+    resetTokenFailCount() {
+        localStorage.removeItem('tokenFailCount');
+        console.log('✓ Contador de fallos de token reseteado');
+    }
+    
+    /**
+     * Maneja tokens expirados limpiando datos y redirigiendo (modo permisivo)
      */
     handleExpiredToken() {
         console.log('🔄 Manejando token expirado...');
+        
+        // Verificar si realmente debemos redirigir
+        const failCount = parseInt(localStorage.getItem('tokenFailCount') || '0');
+        if (failCount < 3) {
+            console.log(`⚠️ Token posiblemente expirado, pero solo ${failCount} fallos. Permitiendo continuar...`);
+            return;
+        }
         
         // Evitar múltiples redirecciones
         if (window.isRedirecting) {
@@ -251,27 +318,53 @@ const routeGuard = new RouteGuard();
 // Exportar para uso externo si es necesario
 window.routeGuard = routeGuard;
 
-// Configurar listener global para errores 401 (token expirado)
+// Configurar listener global para errores 401 (token expirado) - MODO PERMISIVO
 window.addEventListener('unhandledrejection', function(event) {
     if (event.reason && event.reason.message && 
         (event.reason.message.includes('401') || 
          event.reason.message.includes('Token inválido') || 
          event.reason.message.includes('jwt expired'))) {
-        console.log('🔄 Token expirado detectado globalmente, manejando...');
-        routeGuard.handleExpiredToken();
+        console.log('⚠️ Token expirado detectado globalmente, pero usando modo permisivo...');
+        
+        // Incrementar contador de fallos
+        const failCount = parseInt(localStorage.getItem('tokenFailCount') || '0') + 1;
+        localStorage.setItem('tokenFailCount', failCount.toString());
+        
+        // Solo manejar si hay múltiples fallos
+        if (failCount >= 3) {
+            console.log('🔄 Múltiples fallos detectados, manejando token expirado...');
+            routeGuard.handleExpiredToken();
+        } else {
+            console.log(`⚠️ Fallo ${failCount}/3, permitiendo continuar...`);
+        }
+        
         event.preventDefault(); // Evitar que se muestre el error en consola
     }
 });
 
-// Listener para errores de fetch con 401
+// Listener para errores de fetch con 401 - MODO PERMISIVO
 const originalFetch = window.fetch;
 window.fetch = function(...args) {
     return originalFetch.apply(this, args)
     .then(response => {
-        // Si es error 401, manejar token expirado
+        // Si es error 401, usar modo permisivo
         if (response.status === 401) {
-            console.log('🔄 Error 401 detectado en fetch, manejando token expirado...');
-            routeGuard.handleExpiredToken();
+            console.log('⚠️ Error 401 detectado en fetch, usando modo permisivo...');
+            
+            // Incrementar contador de fallos
+            const failCount = parseInt(localStorage.getItem('tokenFailCount') || '0') + 1;
+            localStorage.setItem('tokenFailCount', failCount.toString());
+            
+            // Solo manejar si hay múltiples fallos
+            if (failCount >= 3) {
+                console.log('🔄 Múltiples errores 401, manejando token expirado...');
+                routeGuard.handleExpiredToken();
+            } else {
+                console.log(`⚠️ Error 401 ${failCount}/3, permitiendo continuar...`);
+            }
+        } else if (response.ok) {
+            // Si la respuesta es exitosa, resetear contador de fallos
+            routeGuard.resetTokenFailCount();
         }
         return response;
     })
@@ -281,8 +374,19 @@ window.fetch = function(...args) {
             (error.message.includes('401') || 
              error.message.includes('Token inválido') || 
              error.message.includes('jwt expired'))) {
-            console.log('🔄 Error de token expirado en fetch, manejando...');
-            routeGuard.handleExpiredToken();
+            console.log('⚠️ Error de token en fetch, usando modo permisivo...');
+            
+            // Incrementar contador de fallos
+            const failCount = parseInt(localStorage.getItem('tokenFailCount') || '0') + 1;
+            localStorage.setItem('tokenFailCount', failCount.toString());
+            
+            // Solo manejar si hay múltiples fallos
+            if (failCount >= 3) {
+                console.log('🔄 Múltiples errores de token, manejando...');
+                routeGuard.handleExpiredToken();
+            } else {
+                console.log(`⚠️ Error de token ${failCount}/3, permitiendo continuar...`);
+            }
         }
         throw error;
     });

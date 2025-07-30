@@ -130,19 +130,90 @@ router.put('/profile', authenticate, async (req, res) => {
   }
 });
 
+// Obtener configuración del bot
+router.get('/config/bot', authenticate, async (req, res) => {
+  try {
+    // Obtener la configuración del cliente
+    const clientConfig = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: {
+        botConfig: true,
+        companyInfo: true,
+        emailConfig: true
+      }
+    });
+    
+    if (!clientConfig) {
+      return res.status(404).json({ error: 'Configuración no encontrada' });
+    }
+    
+    // Devolver la configuración del bot con estructura completa
+    const botConfig = clientConfig.botConfig || {};
+    
+    // Agregar información de empresa desde companyInfo si existe
+    if (clientConfig.companyInfo) {
+      botConfig.company = clientConfig.companyInfo;
+    }
+    
+    // Agregar configuración de email si existe
+    if (clientConfig.emailConfig) {
+      botConfig.emailConfig = clientConfig.emailConfig;
+    }
+    
+    return res.json(botConfig);
+  } catch (error) {
+    logger.error(`Error obteniendo configuración del bot: ${error.message}`);
+    return res.status(500).json({ error: 'Error obteniendo configuración del bot' });
+  }
+});
+
 // Actualizar configuración del bot
 router.put('/config/bot', authenticate, async (req, res) => {
   try {
-    const { 
-      welcomeMessage, 
-      voiceId, 
-      language, 
-      confirmationMessage, 
-      dtmfOptions,
-      personality,
+    const {
+      // Información de empresa
+      companyName,
+      companyDescription,
+      companySector,
+      companyAddress,
+      companyPhone,
+      companyEmail,
+      companyWebsite,
+      
+      // Configuración general
+      botName,
+      botPersonality,
+      welcomeMessage,
+      businessHours,
+      
+      // Configuración de horarios
       workingHours,
       workingDays,
-      contextFiles
+      
+      // Configuración de llamadas
+      callConfig,
+      
+      // Configuración de emails
+      emailConfig,
+      
+      // Configuración SMTP
+      smtpConfig,
+      
+      // Configuración de IA
+      aiConfig,
+      
+      // FAQs
+      faqs,
+      
+      // Archivos de contexto
+      contextFiles,
+      
+      // Campos legacy para compatibilidad
+      voiceId,
+      language,
+      confirmationMessage,
+      dtmfOptions,
+      personality
     } = req.body;
     
     // Obtener configuración actual del bot
@@ -151,16 +222,19 @@ router.put('/config/bot', authenticate, async (req, res) => {
     });
     
     const currentBotConfig = currentClient.botConfig || {};
+    const currentCompanyInfo = currentClient.companyInfo || {};
+    const currentEmailConfig = currentClient.emailConfig || {};
     
     // Construir nueva configuración del bot
     const newBotConfig = {
       ...currentBotConfig,
-      welcomeMessage: welcomeMessage || currentBotConfig.welcomeMessage || "Gracias por llamar. Esta llamada será grabada para mejorar nuestro servicio.",
-      voiceId: voiceId || currentBotConfig.voiceId || process.env.ELEVENLABS_VOICE_ID,
-      language: language || currentBotConfig.language || "es-ES",
-      confirmationMessage: confirmationMessage || currentBotConfig.confirmationMessage || "Gracias por la información. Alguien se pondrá en contacto con usted a la brevedad.",
-      dtmfOptions: dtmfOptions || currentBotConfig.dtmfOptions || [],
-      personality: personality || currentBotConfig.personality || "friendly",
+      // Configuración general
+      botName: botName || currentBotConfig.botName || 'Asistente Virtual',
+      botPersonality: botPersonality || personality || currentBotConfig.botPersonality || currentBotConfig.personality || 'professional',
+      welcomeMessage: welcomeMessage || currentBotConfig.welcomeMessage || "Bienvenido a nuestro asistente virtual",
+      businessHours: businessHours || currentBotConfig.businessHours || 'Lun-Vie: 9:00-18:00',
+      
+      // Configuración de horarios
       workingHours: workingHours || currentBotConfig.workingHours || { opening: "09:00", closing: "18:00" },
       workingDays: workingDays || currentBotConfig.workingDays || {
         monday: true,
@@ -171,21 +245,73 @@ router.put('/config/bot', authenticate, async (req, res) => {
         saturday: false,
         sunday: false
       },
-      contextFiles: contextFiles || currentBotConfig.contextFiles || {}
+      
+      // Configuración de llamadas
+      callConfig: callConfig || currentBotConfig.callConfig || {
+        enabled: false,
+        recordCalls: false,
+        transcribeCalls: false,
+        voiceId: voiceId || currentBotConfig.voiceId || process.env.ELEVENLABS_VOICE_ID,
+        language: language || currentBotConfig.language || "es-ES",
+        confirmationMessage: confirmationMessage || currentBotConfig.confirmationMessage || "Gracias por la información. Alguien se pondrá en contacto con usted a la brevedad."
+      },
+      
+      // Configuración de IA
+      aiConfig: aiConfig || currentBotConfig.aiConfig || {
+        temperature: 0.7,
+        maxTokens: 150,
+        model: 'gpt-3.5-turbo'
+      },
+      
+      // FAQs
+      faqs: faqs || currentBotConfig.faqs || [],
+      
+      // Archivos de contexto
+      contextFiles: contextFiles || currentBotConfig.contextFiles || {},
+      
+      // Campos legacy para compatibilidad
+      voiceId: voiceId || callConfig?.voiceId || currentBotConfig.voiceId || process.env.ELEVENLABS_VOICE_ID,
+      language: language || callConfig?.language || currentBotConfig.language || "es-ES",
+      confirmationMessage: confirmationMessage || callConfig?.confirmationMessage || currentBotConfig.confirmationMessage || "Gracias por la información. Alguien se pondrá en contacto con usted a la brevedad.",
+      dtmfOptions: dtmfOptions || currentBotConfig.dtmfOptions || [],
+      personality: personality || botPersonality || currentBotConfig.personality || "professional"
     };
     
-    // Actualizar cliente con nueva configuración del bot
+    // Construir información de empresa
+    const newCompanyInfo = {
+      ...currentCompanyInfo,
+      name: companyName || currentCompanyInfo.name || '',
+      description: companyDescription || currentCompanyInfo.description || '',
+      sector: companySector || currentCompanyInfo.sector || '',
+      address: companyAddress || currentCompanyInfo.address || '',
+      phone: companyPhone || currentCompanyInfo.phone || '',
+      email: companyEmail || currentCompanyInfo.email || '',
+      website: companyWebsite || currentCompanyInfo.website || ''
+    };
+    
+    // Construir configuración de email
+    const newEmailConfig = {
+      ...currentEmailConfig,
+      ...emailConfig,
+      smtpConfig: smtpConfig || currentEmailConfig.smtpConfig || {}
+    };
+    
+    // Actualizar cliente con toda la configuración
     const updatedClient = await prisma.client.update({
       where: { id: req.client.id },
       data: {
-        botConfig: newBotConfig
+        botConfig: newBotConfig,
+        companyInfo: newCompanyInfo,
+        emailConfig: newEmailConfig
       }
     });
     
     return res.json({
       success: true,
-      message: 'Configuración del bot actualizada correctamente',
-      botConfig: newBotConfig
+      message: 'Configuración completa actualizada correctamente',
+      botConfig: newBotConfig,
+      companyInfo: newCompanyInfo,
+      emailConfig: newEmailConfig
     });
   } catch (error) {
     logger.error(`Error actualizando configuración del bot: ${error.message}`);

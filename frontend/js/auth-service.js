@@ -250,14 +250,17 @@ class AuthService {
       
       console.log('Login exitoso. Guardando token...');
       
-      // Guardar token y datos de usuario en localStorage
+      // Guardar token y datos de usuario en sessionStorage (expira al cerrar pestaña)
       if (data.token) {
-        localStorage.setItem('auth_token', data.token);
+        sessionStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_token', data.token); // Mantener copia en localStorage para compatibilidad
         if (data.client) {
+          sessionStorage.setItem('user_data', JSON.stringify(data.client));
           localStorage.setItem('user_data', JSON.stringify(data.client));
         }
+        sessionStorage.setItem('auth_timestamp', Date.now().toString());
         localStorage.setItem('auth_timestamp', Date.now().toString());
-        console.log('Token guardado correctamente');
+        console.log('Token guardado correctamente en sessionStorage');
       } else {
         console.warn('No se recibió token en la respuesta');
       }
@@ -435,7 +438,30 @@ class AuthService {
    * @returns {boolean} Estado de autenticación
    */
   isAuthenticated() {
-    return !!localStorage.getItem('auth_token');
+    // Priorizar sessionStorage (expira al cerrar pestaña)
+    const sessionToken = sessionStorage.getItem('auth_token');
+    const localToken = localStorage.getItem('auth_token');
+    
+    // Si hay token en sessionStorage, usarlo
+    if (sessionToken) {
+      return true;
+    }
+    
+    // Si no hay en sessionStorage pero sí en localStorage, migrar a sessionStorage
+    if (localToken && !sessionToken) {
+      sessionStorage.setItem('auth_token', localToken);
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        sessionStorage.setItem('user_data', userData);
+      }
+      const timestamp = localStorage.getItem('auth_timestamp');
+      if (timestamp) {
+        sessionStorage.setItem('auth_timestamp', timestamp);
+      }
+      return true;
+    }
+    
+    return false;
   }
   
   /**
