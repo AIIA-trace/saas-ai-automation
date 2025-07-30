@@ -101,45 +101,6 @@ window.ApiHelper = {
     },
 
     /**
-     * Crea headers estándar para las peticiones API con autenticación
-     * @param {string} endpoint - Endpoint para determinar el tipo de autenticación
-     * @param {Object} additionalHeaders - Headers adicionales a incluir
-     * @returns {Object} Headers completos
-     */
-    getHeaders: function(endpoint, additionalHeaders = {}) {
-        const headers = {
-            'Content-Type': 'application/json',
-            ...additionalHeaders
-        };
-        
-        const authType = this.getAuthType(endpoint);
-        
-        if (authType === 'none') {
-            return headers;
-        }
-        
-        if (authType === 'jwt') {
-            const token = this.getAuthToken();
-            if (token) {
-                // IMPORTANTE: La API espera el token con el prefijo "Bearer "
-                headers['Authorization'] = `Bearer ${token}`;
-                console.log(`🔑 Usando JWT token: ${token.substring(0, 15)}...`);
-            }
-        } else if (authType === 'apikey') {
-            let apiKey = this.getApiKey();
-            
-            if (apiKey) {
-                // IMPORTANTE: La API espera la API key con el prefijo "Bearer "
-                headers['Authorization'] = `Bearer ${apiKey}`;
-                console.log(`🔑 Usando API Key: ${apiKey.substring(0, 10)}...`);
-            } else {
-                // Si no hay API key pero hay JWT, mostrar advertencia
-                console.warn('⚠️ No hay API key disponible para una ruta que la requiere');
-            }
-        }
-        
-        return headers;
-    },
     
     /**
      * Obtiene la API key del usuario usando el JWT token
@@ -321,62 +282,60 @@ window.ApiHelper = {
         // Para rutas que requieren API key
         if (authType === 'apikey') {
             let apiKey = this.getApiKey();
-            
-            // Si no hay API key, intentar obtenerla
-            if (!apiKey) {
-                console.warn('⚠️ No hay API key disponible, intentando obtenerla...');
-                
-                try {
-                    apiKey = await this.fetchApiKey();
-                    
-                    if (!apiKey) {
-                        console.error('🔒 No se pudo obtener API key');
-                        throw new Error('No autorizado: API key no disponible');
-                    }
-                } catch (apiKeyError) {
-                    console.error('❌ Error obteniendo API key:', apiKeyError);
-                    throw new Error('Error obteniendo API key: ' + apiKeyError.message);
-                }
-            }
-            
-            // Construir opciones con API key
-            const headers = this.getHeaders(endpoint, options.headers || {});
-            const fetchOptions = {
-                ...options,
-                headers
-            };
+    }
+    
+    // Para rutas que requieren API key
+    if (authType === 'apikey') {
+        let apiKey = this.getApiKey();
+        
+        // Si no hay API key, intentar obtenerla
+        if (!apiKey) {
+            console.warn('⚠️ No hay API key disponible, intentando obtenerla...');
             
             try {
-                console.log('🔑 Enviando petición con API key');
-                const response = await fetch(url, fetchOptions);
+                apiKey = await this.fetchApiKey();
                 
-                // Si hay error 401 o 403, intentar generar nueva API key
-                if (response.status === 401 || response.status === 403) {
-                    console.warn(`⚠️ Error ${response.status} con API key actual`);
-                    
-                    try {
-                        console.log('🔄 Intentando generar nueva API key...');
-                        apiKey = await this.generateApiKey();
-                        
-                        if (apiKey) {
-                            console.log('✅ Nueva API key generada, reintentando petición');
-                            return this.fetchApi(endpoint, options);
-                        }
-                    } catch (genError) {
-                        console.error('❌ Error generando nueva API key:', genError);
-                    }
-                    
-                    console.error('🔒 ERROR: API key inválida o permisos insuficientes');
-                    throw new Error(`Error de autenticación API key (${response.status})`);
+                if (!apiKey) {
+                    console.error('🔒 No se pudo obtener API key');
+                    throw new Error('No autorizado: API key no disponible');
                 }
-                
-                return response;
-            } catch (error) {
-                console.error('❌ Error en petición con API key:', error);
-                throw error;
+            } catch (apiKeyError) {
+                console.error('❌ Error obteniendo API key:', apiKeyError);
+                throw new Error('Error obteniendo API key: ' + apiKeyError.message);
             }
         }
         
+        // Construir opciones con API key
+        const headers = this.getHeaders(endpoint, options.headers || {});
+        const fetchOptions = {
+            ...options,
+            headers
+        };
+        
+        // Construir URL completa
+        const fullUrl = this.apiBaseUrl + url;
+        
+        // Configurar opciones de fetch
+        fetchOptions.method = 'GET';
+        
+        try {
+            const response = await fetch(fullUrl, fetchOptions);
+            
+            // Manejar errores de autenticación
+            if (response.status === 401 || response.status === 403) {
+                console.warn(`⚠️ Error ${response.status} - Token JWT inválido o expirado`);
+                console.log('⚠️ Redirigiendo al login...');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('❌ Error en petición API:', error);
+            throw error;
+        }
+    }
+    
         // Por defecto, si no se reconoce el tipo de autenticación
         throw new Error(`Tipo de autenticación desconocido: ${authType}`);
     }

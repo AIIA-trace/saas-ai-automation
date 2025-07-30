@@ -20,36 +20,36 @@ if (typeof window.API_CONFIG === 'undefined') {
       ME: '/api/auth/me'
     },
     
-    // Endpoints principales del dashboard
+    // Endpoints principales del dashboard (TODOS requieren JWT token)
     DASHBOARD: {
       // Configuración de cliente
-      CLIENT_CONFIG: '/api/config',
-      UPDATE_PROFILE: '/api/profile',
-      CHANGE_PASSWORD: '/api/profile/password',
+      CLIENT_CONFIG: { url: '/api/config', auth: 'jwt' },
+      UPDATE_PROFILE: { url: '/api/profile', auth: 'jwt' },
+      CHANGE_PASSWORD: { url: '/api/profile/password', auth: 'jwt' },
       
       // Configuración del bot
-      BOT_CONFIG: '/api/config/bot',
-      BOT_UPLOAD_CONTEXT: '/api/bot/upload-context',
+      BOT_CONFIG: { url: '/api/config/bot', auth: 'jwt' },
+      BOT_UPLOAD_CONTEXT: { url: '/api/bot/upload-context', auth: 'jwt' },
       
       // Configuración de email
-      EMAIL_CONFIG: '/api/config/email',
-      EMAIL_TEMPLATES: '/api/config/email/templates',
+      EMAIL_CONFIG: { url: '/api/config/email', auth: 'jwt' },
+      EMAIL_TEMPLATES: { url: '/api/config/email/templates', auth: 'jwt' },
       
       // Notificaciones
-      NOTIFICATIONS_CONFIG: '/api/config/notifications',
+      NOTIFICATIONS_CONFIG: { url: '/api/config/notifications', auth: 'jwt' },
       
       // Llamadas y emails
-      CALLS: '/api/logs/calls',
-      EMAILS: '/api/logs/emails',
-      CALL_DETAIL: '/api/logs/calls/{callId}',
-      EMAIL_DETAIL: '/api/logs/emails/{emailId}',
+      CALLS: { url: '/api/logs/calls', auth: 'jwt' },
+      EMAILS: { url: '/api/logs/emails', auth: 'jwt' },
+      CALL_DETAIL: { url: '/api/logs/calls/{callId}', auth: 'jwt' },
+      EMAIL_DETAIL: { url: '/api/logs/emails/{emailId}', auth: 'jwt' },
       
       // Facturación
-      BILLING_INFO: '/api/billing/info',
-      PAYMENT_METHODS: '/api/payment/methods',
-      PAYMENT_METHOD: '/api/payment/method',
-      INVOICES: '/api/billing/invoices',
-      SUBSCRIPTION: '/api/billing/subscription'
+      BILLING_INFO: { url: '/api/billing/info', auth: 'jwt' },
+      PAYMENT_METHODS: { url: '/api/payment/methods', auth: 'jwt' },
+      PAYMENT_METHOD: { url: '/api/payment/method', auth: 'jwt' },
+      INVOICES: { url: '/api/billing/invoices', auth: 'jwt' },
+      SUBSCRIPTION: { url: '/api/billing/subscription', auth: 'jwt' }
     },
     
     // Endpoints específicos por sector
