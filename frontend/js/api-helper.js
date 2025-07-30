@@ -3,7 +3,7 @@
  * Este módulo centraliza la construcción de URLs y la gestión de tokens
  * para todas las llamadas a la API
  * 
- * V2 - Con sistema de renovación automática de tokens y prueba de formatos
+ * V3 - Con sistema dual de autenticación: JWT para rutas de auth y API Key para rutas de API
  */
 
 // Objeto global para funciones helper de API
@@ -18,7 +18,7 @@ window.ApiHelper = {
     },
 
     /**
-     * Obtiene el token de autenticación validado
+     * Obtiene el token JWT de autenticación validado
      * @returns {string|null} Token de autenticación validado o null si no existe o es inválido
      */
     getAuthToken: function() {
@@ -29,6 +29,60 @@ window.ApiHelper = {
         
         // Método de respaldo si no existe el validador
         return localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    },
+    
+    /**
+     * Obtiene la API key del usuario
+     * @returns {string|null} API key o null si no existe
+     */
+    getApiKey: function() {
+        return localStorage.getItem('api_key');
+    },
+    
+    /**
+     * Guarda la API key en localStorage
+     * @param {string} apiKey - API key a guardar
+     */
+    setApiKey: function(apiKey) {
+        if (apiKey) {
+            localStorage.setItem('api_key', apiKey);
+            console.log('🔑 API Key guardada correctamente');
+        }
+    },
+    
+    /**
+     * Determina el tipo de autenticación necesario para un endpoint
+     * @param {string} endpoint - Endpoint a verificar
+     * @returns {string} - 'none', 'jwt' o 'apikey'
+     */
+    getAuthType: function(endpoint) {
+        // Endpoints públicos que no requieren autenticación
+        const publicEndpoints = [
+            '/api/auth/login',
+            '/api/auth/register',
+            '/api/auth/forgot-password',
+            '/api/auth/reset-password',
+            '/api/public/',
+            '/api/webhook/'
+        ];
+        
+        // Verificar si es un endpoint público
+        if (publicEndpoints.some(publicEp => endpoint.startsWith(publicEp))) {
+            return 'none';
+        }
+        
+        // Endpoints que usan JWT (rutas de auth que no son públicas)
+        if (endpoint.startsWith('/api/auth/')) {
+            return 'jwt';
+        }
+        
+        // Todas las demás rutas /api/ usan API key
+        if (endpoint.startsWith('/api/')) {
+            return 'apikey';
+        }
+        
+        // Por defecto, usar JWT
+        return 'jwt';
     },
 
     /**
@@ -48,26 +102,128 @@ window.ApiHelper = {
 
     /**
      * Crea headers estándar para las peticiones API con autenticación
+     * @param {string} endpoint - Endpoint para determinar el tipo de autenticación
      * @param {Object} additionalHeaders - Headers adicionales a incluir
      * @returns {Object} Headers completos
      */
-    getHeaders: function(additionalHeaders = {}) {
-        const token = this.getAuthToken();
-        
+    getHeaders: function(endpoint, additionalHeaders = {}) {
         const headers = {
             'Content-Type': 'application/json',
             ...additionalHeaders
         };
         
-        if (token) {
-        // IMPORTANTE: La API espera el token sin el prefijo "Bearer "
-        headers['Authorization'] = token;
+        const authType = this.getAuthType(endpoint);
         
-        // Guardar el formato original para debugging
-        console.log('🔑 Formato de token usado:', token);
-    }
+        if (authType === 'none') {
+            return headers;
+        }
+        
+        if (authType === 'jwt') {
+            const token = this.getAuthToken();
+            if (token) {
+                // IMPORTANTE: La API espera el token con el prefijo "Bearer "
+                headers['Authorization'] = `Bearer ${token}`;
+                console.log(`🔑 Usando JWT token: ${token.substring(0, 15)}...`);
+            }
+        } else if (authType === 'apikey') {
+            let apiKey = this.getApiKey();
+            
+            if (apiKey) {
+                // IMPORTANTE: La API espera la API key con el prefijo "Bearer "
+                headers['Authorization'] = `Bearer ${apiKey}`;
+                console.log(`🔑 Usando API Key: ${apiKey.substring(0, 10)}...`);
+            } else {
+                // Si no hay API key pero hay JWT, mostrar advertencia
+                console.warn('⚠️ No hay API key disponible para una ruta que la requiere');
+            }
+        }
         
         return headers;
+    },
+    
+    /**
+     * Obtiene la API key del usuario usando el JWT token
+     * @returns {Promise<string|null>} - Promise con la API key o null si falla
+     */
+    fetchApiKey: async function() {
+        try {
+            const token = this.getAuthToken();
+            if (!token) {
+                console.error('🔒 No hay JWT token para obtener API key');
+                return null;
+            }
+            
+            console.log('🔑 Intentando obtener API key desde el perfil...');
+            
+            // Usar el JWT para obtener datos del perfil
+            const response = await fetch(this.buildUrl('/api/auth/me'), {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status} al obtener perfil`);
+            }
+            
+            const userData = await response.json();
+            
+            if (userData && userData.apiKey) {
+                console.log('🔑 API Key obtenida correctamente del perfil');
+                this.setApiKey(userData.apiKey);
+                return userData.apiKey;
+            } else {
+                console.warn('⚠️ No se encontró API Key en el perfil');
+                
+                // Si no hay API key en el perfil, intentar generarla
+                return this.generateApiKey();
+            }
+        } catch (error) {
+            console.error('🔒 Error al obtener API Key:', error);
+            return null;
+        }
+    },
+    
+    /**
+     * Genera una nueva API key para el usuario
+     * @returns {Promise<string|null>} - Promise con la nueva API key o null si falla
+     */
+    generateApiKey: async function() {
+        try {
+            const token = this.getAuthToken();
+            if (!token) {
+                console.error('🔒 No hay JWT token para generar API key');
+                return null;
+            }
+            
+            console.log('🔑 Generando nueva API Key...');
+            
+            // Usar el JWT para generar una nueva API key
+            const response = await fetch(this.buildUrl('/api/auth/api-key'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status} al generar API Key`);
+            }
+            
+            const result = await response.json();
+            
+            if (result && result.apiKey) {
+                console.log('🔑 Nueva API Key generada correctamente');
+                this.setApiKey(result.apiKey);
+                return result.apiKey;
+            } else {
+                throw new Error('No se pudo generar API Key');
+            }
+        } catch (error) {
+            console.error('🔒 Error al generar API Key:', error);
+            return null;
+        }
     },
 
     /**
@@ -76,141 +232,153 @@ window.ApiHelper = {
      * @returns {boolean} - true si requiere autenticación
      */
     requiresAuth: function(endpoint) {
-        // Endpoints públicos que no requieren autenticación
-        const publicEndpoints = [
-            '/api/auth/login',
-            '/api/auth/register',
-            '/api/auth/forgot-password',
-            '/api/auth/reset-password',
-            '/api/public/',
-            '/api/webhook/'
-        ];
-        
-        // Verificar si el endpoint está en la lista de públicos
-        return !publicEndpoints.some(publicEp => endpoint.startsWith(publicEp));
+        return this.getAuthType(endpoint) !== 'none';
     },
     
     /**
-     * Realiza una petición fetch a la API con gestión avanzada de autenticación
-     * Prueba diferentes formatos de token y maneja errores 401
+     * Realiza una petición fetch a la API con gestión dual de autenticación
+     * Usa JWT para rutas de auth y API Key para otras rutas API
      * @param {string} endpoint - Endpoint relativo
      * @param {Object} options - Opciones de fetch
      * @returns {Promise} Promesa con la respuesta de fetch
      */
     fetchApi: async function(endpoint, options = {}) {
         const url = this.buildUrl(endpoint);
-        const token = this.getAuthToken();
+        const authType = this.getAuthType(endpoint);
         
         console.log(`🌐 Preparando petición API a: ${url}`);
-        console.log(`🔑 Estado del token: ${token ? 'Disponible' : 'No disponible'}`);
+        console.log(`🔑 Tipo de autenticación requerida: ${authType}`);
         
-        // Formatos de token a probar en secuencia
-        const tokenFormats = [
-            // Formato 1: Sin prefijo (token directo)
-            token ? { 'Authorization': token } : {},
-            
-            // Formato 2: Con prefijo Bearer
-            token ? { 'Authorization': `Bearer ${token}` } : {},
-            
-            // Formato 3: Con prefijo Token
-            token ? { 'Authorization': `Token ${token}` } : {},
-        ];
-        
-        // Si no hay token y el endpoint requiere auth, fallar rápido
-        if (!token && this.requiresAuth(endpoint)) {
-            console.error('🔒 Error: No hay token para un endpoint autenticado');
-            
-            // Si tenemos sistema de renovación, intentar renovar
-            if (window.TokenValidator && window.TokenValidator.renewIfNeeded) {
-                try {
-                    const renewed = await window.TokenValidator.renewIfNeeded();
-                    if (renewed) {
-                        console.log('🔒 Token renovado exitosamente, reintentando...');
-                        return this.fetchApi(endpoint, options); // Reintentar con el nuevo token
-                    }
-                } catch (renewError) {
-                    console.error('🔒 Error renovando token:', renewError);
-                }
-            }
-            
-            throw new Error('No autorizado: Token no disponible');
+        // Si no requiere autenticación, hacer petición directa
+        if (authType === 'none') {
+            console.log('🔓 Endpoint público, sin autenticación');
+            return fetch(url, options);
         }
         
-        // Variables para seguimiento de errores
-        let lastResponse = null;
-        let lastError = null;
-        
-        // Probar cada formato de token secuencialmente
-        for (const tokenHeader of tokenFormats) {
+        // Para rutas que requieren JWT
+        if (authType === 'jwt') {
+            const token = this.getAuthToken();
+            
+            if (!token) {
+                console.error('🔒 No hay JWT token disponible para ruta protegida');
+                
+                // Intentar renovar token
+                if (window.TokenValidator && window.TokenValidator.renewIfNeeded) {
+                    try {
+                        console.log('🔄 Intentando renovar JWT token...');
+                        const renewed = await window.TokenValidator.renewIfNeeded();
+                        if (renewed) {
+                            console.log('✅ JWT token renovado, reintentando petición');
+                            return this.fetchApi(endpoint, options);
+                        }
+                    } catch (renewError) {
+                        console.error('❌ Error renovando JWT token:', renewError);
+                    }
+                }
+                
+                throw new Error('No autorizado: JWT token no disponible');
+            }
+            
+            // Construir opciones con JWT token
+            const headers = this.getHeaders(endpoint, options.headers || {});
+            const fetchOptions = {
+                ...options,
+                headers
+            };
+            
             try {
-                // Crear headers combinando Content-Type, headers adicionales y formato de token
-                const headers = {
-                    'Content-Type': 'application/json',
-                    ...options.headers || {},
-                    ...tokenHeader
-                };
-                
-                // Mostrar el formato de token que se está usando (para debugging)
-                if (tokenHeader.Authorization) {
-                    console.log(`🔑 Probando formato: ${tokenHeader.Authorization.substring(0, 20)}...`);
-                }
-                
-                // Construir opciones completas
-                const fetchOptions = {
-                    ...options,
-                    headers
-                };
-                
-                // Realizar petición
+                console.log('🔑 Enviando petición con JWT token');
                 const response = await fetch(url, fetchOptions);
-                lastResponse = response;
                 
-                // Si la respuesta es exitosa, devolver inmediatamente
-                if (response.ok) {
-                    console.log(`✅ Petición exitosa con formato: ${tokenHeader.Authorization ? tokenHeader.Authorization.split(' ')[0] || 'Directo' : 'Sin token'}`);
-                    return response;
-                }
-                
-                // Si el error no es de autenticación, no seguir probando formatos
-                if (response.status !== 401) {
-                    console.error(`❌ Error ${response.status} en petición API`);
-                    throw new Error(`Error ${response.status}: ${response.statusText || 'Error de servidor'}`);
-                }
-                
-                // Si es 401, seguir probando otros formatos
-                console.log(`🔒 Error 401 con formato actual, probando siguiente...`);
-            } catch (error) {
-                lastError = error;
-                console.error(`❌ Error en petición con formato de token:`, error);
-            }
-        }
-        
-        // Si llegamos aquí, todos los formatos fallaron
-        console.error('🔒 Todos los formatos de token fallaron');
-        
-        // Si el último error fue 401, intentar renovar el token
-        if (lastResponse && lastResponse.status === 401) {
-            console.log('🔒 Intentando renovar token después de errores 401...');
-            
-            if (window.TokenValidator && window.TokenValidator.renewIfNeeded) {
-                try {
-                    const renewed = await window.TokenValidator.renewIfNeeded();
-                    if (renewed) {
-                        console.log('🔒 Token renovado exitosamente, reintentando petición...');
-                        return this.fetchApi(endpoint, options); // Reintentar con el nuevo token
+                // Si hay error 401, intentar renovar token
+                if (response.status === 401) {
+                    console.warn('⚠️ Error 401 con JWT token');
+                    
+                    if (window.TokenValidator && window.TokenValidator.renewIfNeeded) {
+                        try {
+                            console.log('🔄 Intentando renovar JWT token tras error 401...');
+                            const renewed = await window.TokenValidator.renewIfNeeded(true);
+                            if (renewed) {
+                                console.log('✅ JWT token renovado, reintentando petición');
+                                return this.fetchApi(endpoint, options);
+                            }
+                        } catch (renewError) {
+                            console.error('❌ Error renovando JWT token:', renewError);
+                        }
                     }
-                } catch (renewError) {
-                    console.error('🔒 Error renovando token:', renewError);
+                    
+                    console.error('🔒 ERROR: JWT token inválido o expirado');
+                    throw new Error('Error de autenticación JWT (401)');
+                }
+                
+                return response;
+            } catch (error) {
+                console.error('❌ Error en petición con JWT token:', error);
+                throw error;
+            }
+        }
+        
+        // Para rutas que requieren API key
+        if (authType === 'apikey') {
+            let apiKey = this.getApiKey();
+            
+            // Si no hay API key, intentar obtenerla
+            if (!apiKey) {
+                console.warn('⚠️ No hay API key disponible, intentando obtenerla...');
+                
+                try {
+                    apiKey = await this.fetchApiKey();
+                    
+                    if (!apiKey) {
+                        console.error('🔒 No se pudo obtener API key');
+                        throw new Error('No autorizado: API key no disponible');
+                    }
+                } catch (apiKeyError) {
+                    console.error('❌ Error obteniendo API key:', apiKeyError);
+                    throw new Error('Error obteniendo API key: ' + apiKeyError.message);
                 }
             }
             
-            // En caso de error 401 persistente
-            console.error('🔒 ERROR CRÍTICO: Autenticación fallida después de intentar todos los formatos');
-            throw new Error('Error de autenticación persistente (401). Sesión posiblemente caducada.');
+            // Construir opciones con API key
+            const headers = this.getHeaders(endpoint, options.headers || {});
+            const fetchOptions = {
+                ...options,
+                headers
+            };
+            
+            try {
+                console.log('🔑 Enviando petición con API key');
+                const response = await fetch(url, fetchOptions);
+                
+                // Si hay error 401 o 403, intentar generar nueva API key
+                if (response.status === 401 || response.status === 403) {
+                    console.warn(`⚠️ Error ${response.status} con API key actual`);
+                    
+                    try {
+                        console.log('🔄 Intentando generar nueva API key...');
+                        apiKey = await this.generateApiKey();
+                        
+                        if (apiKey) {
+                            console.log('✅ Nueva API key generada, reintentando petición');
+                            return this.fetchApi(endpoint, options);
+                        }
+                    } catch (genError) {
+                        console.error('❌ Error generando nueva API key:', genError);
+                    }
+                    
+                    console.error('🔒 ERROR: API key inválida o permisos insuficientes');
+                    throw new Error(`Error de autenticación API key (${response.status})`);
+                }
+                
+                return response;
+            } catch (error) {
+                console.error('❌ Error en petición con API key:', error);
+                throw error;
+            }
         }
         
-        // Para otros tipos de error
-        throw lastError || new Error('Error desconocido en la petición API');
+        // Por defecto, si no se reconoce el tipo de autenticación
+        throw new Error(`Tipo de autenticación desconocido: ${authType}`);
     }
 };
 
