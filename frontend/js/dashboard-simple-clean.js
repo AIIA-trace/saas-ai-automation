@@ -3669,20 +3669,58 @@ function loadBotConfiguration(token) {
             if (botConfig.company.name) document.getElementById('company_name').value = botConfig.company.name;
             if (botConfig.company.description) document.getElementById('company_description').value = botConfig.company.description;
             if (botConfig.company.sector) document.getElementById('company_sector').value = botConfig.company.sector;
+            if (botConfig.company.address) document.getElementById('company_address').value = botConfig.company.address;
             if (botConfig.company.phone) document.getElementById('company_phone').value = botConfig.company.phone;
             if (botConfig.company.email) document.getElementById('company_email').value = botConfig.company.email;
             if (botConfig.company.website) document.getElementById('company_website').value = botConfig.company.website;
         }
         
-        // Idioma y voz
-        if (botConfig.language) {
-            const languageSelect = document.getElementById('voice_language');
-            if (languageSelect) languageSelect.value = botConfig.language;
-        }
-        
-        if (botConfig.voiceId) {
-            const voiceIdSelect = document.getElementById('voice_id');
-            if (voiceIdSelect) voiceIdSelect.value = botConfig.voiceId;
+        // Configuración de llamadas
+        if (botConfig.callConfig) {
+            // Activación de llamadas
+            if (botConfig.callConfig.enabled !== undefined) {
+                document.getElementById('enable_calls').checked = botConfig.callConfig.enabled;
+            }
+            
+            // Grabación de llamadas
+            if (botConfig.callConfig.recordCalls !== undefined) {
+                document.getElementById('record_calls').checked = botConfig.callConfig.recordCalls;
+            }
+            
+            // Transcripción de llamadas
+            if (botConfig.callConfig.transcribeCalls !== undefined) {
+                document.getElementById('transcribe_calls').checked = botConfig.callConfig.transcribeCalls;
+            }
+            
+            // Idioma y voz
+            if (botConfig.callConfig.language) {
+                const languageSelect = document.getElementById('voice_language');
+                if (languageSelect) languageSelect.value = botConfig.callConfig.language;
+            } else if (botConfig.language) {
+                // Compatibilidad con versiones anteriores
+                const languageSelect = document.getElementById('voice_language');
+                if (languageSelect) languageSelect.value = botConfig.language;
+            }
+            
+            if (botConfig.callConfig.voiceId) {
+                const voiceIdSelect = document.getElementById('voice_id');
+                if (voiceIdSelect) voiceIdSelect.value = botConfig.callConfig.voiceId;
+            } else if (botConfig.voiceId) {
+                // Compatibilidad con versiones anteriores
+                const voiceIdSelect = document.getElementById('voice_id');
+                if (voiceIdSelect) voiceIdSelect.value = botConfig.voiceId;
+            }
+        } else {
+            // Compatibilidad con versiones anteriores
+            if (botConfig.language) {
+                const languageSelect = document.getElementById('voice_language');
+                if (languageSelect) languageSelect.value = botConfig.language;
+            }
+            
+            if (botConfig.voiceId) {
+                const voiceIdSelect = document.getElementById('voice_id');
+                if (voiceIdSelect) voiceIdSelect.value = botConfig.voiceId;
+            }
         }
         
         // Personalidad del bot
@@ -3726,6 +3764,27 @@ function loadBotConfiguration(token) {
             if (botConfig.aiConfig.presencePenalty !== undefined) document.getElementById('ai_presence_penalty').value = botConfig.aiConfig.presencePenalty;
         }
         
+        // Configuración de email
+        if (botConfig.emailConfig) {
+            // Activación de emails
+            if (botConfig.emailConfig.enabled !== undefined) {
+                const emailCheckbox = document.getElementById('enable_emails');
+                if (emailCheckbox) emailCheckbox.checked = botConfig.emailConfig.enabled;
+            }
+            
+            // Firma de correo
+            if (botConfig.emailConfig.emailSignature) {
+                const signatureField = document.getElementById('email_signature');
+                if (signatureField) signatureField.value = botConfig.emailConfig.emailSignature;
+            }
+            
+            // Otros campos de configuración de email si existen
+            if (botConfig.emailConfig.autoReplyMessage) {
+                const autoReplyField = document.getElementById('auto_reply_message');
+                if (autoReplyField) autoReplyField.value = botConfig.emailConfig.autoReplyMessage;
+            }
+        }
+        
         // Cargar FAQs si existen
         if (botConfig.faqs && Array.isArray(botConfig.faqs) && botConfig.faqs.length > 0) {
             // Limpiar FAQs existentes
@@ -3745,29 +3804,61 @@ function loadBotConfiguration(token) {
         if (botConfig.contextFiles && Object.keys(botConfig.contextFiles).length > 0) {
             const filesList = document.getElementById('context-files-list');
             if (filesList) {
+                // Limpiar archivos existentes - eliminando los hardcodeados
                 filesList.innerHTML = '';
                 
+                // Crear una representación global de archivos para uso en saveUnifiedConfig
+                window.contextFilesData = botConfig.contextFiles;
+                
                 // Convertir el objeto de archivos de contexto a un array
-                const filesArray = Object.values(botConfig.contextFiles);
+                const filesArray = Object.entries(botConfig.contextFiles).map(([key, file]) => {
+                    // Asegurarse que cada archivo tenga su key/id
+                    return {...file, id: key};
+                });
                 
                 filesArray.forEach(file => {
                     const fileItem = document.createElement('li');
-                    fileItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    fileItem.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
+                    fileItem.dataset.fileId = file.id; // Guardar ID para eliminar después
+                    
+                    // Determinar el icono según el tipo de archivo
+                    let fileIcon = 'fa-file-alt';
+                    if (file.name) {
+                        const extension = file.name.split('.').pop().toLowerCase();
+                        if (['pdf'].includes(extension)) fileIcon = 'fa-file-pdf';
+                        else if (['doc', 'docx'].includes(extension)) fileIcon = 'fa-file-word';
+                        else if (['xls', 'xlsx', 'csv'].includes(extension)) fileIcon = 'fa-file-excel';
+                    }
+                    
                     fileItem.innerHTML = `
                         <span>
-                            <i class="fas fa-file-alt me-2"></i>
+                            <i class="fas ${fileIcon} me-2"></i>
                             ${file.name || 'Archivo sin nombre'}
                         </span>
-                        <span class="badge bg-success rounded-pill">${(file.size || 0) / 1024} KB</span>
+                        <div>
+                            <span class="badge bg-success rounded-pill me-2">${((file.size || 0) / 1024).toFixed(1)} KB</span>
+                            <button type="button" class="btn btn-sm btn-danger delete-file" data-file-id="${file.id}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
                     `;
                     filesList.appendChild(fileItem);
+                });
+                
+                // Configurar eventos para eliminar archivos
+                document.querySelectorAll('.delete-file').forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const fileId = this.dataset.fileId;
+                        deleteContextFile(fileId);
+                    });
                 });
                 
                 // Actualizar contador de archivos
                 const countBadge = document.getElementById('context-files-count');
                 if (countBadge) {
                     countBadge.textContent = filesArray.length;
-                    countBadge.classList.remove('d-none');
+                    countBadge.style.display = filesArray.length > 0 ? 'inline' : 'none';
                 }
             }
         }
@@ -3778,6 +3869,46 @@ function loadBotConfiguration(token) {
         console.error('❌ Error al cargar configuración del bot:', error);
         toastr.error('Error al cargar configuración del bot: ' + error.message, 'Error');
     });
+}
+
+/**
+ * Elimina un archivo de contexto de la interfaz y del objeto de datos
+ * @param {string} fileId - ID del archivo a eliminar
+ */
+function deleteContextFile(fileId) {
+    if (!fileId) {
+        console.error('❌ ID de archivo no especificado');
+        return;
+    }
+    
+    console.log('🗑️ Eliminando archivo de contexto:', fileId);
+    
+    // Eliminar del DOM
+    const fileItem = document.querySelector(`li[data-file-id="${fileId}"]`);
+    if (fileItem) {
+        fileItem.remove();
+    }
+    
+    // Eliminar del objeto global de archivos
+    if (window.contextFilesData && window.contextFilesData[fileId]) {
+        // Marcar como eliminado para que processContextFilesWithBackend lo elimine del backend
+        window.contextFilesData[fileId].deleted = true;
+        console.log(`✅ Archivo ${fileId} marcado para eliminación`);
+        
+        // Actualizar contador de archivos
+        const countBadge = document.getElementById('context-files-count');
+        const filesList = document.getElementById('context-files-list');
+        if (countBadge && filesList) {
+            const remainingFiles = filesList.querySelectorAll('li').length;
+            countBadge.textContent = remainingFiles;
+            countBadge.style.display = remainingFiles > 0 ? 'inline' : 'none';
+        }
+        
+        toastr.success('Archivo eliminado correctamente', 'Éxito');
+    } else {
+        console.error('❌ No se encontró el archivo en los datos guardados');
+        toastr.error('No se pudo eliminar el archivo', 'Error');
+    }
 }
 
 /**
@@ -6974,85 +7105,91 @@ function collectContextFiles() {
  */
 function saveUnifiedConfig() {
     return new Promise((resolve, reject) => {
-    // Obtener información del usuario actual
-    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
-    console.log(`💾 Guardando configuración unificada del bot para el usuario ${userId}...`);
-    
-    // Recopilar todos los datos del formulario
-    const config = {
-        // Información de empresa
-        companyName: document.getElementById('company_name')?.value || '',
-        companyDescription: document.getElementById('company_description')?.value || '',
-        companySector: document.getElementById('company_sector')?.value || '',
-        companyPhone: document.getElementById('company_phone')?.value || '',
-        companyEmail: document.getElementById('company_email')?.value || '',
-        companyWebsite: document.getElementById('company_website')?.value || '',
+        // Obtener información del usuario actual
+        const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
+        console.log(`💾 Guardando configuración unificada del bot para el usuario ${userId}...`);
         
-        // Configuración general
-        botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',
-        botPersonality: document.getElementById('bot_personality')?.value || 'professional',
-        welcomeMessage: document.getElementById('welcome_message')?.value || 'Bienvenido a nuestro asistente virtual',
-        businessHours: document.getElementById('business_hours')?.value || 'Lun-Vie: 9:00-18:00',
-        
-        // Configuración de horarios
-        workingHours: {
-            opening: document.getElementById('opening_hour')?.value || '09:00',
-            closing: document.getElementById('closing_hour')?.value || '18:00'
-        },
-        workingDays: {
-            monday: document.getElementById('monday')?.checked || false,
-            tuesday: document.getElementById('tuesday')?.checked || false,
-            wednesday: document.getElementById('wednesday')?.checked || false,
-            thursday: document.getElementById('thursday')?.checked || false,
-            friday: document.getElementById('friday')?.checked || false,
-            saturday: document.getElementById('saturday')?.checked || false,
-            sunday: document.getElementById('sunday')?.checked || false
-        },
-        
-        // Configuración de llamadas
-        callConfig: {
-            enabled: document.getElementById('enable_calls')?.checked || false,
-            voiceId: document.getElementById('voice_id')?.value || '',
-            language: document.getElementById('voice_language')?.value || 'es-ES',
-            confirmationMessage: document.getElementById('confirmation_message')?.value || ''
-        },
-        
-        // Configuración de emails
-        emailConfig: {
-            enabled: document.getElementById('email_bot_active')?.checked || false,
-            provider: document.getElementById('email_provider')?.value || '',
-            outgoingEmail: document.getElementById('outgoing_email')?.value || '',
-            recipientEmail: document.getElementById('recipient_email')?.value || '',
-            forwardRules: document.getElementById('forward_rules')?.value || '',
-            autoReply: document.getElementById('auto_reply')?.checked || false,
-            autoReplyMessage: document.getElementById('auto_reply_message')?.value || '',
-            emailLanguage: document.getElementById('email_language')?.value || 'es-ES',
-            emailSignature: document.getElementById('email_signature')?.value || '',
-            website: document.getElementById('website')?.value || '',
-            emailConsent: document.getElementById('email_consent')?.checked || false
-        },
-        
-        // Configuración manual de IMAP/SMTP (solo si el proveedor es 'other')
-        emailManualConfig: document.getElementById('email_provider')?.value === 'other' ? {
-            imapServer: document.getElementById('imap_server')?.value || '',
-            imapPort: document.getElementById('imap_port')?.value || '',
-            smtpServer: document.getElementById('smtp_server')?.value || '',
-            smtpPort: document.getElementById('smtp_port')?.value || '',
-            useSSL: document.getElementById('use_ssl')?.checked || true
-        } : null,
-        
-        // Configuración avanzada de IA
-        aiConfig: {
-            temperature: parseFloat(document.getElementById('ai_temperature')?.value || '0.7'),
-            maxTokens: parseInt(document.getElementById('ai_max_tokens')?.value || '150'),
-            topP: parseFloat(document.getElementById('ai_top_p')?.value || '0.9'),
-            frequencyPenalty: parseFloat(document.getElementById('ai_frequency_penalty')?.value || '0.0'),
-            presencePenalty: parseFloat(document.getElementById('ai_presence_penalty')?.value || '0.0')
-        },
-        
-        // Archivos de contexto
-        files: collectContextFiles()
-    };
+        // Recopilar todos los datos del formulario
+        const config = {
+            // Información de empresa
+            companyName: document.getElementById('company_name')?.value || '',
+            companyDescription: document.getElementById('company_description')?.value || '',
+            companySector: document.getElementById('company_sector')?.value || '',
+            companyAddress: document.getElementById('company_address')?.value || '',
+            companyPhone: document.getElementById('company_phone')?.value || '',
+            companyEmail: document.getElementById('company_email')?.value || '',
+            companyWebsite: document.getElementById('company_website')?.value || '',
+            
+            // Configuración general
+            botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',
+            botPersonality: document.getElementById('bot_personality')?.value || 'professional',
+            welcomeMessage: document.getElementById('welcome_message')?.value || 'Bienvenido a nuestro asistente virtual',
+            businessHours: document.getElementById('business_hours')?.value || 'Lun-Vie: 9:00-18:00',
+            
+            // Configuración de horarios
+            workingHours: {
+                opening: document.getElementById('opening_hour')?.value || '09:00',
+                closing: document.getElementById('closing_hour')?.value || '18:00'
+            },
+            workingDays: {
+                monday: document.getElementById('monday')?.checked || false,
+                tuesday: document.getElementById('tuesday')?.checked || false,
+                wednesday: document.getElementById('wednesday')?.checked || false,
+                thursday: document.getElementById('thursday')?.checked || false,
+                friday: document.getElementById('friday')?.checked || false,
+                saturday: document.getElementById('saturday')?.checked || false,
+                sunday: document.getElementById('sunday')?.checked || false
+            },
+            
+            // Configuración de llamadas
+            callConfig: {
+                enabled: document.getElementById('enable_calls')?.checked || false,
+                recordCalls: document.getElementById('record_calls')?.checked || false,
+                transcribeCalls: document.getElementById('transcribe_calls')?.checked || false,
+                voiceId: document.getElementById('voice_id')?.value || '',
+                language: document.getElementById('voice_language')?.value || 'es-ES',
+                confirmationMessage: document.getElementById('confirmation_message')?.value || ''
+            },
+            
+            // Configuración de emails
+            emailConfig: {
+                enabled: document.getElementById('email_bot_active')?.checked || false,
+                provider: document.getElementById('email_provider')?.value || '',
+                outgoingEmail: document.getElementById('outgoing_email')?.value || '',
+                recipientEmail: document.getElementById('recipient_email')?.value || '',
+                forwardRules: document.getElementById('forward_rules')?.value || '',
+                autoReply: document.getElementById('auto_reply')?.checked || false,
+                autoReplyMessage: document.getElementById('auto_reply_message')?.value || '',
+                emailLanguage: document.getElementById('email_language')?.value || 'es-ES',
+                emailSignature: document.getElementById('email_signature')?.value || '',
+                website: document.getElementById('website')?.value || '',
+                emailConsent: document.getElementById('email_consent')?.checked || false
+            },
+            
+            // Configuración manual de IMAP/SMTP (solo si el proveedor es 'other')
+            emailManualConfig: document.getElementById('email_provider')?.value === 'other' ? {
+                imapServer: document.getElementById('imap_server')?.value || '',
+                imapPort: document.getElementById('imap_port')?.value || '',
+                smtpServer: document.getElementById('smtp_server')?.value || '',
+                smtpPort: document.getElementById('smtp_port')?.value || '',
+                useSSL: document.getElementById('use_ssl')?.checked || true
+            } : null,
+            
+            // Configuración avanzada de IA
+            aiConfig: {
+                temperature: parseFloat(document.getElementById('ai_temperature')?.value || '0.7'),
+                maxTokens: parseInt(document.getElementById('ai_max_tokens')?.value || '150'),
+                topP: parseFloat(document.getElementById('ai_top_p')?.value || '0.9'),
+                frequencyPenalty: parseFloat(document.getElementById('ai_frequency_penalty')?.value || '0.0'),
+                presencePenalty: parseFloat(document.getElementById('ai_presence_penalty')?.value || '0.0')
+            },
+            
+            // Preguntas frecuentes
+            faqs: collectFaqItems(),
+            
+            // Archivos de contexto
+            files: collectContextFiles()
+        };
     
     console.log('📝 Configuración recopilada:', config);
     
@@ -7143,129 +7280,153 @@ function saveUnifiedConfig() {
             name: config.companyName,
             description: config.companyDescription,
             sector: config.companySector,
+            address: document.getElementById('company_address')?.value || '',
             phone: config.companyPhone,
             email: config.companyEmail,
             website: config.companyWebsite
         },
         
+        // Configuración de llamadas
+        callConfig: {
+            enabled: document.getElementById('enable_calls')?.checked || false,
+            recordCalls: document.getElementById('record_calls')?.checked || false,
+            transcribeCalls: document.getElementById('transcribe_calls')?.checked || false,
+            voiceId: config.callConfig.voiceId,
+            language: config.callConfig.language,
+            confirmationMessage: config.callConfig.confirmationMessage
+        },
+        
+        // Configuración de emails
+        emailConfig: {
+            enabled: config.emailConfig.enabled,
+            provider: config.emailConfig.provider,
+            outgoingEmail: config.emailConfig.outgoingEmail,
+            recipientEmail: config.emailConfig.recipientEmail,
+            forwardRules: config.emailConfig.forwardRules,
+            autoReply: config.emailConfig.autoReply,
+            autoReplyMessage: config.emailConfig.autoReplyMessage,
+            emailLanguage: config.emailConfig.emailLanguage,
+            emailSignature: document.getElementById('email_signature')?.value || '',
+            website: config.emailConfig.website,
+            emailConsent: config.emailConfig.emailConsent
+        },
+        
         // Configuración avanzada de IA
         aiConfig: config.aiConfig,
+        
+        // Preguntas frecuentes (FAQs)
+        faqs: collectFaqItems(),
         
         // Opciones DTMF para el manejo de tonos telefónicos
         dtmfOptions: config.dtmfOptions || [],
         
-        // Inicializar el objeto de archivos de contexto vacío (se llenará después)
+        // Incluir los archivos de contexto recopilados (placeholder, se llenará después con los archivos reales)
         contextFiles: {}
     };
+    
+    console.log('📁 Preguntas frecuentes incluidas:', botConfig.faqs);
+    console.log('📁 Archivos de contexto a procesar:', config.files);
     
     // Obtener token de autenticación
     const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
     if (!authToken) {
         toastr.error('No se encontró token de autenticación', 'Error');
-        return;
+        return reject(new Error('No se encontró token de autenticación'));
     }
     
     // Enviar la configuración del bot al backend usando la URL completa
     const apiUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
     console.log('🔗 Usando URL base de API:', apiUrl);
     
-    fetch(`${apiUrl}/api/config/bot`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify(botConfig)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error en la respuesta del servidor');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('✅ Configuración del bot guardada:', data);
-        
-        // Ahora enviar la configuración de emails
-        return window.ApiHelper.fetchApi('/api/config/email', {
-            method: 'PUT',
-            body: JSON.stringify({
-                enabled: config.emailConfig.enabled,
-                provider: config.emailConfig.provider,
-                outgoingEmail: config.emailConfig.outgoingEmail,
-                recipientEmail: config.emailConfig.recipientEmail,
-                forwardRules: config.emailConfig.forwardRules,
-                autoReply: config.emailConfig.autoReply,
-                autoReplyMessage: config.emailConfig.autoReplyMessage,
-                emailLanguage: config.emailConfig.emailLanguage,
-                emailSignature: config.emailConfig.emailSignature,
-                website: config.emailConfig.website,
-                emailConsent: config.emailConfig.emailConsent,
-                manualConfig: config.emailManualConfig
-            })
-        });
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error al guardar configuración de emails');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('✅ Configuración de emails guardada:', data);
-        
-        // Actualizar perfil de empresa
-        return window.ApiHelper.fetchApi('/api/profile', {
-            method: 'PUT',
-            body: JSON.stringify({
-                companyName: config.companyName,
-                email: config.companyEmail,
-                phone: config.companyPhone,
-                website: config.companyWebsite,
-                industry: config.companySector
-            })
-        });
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error al actualizar perfil de empresa');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('✅ Perfil de empresa actualizado:', data);
-        
-        // Procesar archivos si existen
-        if (config.files && config.files.length > 0) {
-            return processContextFilesWithBackend(config.files);
-        }
-        return Promise.resolve();
-    })
-    .then(() => {
-        // Registrar la acción en el sistema de seguimiento de uso
-        if (window.UsageTracker) {
-            // Incrementar contador de configuraciones guardadas
-            window.UsageTracker.updateUserCount(1);
-            console.log(`📊 Configuración del bot registrada para el usuario ${window.UsageTracker.getCurrentUserId()}`);
+    // Primero procesamos los archivos de contexto y luego guardamos la configuración completa
+    console.log('📚 Procesando archivos de contexto...');
+    
+    // Actualizar botConfig con los FAQs recolectados
+    botConfig.faqs = collectFaqItems();
+    console.log('📝 FAQs recopiladas:', botConfig.faqs);
+    
+    // Procesar archivos de contexto
+    let processFilesPromise;
+    
+    // Verificamos si hay archivos para procesar
+    if (config.files && typeof config.files === 'object') {
+        processFilesPromise = processContextFilesWithBackend(config.files);
+    } else {
+        processFilesPromise = Promise.resolve({files: {}});
+    }
+    
+    processFilesPromise
+        .then((result) => {
+            console.log('✅ Archivos de contexto procesados:', result);
             
-            // Actualizar la UI del sistema de seguimiento
-            window.UsageTracker.updateUI();
-            
-            // Actualizar el resumen de uso si está visible
-            if (typeof showUsageSummary === 'function') {
-                showUsageSummary();
+            // Actualizar el objeto botConfig con los archivos de contexto procesados
+            if (result && result.files) {
+                botConfig.contextFiles = result.files;
             }
-        }
-        
-        toastr.success('Configuración guardada correctamente', '¡Éxito!');
-        resolve();
-    })
-    .catch(error => {
-        console.error('Error guardando configuración:', error);
-        toastr.error('Error al guardar la configuración: ' + error.message, 'Error');
-        reject(error);
+            
+            console.log('📤 Enviando configuración completa al backend:', botConfig);
+            
+            // Guardar configuración del bot en la API
+            return window.ApiHelper.fetchApi('/api/config/bot', {
+                method: 'POST',
+                body: JSON.stringify(botConfig)
+            });
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al guardar configuración del bot');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('✅ Configuración del bot guardada:', data);
+            
+            // Actualizar perfil de empresa
+            return window.ApiHelper.fetchApi('/api/profile', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    companyName: config.companyName,
+                    email: config.companyEmail,
+                    phone: config.companyPhone,
+                    website: config.companyWebsite,
+                    industry: config.companySector,
+                    address: config.companyAddress
+                })
+            });
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al actualizar perfil de empresa');
+            }
+            return response.json();
+        })
+        .then(profileData => {
+            console.log('✅ Perfil de empresa actualizado:', profileData);
+            
+            // Registrar la acción en el sistema de seguimiento de uso
+            if (window.UsageTracker) {
+                // Incrementar contador de configuraciones guardadas
+                window.UsageTracker.updateUserCount(1);
+                console.log(`📊 Configuración del bot registrada para el usuario ${window.UsageTracker.getCurrentUserId()}`);
+                
+                // Actualizar la UI del sistema de seguimiento
+                window.UsageTracker.updateUI();
+                
+                // Actualizar el resumen de uso si está visible
+                if (typeof showUsageSummary === 'function') {
+                    showUsageSummary();
+                }
+            }
+            
+            toastr.success('Configuración guardada correctamente', '¡Éxito!');
+            resolve();
+        })
+        .catch(error => {
+            console.error('Error guardando configuración:', error);
+            toastr.error('Error al guardar la configuración: ' + error.message, 'Error');
+            reject(error);
+        });
     });
-  });
 }
 
 // ...
