@@ -3565,14 +3565,19 @@ function loadExistingData() {
         return;
     }
     
-    // Cargar datos de perfil
-    loadProfileData(token);
-    
-    // Cargar configuración del bot
-    loadBotConfiguration(token);
-    
-    // Cargar configuración de emails
-    loadEmailConfiguration(token);
+    // Añadir un pequeño delay para asegurar que el DOM esté completamente renderizado
+    setTimeout(() => {
+        console.log('🔄 Iniciando carga de datos después del renderizado del DOM...');
+        
+        // Cargar datos de perfil
+        loadProfileData(token);
+        
+        // Cargar configuración del bot
+        loadBotConfiguration(token);
+        
+        // Cargar configuración de emails
+        loadEmailConfiguration(token);
+    }, 100); // 100ms debería ser suficiente para el renderizado
 }
 
 /**
@@ -3651,76 +3656,67 @@ function loadBotConfiguration(token) {
     .then(botConfig => {
         console.log('💾 Datos recibidos del servidor:', botConfig);
         
+        // Función auxiliar para establecer valores de forma segura
+        const safeSetValue = (id, value) => {
+            const element = document.getElementById(id);
+            if (element && value !== undefined && value !== null) {
+                element.value = value;
+                console.log(`✅ Campo ${id} cargado:`, value);
+            } else if (!element) {
+                console.warn(`⚠️ Elemento ${id} no encontrado en el DOM`);
+            }
+        };
+        
+        const safeSetChecked = (id, value) => {
+            const element = document.getElementById(id);
+            if (element && value !== undefined && value !== null) {
+                element.checked = value;
+                console.log(`✅ Checkbox ${id} cargado:`, value);
+            } else if (!element) {
+                console.warn(`⚠️ Elemento ${id} no encontrado en el DOM`);
+            }
+        };
+        
         // Información básica del bot
-        if (botConfig.botName) {
-            document.getElementById('bot_name').value = botConfig.botName;
-        }
-        
-        if (botConfig.welcomeMessage) {
-            document.getElementById('welcome_message').value = botConfig.welcomeMessage;
-        }
-        
-        if (botConfig.confirmationMessage) {
-            document.getElementById('confirmation_message').value = botConfig.confirmationMessage;
-        }
+        safeSetValue('bot_name', botConfig.botName);
+        safeSetValue('welcome_message', botConfig.welcomeMessage);
+        safeSetValue('confirmation_message', botConfig.confirmationMessage);
         
         // Datos de empresa
         if (botConfig.company) {
-            if (botConfig.company.name) document.getElementById('company_name').value = botConfig.company.name;
-            if (botConfig.company.description) document.getElementById('company_description').value = botConfig.company.description;
-            if (botConfig.company.sector) document.getElementById('company_sector').value = botConfig.company.sector;
-            if (botConfig.company.address) document.getElementById('company_address').value = botConfig.company.address;
-            if (botConfig.company.phone) document.getElementById('company_phone').value = botConfig.company.phone;
-            if (botConfig.company.email) document.getElementById('company_email').value = botConfig.company.email;
-            if (botConfig.company.website) document.getElementById('company_website').value = botConfig.company.website;
+            safeSetValue('company_name', botConfig.company.name);
+            safeSetValue('company_description', botConfig.company.description);
+            safeSetValue('company_sector', botConfig.company.sector);
+            safeSetValue('company_address', botConfig.company.address);
+            safeSetValue('company_phone', botConfig.company.phone);
+            safeSetValue('company_email', botConfig.company.email);
+            safeSetValue('company_website', botConfig.company.website);
         }
         
         // Configuración de llamadas
         if (botConfig.callConfig) {
-            // Activación de llamadas
-            if (botConfig.callConfig.enabled !== undefined) {
-                document.getElementById('enable_calls').checked = botConfig.callConfig.enabled;
-            }
-            
-            // Grabación de llamadas
-            if (botConfig.callConfig.recordCalls !== undefined) {
-                document.getElementById('record_calls').checked = botConfig.callConfig.recordCalls;
-            }
-            
-            // Transcripción de llamadas
-            if (botConfig.callConfig.transcribeCalls !== undefined) {
-                document.getElementById('transcribe_calls').checked = botConfig.callConfig.transcribeCalls;
-            }
-            
-            // Idioma y voz
-            if (botConfig.callConfig.language) {
-                const languageSelect = document.getElementById('voice_language');
-                if (languageSelect) languageSelect.value = botConfig.callConfig.language;
-            } else if (botConfig.language) {
-                // Compatibilidad con versiones anteriores
-                const languageSelect = document.getElementById('voice_language');
-                if (languageSelect) languageSelect.value = botConfig.language;
-            }
-            
-            if (botConfig.callConfig.voiceId) {
-                const voiceIdSelect = document.getElementById('voice_id');
-                if (voiceIdSelect) voiceIdSelect.value = botConfig.callConfig.voiceId;
-            } else if (botConfig.voiceId) {
-                // Compatibilidad con versiones anteriores
-                const voiceIdSelect = document.getElementById('voice_id');
-                if (voiceIdSelect) voiceIdSelect.value = botConfig.voiceId;
-            }
-        } else {
+            safeSetChecked('enable_calls', botConfig.callConfig.enabled);
+            safeSetChecked('record_calls', botConfig.callConfig.recordCalls);
+            safeSetChecked('transcribe_calls', botConfig.callConfig.transcribeCalls);
+        }
+        
+        // Idioma y voz (con compatibilidad hacia atrás)
+        if (botConfig.callConfig && botConfig.callConfig.language) {
+            const languageSelect = document.getElementById('voice_language');
+            if (languageSelect) languageSelect.value = botConfig.callConfig.language;
+        } else if (botConfig.language) {
             // Compatibilidad con versiones anteriores
-            if (botConfig.language) {
-                const languageSelect = document.getElementById('voice_language');
-                if (languageSelect) languageSelect.value = botConfig.language;
-            }
-            
-            if (botConfig.voiceId) {
-                const voiceIdSelect = document.getElementById('voice_id');
-                if (voiceIdSelect) voiceIdSelect.value = botConfig.voiceId;
-            }
+            const languageSelect = document.getElementById('voice_language');
+            if (languageSelect) languageSelect.value = botConfig.language;
+        }
+        
+        if (botConfig.callConfig && botConfig.callConfig.voiceId) {
+            const voiceIdSelect = document.getElementById('voice_id');
+            if (voiceIdSelect) voiceIdSelect.value = botConfig.callConfig.voiceId;
+        } else if (botConfig.voiceId) {
+            // Compatibilidad con versiones anteriores
+            const voiceIdSelect = document.getElementById('voice_id');
+            if (voiceIdSelect) voiceIdSelect.value = botConfig.voiceId;
         }
         
         // Personalidad del bot
