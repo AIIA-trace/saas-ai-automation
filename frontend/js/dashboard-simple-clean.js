@@ -3384,7 +3384,7 @@ function setupEventListeners() {
         console.log('🔧 Usando ApiHelper para guardar la configuración');
         
         // Usar el sistema ApiHelper para manejar la petición API
-        window.ApiHelper.fetchApi('/api/config/bot', {
+        window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
             method: 'PUT',
             body: JSON.stringify(botConfigData)
         })
@@ -7627,7 +7627,7 @@ function saveUnifiedConfig() {
             console.log('📤 Enviando configuración completa al backend:', botConfig);
             
             // Guardar configuración del bot en la API
-            return window.ApiHelper.fetchApi('/api/config/bot', {
+            return window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
                 method: 'PUT',
                 body: JSON.stringify(botConfig)
             });
@@ -7642,7 +7642,7 @@ function saveUnifiedConfig() {
             console.log('✅ Configuración del bot guardada:', data);
             
             // Actualizar perfil de empresa
-            return window.ApiHelper.fetchApi('/api/profile', {
+            return window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.UPDATE_PROFILE, {
                 method: 'PUT',
                 body: JSON.stringify({
                     companyName: config.companyName,
