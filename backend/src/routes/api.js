@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 
 // Health check endpoint para Render
 router.get('/health', (req, res) => {
@@ -14,7 +15,7 @@ const authService = require('../services/authService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const logger = require('../utils/logger');
 
-// Middleware para verificar la autenticación
+// Middleware para verificar la autenticación JWT
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -24,26 +25,34 @@ const authenticate = async (req, res, next) => {
   const token = authHeader.substring(7);
   
   try {
-    // Verificar API key del cliente
-    const client = await prisma.client.findFirst({
+    // Verificar JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    // Buscar el cliente por ID del token
+    const client = await prisma.client.findUnique({
       where: {
-        apiKey: token,
+        id: decoded.id
       }
     });
     
     if (!client) {
-      return res.status(401).json({ error: 'API key inválida' });
+      return res.status(401).json({ error: 'Usuario no encontrado' });
     }
     
-    // Verificar si la suscripción está activa
-    if (!client.subscriptionStatus || client.subscriptionStatus === 'inactive') {
-      return res.status(403).json({ error: 'Suscripción inactiva' });
+    // Verificar si el cliente está activo
+    if (!client.isActive) {
+      return res.status(403).json({ error: 'Cuenta desactivada' });
     }
     
     // Añadir cliente a la request
     req.client = client;
     next();
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expirado' });
+    } else if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
     logger.error(`Error de autenticación: ${error.message}`);
     return res.status(500).json({ error: 'Error de autenticación' });
   }
