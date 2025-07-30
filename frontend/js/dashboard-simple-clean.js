@@ -1201,8 +1201,7 @@ function createEmailsTabContent() {
                                 </div>
                             </div>
                         </div>
-                        
-                        
+
                         <!-- Lista de emails -->
                         <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: auto;">
                             <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 750px;">
@@ -1842,7 +1841,6 @@ function createAccountTabContent() {
                                     </div>
                                 </div>
                             </div>
-                            
 
                         </div>
                     </div>
@@ -2449,18 +2447,12 @@ function loadCallsData() {
     }
     
     // Realizar petición al backend
-    fetch('/api/calls', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    })
+    window.ApiHelper.fetchApi({ url: '/api/calls', auth: 'jwt' }, { method: 'GET' })
     .then(response => {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        return response.json();
+
     })
     .then(callsData => {
         // Limpiar tabla de llamadas
@@ -2738,11 +2730,9 @@ function playCallRecording(callId) {
         }
         
         // Cargar audio desde el backend
-        fetch(`/api/calls/${callId}/recording`, {
+        window.ApiHelper.fetchApi({ url: `/api/calls/${callId}/recording`, auth: 'jwt' }, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: {            }
         })
         .then(response => {
             if (!response.ok) {
@@ -2886,12 +2876,9 @@ function markCallAsManaged(callId) {
     }
     
     // Enviar actualización al backend
-    fetch(`/api/calls/${callId}/status`, {
+    window.ApiHelper.fetchApi({ url: `/api/calls/${callId}/status`, auth: 'jwt' }, {
         method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             managed: !isManaged
         })
@@ -2900,7 +2887,7 @@ function markCallAsManaged(callId) {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        return response.json();
+
     })
     .then(data => {
         console.log(`✅ API: Llamada ${callId} estado actualizado a ${!isManaged ? 'gestionada' : 'pendiente'}`);
@@ -3392,7 +3379,7 @@ function setupEventListeners() {
             if (!response.ok) {
                 throw new Error(`Error ${response.status}: ${response.statusText}`);
             }
-            return response.json();
+
         })
         .then(data => {
             console.log('Configuración guardada exitosamente:', data);
@@ -3450,10 +3437,6 @@ function setupEventListeners() {
     
     console.log('✅ Event listeners configurados');
 }
-
-
-
-
 
 /**
  * Inicializar el dashboard
@@ -3588,15 +3571,15 @@ function loadExistingData() {
         
         // Cargar datos de perfil desde backend
         console.log('👤 Iniciando carga de datos de perfil...');
-        loadProfileData(token);
+        loadProfileData();
         
         // Cargar configuración del bot
         console.log('🤖 Iniciando carga de configuración del bot...');
-        loadBotConfiguration(token);
+        loadBotConfiguration();
         
         // Cargar configuración de emails
         console.log('📧 Iniciando carga de configuración de emails...');
-        loadEmailConfiguration(token);
+        loadEmailConfiguration();
         
         console.log('✅ Todas las funciones de carga iniciadas');
     }, 500); // Aumentar a 500ms para asegurar renderizado completo
@@ -3686,24 +3669,11 @@ function loadRegistrationData() {
 
 /**
  * Cargar datos de perfil desde el backend
- * @param {string} token - Token de autenticación
  */
-function loadProfileData(token) {
+function loadProfileData() {
     console.log('👤 Cargando datos de perfil...');
     
-    fetch('/api/profile', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
+    window.ApiHelper.fetchApi({ url: '/api/profile', auth: 'jwt' }, { method: 'GET' })
     .then(profileData => {
         // Rellenar campos del formulario con los datos del perfil
         document.getElementById('company_name').value = profileData.companyName || '';
@@ -3735,36 +3705,24 @@ function loadProfileData(token) {
 
 /**
  * Cargar configuración del bot desde el backend
- * @param {string} token - Token de autenticación
  */
-function loadBotConfiguration(token) {
+function loadBotConfiguration() {
     console.log('🚨 ===== INICIANDO CARGA DE CONFIGURACIÓN DEL BOT =====');
     console.log('💾 Cargando configuración del bot...');
     console.log('🕰️ Timestamp:', new Date().toISOString());
-    console.log('🔑 Token presente:', !!token);
-    console.log('🔑 Token valor:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
+    console.log('🔑 Usando ApiHelper unificado con JWT automático');
     console.log('🎯 Elementos en DOM:', document.querySelectorAll('input, select, textarea').length);
     console.log('🌐 URL actual:', window.location.href);
     console.log('📍 Función llamada desde:', new Error().stack.split('\n')[2]);
     
-    // Usar la URL base de la API configurada
-    const apiUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
-    console.log('🔗 Usando URL base de API para cargar configuración:', apiUrl);
+    // Usar el ApiHelper unificado
+    console.log('🔗 Usando ApiHelper unificado para cargar configuración');
     
-    fetch(`${apiUrl}/api/config/bot`, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
+    window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
+        method: 'GET'
     })
     .then(botConfig => {
+        // El ApiHelper ya parsea el JSON automáticamente
         console.log('💾 Datos recibidos del servidor:', botConfig);
         
         // Función auxiliar para establecer valores de forma segura
@@ -4102,24 +4060,11 @@ function deleteContextFile(fileId) {
 
 /**
  * Cargar configuración de emails desde el backend
- * @param {string} token - Token de autenticación
  */
-function loadEmailConfiguration(token) {
+function loadEmailConfiguration() {
     console.log('📧 Cargando configuración de emails...');
     
-    fetch('/api/config/email', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
+    window.ApiHelper.fetchApi({ url: '/api/config/email', auth: 'jwt' }, { method: 'GET' })
     .then(emailConfig => {
         // Rellenar campos del formulario con la configuración de emails
         if (emailConfig.forwardRules) {
@@ -4256,7 +4201,6 @@ function loadEmailConfiguration(token) {
     
     // Actualizar contadores
     updateCallsCount();
-    
 
 /**
  * Configurar funcionalidades adicionales
@@ -4591,18 +4535,12 @@ function loadEmailsData() {
     }
     
     // Realizar petición al backend
-    fetch('/api/emails', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    })
+    window.ApiHelper.fetchApi({ url: '/api/emails', auth: 'jwt' }, { method: 'GET' })
     .then(response => {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        return response.json();
+
     })
     .then(emailsData => {
         // Limpiar tabla de emails
@@ -5065,12 +5003,9 @@ function toggleEmailFavorite(emailId, starIcon) {
     }
     
     // Enviar actualización al backend
-    fetch(`/api/emails/${emailId}/favorite`, {
+    window.ApiHelper.fetchApi({ url: `/api/emails/${emailId}/favorite`, auth: 'jwt' }, {
         method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             favorite: !isImportant
         })
@@ -5079,7 +5014,7 @@ function toggleEmailFavorite(emailId, starIcon) {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        return response.json();
+
     })
     .then(data => {
         console.log(`✅ API: Email ${emailId} estado de favorito actualizado a ${!isImportant}`);
@@ -5490,8 +5425,6 @@ function viewEmailHistory(emailId) {
     historyModal.show();
 }
 
-
-
 /**
  * Marcar email como leído
  * @param {number} emailId - ID del email
@@ -5534,12 +5467,9 @@ function markEmailAsRead(emailId) {
     }
     
     // Enviar actualización al backend
-    fetch(`/api/emails/${emailId}/read`, {
+    window.ApiHelper.fetchApi({ url: `/api/emails/${emailId}/read`, auth: 'jwt' }, {
         method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             read: isRead
         })
@@ -5548,7 +5478,7 @@ function markEmailAsRead(emailId) {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        return response.json();
+
     })
     .then(data => {
         console.log(`✅ API: Email ${emailId} estado actualizado a ${!isRead ? 'no leído' : 'leído'}`);
@@ -6039,12 +5969,9 @@ function toggleCallImportance(callId, starBtn) {
     }
     
     // Enviar actualización al backend
-    fetch(`/api/calls/${callId}/importance`, {
+    window.ApiHelper.fetchApi({ url: `/api/calls/${callId}/importance`, auth: 'jwt' }, {
         method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             important: !isStarred
         })
@@ -6053,7 +5980,7 @@ function toggleCallImportance(callId, starBtn) {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        return response.json();
+
     })
     .then(data => {
         console.log(`✅ API: Llamada ${callId} importancia actualizada a ${!isStarred ? 'importante' : 'normal'}`);
@@ -6417,19 +6344,16 @@ function setupAccountFeatures() {
             const token = localStorage.getItem('auth_token');
             
             // Enviar los datos al backend
-            fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.UPDATE_PROFILE, {
+            window.ApiHelper.fetchApi(API_CONFIG.DASHBOARD.UPDATE_PROFILE, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(profileData)
             })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Error HTTP: ${response.status}`);
                 }
-                return response.json();
+
             })
             .then(data => {
                 console.log('Perfil actualizado exitosamente:', data);
@@ -6512,23 +6436,15 @@ function setupAccountFeatures() {
             toastr.info('Actualizando contraseña...', 'Procesando');
             
             // Enviar petición al backend
-            fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.CHANGE_PASSWORD, {
+            window.ApiHelper.fetchApi(API_CONFIG.DASHBOARD.CHANGE_PASSWORD, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     currentPassword: currentPassword,
                     newPassword: newPassword
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => Promise.reject(err));
-                }
-                return response.json();
-            })
+            
             .then(data => {
                 console.log('Contraseña actualizada exitosamente:', data);
                 toastr.success('Contraseña actualizada correctamente', 'Éxito');
@@ -7222,12 +7138,11 @@ async function updateBotStatusOnServer(isActive) {
         console.log(`📞 Actualizando estado del bot en servidor: ${isActive ? 'activo' : 'inactivo'}`);
         
         // En producción, esto sería una llamada real al backend
-        // const response = await fetch('/api/bot/status', {
+        // const response = await window.ApiHelper.fetchApi({ url: '/api/bot/status', auth: 'jwt' }, {
         //     method: 'POST',
         //     headers: {
         //         'Content-Type': 'application/json',
-        //         'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        //     },
+        //        //     },
         //     body: JSON.stringify({ active: isActive })
         // });
         
@@ -7632,12 +7547,7 @@ function saveUnifiedConfig() {
                 body: JSON.stringify(botConfig)
             });
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error al guardar configuración del bot');
-            }
-            return response.json();
-        })
+        
         .then(data => {
             console.log('✅ Configuración del bot guardada:', data);
             
@@ -7654,12 +7564,7 @@ function saveUnifiedConfig() {
                 })
             });
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error al actualizar perfil de empresa');
-            }
-            return response.json();
-        })
+        
         .then(profileData => {
             console.log('✅ Perfil de empresa actualizado:', profileData);
             
@@ -7716,20 +7621,12 @@ function testBotConfiguration() {
     };
     
     // Enviar solicitud al backend para probar el bot
-    fetch('/api/bot/test', {
+    window.ApiHelper.fetchApi({ url: '/api/bot/test', auth: 'jwt' }, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(testData)
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error al probar la configuración del bot');
-        }
-        return response.json();
-    })
+    
     .then(data => {
         console.log('✅ Prueba del bot completada:', data);
         
@@ -7926,18 +7823,12 @@ function loadSampleFaqs() {
         
         // Intentar cargar desde la API
         console.log('📡 Intentando cargar preguntas frecuentes desde la API...');
-        fetch('/api/bot/faqs', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        })
+        window.ApiHelper.fetchApi({ url: '/api/bot/faqs', auth: 'jwt' }, { method: 'GET' })
         .then(response => {
             if (!response.ok) {
                 throw new Error(`Error ${response.status}: ${response.statusText}`);
             }
-            return response.json();
+
         })
         .then(faqs => {
             // Añadir preguntas al DOM
@@ -8291,7 +8182,7 @@ function processContextFilesWithBackend(filesData) {
                 if (!response.ok) {
                     throw new Error(`Error al subir archivo ${file.name}`);
                 }
-                return response.json();
+
             })
             .then(data => {
                 console.log(`✅ Archivo nuevo ${file.name} subido correctamente:`, data);
@@ -8314,17 +8205,10 @@ function processContextFilesWithBackend(filesData) {
         // Crear promesa para eliminar archivos
         const deletePromise = fetchApi('/api/config/delete-context-files', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ files: filesData.deletedFiles })
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Error al eliminar archivos`);
-            }
-            return response.json();
-        })
+        
         .then(data => {
             console.log(`✅ Archivos eliminados correctamente:`, data);
             // Eliminar marcadores de archivos eliminados del DOM
@@ -8974,12 +8858,9 @@ function savePaymentMethod() {
     toastr.info('Guardando método de pago...', 'Procesando');
     
     // Enviar datos al backend
-    fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.PAYMENT_METHOD, {
+    window.ApiHelper.fetchApi(API_CONFIG.DASHBOARD.PAYMENT_METHOD, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             type: 'card',
             cardNumber: cardNumber.replace(/\s/g, ''),
@@ -8988,12 +8869,7 @@ function savePaymentMethod() {
             isDefault: true
         })
     })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => Promise.reject(err));
-        }
-        return response.json();
-    })
+    
     .then(data => {
         console.log('Método de pago guardado exitosamente:', data);
         toastr.success('Método de pago guardado correctamente', 'Guardado');
@@ -9030,18 +8906,15 @@ function loadPaymentMethods() {
     const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
     
     // Cargar datos desde el backend
-    fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.PAYMENT_METHODS, {
+    window.ApiHelper.fetchApi(API_CONFIG.DASHBOARD.PAYMENT_METHODS, {
         method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Content-Type': 'application/json' }
     })
     .then(response => {
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
-        return response.json();
+
     })
     .then(data => {
         console.log('Métodos de pago cargados:', data);
@@ -9116,19 +8989,11 @@ function deletePaymentMethod(methodId) {
     toastr.info('Eliminando método de pago...', 'Procesando');
     
     // Enviar solicitud de eliminación
-    fetch(`${API_CONFIG.apiBaseUrl}${API_CONFIG.DASHBOARD.PAYMENT_METHOD}/${methodId}`, {
+    window.ApiHelper.fetchApi({ url: `${API_CONFIG.DASHBOARD.PAYMENT_METHOD}/${methodId}`, auth: 'jwt' }, {
         method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Content-Type': 'application/json' }
     })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => Promise.reject(err));
-        }
-        return response.json();
-    })
+    
     .then(data => {
         console.log('Método de pago eliminado exitosamente:', data);
         toastr.success('Método de pago eliminado correctamente', 'Eliminado');
@@ -9317,12 +9182,9 @@ function saveBillingInfo() {
     toastr.info('Guardando datos de facturación...', 'Procesando');
     
     // Enviar datos al backend
-    fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.BILLING_INFO, {
+    window.ApiHelper.fetchApi(API_CONFIG.DASHBOARD.BILLING_INFO, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             company,
             taxId,
@@ -9332,12 +9194,7 @@ function saveBillingInfo() {
             country
         })
     })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => Promise.reject(err));
-        }
-        return response.json();
-    })
+    
     .then(data => {
         console.log('Datos de facturación guardados exitosamente:', data);
         toastr.success('Datos de facturación guardados correctamente', 'Guardado');
@@ -9358,18 +9215,15 @@ function loadBillingInfo() {
     const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
     
     // Cargar datos desde el backend
-    fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.BILLING_INFO, {
+    window.ApiHelper.fetchApi(API_CONFIG.DASHBOARD.BILLING_INFO, {
         method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Content-Type': 'application/json' }
     })
     .then(response => {
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
-        return response.json();
+
     })
     .then(data => {
         console.log('Información de facturación cargada:', data);
