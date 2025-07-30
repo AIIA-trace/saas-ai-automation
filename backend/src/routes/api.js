@@ -193,6 +193,110 @@ router.put('/config/bot', authenticate, async (req, res) => {
   }
 });
 
+// Eliminar archivos de contexto
+router.post('/config/delete-context-files', authenticate, async (req, res) => {
+  try {
+    const { filesToDelete } = req.body;
+    
+    if (!filesToDelete || !Array.isArray(filesToDelete) || filesToDelete.length === 0) {
+      return res.status(400).json({ error: 'Se requiere una lista de archivos para eliminar' });
+    }
+    
+    // Obtener configuración actual del bot
+    const currentClient = await prisma.client.findUnique({
+      where: { id: req.client.id }
+    });
+    
+    const currentBotConfig = currentClient.botConfig || {};
+    const currentContextFiles = currentBotConfig.contextFiles || {};
+    
+    // Crear una copia del objeto de archivos de contexto
+    const updatedContextFiles = { ...currentContextFiles };
+    
+    // Eliminar los archivos indicados
+    let deletedCount = 0;
+    filesToDelete.forEach(fileName => {
+      // Buscar el archivo por nombre en todas las categorías
+      Object.keys(updatedContextFiles).forEach(fileType => {
+        if (updatedContextFiles[fileType] && updatedContextFiles[fileType].fileName === fileName) {
+          delete updatedContextFiles[fileType];
+          deletedCount++;
+        }
+      });
+    });
+    
+    if (deletedCount === 0) {
+      return res.status(404).json({ error: 'No se encontraron los archivos para eliminar' });
+    }
+    
+    // Actualizar la configuración del bot
+    const updatedBotConfig = {
+      ...currentBotConfig,
+      contextFiles: updatedContextFiles
+    };
+    
+    // Guardar en la base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: {
+        botConfig: updatedBotConfig
+      }
+    });
+    
+    return res.json({
+      success: true,
+      message: `Se eliminaron ${deletedCount} archivos de contexto`,
+      deletedCount
+    });
+  } catch (error) {
+    logger.error(`Error eliminando archivos de contexto: ${error.message}`);
+    return res.status(500).json({ error: 'Error eliminando archivos de contexto' });
+  }
+});
+
+// Verificar configuración del bot en base de datos
+router.get('/config/verify-bot-config', authenticate, async (req, res) => {
+  try {
+    // Obtener la configuración actual del bot directamente de la base de datos
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: {
+        id: true,
+        email: true,
+        companyName: true,
+        botConfig: true
+      }
+    });
+    
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+    
+    // Extraer información sobre archivos de contexto
+    const contextFiles = client.botConfig?.contextFiles || {};
+    const filesInfo = Object.entries(contextFiles).map(([fileType, fileInfo]) => ({
+      fileType,
+      fileName: fileInfo.fileName,
+      fileSize: fileInfo.fileSize,
+      uploadedAt: fileInfo.uploadedAt,
+      status: fileInfo.status
+    }));
+    
+    return res.json({
+      success: true,
+      clientId: client.id,
+      email: client.email,
+      companyName: client.companyName,
+      botConfig: client.botConfig,
+      contextFiles: filesInfo,
+      contextFilesCount: filesInfo.length
+    });
+  } catch (error) {
+    logger.error(`Error verificando configuración del bot: ${error.message}`);
+    return res.status(500).json({ error: 'Error verificando configuración del bot' });
+  }
+});
+
 // Subir archivo de contexto para el bot
 router.post('/bot/upload-context', authenticate, async (req, res) => {
   try {
