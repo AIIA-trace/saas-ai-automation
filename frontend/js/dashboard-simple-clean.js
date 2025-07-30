@@ -3634,7 +3634,10 @@ function loadProfileData(token) {
  * @param {string} token - Token de autenticación
  */
 function loadBotConfiguration(token) {
-    console.log('🤖 Cargando configuración del bot...');
+    console.log('💾 Cargando configuración del bot...');
+    console.log('🕰️ Timestamp:', new Date().toISOString());
+    console.log('🔑 Token presente:', !!token);
+    console.log('🎯 Elementos en DOM:', document.querySelectorAll('input, select, textarea').length);
     
     // Usar la URL base de la API configurada
     const apiUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
@@ -3661,9 +3664,13 @@ function loadBotConfiguration(token) {
             const element = document.getElementById(id);
             if (element && value !== undefined && value !== null) {
                 element.value = value;
-                console.log(`✅ Campo ${id} cargado:`, value);
+                console.log(`✅ Campo ${id} cargado con valor:`, value);
+                console.log(`✅ Elemento ${id} encontrado:`, element);
             } else if (!element) {
                 console.warn(`⚠️ Elemento ${id} no encontrado en el DOM`);
+                console.warn('🔍 Elementos disponibles:', document.querySelectorAll('input, select, textarea').length);
+            } else {
+                console.warn(`⚠️ Valor vacío para ${id}:`, value);
             }
         };
         
