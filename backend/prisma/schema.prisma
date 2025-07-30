@@ -38,6 +38,8 @@ model Client {
   botConfig            Json?          // Configuración del bot de voz
   emailConfig          Json?          // Configuración del manejo de emails
   companyInfo          Json?          // Información de la empresa
+  billingInfo          Json?          // Información de facturación
+  paymentMethods       Json?          // Métodos de pago
   notificationConfig   Json?          // Configuración de notificaciones
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt

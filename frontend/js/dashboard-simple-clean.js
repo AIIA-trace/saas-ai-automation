@@ -3549,15 +3549,21 @@ function loadExistingData() {
     console.log('🌐 URL actual:', window.location.href);
     console.log('📍 Función llamada desde:', new Error().stack.split('\n')[2]);
     
-    // Obtener token de autenticación con múltiples intentos
-    const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    // Obtener token de autenticación usando el servicio de auth
+    const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken') || localStorage.getItem('auth_token');
     console.log('🔑 Token encontrado:', !!token);
     console.log('🔑 Token valor:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
+    console.log('🔍 Verificando sessionStorage:', !!sessionStorage.getItem('authToken'));
+    console.log('🔍 Verificando localStorage authToken:', !!localStorage.getItem('authToken'));
+    console.log('🔍 Verificando localStorage auth_token:', !!localStorage.getItem('auth_token'));
     
     if (!token) {
-        console.error('❌ No se encontró token de autenticación en ninguna clave');
+        console.error('❌ No se encontró token de autenticación en ninguna ubicación');
+        console.error('🔍 Claves en sessionStorage:', Object.keys(sessionStorage));
         console.error('🔍 Claves en localStorage:', Object.keys(localStorage));
-        toastr.error('Error de autenticación', 'Error');
+        toastr.error('Sesión expirada. Por favor, inicia sesión nuevamente.', 'Error de Autenticación');
+        // Redirigir al login
+        window.location.href = '/login.html';
         return;
     }
     
@@ -6474,6 +6480,71 @@ function setupAccountFeatures() {
         });
     }
     
+    // Botón de cambio de contraseña
+    const changePasswordBtn = document.getElementById('change-password-btn');
+    if (changePasswordBtn) {
+        changePasswordBtn.addEventListener('click', function() {
+            console.log('🔐 Cambiando contraseña...');
+            
+            const currentPassword = document.getElementById('current_password').value;
+            const newPassword = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            
+            // Validaciones
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                toastr.error('Por favor, completa todos los campos de contraseña', 'Error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                toastr.error('Las contraseñas nuevas no coinciden', 'Error');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                toastr.error('La nueva contraseña debe tener al menos 6 caracteres', 'Error');
+                return;
+            }
+            
+            // Obtener token del almacenamiento
+            const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+            
+            toastr.info('Actualizando contraseña...', 'Procesando');
+            
+            // Enviar petición al backend
+            fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.CHANGE_PASSWORD, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    currentPassword: currentPassword,
+                    newPassword: newPassword
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Contraseña actualizada exitosamente:', data);
+                toastr.success('Contraseña actualizada correctamente', 'Éxito');
+                
+                // Limpiar campos
+                document.getElementById('current_password').value = '';
+                document.getElementById('new_password').value = '';
+                document.getElementById('confirm_password').value = '';
+            })
+            .catch(error => {
+                console.error('Error al cambiar contraseña:', error);
+                toastr.error(error.error || 'Error al cambiar la contraseña', 'Error');
+            });
+        });
+    }
+    
     // Configurar campos de perfil
     const profileFields = document.querySelectorAll('#account-content input, #account-content select, #account-content textarea');
     profileFields.forEach(field => {
@@ -6492,6 +6563,12 @@ function setupBillingFeatures() {
     // Obtener información del usuario actual
     const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
     console.log(`💳 Configurando funcionalidades de facturación para el usuario ${userId}...`);
+    
+    // Cargar información de facturación existente
+    loadBillingInfo();
+    
+    // Cargar métodos de pago existentes
+    loadPaymentMethods();
     
     // Botón para ver facturas
     const viewInvoicesBtn = document.getElementById('view-invoices-btn');
@@ -8872,18 +8949,53 @@ function showAddPaymentMethodModal() {
 function savePaymentMethod() {
     console.log('💳 Guardando método de pago...');
     
-    // Verificar si ya existe un método de pago
-    const paymentMethodExists = document.getElementById('payment-method-exists');
-    if (!paymentMethodExists.classList.contains('d-none')) {
-        toastr.warning('Ya tienes un método de pago configurado. Solo se permite un método activo.', 'Atención');
+    // Obtener datos del formulario
+    const cardNumber = document.getElementById('card_number')?.value;
+    const expiryDate = document.getElementById('expiry_date')?.value;
+    const cardholderName = document.getElementById('cardholder_name')?.value;
+    const cvv = document.getElementById('cvv')?.value;
+    
+    // Validar campos
+    if (!cardNumber || !expiryDate || !cardholderName || !cvv) {
+        toastr.error('Por favor, completa todos los campos de la tarjeta', 'Error');
         return;
     }
+    
+    // Validar formato de tarjeta (básico)
+    if (cardNumber.replace(/\s/g, '').length < 16) {
+        toastr.error('El número de tarjeta debe tener al menos 16 dígitos', 'Error');
+        return;
+    }
+    
+    // Obtener token del almacenamiento
+    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
     
     // Mostrar spinner de carga
     toastr.info('Guardando método de pago...', 'Procesando');
     
-    // Simular procesamiento
-    setTimeout(() => {
+    // Enviar datos al backend
+    fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.PAYMENT_METHOD, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+            type: 'card',
+            cardNumber: cardNumber.replace(/\s/g, ''),
+            expiryDate,
+            cardholderName,
+            isDefault: true
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Método de pago guardado exitosamente:', data);
         toastr.success('Método de pago guardado correctamente', 'Guardado');
         
         // Cerrar modal
@@ -8893,9 +9005,141 @@ function savePaymentMethod() {
             if (modal) modal.hide();
         }
         
-        // Actualizar UI para mostrar que hay un método de pago
-        updatePaymentMethodsUI(true);
-    }, 1500);
+        // Limpiar formulario
+        document.getElementById('card_number').value = '';
+        document.getElementById('expiry_date').value = '';
+        document.getElementById('cardholder_name').value = '';
+        document.getElementById('cvv').value = '';
+        
+        // Recargar métodos de pago
+        loadPaymentMethods();
+    })
+    .catch(error => {
+        console.error('Error al guardar método de pago:', error);
+        toastr.error(error.error || 'Error al guardar el método de pago', 'Error');
+    });
+}
+
+/**
+ * Cargar métodos de pago existentes
+ */
+function loadPaymentMethods() {
+    console.log(' Cargando métodos de pago...');
+    
+    // Obtener token del almacenamiento
+    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+    
+    // Cargar datos desde el backend
+    fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.PAYMENT_METHODS, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Métodos de pago cargados:', data);
+        
+        if (data.success && data.methods) {
+            displayPaymentMethods(data.methods);
+        } else {
+            displayPaymentMethods([]);
+        }
+    })
+    .catch(error => {
+        console.error('Error al cargar métodos de pago:', error);
+        displayPaymentMethods([]);
+    });
+}
+
+/**
+ * Mostrar métodos de pago en la UI
+ */
+function displayPaymentMethods(methods) {
+    const container = document.getElementById('payment-methods-list');
+    if (!container) return;
+    
+    if (methods.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4 text-muted">
+                <i class="fas fa-credit-card fa-2x mb-3"></i>
+                <p>No hay métodos de pago configurados</p>
+                <small>Agrega tu primer método de pago para comenzar</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = methods.map(method => `
+        <div class="card mb-3" data-method-id="${method.id}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-credit-card text-primary me-3"></i>
+                        <div>
+                            <h6 class="mb-1">${method.cardholderName}</h6>
+                            <small class="text-muted">${method.cardNumber} • ${method.expiryDate}</small>
+                            ${method.isDefault ? '<span class="badge bg-success ms-2">Principal</span>' : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deletePaymentMethod('${method.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * Eliminar método de pago
+ */
+function deletePaymentMethod(methodId) {
+    console.log(` Eliminando método de pago: ${methodId}`);
+    
+    if (!confirm('¿Estás seguro de que deseas eliminar este método de pago?')) {
+        return;
+    }
+    
+    // Obtener token del almacenamiento
+    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+    
+    // Mostrar spinner de carga
+    toastr.info('Eliminando método de pago...', 'Procesando');
+    
+    // Enviar solicitud de eliminación
+    fetch(`${API_CONFIG.apiBaseUrl}${API_CONFIG.DASHBOARD.PAYMENT_METHOD}/${methodId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Método de pago eliminado exitosamente:', data);
+        toastr.success('Método de pago eliminado correctamente', 'Eliminado');
+        
+        // Recargar métodos de pago
+        loadPaymentMethods();
+    })
+    .catch(error => {
+        console.error('Error al eliminar método de pago:', error);
+        toastr.error(error.error || 'Error al eliminar el método de pago', 'Error');
+    });
 }
 
 /**
@@ -9052,9 +9296,6 @@ function disablePlanFeatures() {
 function saveBillingInfo() {
     console.log('💳 Guardando datos de facturación...');
     
-    // Mostrar spinner de carga
-    toastr.info('Guardando datos de facturación...', 'Procesando');
-    
     // Obtener datos del formulario
     const company = document.getElementById('billing_company').value;
     const taxId = document.getElementById('billing_tax_id').value;
@@ -9069,10 +9310,88 @@ function saveBillingInfo() {
         return;
     }
     
-    // Simular guardado
-    setTimeout(() => {
+    // Obtener token del almacenamiento
+    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+    
+    // Mostrar spinner de carga
+    toastr.info('Guardando datos de facturación...', 'Procesando');
+    
+    // Enviar datos al backend
+    fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.BILLING_INFO, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+            company,
+            taxId,
+            address,
+            postalCode,
+            city,
+            country
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Datos de facturación guardados exitosamente:', data);
         toastr.success('Datos de facturación guardados correctamente', 'Guardado');
-    }, 1500);
+    })
+    .catch(error => {
+        console.error('Error al guardar datos de facturación:', error);
+        toastr.error(error.error || 'Error al guardar los datos de facturación', 'Error');
+    });
+}
+
+/**
+ * Cargar información de facturación existente
+ */
+function loadBillingInfo() {
+    console.log('💳 Cargando información de facturación...');
+    
+    // Obtener token del almacenamiento
+    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+    
+    // Cargar datos desde el backend
+    fetch(API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.BILLING_INFO, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Información de facturación cargada:', data);
+        
+        if (data.success && data.billingInfo) {
+            const billing = data.billingInfo;
+            
+            // Llenar campos del formulario
+            if (billing.company) document.getElementById('billing_company').value = billing.company;
+            if (billing.taxId) document.getElementById('billing_tax_id').value = billing.taxId;
+            if (billing.address) document.getElementById('billing_address').value = billing.address;
+            if (billing.postalCode) document.getElementById('billing_postal_code').value = billing.postalCode;
+            if (billing.city) document.getElementById('billing_city').value = billing.city;
+            if (billing.country) document.getElementById('billing_country').value = billing.country;
+            
+            console.log('✅ Información de facturación cargada en el formulario');
+        }
+    })
+    .catch(error => {
+        console.error('Error al cargar información de facturación:', error);
+        // No mostrar error si simplemente no hay datos guardados
+    });
 }
 
 /**

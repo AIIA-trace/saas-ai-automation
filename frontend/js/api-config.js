@@ -25,6 +25,7 @@ if (typeof window.API_CONFIG === 'undefined') {
       // Configuración de cliente
       CLIENT_CONFIG: '/api/config',
       UPDATE_PROFILE: '/api/profile',
+      CHANGE_PASSWORD: '/api/profile/password',
       
       // Configuración del bot
       BOT_CONFIG: '/api/config/bot',
@@ -44,6 +45,9 @@ if (typeof window.API_CONFIG === 'undefined') {
       EMAIL_DETAIL: '/api/logs/emails/{emailId}',
       
       // Facturación
+      BILLING_INFO: '/api/billing/info',
+      PAYMENT_METHODS: '/api/payment/methods',
+      PAYMENT_METHOD: '/api/payment/method',
       INVOICES: '/api/billing/invoices',
       SUBSCRIPTION: '/api/billing/subscription'
     },

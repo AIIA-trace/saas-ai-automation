@@ -130,6 +130,227 @@ router.put('/profile', authenticate, async (req, res) => {
   }
 });
 
+// Cambiar contraseña
+router.put('/profile/password', authenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    // Validar que se proporcionen ambas contraseñas
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Se requiere la contraseña actual y la nueva contraseña' });
+    }
+    
+    // Validar longitud mínima de la nueva contraseña
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    }
+    
+    // Verificar contraseña actual
+    const bcrypt = require('bcryptjs');
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, req.client.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ error: 'La contraseña actual es incorrecta' });
+    }
+    
+    // Encriptar nueva contraseña
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Actualizar contraseña en la base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: { password: hashedNewPassword }
+    });
+    
+    logger.info(`Contraseña actualizada para cliente ${req.client.id}`);
+    
+    return res.json({
+      success: true,
+      message: 'Contraseña actualizada correctamente'
+    });
+  } catch (error) {
+    logger.error(`Error cambiando contraseña: ${error.message}`);
+    return res.status(500).json({ error: 'Error cambiando contraseña' });
+  }
+});
+
+// Guardar información de facturación
+router.put('/billing/info', authenticate, async (req, res) => {
+  try {
+    const { 
+      company, 
+      taxId, 
+      address, 
+      postalCode, 
+      city, 
+      country 
+    } = req.body;
+    
+    // Validar campos requeridos
+    if (!company || !taxId || !address || !postalCode || !city) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios excepto el país' });
+    }
+    
+    // Crear objeto de información de facturación
+    const billingInfo = {
+      company,
+      taxId,
+      address,
+      postalCode,
+      city,
+      country: country || 'España'
+    };
+    
+    // Actualizar en la base de datos
+    const updatedClient = await prisma.client.update({
+      where: { id: req.client.id },
+      data: { billingInfo }
+    });
+    
+    logger.info(`Información de facturación actualizada para cliente ${req.client.id}`);
+    
+    return res.json({
+      success: true,
+      message: 'Información de facturación guardada correctamente',
+      billingInfo
+    });
+  } catch (error) {
+    logger.error(`Error guardando información de facturación: ${error.message}`);
+    return res.status(500).json({ error: 'Error guardando información de facturación' });
+  }
+});
+
+// Obtener información de facturación
+router.get('/billing/info', authenticate, async (req, res) => {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { billingInfo: true }
+    });
+    
+    return res.json({
+      success: true,
+      billingInfo: client.billingInfo || {}
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo información de facturación: ${error.message}`);
+    return res.status(500).json({ error: 'Error obteniendo información de facturación' });
+  }
+});
+
+// Guardar método de pago
+router.post('/payment/method', authenticate, async (req, res) => {
+  try {
+    const { 
+      type, // 'card', 'paypal', 'bank_transfer'
+      cardNumber,
+      expiryDate,
+      cardholderName,
+      isDefault
+    } = req.body;
+    
+    // Validar campos requeridos según el tipo
+    if (type === 'card') {
+      if (!cardNumber || !expiryDate || !cardholderName) {
+        return res.status(400).json({ error: 'Todos los campos de la tarjeta son obligatorios' });
+      }
+    }
+    
+    // Obtener métodos de pago existentes
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { paymentMethods: true }
+    });
+    
+    const existingMethods = client.paymentMethods || [];
+    
+    // Crear nuevo método de pago (enmascarar datos sensibles)
+    const newMethod = {
+      id: Date.now().toString(),
+      type,
+      cardholderName: cardholderName || null,
+      cardNumber: cardNumber ? `****-****-****-${cardNumber.slice(-4)}` : null,
+      expiryDate: expiryDate || null,
+      isDefault: isDefault || existingMethods.length === 0, // Primer método es default
+      createdAt: new Date().toISOString()
+    };
+    
+    // Si este método es default, quitar default de otros
+    if (newMethod.isDefault) {
+      existingMethods.forEach(method => method.isDefault = false);
+    }
+    
+    // Agregar nuevo método
+    const updatedMethods = [...existingMethods, newMethod];
+    
+    // Actualizar en la base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: { paymentMethods: updatedMethods }
+    });
+    
+    logger.info(`Método de pago agregado para cliente ${req.client.id}`);
+    
+    return res.json({
+      success: true,
+      message: 'Método de pago guardado correctamente',
+      method: newMethod
+    });
+  } catch (error) {
+    logger.error(`Error guardando método de pago: ${error.message}`);
+    return res.status(500).json({ error: 'Error guardando método de pago' });
+  }
+});
+
+// Obtener métodos de pago
+router.get('/payment/methods', authenticate, async (req, res) => {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { paymentMethods: true }
+    });
+    
+    return res.json({
+      success: true,
+      methods: client.paymentMethods || []
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo métodos de pago: ${error.message}`);
+    return res.status(500).json({ error: 'Error obteniendo métodos de pago' });
+  }
+});
+
+// Eliminar método de pago
+router.delete('/payment/method/:methodId', authenticate, async (req, res) => {
+  try {
+    const { methodId } = req.params;
+    
+    // Obtener métodos de pago existentes
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { paymentMethods: true }
+    });
+    
+    const existingMethods = client.paymentMethods || [];
+    const updatedMethods = existingMethods.filter(method => method.id !== methodId);
+    
+    // Actualizar en la base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: { paymentMethods: updatedMethods }
+    });
+    
+    logger.info(`Método de pago eliminado para cliente ${req.client.id}`);
+    
+    return res.json({
+      success: true,
+      message: 'Método de pago eliminado correctamente'
+    });
+  } catch (error) {
+    logger.error(`Error eliminando método de pago: ${error.message}`);
+    return res.status(500).json({ error: 'Error eliminando método de pago' });
+  }
+});
+
 // Obtener configuración del bot
 router.get('/config/bot', authenticate, async (req, res) => {
   try {
@@ -196,6 +417,9 @@ router.put('/config/bot', authenticate, async (req, res) => {
       // Configuración de emails
       emailConfig,
       
+      // Configuración manual de email (IMAP/SMTP)
+      emailManualConfig,
+      
       // Configuración SMTP
       smtpConfig,
       
@@ -207,6 +431,7 @@ router.put('/config/bot', authenticate, async (req, res) => {
       
       // Archivos de contexto
       contextFiles,
+      files,
       
       // Campos legacy para compatibilidad
       voiceId,
@@ -267,7 +492,7 @@ router.put('/config/bot', authenticate, async (req, res) => {
       faqs: faqs || currentBotConfig.faqs || [],
       
       // Archivos de contexto
-      contextFiles: contextFiles || currentBotConfig.contextFiles || {},
+      contextFiles: files || contextFiles || currentBotConfig.contextFiles || {},
       
       // Campos legacy para compatibilidad
       voiceId: voiceId || callConfig?.voiceId || currentBotConfig.voiceId || process.env.ELEVENLABS_VOICE_ID,
@@ -293,7 +518,8 @@ router.put('/config/bot', authenticate, async (req, res) => {
     const newEmailConfig = {
       ...currentEmailConfig,
       ...emailConfig,
-      smtpConfig: smtpConfig || currentEmailConfig.smtpConfig || {}
+      smtpConfig: smtpConfig || currentEmailConfig.smtpConfig || {},
+      emailManualConfig: emailManualConfig || currentEmailConfig.emailManualConfig || null
     };
     
     // Actualizar cliente con toda la configuración
