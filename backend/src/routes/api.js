@@ -7,7 +7,26 @@ router.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+
+// INICIALIZAR PRISMA CON MANEJO DE ERRORES
+let prisma;
+try {
+  prisma = new PrismaClient({
+    log: ['error', 'warn'],
+    errorFormat: 'pretty'
+  });
+  
+  // Verificar conexión al inicializar
+  prisma.$connect().then(() => {
+    console.log('✅ Prisma conectado exitosamente a la base de datos');
+  }).catch((error) => {
+    console.error('❌ Error conectando Prisma:', error.message);
+  });
+  
+} catch (error) {
+  console.error('❌ Error inicializando Prisma:', error.message);
+  prisma = null;
+}
 const twilioService = require('../services/twilioService');
 const emailService = require('../services/emailService');
 const elevenlabsService = require('../services/elevenlabsService');
@@ -88,6 +107,26 @@ router.get('/config', authenticate, async (req, res) => {
 // Obtener perfil del cliente
 router.get('/profile', authenticate, async (req, res) => {
   try {
+    // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
+    if (!prisma || !prisma.client) {
+      logger.error('Prisma client no está inicializado');
+      return res.status(500).json({ 
+        error: 'Error de base de datos - Prisma no inicializado',
+        success: false 
+      });
+    }
+    
+    // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
+    if (!req.client || !req.client.id) {
+      logger.error('Cliente no autenticado en request');
+      return res.status(401).json({ 
+        error: 'Cliente no autenticado',
+        success: false 
+      });
+    }
+    
+    logger.info(`Obteniendo perfil para cliente ID: ${req.client.id}`);
+    
     const client = await prisma.client.findUnique({
       where: { id: req.client.id },
       select: {
@@ -101,6 +140,7 @@ router.get('/profile', authenticate, async (req, res) => {
         address: true,
         timezone: true,
         language: true,
+        companyDescription: true, // Agregar campo nuevo
         createdAt: true,
         updatedAt: true
         // Excluir password y apiKey por seguridad
@@ -108,8 +148,14 @@ router.get('/profile', authenticate, async (req, res) => {
     });
     
     if (!client) {
-      return res.status(404).json({ error: 'Cliente no encontrado' });
+      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
     }
+    
+    logger.info(`Perfil obtenido exitosamente para: ${client.email}`);
     
     return res.json({
       success: true,
@@ -117,7 +163,14 @@ router.get('/profile', authenticate, async (req, res) => {
     });
   } catch (error) {
     logger.error(`Error obteniendo perfil: ${error.message}`);
-    return res.status(500).json({ error: 'Error obteniendo perfil' });
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    // RESPUESTA SIEMPRE VÁLIDA JSON
+    return res.status(500).json({ 
+      error: 'Error interno del servidor obteniendo perfil',
+      success: false,
+      details: error.message 
+    });
   }
 });
 
@@ -1819,6 +1872,26 @@ router.put('/account', authenticate, async (req, res) => {
 // Obtener configuración de email (endpoint para frontend)
 router.get('/config/email', authenticate, async (req, res) => {
   try {
+    // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
+    if (!prisma || !prisma.emailConfig) {
+      logger.error('Prisma emailConfig no está inicializado');
+      return res.status(500).json({ 
+        error: 'Error de base de datos - Prisma emailConfig no inicializado',
+        success: false 
+      });
+    }
+    
+    // VERIFICAR AUTENTICACIÓN
+    if (!req.client || !req.client.id) {
+      logger.error('Cliente no autenticado en config/email');
+      return res.status(401).json({ 
+        error: 'Cliente no autenticado',
+        success: false 
+      });
+    }
+    
+    logger.info(`Obteniendo configuración de email para cliente ID: ${req.client.id}`);
+    
     const emailConfig = await prisma.emailConfig.findUnique({
       where: { clientId: req.client.id }
     });
