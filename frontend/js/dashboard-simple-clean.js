@@ -3830,23 +3830,21 @@ function loadBotConfiguration() {
             safeSetChecked('call_transcription', botConfig.callConfig.transcribeCalls);
         }
         
-        // Idioma y voz (con compatibilidad hacia atrás)
-        if (botConfig.callConfig && botConfig.callConfig.language) {
-            const languageSelect = document.getElementById('voice_language');
-            if (languageSelect) languageSelect.value = botConfig.callConfig.language;
-        } else if (botConfig.language) {
+        // Configuración de llamadas - Mapeo corregido con IDs reales del formulario
+        if (botConfig.callConfig) {
+            // Idioma de llamadas - ID correcto: call_language
+            safeSetValue('call_language', botConfig.callConfig.language || 'es-ES');
+            
+            // Tipo de voz - ID correcto: voice_type
+            safeSetValue('voice_type', botConfig.callConfig.voiceId || 'female');
+            
+            // Saludo inicial - ID correcto: call_greeting
+            safeSetValue('call_greeting', botConfig.callConfig.greeting || botConfig.callConfig.confirmationMessage || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?');
+        } else {
             // Compatibilidad con versiones anteriores
-            const languageSelect = document.getElementById('voice_language');
-            if (languageSelect) languageSelect.value = botConfig.language;
-        }
-        
-        if (botConfig.callConfig && botConfig.callConfig.voiceId) {
-            const voiceIdSelect = document.getElementById('voice_id');
-            if (voiceIdSelect) voiceIdSelect.value = botConfig.callConfig.voiceId;
-        } else if (botConfig.voiceId) {
-            // Compatibilidad con versiones anteriores
-            const voiceIdSelect = document.getElementById('voice_id');
-            if (voiceIdSelect) voiceIdSelect.value = botConfig.voiceId;
+            safeSetValue('call_language', botConfig.language || 'es-ES');
+            safeSetValue('voice_type', botConfig.voiceId || 'female');
+            safeSetValue('call_greeting', botConfig.confirmationMessage || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?');
         }
         
         // Personalidad del bot
@@ -3890,25 +3888,46 @@ function loadBotConfiguration() {
             if (botConfig.aiConfig.presencePenalty !== undefined) document.getElementById('ai_presence_penalty').value = botConfig.aiConfig.presencePenalty;
         }
         
-        // Configuración de email
+        // Configuración de email - Mapeo completo
         if (botConfig.emailConfig) {
-            // Activación de emails
-            if (botConfig.emailConfig.enabled !== undefined) {
-                const emailCheckbox = document.getElementById('enable_emails');
-                if (emailCheckbox) emailCheckbox.checked = botConfig.emailConfig.enabled;
-            }
+            // Bot de email activo
+            safeSetChecked('email_bot_active', botConfig.emailConfig.enabled);
+            
+            // Respuesta automática
+            safeSetChecked('auto_reply', botConfig.emailConfig.autoReply);
+            
+            // Idioma de email
+            safeSetValue('email_language', botConfig.emailConfig.language || 'es-ES');
+            
+            // Proveedor de email
+            safeSetValue('email_provider', botConfig.emailConfig.provider || 'gmail');
+            
+            // Email de salida
+            safeSetValue('outgoing_email', botConfig.emailConfig.outgoingEmail || '');
+            
+            // Email de recepción
+            safeSetValue('recipient_email', botConfig.emailConfig.recipientEmail || '');
+            
+            // Configuración de servidores
+            safeSetValue('imap_server', botConfig.emailConfig.imapServer || '');
+            safeSetValue('imap_port', botConfig.emailConfig.imapPort || 993);
+            safeSetValue('smtp_server', botConfig.emailConfig.smtpServer || '');
+            safeSetValue('smtp_port', botConfig.emailConfig.smtpPort || 587);
+            
+            // SSL
+            safeSetChecked('use_ssl', botConfig.emailConfig.useSSL !== false); // Default true
             
             // Firma de correo
-            if (botConfig.emailConfig.emailSignature) {
-                const signatureField = document.getElementById('email_signature');
-                if (signatureField) signatureField.value = botConfig.emailConfig.emailSignature;
-            }
+            safeSetValue('email_signature', botConfig.emailConfig.emailSignature || '');
             
-            // Otros campos de configuración de email si existen
-            if (botConfig.emailConfig.autoReplyMessage) {
-                const autoReplyField = document.getElementById('auto_reply_message');
-                if (autoReplyField) autoReplyField.value = botConfig.emailConfig.autoReplyMessage;
-            }
+            // Mensaje de respuesta automática
+            safeSetValue('auto_reply_message', botConfig.emailConfig.autoReplyMessage || '');
+            
+            // Reglas de reenvío
+            safeSetValue('forward_rules', botConfig.emailConfig.forwardRules || '');
+            
+            // Consentimiento de email (siempre requerir nueva autorización)
+            safeSetChecked('email_consent', false);
         }
         
         // Cargar FAQs si existen
@@ -7373,39 +7392,35 @@ function saveUnifiedConfig() {
                 sunday: document.getElementById('sunday')?.checked || false
             },
             
-            // Configuración de llamadas
+            // Configuración de llamadas - IDs corregidos
             callConfig: {
                 enabled: document.getElementById('call_bot_active')?.checked || false,
                 recordCalls: document.getElementById('call_recording')?.checked || false,
                 transcribeCalls: document.getElementById('call_transcription')?.checked || false,
-                voiceId: document.getElementById('voice_id')?.value || '',
-                language: document.getElementById('voice_language')?.value || 'es-ES',
-                confirmationMessage: document.getElementById('confirmation_message')?.value || ''
+                voiceId: document.getElementById('voice_type')?.value || 'female',
+                language: document.getElementById('call_language')?.value || 'es-ES',
+                greeting: document.getElementById('call_greeting')?.value || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?'
             },
             
-            // Configuración de emails
+            // Configuración de emails - Estructura completa
             emailConfig: {
                 enabled: document.getElementById('email_bot_active')?.checked || false,
-                provider: document.getElementById('email_provider')?.value || '',
+                provider: document.getElementById('email_provider')?.value || 'gmail',
                 outgoingEmail: document.getElementById('outgoing_email')?.value || '',
                 recipientEmail: document.getElementById('recipient_email')?.value || '',
                 forwardRules: document.getElementById('forward_rules')?.value || '',
                 autoReply: document.getElementById('auto_reply')?.checked || false,
                 autoReplyMessage: document.getElementById('auto_reply_message')?.value || '',
-                emailLanguage: document.getElementById('email_language')?.value || 'es-ES',
+                language: document.getElementById('email_language')?.value || 'es-ES',
                 emailSignature: document.getElementById('email_signature')?.value || '',
-                website: document.getElementById('website')?.value || '',
-                emailConsent: document.getElementById('email_consent')?.checked || false
-            },
-            
-            // Configuración manual de IMAP/SMTP (solo si el proveedor es 'other')
-            emailManualConfig: document.getElementById('email_provider')?.value === 'other' ? {
+                emailConsent: document.getElementById('email_consent')?.checked || false,
+                // Configuración de servidores
                 imapServer: document.getElementById('imap_server')?.value || '',
-                imapPort: document.getElementById('imap_port')?.value || '',
+                imapPort: parseInt(document.getElementById('imap_port')?.value) || 993,
                 smtpServer: document.getElementById('smtp_server')?.value || '',
-                smtpPort: document.getElementById('smtp_port')?.value || '',
-                useSSL: document.getElementById('use_ssl')?.checked || true
-            } : null,
+                smtpPort: parseInt(document.getElementById('smtp_port')?.value) || 587,
+                useSSL: document.getElementById('use_ssl')?.checked !== false // Default true
+            },
             
             // Configuración avanzada de IA
             aiConfig: {

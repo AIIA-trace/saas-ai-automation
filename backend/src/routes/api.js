@@ -477,35 +477,72 @@ router.get('/config/bot', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Configuración no encontrada' });
     }
     
-    // Devolver la configuración del bot con estructura completa
-    const botConfig = clientConfig.botConfig || {};
-    
-    // Agregar información de empresa desde campos directos del cliente
-    botConfig.company = {
-      name: clientConfig.companyName,
-      description: clientConfig.companyDescription,
-      sector: clientConfig.industry,
-      address: clientConfig.address,
-      phone: clientConfig.phone,
-      email: clientConfig.email,
-      website: clientConfig.website,
-      // Mantener cualquier información adicional de companyInfo JSON
-      ...(clientConfig.companyInfo || {})
-    };
-    
-    // Agregar configuración de email si existe
-    if (clientConfig.emailConfig) {
-      botConfig.emailConfig = clientConfig.emailConfig;
-    }
-    
-    // Agregar información adicional del cliente
-    botConfig.clientInfo = {
-      contactName: clientConfig.contactName,
-      language: clientConfig.language
+    // Construir estructura de respuesta que espera el frontend
+    const response = {
+      // Configuración del bot
+      botConfig: clientConfig.botConfig || {
+        botName: 'Asistente Virtual',
+        botPersonality: 'professional',
+        welcomeMessage: 'Bienvenido a nuestro asistente virtual',
+        businessHours: 'Lun-Vie: 9:00-18:00',
+        callConfig: {
+          enabled: false,
+          recordCalls: false,
+          transcribeCalls: false,
+          voiceId: 'female',
+          language: 'es-ES',
+          greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?'
+        },
+        aiConfig: {
+          temperature: 0.7,
+          maxTokens: 150,
+          model: 'gpt-3.5-turbo'
+        },
+        faqs: [],
+        contextFiles: {}
+      },
+      
+      // Información de empresa
+      companyInfo: {
+        name: clientConfig.companyName || '',
+        description: clientConfig.companyDescription || '',
+        sector: clientConfig.industry || '',
+        address: clientConfig.address || '',
+        phone: clientConfig.phone || '',
+        email: clientConfig.email || '',
+        website: clientConfig.website || '',
+        // Mantener cualquier información adicional de companyInfo JSON
+        ...(clientConfig.companyInfo || {})
+      },
+      
+      // Configuración de email
+      emailConfig: clientConfig.emailConfig || {
+        enabled: false,
+        provider: '',
+        outgoingEmail: '',
+        recipientEmail: '',
+        forwardRules: '',
+        autoReply: false,
+        autoReplyMessage: '',
+        language: 'es-ES',
+        emailSignature: '',
+        emailConsent: false,
+        imapServer: '',
+        imapPort: 993,
+        smtpServer: '',
+        smtpPort: 587,
+        useSSL: false
+      },
+      
+      // Información adicional del cliente
+      clientInfo: {
+        contactName: clientConfig.contactName,
+        language: clientConfig.language || 'es'
+      }
     };
     
     logger.info(`Configuración del bot obtenida para cliente ${req.client.id}`);
-    return res.json(botConfig);
+    return res.json(response);
   } catch (error) {
     logger.error(`Error obteniendo configuración del bot: ${error.message}`);
     return res.status(500).json({ error: 'Error obteniendo configuración del bot' });
@@ -595,14 +632,21 @@ router.put('/config/bot', authenticate, async (req, res) => {
         sunday: false
       },
       
-      // Configuración de llamadas
-      callConfig: callConfig || currentBotConfig.callConfig || {
+      // Configuración de llamadas - Estructura actualizada
+      callConfig: callConfig ? {
+        enabled: callConfig.enabled || false,
+        recordCalls: callConfig.recordCalls || false,
+        transcribeCalls: callConfig.transcribeCalls || false,
+        voiceId: callConfig.voiceId || currentBotConfig.callConfig?.voiceId || process.env.ELEVENLABS_VOICE_ID,
+        language: callConfig.language || currentBotConfig.callConfig?.language || "es-ES",
+        greeting: callConfig.greeting || currentBotConfig.callConfig?.greeting || currentBotConfig.callConfig?.confirmationMessage || "Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?"
+      } : currentBotConfig.callConfig || {
         enabled: false,
         recordCalls: false,
         transcribeCalls: false,
-        voiceId: voiceId || currentBotConfig.voiceId || process.env.ELEVENLABS_VOICE_ID,
-        language: language || currentBotConfig.language || "es-ES",
-        confirmationMessage: confirmationMessage || currentBotConfig.confirmationMessage || "Gracias por la información. Alguien se pondrá en contacto con usted a la brevedad."
+        voiceId: process.env.ELEVENLABS_VOICE_ID,
+        language: "es-ES",
+        greeting: "Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?"
       },
       
       // Configuración de IA
@@ -638,10 +682,29 @@ router.put('/config/bot', authenticate, async (req, res) => {
       website: companyWebsite || currentCompanyInfo.website || ''
     };
     
-    // Construir configuración de email
-    const newEmailConfig = {
+    // Construir configuración de email - Estructura completa
+    const newEmailConfig = emailConfig ? {
       ...currentEmailConfig,
-      ...emailConfig,
+      enabled: emailConfig.enabled || false,
+      provider: emailConfig.provider || currentEmailConfig.provider || '',
+      outgoingEmail: emailConfig.outgoingEmail || currentEmailConfig.outgoingEmail || '',
+      recipientEmail: emailConfig.recipientEmail || currentEmailConfig.recipientEmail || '',
+      forwardRules: emailConfig.forwardRules || currentEmailConfig.forwardRules || '',
+      autoReply: emailConfig.autoReply || false,
+      autoReplyMessage: emailConfig.autoReplyMessage || currentEmailConfig.autoReplyMessage || '',
+      language: emailConfig.language || currentEmailConfig.language || 'es-ES',
+      emailSignature: emailConfig.emailSignature || currentEmailConfig.emailSignature || '',
+      emailConsent: emailConfig.emailConsent || false,
+      imapServer: emailConfig.imapServer || currentEmailConfig.imapServer || '',
+      imapPort: emailConfig.imapPort || currentEmailConfig.imapPort || 993,
+      smtpServer: emailConfig.smtpServer || currentEmailConfig.smtpServer || '',
+      smtpPort: emailConfig.smtpPort || currentEmailConfig.smtpPort || 587,
+      useSSL: emailConfig.useSSL || false,
+      // Configuraciones legacy para compatibilidad
+      smtpConfig: emailConfig.smtpConfig || smtpConfig || currentEmailConfig.smtpConfig || {},
+      emailManualConfig: emailConfig.emailManualConfig || emailManualConfig || currentEmailConfig.emailManualConfig || null
+    } : {
+      ...currentEmailConfig,
       smtpConfig: smtpConfig || currentEmailConfig.smtpConfig || {},
       emailManualConfig: emailManualConfig || currentEmailConfig.emailManualConfig || null
     };
