@@ -71,6 +71,17 @@ class RouteGuard {
         console.log('Ruta actual:', this.currentPath);
         console.log('Requiere autenticación:', this.requiresAuth());
         
+        // VERIFICAR SI EL LOGOUT FUE INTENCIONAL
+        const intentionalLogout = localStorage.getItem('intentionalLogout');
+        if (intentionalLogout === 'true') {
+            console.log('🚪 Logout intencional detectado, limpiando flag y no redirigiendo');
+            localStorage.removeItem('intentionalLogout');
+            // Si estamos en login, no hacer nada más
+            if (this.currentPath.includes('login.html')) {
+                return;
+            }
+        }
+        
         // Solo verificamos autenticación si la ruta requiere autenticación
         if (this.requiresAuth()) {
             console.log('Verificando autenticación...');

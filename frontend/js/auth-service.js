@@ -436,8 +436,31 @@ class AuthService {
    * Cierra la sesión del usuario
    */
   logout() {
+    console.log('🚪 Cerrando sesión...');
+    
+    // LIMPIAR COMPLETAMENTE TODOS LOS DATOS DE SESIÓN
+    
+    // localStorage
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('authToken'); // Por si acaso
     localStorage.removeItem('user_data');
+    localStorage.removeItem('auth_timestamp');
+    
+    // sessionStorage
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('user_data');
+    sessionStorage.removeItem('auth_timestamp');
+    
+    // Limpiar timestamps de redirección para evitar bucles
+    localStorage.removeItem('lastLoginRedirect');
+    localStorage.removeItem('lastDashboardRedirect');
+    
+    // Marcar que el logout fue intencional
+    localStorage.setItem('intentionalLogout', 'true');
+    
+    console.log('✅ Todos los datos de sesión eliminados');
+    
     // Redirigir a la página de login
     window.location.href = 'login.html';
   }
@@ -447,6 +470,12 @@ class AuthService {
    * @returns {boolean} Estado de autenticación
    */
   isAuthenticated() {
+    // Si se acaba de hacer logout intencional, devolver false inmediatamente
+    const intentionalLogout = localStorage.getItem('intentionalLogout');
+    if (intentionalLogout === 'true') {
+      return false;
+    }
+    
     // Priorizar sessionStorage (expira al cerrar pestaña)
     const sessionToken = sessionStorage.getItem('auth_token');
     const localToken = localStorage.getItem('auth_token');
