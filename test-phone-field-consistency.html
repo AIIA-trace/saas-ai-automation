@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Consistencia - Campo Teléfono</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .field-mapping {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        .field-mapping div {
+            padding: 5px;
+            background: #e9ecef;
+            border-radius: 3px;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Prueba de Consistencia - Campo Teléfono y Configuración del Bot</h1>
+        <p>Esta página prueba la consistencia completa entre frontend y backend para todos los campos de configuración del bot.</p>
+        
+        <!-- Sección de Login -->
+        <div class="test-section">
+            <h3>🔐 Autenticación</h3>
+            <div id="auth-status" class="test-result info">Verificando estado de autenticación...</div>
+            <button onclick="testLogin()">Probar Login</button>
+            <button onclick="checkAuthStatus()">Verificar Estado Auth</button>
+        </div>
+        
+        <!-- Formulario de Prueba -->
+        <div class="test-section">
+            <h3>📋 Formulario de Prueba</h3>
+            <div class="form-group">
+                <label for="company_name">Nombre de Empresa:</label>
+                <input type="text" id="company_name" placeholder="Mi Empresa Test">
+            </div>
+            <div class="form-group">
+                <label for="main_phone">Teléfono Principal:</label>
+                <input type="tel" id="main_phone" placeholder="+34 123 456 789">
+            </div>
+            <div class="form-group">
+                <label for="contact_email">Email de Contacto:</label>
+                <input type="email" id="contact_email" placeholder="test@empresa.com">
+            </div>
+            <div class="form-group">
+                <label for="industry">Sector/Industria:</label>
+                <select id="industry">
+                    <option value="">Seleccionar sector...</option>
+                    <option value="technology">Tecnología</option>
+                    <option value="healthcare">Salud</option>
+                    <option value="finance">Finanzas</option>
+                    <option value="retail">Retail</option>
+                    <option value="education">Educación</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="address">Dirección:</label>
+                <input type="text" id="address" placeholder="Calle Principal 123, Ciudad">
+            </div>
+            <div class="form-group">
+                <label for="website">Sitio Web:</label>
+                <input type="url" id="website" placeholder="https://www.empresa.com">
+            </div>
+            <div class="form-group">
+                <label for="call_greeting">Saludo de Llamada:</label>
+                <textarea id="call_greeting" placeholder="Hola, ha llamado a nuestra empresa..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="email_signature">Firma de Email:</label>
+                <textarea id="email_signature" placeholder="Saludos cordiales, Equipo de Atención"></textarea>
+            </div>
+        </div>
+        
+        <!-- Mapeo de Campos -->
+        <div class="test-section">
+            <h3>🗺️ Mapeo de Campos</h3>
+            <div class="field-mapping">
+                <div><strong>Frontend ID</strong></div>
+                <div><strong>Backend GET</strong></div>
+                <div><strong>Backend PUT</strong></div>
+                
+                <div>main_phone</div>
+                <div>companyInfo.phone</div>
+                <div>companyPhone</div>
+                
+                <div>industry</div>
+                <div>companyInfo.sector</div>
+                <div>companySector</div>
+                
+                <div>contact_email</div>
+                <div>companyInfo.email</div>
+                <div>companyEmail</div>
+                
+                <div>call_greeting</div>
+                <div>callConfig.greeting</div>
+                <div>callConfig.greeting</div>
+                
+                <div>email_signature</div>
+                <div>emailConfig.emailSignature</div>
+                <div>emailConfig.emailSignature</div>
+            </div>
+        </div>
+        
+        <!-- Pruebas -->
+        <div class="test-section">
+            <h3>🧪 Pruebas de Consistencia</h3>
+            <button onclick="loadCurrentConfig()">1. Cargar Configuración Actual</button>
+            <button onclick="saveTestConfig()">2. Guardar Configuración de Prueba</button>
+            <button onclick="verifyPersistence()">3. Verificar Persistencia</button>
+            <button onclick="runFullTest()">🚀 Ejecutar Prueba Completa</button>
+            
+            <div id="test-results"></div>
+        </div>
+        
+        <!-- Logs -->
+        <div class="test-section">
+            <h3>📝 Logs Detallados</h3>
+            <button onclick="clearLogs()">Limpiar Logs</button>
+            <pre id="logs"></pre>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api-config.js"></script>
+    <script src="js/api-unified.js"></script>
+    <script>
+        let testData = {};
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const logElement = document.getElementById('logs');
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logElement.textContent += `${timestamp} ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+        
+        function showResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.textContent = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').textContent = '';
+            document.getElementById('test-results').innerHTML = '';
+        }
+        
+        async function checkAuthStatus() {
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const userData = localStorage.getItem('user_data') || sessionStorage.getItem('user_data');
+                
+                if (token && userData) {
+                    document.getElementById('auth-status').textContent = '✅ Usuario autenticado correctamente';
+                    document.getElementById('auth-status').className = 'test-result success';
+                    log('Usuario autenticado correctamente', 'success');
+                    return true;
+                } else {
+                    document.getElementById('auth-status').textContent = '❌ Usuario no autenticado';
+                    document.getElementById('auth-status').className = 'test-result error';
+                    log('Usuario no autenticado', 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`Error verificando autenticación: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                // Simular login con credenciales de prueba
+                const response = await window.ApiHelper.fetchApi('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: 'test@test.com',
+                        password: 'test123'
+                    })
+                });
+                
+                if (response.token) {
+                    localStorage.setItem('authToken', response.token);
+                    localStorage.setItem('user_data', JSON.stringify(response.user));
+                    showResult('Login exitoso', 'success');
+                    log('Login exitoso', 'success');
+                    await checkAuthStatus();
+                } else {
+                    showResult('Error en login: No se recibió token', 'error');
+                    log('Error en login: No se recibió token', 'error');
+                }
+            } catch (error) {
+                showResult(`Error en login: ${error.message}`, 'error');
+                log(`Error en login: ${error.message}`, 'error');
+            }
+        }
+        
+        async function loadCurrentConfig() {
+            try {
+                log('Cargando configuración actual del bot...', 'info');
+                
+                const config = await window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
+                    method: 'GET'
+                });
+                
+                log('Configuración recibida del servidor:', 'info');
+                log(JSON.stringify(config, null, 2), 'info');
+                
+                // Cargar datos en el formulario
+                if (config.companyInfo) {
+                    document.getElementById('company_name').value = config.companyInfo.name || '';
+                    document.getElementById('main_phone').value = config.companyInfo.phone || '';
+                    document.getElementById('contact_email').value = config.companyInfo.email || '';
+                    document.getElementById('industry').value = config.companyInfo.sector || '';
+                    document.getElementById('address').value = config.companyInfo.address || '';
+                    document.getElementById('website').value = config.companyInfo.website || '';
+                }
+                
+                if (config.botConfig && config.botConfig.callConfig) {
+                    document.getElementById('call_greeting').value = config.botConfig.callConfig.greeting || '';
+                }
+                
+                if (config.emailConfig) {
+                    document.getElementById('email_signature').value = config.emailConfig.emailSignature || '';
+                }
+                
+                testData.loaded = config;
+                showResult('✅ Configuración cargada correctamente', 'success');
+                log('Configuración cargada en formulario correctamente', 'success');
+                
+            } catch (error) {
+                showResult(`❌ Error cargando configuración: ${error.message}`, 'error');
+                log(`Error cargando configuración: ${error.message}`, 'error');
+            }
+        }
+        
+        async function saveTestConfig() {
+            try {
+                log('Guardando configuración de prueba...', 'info');
+                
+                // Recopilar datos del formulario
+                const configData = {
+                    companyName: document.getElementById('company_name').value,
+                    companyPhone: document.getElementById('main_phone').value,
+                    companyEmail: document.getElementById('contact_email').value,
+                    companySector: document.getElementById('industry').value,
+                    companyAddress: document.getElementById('address').value,
+                    companyWebsite: document.getElementById('website').value,
+                    
+                    callConfig: {
+                        greeting: document.getElementById('call_greeting').value
+                    },
+                    
+                    emailConfig: {
+                        emailSignature: document.getElementById('email_signature').value
+                    }
+                };
+                
+                log('Datos a enviar:', 'info');
+                log(JSON.stringify(configData, null, 2), 'info');
+                
+                const response = await window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
+                    method: 'PUT',
+                    body: JSON.stringify(configData)
+                });
+                
+                log('Respuesta del servidor:', 'info');
+                log(JSON.stringify(response, null, 2), 'info');
+                
+                testData.saved = configData;
+                testData.response = response;
+                showResult('✅ Configuración guardada correctamente', 'success');
+                log('Configuración guardada correctamente', 'success');
+                
+            } catch (error) {
+                showResult(`❌ Error guardando configuración: ${error.message}`, 'error');
+                log(`Error guardando configuración: ${error.message}`, 'error');
+            }
+        }
+        
+        async function verifyPersistence() {
+            try {
+                log('Verificando persistencia de datos...', 'info');
+                
+                // Cargar configuración nuevamente
+                const reloadedConfig = await window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
+                    method: 'GET'
+                });
+                
+                log('Configuración recargada:', 'info');
+                log(JSON.stringify(reloadedConfig, null, 2), 'info');
+                
+                // Verificar campos críticos
+                const checks = [
+                    {
+                        field: 'Teléfono',
+                        saved: testData.saved?.companyPhone,
+                        loaded: reloadedConfig.companyInfo?.phone,
+                        match: testData.saved?.companyPhone === reloadedConfig.companyInfo?.phone
+                    },
+                    {
+                        field: 'Sector/Industria',
+                        saved: testData.saved?.companySector,
+                        loaded: reloadedConfig.companyInfo?.sector,
+                        match: testData.saved?.companySector === reloadedConfig.companyInfo?.sector
+                    },
+                    {
+                        field: 'Email',
+                        saved: testData.saved?.companyEmail,
+                        loaded: reloadedConfig.companyInfo?.email,
+                        match: testData.saved?.companyEmail === reloadedConfig.companyInfo?.email
+                    },
+                    {
+                        field: 'Saludo de Llamada',
+                        saved: testData.saved?.callConfig?.greeting,
+                        loaded: reloadedConfig.botConfig?.callConfig?.greeting,
+                        match: testData.saved?.callConfig?.greeting === reloadedConfig.botConfig?.callConfig?.greeting
+                    }
+                ];
+                
+                let allMatch = true;
+                checks.forEach(check => {
+                    if (check.match) {
+                        showResult(`✅ ${check.field}: Persistencia correcta`, 'success');
+                        log(`${check.field}: Guardado="${check.saved}" = Cargado="${check.loaded}" ✅`, 'success');
+                    } else {
+                        showResult(`❌ ${check.field}: Persistencia fallida`, 'error');
+                        log(`${check.field}: Guardado="${check.saved}" ≠ Cargado="${check.loaded}" ❌`, 'error');
+                        allMatch = false;
+                    }
+                });
+                
+                if (allMatch) {
+                    showResult('🎉 TODAS LAS VERIFICACIONES PASARON - Persistencia 100% correcta', 'success');
+                    log('TODAS LAS VERIFICACIONES PASARON', 'success');
+                } else {
+                    showResult('⚠️ ALGUNAS VERIFICACIONES FALLARON - Revisar logs', 'warning');
+                    log('ALGUNAS VERIFICACIONES FALLARON', 'warning');
+                }
+                
+            } catch (error) {
+                showResult(`❌ Error verificando persistencia: ${error.message}`, 'error');
+                log(`Error verificando persistencia: ${error.message}`, 'error');
+            }
+        }
+        
+        async function runFullTest() {
+            clearLogs();
+            showResult('🚀 Iniciando prueba completa de consistencia...', 'info');
+            
+            try {
+                // 1. Verificar autenticación
+                const isAuth = await checkAuthStatus();
+                if (!isAuth) {
+                    showResult('❌ Prueba cancelada: Usuario no autenticado', 'error');
+                    return;
+                }
+                
+                // 2. Llenar formulario con datos de prueba
+                document.getElementById('company_name').value = 'Empresa Test Consistencia';
+                document.getElementById('main_phone').value = '+34 987 654 321';
+                document.getElementById('contact_email').value = 'test-consistencia@empresa.com';
+                document.getElementById('industry').value = 'technology';
+                document.getElementById('address').value = 'Calle Test 456, Ciudad Test';
+                document.getElementById('website').value = 'https://test-consistencia.com';
+                document.getElementById('call_greeting').value = 'Hola, este es un saludo de prueba para verificar consistencia.';
+                document.getElementById('email_signature').value = 'Saludos de prueba,\nEquipo Test Consistencia';
+                
+                showResult('📝 Datos de prueba cargados en formulario', 'info');
+                
+                // 3. Guardar configuración
+                await saveTestConfig();
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Esperar 1 segundo
+                
+                // 4. Verificar persistencia
+                await verifyPersistence();
+                
+                showResult('🏁 Prueba completa finalizada - Revisar resultados arriba', 'info');
+                
+            } catch (error) {
+                showResult(`❌ Error en prueba completa: ${error.message}`, 'error');
+                log(`Error en prueba completa: ${error.message}`, 'error');
+            }
+        }
+        
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Página de prueba de consistencia cargada', 'info');
+            checkAuthStatus();
+        });
+    </script>
+</body>
+</html>

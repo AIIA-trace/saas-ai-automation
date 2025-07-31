@@ -3813,14 +3813,16 @@ function loadBotConfiguration() {
         safeSetValue('confirmation_message', botConfig.confirmationMessage);
         
         // Datos de empresa - Mapeo según estructura del endpoint GET /api/config/bot
-        if (botConfig.company) {
-            safeSetValue('company_name', botConfig.company.name);
-            safeSetValue('company_description', botConfig.company.description);
-            safeSetValue('industry', botConfig.company.sector); // sector → industry
-            safeSetValue('address', botConfig.company.address);
-            safeSetValue('main_phone', botConfig.company.phone); // company_phone → main_phone
-            safeSetValue('contact_email', botConfig.company.email); // company_email → contact_email
-            safeSetValue('website', botConfig.company.website); // company_website → website
+        if (botConfig.companyInfo) {
+            safeSetValue('company_name', botConfig.companyInfo.name);
+            safeSetValue('company_description', botConfig.companyInfo.description);
+            safeSetValue('industry', botConfig.companyInfo.sector); // sector → industry
+            safeSetValue('address', botConfig.companyInfo.address);
+            safeSetValue('main_phone', botConfig.companyInfo.phone); // ✅ CORREGIDO: companyInfo.phone → main_phone
+            safeSetValue('contact_email', botConfig.companyInfo.email); // company_email → contact_email
+            safeSetValue('website', botConfig.companyInfo.website); // company_website → website
+            
+            console.log('📞 Teléfono cargado desde companyInfo:', botConfig.companyInfo.phone);
         }
         
         // Configuración de llamadas
@@ -7505,45 +7507,38 @@ function saveUnifiedConfig() {
     // Mostrar notificación de guardado
     toastr.info('Guardando configuración...', 'Procesando');
     
-    // Preparar datos para enviar al backend
-    const botConfig = {
-        // Datos básicos
-        welcomeMessage: config.welcomeMessage,
-        confirmationMessage: config.callConfig.confirmationMessage,
-        personality: config.botPersonality,
-        language: config.callConfig.language,
-        voiceId: config.callConfig.voiceId,
+    // Preparar datos para enviar al backend - Estructura corregida para coincidir con el endpoint PUT
+    const botConfigData = {
+        // Información de empresa - Campos individuales como espera el backend
+        companyName: config.companyName,
+        companyDescription: config.companyDescription,
+        companySector: config.companySector,
+        companyAddress: config.companyAddress,
+        companyPhone: config.companyPhone,
+        companyEmail: config.companyEmail,
+        companyWebsite: config.companyWebsite,
         
-        // Horarios y días laborables
+        // Configuración general
+        botName: config.botName,
+        botPersonality: config.botPersonality,
+        welcomeMessage: config.welcomeMessage,
+        businessHours: config.businessHours,
+        
+        // Configuración de horarios
         workingHours: config.workingHours,
         workingDays: config.workingDays,
         
-        // Nombre del bot y otros datos de configuración general
-        botName: config.botName,
-        businessHours: config.businessHours,
-        
-        // Configuración de empresa
-        company: {
-            name: config.companyName,
-            description: config.companyDescription,
-            sector: config.companySector,
-            address: document.getElementById('address')?.value || '',
-            phone: config.companyPhone,
-            email: config.companyEmail,
-            website: config.companyWebsite
-        },
-        
-        // Configuración de llamadas
+        // Configuración de llamadas - Estructura corregida
         callConfig: {
-            enabled: document.getElementById('call_bot_active')?.checked || false,
-            recordCalls: document.getElementById('call_recording')?.checked || false,
-            transcribeCalls: document.getElementById('call_transcription')?.checked || false,
+            enabled: config.callConfig.enabled,
+            recordCalls: config.callConfig.recordCalls,
+            transcribeCalls: config.callConfig.transcribeCalls,
             voiceId: config.callConfig.voiceId,
             language: config.callConfig.language,
-            confirmationMessage: config.callConfig.confirmationMessage
+            greeting: config.callConfig.greeting // CORREGIDO: greeting en lugar de confirmationMessage
         },
         
-        // Configuración de emails
+        // Configuración de emails - Estructura completa
         emailConfig: {
             enabled: config.emailConfig.enabled,
             provider: config.emailConfig.provider,
@@ -7552,10 +7547,15 @@ function saveUnifiedConfig() {
             forwardRules: config.emailConfig.forwardRules,
             autoReply: config.emailConfig.autoReply,
             autoReplyMessage: config.emailConfig.autoReplyMessage,
-            emailLanguage: config.emailConfig.emailLanguage,
-            emailSignature: document.getElementById('email_signature')?.value || '',
-            website: config.emailConfig.website,
-            emailConsent: config.emailConfig.emailConsent
+            language: config.emailConfig.language, // CORREGIDO: language en lugar de emailLanguage
+            emailSignature: config.emailConfig.emailSignature,
+            emailConsent: config.emailConfig.emailConsent,
+            // Configuración de servidores
+            imapServer: config.emailConfig.imapServer,
+            imapPort: config.emailConfig.imapPort,
+            smtpServer: config.emailConfig.smtpServer,
+            smtpPort: config.emailConfig.smtpPort,
+            useSSL: config.emailConfig.useSSL
         },
         
         // Configuración avanzada de IA
@@ -7564,14 +7564,18 @@ function saveUnifiedConfig() {
         // Preguntas frecuentes (FAQs)
         faqs: collectFaqItems(),
         
-        // Opciones DTMF para el manejo de tonos telefónicos
-        dtmfOptions: config.dtmfOptions || [],
+        // Archivos de contexto
+        files: config.files,
         
-        // Incluir los archivos de contexto recopilados (placeholder, se llenará después con los archivos reales)
-        contextFiles: {}
+        // Campos legacy para compatibilidad
+        voiceId: config.callConfig.voiceId,
+        language: config.callConfig.language,
+        confirmationMessage: config.callConfig.greeting, // Mapeo para compatibilidad
+        dtmfOptions: config.dtmfOptions || [],
+        personality: config.botPersonality
     };
     
-    console.log('📁 Preguntas frecuentes incluidas:', botConfig.faqs);
+    console.log('📁 Preguntas frecuentes incluidas:', botConfigData.faqs);
     console.log('📁 Archivos de contexto a procesar:', config.files);
     
     // Obtener token de autenticación
@@ -7588,9 +7592,9 @@ function saveUnifiedConfig() {
     // Primero procesamos los archivos de contexto y luego guardamos la configuración completa
     console.log('📚 Procesando archivos de contexto...');
     
-    // Actualizar botConfig con los FAQs recolectados
-    botConfig.faqs = collectFaqItems();
-    console.log('📝 FAQs recopiladas:', botConfig.faqs);
+    // Actualizar botConfigData con los FAQs recolectados
+    botConfigData.faqs = collectFaqItems();
+    console.log('📝 FAQs recopiladas:', botConfigData.faqs);
     
     // Procesar archivos de contexto
     let processFilesPromise;
@@ -7606,17 +7610,17 @@ function saveUnifiedConfig() {
         .then((result) => {
             console.log('✅ Archivos de contexto procesados:', result);
             
-            // Actualizar el objeto botConfig con los archivos de contexto procesados
+            // Actualizar el objeto botConfigData con los archivos de contexto procesados
             if (result && result.files) {
-                botConfig.contextFiles = result.files;
+                botConfigData.contextFiles = result.files;
             }
             
-            console.log('📤 Enviando configuración completa al backend:', botConfig);
+            console.log('📤 Enviando configuración completa al backend:', botConfigData);
             
             // Guardar configuración del bot en la API
             return window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
                 method: 'PUT',
-                body: JSON.stringify(botConfig)
+                body: JSON.stringify(botConfigData)
             });
         })
         

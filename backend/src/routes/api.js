@@ -715,7 +715,9 @@ router.put('/config/bot', authenticate, async (req, res) => {
       data: {
         botConfig: newBotConfig,
         companyInfo: newCompanyInfo,
-        emailConfig: newEmailConfig
+        emailConfig: newEmailConfig,
+        // Actualizar también el campo industry del cliente para consistencia
+        industry: companySector || currentClient.industry
       }
     });
     

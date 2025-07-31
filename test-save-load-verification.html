@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación Completa - Guardar y Cargar Configuración</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+    <style>
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .field-test { margin: 5px 0; padding: 8px; background: #f8f9fa; border-radius: 4px; }
+        .success { background-color: #d4edda !important; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da !important; border-color: #f5c6cb; }
+        .log-area { height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1><i class="fas fa-cogs"></i> Verificación Completa - Guardar y Cargar</h1>
+        
+        <!-- Autenticación -->
+        <div class="test-section">
+            <h3><i class="fas fa-key"></i> 1. Autenticación</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <input type="email" id="email" class="form-control mb-2" placeholder="Email" value="test@example.com">
+                    <input type="password" id="password" class="form-control mb-2" placeholder="Contraseña" value="password123">
+                    <button onclick="authenticate()" class="btn btn-primary">Autenticar</button>
+                </div>
+                <div class="col-md-6">
+                    <div id="auth-status" class="alert alert-info">No autenticado</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prueba de Campos Críticos -->
+        <div class="test-section">
+            <h3><i class="fas fa-clipboard-check"></i> 2. Prueba de Campos Críticos</h3>
+            
+            <!-- Información de Empresa -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label>Nombre Empresa:</label>
+                    <input type="text" id="company_name" class="form-control" value="Empresa Test">
+                </div>
+                <div class="col-md-4">
+                    <label>Email Contacto:</label>
+                    <input type="email" id="contact_email" class="form-control" value="contacto@empresa.com">
+                </div>
+                <div class="col-md-4">
+                    <label>Teléfono Principal:</label>
+                    <input type="tel" id="main_phone" class="form-control" value="+34123456789">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label>Sector:</label>
+                    <select id="industry" class="form-control">
+                        <option value="technology">Tecnología</option>
+                        <option value="healthcare">Salud</option>
+                        <option value="finance">Finanzas</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>Dirección:</label>
+                    <input type="text" id="address" class="form-control" value="Calle Test 123">
+                </div>
+                <div class="col-md-4">
+                    <label>Sitio Web:</label>
+                    <input type="url" id="website" class="form-control" value="https://empresa.com">
+                </div>
+            </div>
+
+            <!-- Configuración de Llamadas -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label>Idioma Llamadas:</label>
+                    <select id="call_language" class="form-control">
+                        <option value="es-ES">Español</option>
+                        <option value="en-US">Inglés</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>Tipo de Voz:</label>
+                    <select id="voice_type" class="form-control">
+                        <option value="female">Femenina</option>
+                        <option value="male">Masculina</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        <input type="checkbox" id="call_bot_active" class="form-check-input" checked>
+                        <label class="form-check-label">Bot Activo</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label>Saludo Inicial:</label>
+                    <textarea id="call_greeting" class="form-control" rows="2">Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?</textarea>
+                </div>
+            </div>
+
+            <!-- Configuración de Emails -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label>Proveedor Email:</label>
+                    <select id="email_provider" class="form-control">
+                        <option value="gmail">Gmail</option>
+                        <option value="outlook">Outlook</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>Email Salida:</label>
+                    <input type="email" id="outgoing_email" class="form-control" value="bot@empresa.com">
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        <input type="checkbox" id="email_bot_active" class="form-check-input" checked>
+                        <label class="form-check-label">Email Bot Activo</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label>Firma Email:</label>
+                    <textarea id="email_signature" class="form-control" rows="2">Saludos cordiales,\nEquipo de Empresa Test</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="test-section">
+            <h3><i class="fas fa-play"></i> 3. Acciones de Prueba</h3>
+            <div class="btn-group" role="group">
+                <button onclick="testSave()" class="btn btn-success">
+                    <i class="fas fa-save"></i> Guardar Configuración
+                </button>
+                <button onclick="testLoad()" class="btn btn-info">
+                    <i class="fas fa-download"></i> Cargar Configuración
+                </button>
+                <button onclick="testFullCycle()" class="btn btn-warning">
+                    <i class="fas fa-sync"></i> Ciclo Completo
+                </button>
+                <button onclick="clearLog()" class="btn btn-secondary">
+                    <i class="fas fa-trash"></i> Limpiar Log
+                </button>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <div class="test-section">
+            <h3><i class="fas fa-chart-line"></i> 4. Resultados de Prueba</h3>
+            <div id="test-results" class="log-area"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="frontend/js/api-unified.js"></script>
+
+    <script>
+        // Configuración de API
+        window.API_CONFIG = {
+            apiBaseUrl: 'https://saas-ai-automation.onrender.com',
+            DASHBOARD: {
+                BOT_CONFIG: { url: '/api/config/bot', auth: 'jwt' },
+                UPDATE_PROFILE: { url: '/api/profile', auth: 'jwt' }
+            }
+        };
+
+        let testLog = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            testLog.push(logEntry);
+            
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = testLog.join('\n');
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function clearLog() {
+            testLog = [];
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        async function authenticate() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            log('Iniciando autenticación...', 'info');
+            
+            try {
+                const response = await fetch(`${window.API_CONFIG.apiBaseUrl}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    localStorage.setItem('authToken', data.token);
+                    document.getElementById('auth-status').innerHTML = 
+                        `<i class="fas fa-check-circle"></i> Autenticado correctamente`;
+                    document.getElementById('auth-status').className = 'alert alert-success';
+                    log('Autenticación exitosa', 'success');
+                } else {
+                    throw new Error(data.message || 'Error de autenticación');
+                }
+            } catch (error) {
+                log(`Error de autenticación: ${error.message}`, 'error');
+                document.getElementById('auth-status').innerHTML = 
+                    `<i class="fas fa-times-circle"></i> Error: ${error.message}`;
+                document.getElementById('auth-status').className = 'alert alert-danger';
+            }
+        }
+
+        async function testSave() {
+            log('=== INICIANDO PRUEBA DE GUARDADO ===', 'info');
+            
+            // Recopilar datos del formulario
+            const config = {
+                companyName: document.getElementById('company_name').value,
+                companyEmail: document.getElementById('contact_email').value,
+                companyPhone: document.getElementById('main_phone').value,
+                companySector: document.getElementById('industry').value,
+                companyAddress: document.getElementById('address').value,
+                companyWebsite: document.getElementById('website').value,
+                
+                callConfig: {
+                    enabled: document.getElementById('call_bot_active').checked,
+                    language: document.getElementById('call_language').value,
+                    voiceId: document.getElementById('voice_type').value,
+                    greeting: document.getElementById('call_greeting').value
+                },
+                
+                emailConfig: {
+                    enabled: document.getElementById('email_bot_active').checked,
+                    provider: document.getElementById('email_provider').value,
+                    outgoingEmail: document.getElementById('outgoing_email').value,
+                    emailSignature: document.getElementById('email_signature').value
+                }
+            };
+            
+            log(`Datos a guardar: ${JSON.stringify(config, null, 2)}`, 'info');
+            
+            try {
+                const response = await window.ApiHelper.fetchApi(
+                    window.API_CONFIG.DASHBOARD.BOT_CONFIG,
+                    {
+                        method: 'PUT',
+                        body: JSON.stringify(config)
+                    }
+                );
+                
+                log('✅ Configuración guardada exitosamente', 'success');
+                log(`Respuesta del servidor: ${JSON.stringify(response, null, 2)}`, 'info');
+                toastr.success('Configuración guardada correctamente');
+                
+            } catch (error) {
+                log(`❌ Error al guardar: ${error.message}`, 'error');
+                toastr.error(`Error al guardar: ${error.message}`);
+            }
+        }
+
+        async function testLoad() {
+            log('=== INICIANDO PRUEBA DE CARGA ===', 'info');
+            
+            try {
+                const botConfig = await window.ApiHelper.fetchApi(
+                    window.API_CONFIG.DASHBOARD.BOT_CONFIG,
+                    { method: 'GET' }
+                );
+                
+                log('✅ Configuración cargada exitosamente', 'success');
+                log(`Datos recibidos: ${JSON.stringify(botConfig, null, 2)}`, 'info');
+                
+                // Cargar datos en el formulario
+                if (botConfig.companyInfo) {
+                    document.getElementById('company_name').value = botConfig.companyInfo.name || '';
+                    document.getElementById('contact_email').value = botConfig.companyInfo.email || '';
+                    document.getElementById('main_phone').value = botConfig.companyInfo.phone || '';
+                    document.getElementById('industry').value = botConfig.companyInfo.sector || '';
+                    document.getElementById('address').value = botConfig.companyInfo.address || '';
+                    document.getElementById('website').value = botConfig.companyInfo.website || '';
+                    
+                    log('✅ Información de empresa cargada', 'success');
+                }
+                
+                if (botConfig.callConfig) {
+                    document.getElementById('call_bot_active').checked = botConfig.callConfig.enabled || false;
+                    document.getElementById('call_language').value = botConfig.callConfig.language || 'es-ES';
+                    document.getElementById('voice_type').value = botConfig.callConfig.voiceId || 'female';
+                    document.getElementById('call_greeting').value = botConfig.callConfig.greeting || '';
+                    
+                    log('✅ Configuración de llamadas cargada', 'success');
+                }
+                
+                if (botConfig.emailConfig) {
+                    document.getElementById('email_bot_active').checked = botConfig.emailConfig.enabled || false;
+                    document.getElementById('email_provider').value = botConfig.emailConfig.provider || 'gmail';
+                    document.getElementById('outgoing_email').value = botConfig.emailConfig.outgoingEmail || '';
+                    document.getElementById('email_signature').value = botConfig.emailConfig.emailSignature || '';
+                    
+                    log('✅ Configuración de email cargada', 'success');
+                }
+                
+                toastr.success('Configuración cargada correctamente');
+                
+            } catch (error) {
+                log(`❌ Error al cargar: ${error.message}`, 'error');
+                toastr.error(`Error al cargar: ${error.message}`);
+            }
+        }
+
+        async function testFullCycle() {
+            log('=== INICIANDO CICLO COMPLETO DE PRUEBA ===', 'info');
+            
+            // Modificar algunos valores para verificar persistencia
+            const originalPhone = document.getElementById('main_phone').value;
+            const testPhone = '+34987654321';
+            
+            document.getElementById('main_phone').value = testPhone;
+            document.getElementById('industry').value = 'healthcare';
+            document.getElementById('call_greeting').value = 'Mensaje de prueba modificado';
+            
+            log(`Teléfono original: ${originalPhone}`, 'info');
+            log(`Teléfono de prueba: ${testPhone}`, 'info');
+            
+            try {
+                // 1. Guardar
+                await testSave();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // 2. Limpiar campos
+                document.getElementById('main_phone').value = '';
+                document.getElementById('industry').value = '';
+                document.getElementById('call_greeting').value = '';
+                
+                log('Campos limpiados para verificar carga', 'info');
+                
+                // 3. Cargar
+                await testLoad();
+                
+                // 4. Verificar
+                const loadedPhone = document.getElementById('main_phone').value;
+                const loadedIndustry = document.getElementById('industry').value;
+                const loadedGreeting = document.getElementById('call_greeting').value;
+                
+                if (loadedPhone === testPhone) {
+                    log('✅ TELÉFONO: Persistencia verificada correctamente', 'success');
+                } else {
+                    log(`❌ TELÉFONO: Error de persistencia. Esperado: ${testPhone}, Obtenido: ${loadedPhone}`, 'error');
+                }
+                
+                if (loadedIndustry === 'healthcare') {
+                    log('✅ SECTOR: Persistencia verificada correctamente', 'success');
+                } else {
+                    log(`❌ SECTOR: Error de persistencia. Esperado: healthcare, Obtenido: ${loadedIndustry}`, 'error');
+                }
+                
+                if (loadedGreeting === 'Mensaje de prueba modificado') {
+                    log('✅ SALUDO: Persistencia verificada correctamente', 'success');
+                } else {
+                    log(`❌ SALUDO: Error de persistencia`, 'error');
+                }
+                
+                log('=== CICLO COMPLETO FINALIZADO ===', 'info');
+                
+            } catch (error) {
+                log(`❌ Error en ciclo completo: ${error.message}`, 'error');
+            }
+        }
+
+        // Configurar toastr
+        toastr.options = {
+            closeButton: true,
+            debug: false,
+            newestOnTop: true,
+            progressBar: true,
+            positionClass: "toast-top-right",
+            preventDuplicates: false,
+            onclick: null,
+            showDuration: "300",
+            hideDuration: "1000",
+            timeOut: "5000",
+            extendedTimeOut: "1000",
+            showEasing: "swing",
+            hideEasing: "linear",
+            showMethod: "fadeIn",
+            hideMethod: "fadeOut"
+        };
+
+        // Log inicial
+        log('Página de verificación cargada correctamente', 'info');
+        log('Configuración de API establecida', 'info');
+    </script>
+</body>
+</html>
