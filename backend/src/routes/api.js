@@ -984,6 +984,115 @@ router.get('/logs/emails', authenticate, async (req, res) => {
   }
 });
 
+// === ENDPOINTS PARA OPERACIONES INDIVIDUALES DE LLAMADAS Y EMAILS ===
+
+// Marcar llamada como gestionada
+router.put('/calls/:callId/status', authenticate, async (req, res) => {
+  try {
+    const { callId } = req.params;
+    const { managed } = req.body;
+    
+    const updatedCall = await prisma.callLog.update({
+      where: { 
+        id: parseInt(callId),
+        clientId: req.client.id 
+      },
+      data: { managed: managed }
+    });
+    
+    return res.json({ success: true, call: updatedCall });
+  } catch (error) {
+    logger.error(`Error actualizando estado de llamada: ${error.message}`);
+    return res.status(500).json({ error: 'Error actualizando llamada' });
+  }
+});
+
+// Obtener grabación de llamada
+router.get('/calls/:callId/recording', authenticate, async (req, res) => {
+  try {
+    const { callId } = req.params;
+    
+    const call = await prisma.callLog.findFirst({
+      where: { 
+        id: parseInt(callId),
+        clientId: req.client.id 
+      }
+    });
+    
+    if (!call || !call.recordingUrl) {
+      return res.status(404).json({ error: 'Grabación no encontrada' });
+    }
+    
+    return res.json({ success: true, recordingUrl: call.recordingUrl });
+  } catch (error) {
+    logger.error(`Error obteniendo grabación: ${error.message}`);
+    return res.status(500).json({ error: 'Error obteniendo grabación' });
+  }
+});
+
+// Marcar llamada como importante
+router.put('/calls/:callId/importance', authenticate, async (req, res) => {
+  try {
+    const { callId } = req.params;
+    const { important } = req.body;
+    
+    const updatedCall = await prisma.callLog.update({
+      where: { 
+        id: parseInt(callId),
+        clientId: req.client.id 
+      },
+      data: { important: important }
+    });
+    
+    return res.json({ success: true, call: updatedCall });
+  } catch (error) {
+    logger.error(`Error actualizando importancia de llamada: ${error.message}`);
+    return res.status(500).json({ error: 'Error actualizando llamada' });
+  }
+});
+
+// Marcar email como favorito
+router.put('/emails/:emailId/favorite', authenticate, async (req, res) => {
+  try {
+    const { emailId } = req.params;
+    const { favorite } = req.body;
+    
+    const updatedEmail = await prisma.emailLog.update({
+      where: { 
+        id: parseInt(emailId),
+        clientId: req.client.id 
+      },
+      data: { favorite: favorite }
+    });
+    
+    return res.json({ success: true, email: updatedEmail });
+  } catch (error) {
+    logger.error(`Error actualizando favorito de email: ${error.message}`);
+    return res.status(500).json({ error: 'Error actualizando email' });
+  }
+});
+
+// Marcar email como leído
+router.put('/emails/:emailId/read', authenticate, async (req, res) => {
+  try {
+    const { emailId } = req.params;
+    const { read } = req.body;
+    
+    const updatedEmail = await prisma.emailLog.update({
+      where: { 
+        id: parseInt(emailId),
+        clientId: req.client.id 
+      },
+      data: { isRead: read }
+    });
+    
+    return res.json({ success: true, email: updatedEmail });
+  } catch (error) {
+    logger.error(`Error actualizando estado de lectura: ${error.message}`);
+    return res.status(500).json({ error: 'Error actualizando email' });
+  }
+});
+
 // === ENDPOINTS PARA CONFIGURACIÓN DE VOZ Y LLAMADAS ===
 
 // Obtener lista de voces disponibles
@@ -1338,6 +1447,128 @@ router.post('/billing/cancel-subscription', authenticate, async (req, res) => {
   }
 });
 
+// Obtener métodos de pago
+router.get('/payment/methods', authenticate, async (req, res) => {
+  try {
+    if (!req.client.stripeCustomerId) {
+      return res.json({ paymentMethods: [] });
+    }
+    
+    // Obtener métodos de pago de Stripe
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: req.client.stripeCustomerId,
+      type: 'card'
+    });
+    
+    return res.json({ 
+      paymentMethods: paymentMethods.data.map(pm => ({
+        id: pm.id,
+        brand: pm.card.brand,
+        last4: pm.card.last4,
+        expMonth: pm.card.exp_month,
+        expYear: pm.card.exp_year,
+        isDefault: pm.id === req.client.defaultPaymentMethodId
+      }))
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo métodos de pago: ${error.message}`);
+    return res.status(500).json({ error: 'Error obteniendo métodos de pago' });
+  }
+});
+
+// Agregar método de pago
+router.post('/payment/method', authenticate, async (req, res) => {
+  try {
+    const { paymentMethodId, setAsDefault } = req.body;
+    
+    if (!paymentMethodId) {
+      return res.status(400).json({ error: 'ID del método de pago requerido' });
+    }
+    
+    // Crear cliente en Stripe si no existe
+    let stripeCustomerId = req.client.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        email: req.client.email,
+        name: req.client.companyName
+      });
+      stripeCustomerId = customer.id;
+      
+      await prisma.client.update({
+        where: { id: req.client.id },
+        data: { stripeCustomerId }
+      });
+    }
+    
+    // Adjuntar método de pago al cliente
+    await stripe.paymentMethods.attach(paymentMethodId, {
+      customer: stripeCustomerId
+    });
+    
+    // Establecer como predeterminado si se solicita
+    if (setAsDefault) {
+      await stripe.customers.update(stripeCustomerId, {
+        invoice_settings: {
+          default_payment_method: paymentMethodId
+        }
+      });
+      
+      await prisma.client.update({
+        where: { id: req.client.id },
+        data: { defaultPaymentMethodId: paymentMethodId }
+      });
+    }
+    
+    return res.json({ 
+      success: true, 
+      message: 'Método de pago agregado exitosamente' 
+    });
+  } catch (error) {
+    logger.error(`Error agregando método de pago: ${error.message}`);
+    return res.status(500).json({ error: 'Error agregando método de pago' });
+  }
+});
+
+// Obtener información de suscripción
+router.get('/billing/subscription', authenticate, async (req, res) => {
+  try {
+    if (!req.client.stripeSubscriptionId) {
+      return res.json({ 
+        hasSubscription: false,
+        status: 'inactive',
+        plan: null
+      });
+    }
+    
+    // Obtener suscripción de Stripe
+    const subscription = await stripe.subscriptions.retrieve(
+      req.client.stripeSubscriptionId
+    );
+    
+    const product = await stripe.products.retrieve(
+      subscription.items.data[0].price.product
+    );
+    
+    return res.json({
+      hasSubscription: true,
+      status: subscription.status,
+      currentPeriodStart: new Date(subscription.current_period_start * 1000),
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      plan: {
+        id: subscription.items.data[0].price.id,
+        name: product.name,
+        amount: subscription.items.data[0].price.unit_amount / 100,
+        currency: subscription.items.data[0].price.currency,
+        interval: subscription.items.data[0].price.recurring.interval
+      }
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo suscripción: ${error.message}`);
+    return res.status(500).json({ error: 'Error obteniendo información de suscripción' });
+  }
+});
+
 // Estadísticas del dashboard
 router.get('/dashboard/stats', authenticate, async (req, res) => {
   try {
@@ -1584,6 +1815,110 @@ router.put('/account', authenticate, async (req, res) => {
 });
 
 // === ENDPOINTS PARA CONFIGURACIÓN DE EMAILS ===
+
+// Obtener configuración de email (endpoint para frontend)
+router.get('/config/email', authenticate, async (req, res) => {
+  try {
+    const emailConfig = await prisma.emailConfig.findUnique({
+      where: { clientId: req.client.id }
+    });
+    
+    if (!emailConfig) {
+      const defaultConfig = {
+        autoResponse: true,
+        defaultRecipients: [],
+        forwardRules: '',
+        signature: '',
+        provider: '',
+        outgoingEmail: ''
+      };
+      return res.json(defaultConfig);
+    }
+    
+    // No devolver contraseñas por seguridad
+    const safeConfig = { ...emailConfig };
+    delete safeConfig.imapPassword;
+    delete safeConfig.smtpPassword;
+    
+    return res.json(safeConfig);
+  } catch (error) {
+    logger.error(`Error obteniendo configuración de email: ${error.message}`);
+    return res.status(500).json({ error: 'Error obteniendo configuración de email' });
+  }
+});
+
+// Guardar configuración de email (endpoint para frontend)
+router.put('/config/email', authenticate, async (req, res) => {
+  try {
+    const {
+      autoResponse,
+      forwardRules,
+      signature,
+      provider,
+      outgoingEmail,
+      imapHost,
+      imapPort,
+      imapUser,
+      imapPassword,
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPassword,
+      defaultRecipients,
+      templates
+    } = req.body;
+    
+    const emailConfig = await prisma.emailConfig.upsert({
+      where: { clientId: req.client.id },
+      update: {
+        autoResponse: autoResponse !== undefined ? autoResponse : undefined,
+        forwardRules: forwardRules || undefined,
+        signature: signature || undefined,
+        provider: provider || undefined,
+        outgoingEmail: outgoingEmail || undefined,
+        imapHost: imapHost || undefined,
+        imapPort: imapPort || undefined,
+        imapUser: imapUser || undefined,
+        imapPassword: imapPassword || undefined,
+        smtpHost: smtpHost || undefined,
+        smtpPort: smtpPort || undefined,
+        smtpUser: smtpUser || undefined,
+        smtpPassword: smtpPassword || undefined,
+        defaultRecipients: defaultRecipients || undefined,
+        templates: templates || undefined
+      },
+      create: {
+        clientId: req.client.id,
+        autoResponse: autoResponse || true,
+        forwardRules: forwardRules || '',
+        signature: signature || '',
+        provider: provider || '',
+        outgoingEmail: outgoingEmail || '',
+        imapHost: imapHost || '',
+        imapPort: imapPort || 993,
+        imapUser: imapUser || '',
+        imapPassword: imapPassword || '',
+        smtpHost: smtpHost || '',
+        smtpPort: smtpPort || 587,
+        smtpUser: smtpUser || '',
+        smtpPassword: smtpPassword || '',
+        defaultRecipients: defaultRecipients || [],
+        templates: templates || []
+      }
+    });
+    
+    // No devolver contraseñas por seguridad
+    const safeConfig = { ...emailConfig };
+    delete safeConfig.imapPassword;
+    delete safeConfig.smtpPassword;
+    
+    logger.info(`Configuración de email actualizada para cliente ${req.client.id}`);
+    return res.json(safeConfig);
+  } catch (error) {
+    logger.error(`Error guardando configuración de email: ${error.message}`);
+    return res.status(500).json({ error: 'Error guardando configuración de email' });
+  }
+});
 
 // Obtener configuración de email
 router.get('/email/config', authenticate, async (req, res) => {

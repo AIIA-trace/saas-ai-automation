@@ -84,10 +84,23 @@ window.ApiHelper = {
                         return {}; // Devolver objeto vacío en lugar de fallar
                     }
                 }
+                return response;
             }
             
-            // Para otros casos, devolver la respuesta original
-            return response;
+            // Manejar errores HTTP
+            const contentType = response.headers.get('content-type');
+            let errorMessage = `Error ${response.status}: ${response.statusText}`;
+            
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorData.message || errorMessage;
+                } catch (e) {
+                    // Si no se puede parsear el JSON de error, usar mensaje por defecto
+                }
+            }
+            
+            throw new Error(errorMessage);
         } catch (error) {
             console.error('❌ Error API:', error);
             throw error;

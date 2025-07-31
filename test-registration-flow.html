@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Flujo de Registro</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        button { padding: 10px 20px; margin: 5px; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test del Sistema de Registro</h1>
+    
+    <div class="test-section">
+        <h3>1. Verificar Configuración API</h3>
+        <button onclick="testAPIConfig()">Probar API Config</button>
+        <div id="api-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Verificar Servicio de Autenticación</h3>
+        <button onclick="testAuthService()">Probar Auth Service</button>
+        <div id="auth-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Test de Registro Completo</h3>
+        <button onclick="testRegistration()">Probar Registro</button>
+        <div id="registration-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. Verificar Persistencia</h3>
+        <button onclick="testPersistence()">Verificar localStorage</button>
+        <div id="persistence-results"></div>
+    </div>
+    
+    <div id="results"></div>
+
+    <!-- Cargar dependencias -->
+    <script src="frontend/js/api-config.js"></script>
+    <script src="frontend/js/auth-service.js"></script>
+    
+    <script>
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            document.getElementById('results').appendChild(div);
+            console.log(message);
+        }
+        
+        function testAPIConfig() {
+            const resultsDiv = document.getElementById('api-results');
+            resultsDiv.innerHTML = '';
+            
+            try {
+                if (typeof window.API_CONFIG === 'undefined') {
+                    resultsDiv.innerHTML = '<span class="error">❌ API_CONFIG no está definido</span>';
+                    return;
+                }
+                
+                const registerUrl = API_CONFIG.getFullUrl(API_CONFIG.AUTH.REGISTER);
+                resultsDiv.innerHTML = `
+                    <span class="success">✅ API_CONFIG cargado correctamente</span><br>
+                    <strong>URL de registro:</strong> ${registerUrl}<br>
+                    <strong>Base URL:</strong> ${API_CONFIG.apiBaseUrl}
+                `;
+                
+                log('✅ API_CONFIG verificado correctamente', 'success');
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+                log(`❌ Error en API_CONFIG: ${error.message}`, 'error');
+            }
+        }
+        
+        function testAuthService() {
+            const resultsDiv = document.getElementById('auth-results');
+            resultsDiv.innerHTML = '';
+            
+            try {
+                if (typeof window.authService === 'undefined') {
+                    resultsDiv.innerHTML = '<span class="error">❌ authService no está definido</span>';
+                    return;
+                }
+                
+                resultsDiv.innerHTML = `
+                    <span class="success">✅ AuthService disponible</span><br>
+                    <strong>Métodos disponibles:</strong> ${Object.getOwnPropertyNames(Object.getPrototypeOf(window.authService)).join(', ')}
+                `;
+                
+                log('✅ AuthService verificado correctamente', 'success');
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+                log(`❌ Error en AuthService: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testRegistration() {
+            const resultsDiv = document.getElementById('registration-results');
+            resultsDiv.innerHTML = '<span class="warning">🔄 Probando registro...</span>';
+            
+            // Datos de prueba
+            const testUserData = {
+                email: `test_${Date.now()}@example.com`,
+                password: 'password123',
+                companyName: 'Test Company',
+                companyDescription: 'Una empresa de prueba',
+                businessSector: 'retail',
+                contactPhone: '+34 123 456 789',
+                plan: 'trial'
+            };
+            
+            try {
+                log(`🔄 Iniciando registro de prueba para: ${testUserData.email}`, 'warning');
+                
+                const response = await window.authService.register(testUserData);
+                
+                if (response && response.token) {
+                    resultsDiv.innerHTML = `
+                        <span class="success">✅ Registro exitoso</span><br>
+                        <strong>Token recibido:</strong> ${response.token.substring(0, 20)}...<br>
+                        <strong>Usuario ID:</strong> ${response.client?.id || 'N/A'}<br>
+                        <strong>Email:</strong> ${response.client?.email || 'N/A'}
+                    `;
+                    log('✅ Registro de prueba completado exitosamente', 'success');
+                } else {
+                    resultsDiv.innerHTML = '<span class="warning">⚠️ Registro completado pero sin token</span>';
+                    log('⚠️ Registro sin token - posible modo offline', 'warning');
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">❌ Error en registro: ${error.message}</span>`;
+                log(`❌ Error en registro de prueba: ${error.message}`, 'error');
+            }
+        }
+        
+        function testPersistence() {
+            const resultsDiv = document.getElementById('persistence-results');
+            
+            const token = localStorage.getItem('auth_token');
+            const userData = localStorage.getItem('user_data');
+            const timestamp = localStorage.getItem('auth_timestamp');
+            
+            resultsDiv.innerHTML = `
+                <strong>Token:</strong> ${token ? '✅ Presente' : '❌ Ausente'}<br>
+                <strong>Datos de usuario:</strong> ${userData ? '✅ Presente' : '❌ Ausente'}<br>
+                <strong>Timestamp:</strong> ${timestamp ? '✅ Presente' : '❌ Ausente'}<br>
+                ${userData ? `<strong>Email guardado:</strong> ${JSON.parse(userData).email || 'N/A'}` : ''}
+            `;
+            
+            log(`Persistencia verificada - Token: ${!!token}, UserData: ${!!userData}`, token && userData ? 'success' : 'warning');
+        }
+        
+        // Auto-ejecutar verificaciones básicas al cargar
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testAPIConfig();
+                testAuthService();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

@@ -52,7 +52,7 @@ class AuthService {
   async registerClient(clientData) {
     try {
       logger.info(`Iniciando registro de cliente: ${JSON.stringify(clientData, null, 2)}`);
-      const { email, password, companyName, companyDescription, contactPhone, plan } = clientData;
+      const { email, password, companyName, companyDescription, businessSector, contactPhone, plan } = clientData;
       
       // Verificar si ya existe un cliente con ese email
       logger.info(`Verificando si existe cliente con email: ${email}`);
@@ -90,8 +90,10 @@ class AuthService {
           email,
           password: hashedPassword,
           companyName,
+          companyDescription: companyDescription || null,
           contactName: companyName,
           phone: contactPhone || null,
+          industry: businessSector || null, // businessSector se mapea a industry
           apiKey,
           role: 'client',
           isActive: true,

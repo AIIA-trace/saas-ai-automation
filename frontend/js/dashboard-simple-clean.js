@@ -2447,7 +2447,7 @@ function loadCallsData() {
     }
     
     // Realizar petición al backend
-    window.ApiHelper.fetchApi({ url: '/api/calls', auth: 'jwt' }, { method: 'GET' })
+    window.ApiHelper.fetchApi({ url: '/api/logs/calls', auth: 'jwt' }, { method: 'GET' })
     .then(response => {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -3544,7 +3544,25 @@ function loadExistingData() {
         console.error('❌ No se encontró token de autenticación en ninguna ubicación');
         console.error('🔍 Claves en sessionStorage:', Object.keys(sessionStorage));
         console.error('🔍 Claves en localStorage:', Object.keys(localStorage));
+        
+        // PREVENIR BUCLES INFINITOS - verificar si ya estamos en login
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('login.html') || currentPath.includes('register.html')) {
+            console.log('🛑 Ya estamos en página de autenticación, no redirigiendo');
+            return;
+        }
+        
+        // Verificar redirección reciente
+        const lastRedirect = localStorage.getItem('lastDashboardRedirect');
+        const now = Date.now();
+        if (lastRedirect && (now - parseInt(lastRedirect)) < 3000) {
+            console.log('🛑 Redirección reciente desde dashboard, evitando bucle');
+            return;
+        }
+        localStorage.setItem('lastDashboardRedirect', now.toString());
+        
         toastr.error('Sesión expirada. Por favor, inicia sesión nuevamente.', 'Error de Autenticación');
+        console.log('🔄 Redirigiendo a login desde dashboard');
         // Redirigir al login
         window.location.href = '/login.html';
         return;
@@ -3559,10 +3577,10 @@ function loadExistingData() {
         console.log('🎯 Elementos en DOM después del delay:', document.querySelectorAll('input, select, textarea').length);
         console.log('📋 Elementos específicos del bot:');
         console.log('   - company_name:', !!document.getElementById('company_name'));
-        console.log('   - company_address:', !!document.getElementById('company_address'));
-        console.log('   - enable_calls:', !!document.getElementById('enable_calls'));
+        console.log('   - address:', !!document.getElementById('address'));
+        console.log('   - call_bot_active:', !!document.getElementById('call_bot_active'));
         console.log('   - email_signature:', !!document.getElementById('email_signature'));
-        console.log('   - faq-items-container:', !!document.getElementById('faq-items-container'));
+        console.log('   - faq-items:', !!document.getElementById('faq-items'));
         console.log('   - context-files-list:', !!document.getElementById('context-files-list'));
         
         // PRIMERO: Cargar datos del registro desde localStorage
@@ -3791,7 +3809,7 @@ function loadBotConfiguration() {
             safeSetValue('company_name', botConfig.company.name);
             safeSetValue('company_description', botConfig.company.description);
             safeSetValue('company_sector', botConfig.company.sector);
-            safeSetValue('company_address', botConfig.company.address);
+            safeSetValue('address', botConfig.company.address);
             safeSetValue('company_phone', botConfig.company.phone);
             safeSetValue('company_email', botConfig.company.email);
             safeSetValue('company_website', botConfig.company.website);
@@ -3799,9 +3817,9 @@ function loadBotConfiguration() {
         
         // Configuración de llamadas
         if (botConfig.callConfig) {
-            safeSetChecked('enable_calls', botConfig.callConfig.enabled);
-            safeSetChecked('record_calls', botConfig.callConfig.recordCalls);
-            safeSetChecked('transcribe_calls', botConfig.callConfig.transcribeCalls);
+            safeSetChecked('call_bot_active', botConfig.callConfig.enabled);
+            safeSetChecked('call_recording', botConfig.callConfig.recordCalls);
+            safeSetChecked('call_transcription', botConfig.callConfig.transcribeCalls);
         }
         
         // Idioma y voz (con compatibilidad hacia atrás)
@@ -3837,10 +3855,10 @@ function loadBotConfiguration() {
         // Horas de trabajo
         if (botConfig.workingHours) {
             if (botConfig.workingHours.opening) {
-                document.getElementById('opening_hour').value = botConfig.workingHours.opening;
+                safeSetValue('opening_hour', botConfig.workingHours.opening);
             }
             if (botConfig.workingHours.closing) {
-                document.getElementById('closing_hour').value = botConfig.workingHours.closing;
+                safeSetValue('closing_hour', botConfig.workingHours.closing);
             }
         }
         
@@ -3888,7 +3906,7 @@ function loadBotConfiguration() {
         // Cargar FAQs si existen
         if (botConfig.faqs && Array.isArray(botConfig.faqs) && botConfig.faqs.length > 0) {
             // Limpiar FAQs existentes
-            const faqContainer = document.getElementById('faq-items-container');
+            const faqContainer = document.getElementById('faq-items');
             if (faqContainer) {
                 faqContainer.innerHTML = '';
             }
@@ -4566,7 +4584,7 @@ function loadEmailsData() {
     }
     
     // Realizar petición al backend
-    window.ApiHelper.fetchApi({ url: '/api/emails', auth: 'jwt' }, { method: 'GET' })
+    window.ApiHelper.fetchApi({ url: '/api/logs/emails', auth: 'jwt' }, { method: 'GET' })
     .then(response => {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -7321,7 +7339,7 @@ function saveUnifiedConfig() {
             companyName: document.getElementById('company_name')?.value || '',
             companyDescription: document.getElementById('company_description')?.value || '',
             companySector: document.getElementById('company_sector')?.value || '',
-            companyAddress: document.getElementById('company_address')?.value || '',
+            companyAddress: document.getElementById('address')?.value || '',
             companyPhone: document.getElementById('company_phone')?.value || '',
             companyEmail: document.getElementById('company_email')?.value || '',
             companyWebsite: document.getElementById('company_website')?.value || '',
@@ -7349,9 +7367,9 @@ function saveUnifiedConfig() {
             
             // Configuración de llamadas
             callConfig: {
-                enabled: document.getElementById('enable_calls')?.checked || false,
-                recordCalls: document.getElementById('record_calls')?.checked || false,
-                transcribeCalls: document.getElementById('transcribe_calls')?.checked || false,
+                enabled: document.getElementById('call_bot_active')?.checked || false,
+                recordCalls: document.getElementById('call_recording')?.checked || false,
+                transcribeCalls: document.getElementById('call_transcription')?.checked || false,
                 voiceId: document.getElementById('voice_id')?.value || '',
                 language: document.getElementById('voice_language')?.value || 'es-ES',
                 confirmationMessage: document.getElementById('confirmation_message')?.value || ''
@@ -7486,7 +7504,7 @@ function saveUnifiedConfig() {
             name: config.companyName,
             description: config.companyDescription,
             sector: config.companySector,
-            address: document.getElementById('company_address')?.value || '',
+            address: document.getElementById('address')?.value || '',
             phone: config.companyPhone,
             email: config.companyEmail,
             website: config.companyWebsite
@@ -7494,9 +7512,9 @@ function saveUnifiedConfig() {
         
         // Configuración de llamadas
         callConfig: {
-            enabled: document.getElementById('enable_calls')?.checked || false,
-            recordCalls: document.getElementById('record_calls')?.checked || false,
-            transcribeCalls: document.getElementById('transcribe_calls')?.checked || false,
+            enabled: document.getElementById('call_bot_active')?.checked || false,
+            recordCalls: document.getElementById('call_recording')?.checked || false,
+            transcribeCalls: document.getElementById('call_transcription')?.checked || false,
             voiceId: config.callConfig.voiceId,
             language: config.callConfig.language,
             confirmationMessage: config.callConfig.confirmationMessage
@@ -9657,6 +9675,102 @@ function showUsageSummaryDetails() {
     }
 }
 
+// ========================================
+// FUNCIONES MOCK PARA DATOS DE PRUEBA
+// ========================================
+
+/**
+ * Generar datos mock para llamadas
+ */
+function getMockCallsData() {
+    return [
+        {
+            id: 1,
+            date: '2024-01-15',
+            time: '10:30',
+            phone: '+34 612 345 678',
+            contactType: 'Cliente',
+            summary: 'Consulta sobre servicios',
+            details: 'El cliente preguntó sobre nuestros planes de servicio premium',
+            duration: '5:23',
+            type: 'incoming',
+            urgency: 'normal'
+        },
+        {
+            id: 2,
+            date: '2024-01-15',
+            time: '14:15',
+            phone: '+34 687 123 456',
+            contactType: 'Prospecto',
+            summary: 'Interés en producto',
+            details: 'Llamada de seguimiento para demostración del producto',
+            duration: '8:45',
+            type: 'outgoing',
+            urgency: 'high'
+        },
+        {
+            id: 3,
+            date: '2024-01-14',
+            time: '16:20',
+            phone: '+34 654 987 321',
+            contactType: 'Cliente',
+            summary: 'Soporte técnico',
+            details: 'Problema resuelto con la configuración del sistema',
+            duration: '12:10',
+            type: 'incoming',
+            urgency: 'urgent'
+        }
+    ];
+}
+
+/**
+ * Generar datos mock para emails
+ */
+function getMockEmailsData() {
+    return [
+        {
+            id: 1,
+            sender: 'cliente@empresa.com',
+            senderType: 'Cliente',
+            subject: 'Consulta sobre facturación',
+            preview: 'Necesito información sobre mi última factura...',
+            date: '2024-01-15',
+            time: '09:15',
+            read: false,
+            important: true,
+            spam: false
+        },
+        {
+            id: 2,
+            sender: 'info@proveedor.com',
+            senderType: 'Proveedor',
+            subject: 'Actualización de servicios',
+            preview: 'Le informamos sobre las nuevas funcionalidades...',
+            date: '2024-01-15',
+            time: '11:30',
+            read: true,
+            important: false,
+            spam: false
+        },
+        {
+            id: 3,
+            sender: 'marketing@spam.com',
+            senderType: 'Promocional',
+            subject: 'Oferta especial limitada',
+            preview: '¡No te pierdas esta increíble oportunidad!',
+            date: '2024-01-14',
+            time: '20:45',
+            read: false,
+            important: false,
+            spam: true
+        }
+    ];
+}
+
+// ========================================
+// INICIALIZACIÓN DEL DASHBOARD
+// ========================================
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Inicializando Dashboard Simple...');
     
@@ -9684,11 +9798,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Obtener datos de la empresa del usuario
         const companyData = JSON.parse(localStorage.getItem('companyData') || '{}');
         
-        // Adaptar el dashboard según el contexto de la empresa
+        // Adaptar el dashboard según el contexto de la empresa (ya incluye createTabsContent)
         adaptOtherContextSimple(companyData);
         
-        // Inicializar el dashboard con la nueva función que desactiva los mensajes temporales
-        initDashboard();
+        // Solo configurar event listeners adicionales sin recrear contenido
+        setupEventListeners();
+        
+        // Cargar datos existentes del perfil y configuración desde el backend
+        loadExistingData();
         
         // Inicializar el sistema de seguimiento de uso
         if (window.UsageTracker) {
@@ -9708,3 +9825,101 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = 'login.html';
     }
 });
+
+// ===== FUNCIONES PARA OPERACIONES DE EMAILS =====
+
+/**
+ * Marcar o desmarcar un email como favorito
+ * @param {number} emailId - ID del email
+ * @param {HTMLElement} starBtn - Botón de estrella
+ */
+function toggleEmailFavorite(emailId, starBtn) {
+    console.log(`⭐ Cambiando favorito de email ID: ${emailId}`);
+    
+    // Verificar si ya está marcado como favorito
+    const starIcon = starBtn.querySelector('i');
+    const isFavorite = starIcon.classList.contains('fas');
+    
+    // Hacer petición al backend
+    window.ApiHelper.fetchApi({ url: `/api/emails/${emailId}/favorite`, auth: 'jwt' }, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ favorite: !isFavorite })
+    })
+    .then(response => {
+        if (response.success) {
+            // Actualizar UI
+            if (isFavorite) {
+                // Desmarcar como favorito
+                starIcon.classList.remove('fas', 'text-warning');
+                starIcon.classList.add('far', 'text-muted');
+                toastr.info(`Email desmarcado como favorito`, 'Favorito');
+            } else {
+                // Marcar como favorito
+                starIcon.classList.remove('far', 'text-muted');
+                starIcon.classList.add('fas', 'text-warning');
+                toastr.success(`Email marcado como favorito`, 'Favorito');
+            }
+        } else {
+            toastr.error('Error al actualizar favorito', 'Error');
+        }
+    })
+    .catch(error => {
+        console.error('Error al cambiar favorito:', error);
+        toastr.error('Error de conexión', 'Error');
+    });
+}
+
+/**
+ * Marcar un email como leído
+ * @param {number} emailId - ID del email
+ */
+function markEmailAsRead(emailId) {
+    console.log(`📧 Marcando email como leído ID: ${emailId}`);
+    
+    // Buscar la fila del email
+    const emailRow = document.querySelector(`.email-row[data-id="${emailId}"]`);
+    if (!emailRow) {
+        console.error(`No se encontró el email con ID ${emailId}`);
+        toastr.error('No se pudo encontrar el email', 'Error');
+        return;
+    }
+    
+    // Hacer petición al backend
+    window.ApiHelper.fetchApi({ url: `/api/emails/${emailId}/read`, auth: 'jwt' }, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ read: true })
+    })
+    .then(response => {
+        if (response.success) {
+            // Actualizar UI - remover indicador de no leído
+            emailRow.classList.remove('table-warning');
+            emailRow.classList.add('table-light');
+            
+            // Actualizar icono si existe
+            const unreadIcon = emailRow.querySelector('.unread-indicator');
+            if (unreadIcon) {
+                unreadIcon.remove();
+            }
+            
+            // Actualizar texto en negrita
+            const subjectCell = emailRow.querySelector('.email-subject');
+            if (subjectCell) {
+                subjectCell.style.fontWeight = 'normal';
+            }
+            
+            toastr.success('Email marcado como leído', 'Leído');
+        } else {
+            toastr.error('Error al marcar como leído', 'Error');
+        }
+    })
+    .catch(error => {
+        console.error('Error al marcar como leído:', error);
+        toastr.error('Error de conexión', 'Error');
+    });
+}

@@ -303,20 +303,60 @@ class RouteGuard {
      * Redirecciona al usuario a la página de login
      */
     redirectToLogin() {
+        // PREVENIR BUCLES INFINITOS
+        const currentPath = window.location.pathname;
+        
+        // Si ya estamos en login, register o páginas públicas, no redirigir
+        if (currentPath.includes('login.html') || 
+            currentPath.includes('register.html') || 
+            currentPath.includes('forgot-password.html') ||
+            currentPath === '/' || 
+            currentPath === '/index.html') {
+            console.log('🛑 Ya estamos en página pública, no redirigiendo');
+            return;
+        }
+        
+        // Verificar si ya se intentó redireccionar recientemente (prevenir bucle)
+        const lastRedirect = localStorage.getItem('lastLoginRedirect');
+        const now = Date.now();
+        if (lastRedirect && (now - parseInt(lastRedirect)) < 2000) { // 2 segundos
+            console.log('🛑 Redirección reciente detectada, evitando bucle');
+            return;
+        }
+        
+        // Marcar timestamp de redirección
+        localStorage.setItem('lastLoginRedirect', now.toString());
+        
         // Guardar la URL actual para redireccionar después del login
         const currentUrl = window.location.pathname + window.location.search;
         localStorage.setItem('redirectAfterLogin', currentUrl);
+        
+        console.log('🔄 Redirigiendo a login desde:', currentPath);
         
         // Redirigir al login
         window.location.href = 'login.html';
     }
 }
 
-// Instanciar el RouteGuard para que se inicie automáticamente
-const routeGuard = new RouteGuard();
+// Instanciar el RouteGuard SOLO después de que el DOM esté listo
+// para evitar bucles infinitos en la carga inicial
+let routeGuard = null;
 
-// Exportar para uso externo si es necesario
-window.routeGuard = routeGuard;
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔒 Inicializando RouteGuard después de DOMContentLoaded');
+        routeGuard = new RouteGuard();
+        window.routeGuard = routeGuard;
+    });
+} else {
+    // Si el DOM ya está listo, inicializar con un pequeño delay
+    setTimeout(() => {
+        console.log('🔒 Inicializando RouteGuard con delay');
+        routeGuard = new RouteGuard();
+        window.routeGuard = routeGuard;
+    }, 100);
+}
 
 // Configurar listener global para errores 401 (token expirado) - MODO PERMISIVO
 window.addEventListener('unhandledrejection', function(event) {

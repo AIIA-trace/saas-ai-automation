@@ -15,6 +15,7 @@ model Client {
   email                 String         @unique
   password              String
   companyName           String
+  companyDescription    String?        // Descripción de la empresa del formulario
   contactName           String
   phone                 String?
   apiKey                String?        @unique
@@ -27,6 +28,7 @@ model Client {
   website               String?
   address               String?
   stripeCustomerId      String?        @unique
+  defaultPaymentMethodId String?       // ID del método de pago predeterminado
   subscriptionStatus    String         @default("trial") // trial, active, past_due, cancelled
   subscriptionExpiresAt DateTime?
   trialEndDate          DateTime?
@@ -85,6 +87,8 @@ model CallLog {
   urgencyLevel      String?  // low, medium, high
   callPurpose       String?
   contactInfo       String?  // Información de contacto extraída (JSON string)
+  managed           Boolean  @default(false) // Si la llamada ha sido gestionada
+  important         Boolean  @default(false) // Si la llamada está marcada como importante
   notificationSent  Boolean  @default(false)
   notifiedTo        String?  // Lista de notificados (comma separated)
   createdAt         DateTime @default(now())
@@ -112,6 +116,8 @@ model EmailLog {
   aiSummary       String?
   aiClassification String?
   forwardedTo     String?  // Lista de destinatarios (comma separated)
+  favorite        Boolean  @default(false) // Si el email está marcado como favorito
+  isRead          Boolean  @default(false) // Si el email ha sido leído
   responseStatus  String?  // sent, failed, none
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
