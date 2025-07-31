@@ -3700,6 +3700,7 @@ function loadProfileData() {
         console.log('👤 Datos del perfil extraídos:', profileData);
         
         // Rellenar campos del formulario con los datos del perfil
+        // Mapeo: BD → Formulario Bot Config
         const companyNameField = document.getElementById('company_name');
         if (companyNameField) {
             companyNameField.value = profileData.companyName || '';
@@ -3726,8 +3727,15 @@ function loadProfileData() {
         
         const descriptionField = document.getElementById('company_description');
         if (descriptionField) {
-            descriptionField.value = profileData.description || '';
-            console.log('✅ Campo company_description cargado:', profileData.description);
+            descriptionField.value = profileData.companyDescription || '';
+            console.log('✅ Campo company_description cargado:', profileData.companyDescription);
+        }
+        
+        // Mapear campo website si existe
+        const websiteField = document.getElementById('website');
+        if (websiteField) {
+            websiteField.value = profileData.website || '';
+            console.log('✅ Campo website cargado:', profileData.website);
         }
         
         // Seleccionar la industria si está definida
@@ -3804,15 +3812,15 @@ function loadBotConfiguration() {
         safeSetValue('welcome_message', botConfig.welcomeMessage);
         safeSetValue('confirmation_message', botConfig.confirmationMessage);
         
-        // Datos de empresa
+        // Datos de empresa - Mapeo según estructura del endpoint GET /api/config/bot
         if (botConfig.company) {
             safeSetValue('company_name', botConfig.company.name);
             safeSetValue('company_description', botConfig.company.description);
-            safeSetValue('company_sector', botConfig.company.sector);
+            safeSetValue('industry', botConfig.company.sector); // sector → industry
             safeSetValue('address', botConfig.company.address);
-            safeSetValue('company_phone', botConfig.company.phone);
-            safeSetValue('company_email', botConfig.company.email);
-            safeSetValue('company_website', botConfig.company.website);
+            safeSetValue('main_phone', botConfig.company.phone); // company_phone → main_phone
+            safeSetValue('contact_email', botConfig.company.email); // company_email → contact_email
+            safeSetValue('website', botConfig.company.website); // company_website → website
         }
         
         // Configuración de llamadas
@@ -7335,14 +7343,14 @@ function saveUnifiedConfig() {
         
         // Recopilar todos los datos del formulario
         const config = {
-            // Información de empresa
+            // Información de empresa - Mapeo correcto con IDs del formulario
             companyName: document.getElementById('company_name')?.value || '',
             companyDescription: document.getElementById('company_description')?.value || '',
-            companySector: document.getElementById('company_sector')?.value || '',
+            companySector: document.getElementById('industry')?.value || '', // industry en formulario
             companyAddress: document.getElementById('address')?.value || '',
-            companyPhone: document.getElementById('company_phone')?.value || '',
-            companyEmail: document.getElementById('company_email')?.value || '',
-            companyWebsite: document.getElementById('company_website')?.value || '',
+            companyPhone: document.getElementById('main_phone')?.value || '', // main_phone en formulario
+            companyEmail: document.getElementById('contact_email')?.value || '', // contact_email en formulario
+            companyWebsite: document.getElementById('website')?.value || '', // website en formulario
             
             // Configuración general
             botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',

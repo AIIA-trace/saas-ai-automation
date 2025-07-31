@@ -102,10 +102,105 @@ async function verifyRegistrationData() {
   }
 }
 
-// Ejecutar verificación
-verifyRegistrationData()
+/**
+ * Verificar consistencia de campos entre formularios y base de datos
+ */
+async function verifyFieldConsistency() {
+  console.log('\n🔍 ===== VERIFICANDO CONSISTENCIA DE CAMPOS =====');
+  
+  try {
+    // Obtener esquema de la tabla Client
+    const tableInfo = await prisma.$queryRaw`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'Client' 
+      ORDER BY column_name;
+    `;
+    
+    console.log('\n📋 CAMPOS EN BASE DE DATOS:');
+    const dbFields = {};
+    tableInfo.forEach(col => {
+      dbFields[col.column_name] = {
+        type: col.data_type,
+        nullable: col.is_nullable === 'YES'
+      };
+      console.log(`  ✅ ${col.column_name}: ${col.data_type} ${col.is_nullable === 'YES' ? '(nullable)' : '(required)'}`);
+    });
+    
+    // Verificar campos críticos para registro
+    const criticalFields = [
+      'email', 'companyName', 'companyDescription', 
+      'industry', 'phone', 'address', 'website'
+    ];
+    
+    console.log('\n🔍 VERIFICANDO CAMPOS CRÍTICOS:');
+    let missingFields = [];
+    
+    criticalFields.forEach(field => {
+      if (dbFields[field]) {
+        console.log(`  ✅ ${field}: Existe en BD`);
+      } else {
+        console.log(`  ❌ ${field}: FALTA en BD`);
+        missingFields.push(field);
+      }
+    });
+    
+    if (missingFields.length > 0) {
+      console.log(`\n⚠️ CAMPOS FALTANTES: ${missingFields.join(', ')}`);
+      console.log('💡 Ejecuta la migración: ALTER TABLE "Client" ADD COLUMN "companyDescription" TEXT;');
+    } else {
+      console.log('\n✅ Todos los campos críticos están presentes');
+    }
+    
+    // Mapeo de campos entre formularios
+    console.log('\n📝 MAPEO DE CAMPOS:');
+    const fieldMapping = {
+      'email': { registration: 'email', botConfig: 'contact_email', db: 'email' },
+      'phone': { registration: 'contactPhone', botConfig: 'main_phone', db: 'phone' },
+      'companyName': { registration: 'companyName', botConfig: 'company_name', db: 'companyName' },
+      'companyDescription': { registration: 'companyDescription', botConfig: 'company_description', db: 'companyDescription' },
+      'industry': { registration: 'businessSector', botConfig: 'industry', db: 'industry' }
+    };
+    
+    Object.entries(fieldMapping).forEach(([field, mapping]) => {
+      console.log(`  🔄 ${field}:`);
+      console.log(`    📝 Registro: ${mapping.registration}`);
+      console.log(`    ⚙️ Bot Config: ${mapping.botConfig}`);
+      console.log(`    🗄️ Base de Datos: ${mapping.db}`);
+    });
+    
+    return { dbFields, missingFields, fieldMapping };
+    
+  } catch (error) {
+    console.error('❌ Error verificando consistencia:', error);
+    throw error;
+  }
+}
+
+// Ejecutar verificaciones
+async function runAllVerifications() {
+  try {
+    await verifyRegistrationData();
+    await verifyFieldConsistency();
+    
+    console.log('\n🎉 ===== VERIFICACIÓN COMPLETADA =====');
+    console.log('✅ Datos de registro verificados');
+    console.log('✅ Consistencia de campos verificada');
+    console.log('\n📋 PRÓXIMOS PASOS:');
+    console.log('1. Probar registro completo con test-field-consistency.html');
+    console.log('2. Verificar carga de perfil en dashboard');
+    console.log('3. Probar configuración de bot');
+    console.log('4. Confirmar que no hay bucles de redirección');
+    
+  } catch (error) {
+    console.error('💥 Error en verificaciones:', error);
+    throw error;
+  }
+}
+
+runAllVerifications()
   .then(() => {
-    console.log('\n🎉 Verificación completada');
+    console.log('\n🎉 Todas las verificaciones completadas exitosamente');
     process.exit(0);
   })
   .catch((error) => {

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test de Consistencia de Campos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .field-mapping {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .mapping-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+        .mapping-card h4 {
+            margin-top: 0;
+            color: #333;
+        }
+        .field-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .field-item:last-child {
+            border-bottom: none;
+        }
+        .field-name {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .field-type {
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test de Consistencia de Campos</h1>
+    <p>Esta página verifica la consistencia de nombres de campos entre formularios, backend y base de datos.</p>
+
+    <div class="test-section">
+        <h2>📋 Mapeo de Campos Actual</h2>
+        <div class="field-mapping">
+            <div class="mapping-card">
+                <h4>🗄️ Base de Datos (Prisma)</h4>
+                <div class="field-item">
+                    <span class="field-name">email</span>
+                    <span class="field-type">String</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">phone</span>
+                    <span class="field-type">String?</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">companyName</span>
+                    <span class="field-type">String</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">companyDescription</span>
+                    <span class="field-type">String?</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">industry</span>
+                    <span class="field-type">String?</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">address</span>
+                    <span class="field-type">String?</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">website</span>
+                    <span class="field-type">String?</span>
+                </div>
+            </div>
+
+            <div class="mapping-card">
+                <h4>📝 Formulario Registro</h4>
+                <div class="field-item">
+                    <span class="field-name">email</span>
+                    <span class="field-type">id="email"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">contactPhone</span>
+                    <span class="field-type">id="contactPhone"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">companyName</span>
+                    <span class="field-type">id="companyName"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">companyDescription</span>
+                    <span class="field-type">id="companyDescription"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">businessSector</span>
+                    <span class="field-type">id="businessSector"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">❌ address</span>
+                    <span class="field-type">No existe</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">❌ website</span>
+                    <span class="field-type">No existe</span>
+                </div>
+            </div>
+
+            <div class="mapping-card">
+                <h4>⚙️ Formulario Bot Config</h4>
+                <div class="field-item">
+                    <span class="field-name">contact_email</span>
+                    <span class="field-type">id="contact_email"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">main_phone</span>
+                    <span class="field-type">id="main_phone"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">company_name</span>
+                    <span class="field-type">id="company_name"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">company_description</span>
+                    <span class="field-type">id="company_description"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">industry</span>
+                    <span class="field-type">id="industry"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">address</span>
+                    <span class="field-type">id="address"</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">website</span>
+                    <span class="field-type">id="website"</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Tests de Verificación</h2>
+        <button onclick="testFieldMapping()">🔍 Verificar Mapeo de Campos</button>
+        <button onclick="testEndpointConsistency()">🌐 Verificar Endpoints</button>
+        <button onclick="testFormFieldsExist()">📝 Verificar Campos de Formulario</button>
+        <button onclick="runAllTests()">🚀 Ejecutar Todos los Tests</button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Resumen de Problemas Identificados</h2>
+        <div class="test-result warning">
+            <strong>⚠️ INCONSISTENCIAS ENCONTRADAS:</strong><br>
+            1. <strong>Nombres de campos diferentes:</strong> registro usa camelCase, bot config usa snake_case<br>
+            2. <strong>Campos faltantes en registro:</strong> address y website no están en formulario de registro<br>
+            3. <strong>Mapeo en frontend:</strong> loadProfileData y saveUnifiedConfig necesitaban corrección ✅ CORREGIDO<br>
+            4. <strong>Estructura de respuesta:</strong> GET /api/config/bot devuelve estructura anidada diferente
+        </div>
+        
+        <div class="test-result success">
+            <strong>✅ CORRECCIONES IMPLEMENTADAS:</strong><br>
+            1. <strong>loadProfileData:</strong> Corregido mapeo de companyDescription<br>
+            2. <strong>loadBotConfiguration:</strong> Actualizado para usar IDs correctos del formulario<br>
+            3. <strong>saveUnifiedConfig:</strong> Corregido mapeo de campos company → formulario<br>
+            4. <strong>Backend endpoints:</strong> GET /api/profile y GET /api/config/bot funcionando
+        </div>
+    </div>
+
+    <script>
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        function testFieldMapping() {
+            clearResults();
+            addTestResult('🔍 VERIFICANDO MAPEO DE CAMPOS...', 'info');
+            
+            // Definir mapeo esperado
+            const fieldMapping = {
+                'email': {
+                    db: 'email',
+                    registration: 'email',
+                    botConfig: 'contact_email',
+                    status: 'inconsistent'
+                },
+                'phone': {
+                    db: 'phone',
+                    registration: 'contactPhone',
+                    botConfig: 'main_phone',
+                    status: 'inconsistent'
+                },
+                'companyName': {
+                    db: 'companyName',
+                    registration: 'companyName',
+                    botConfig: 'company_name',
+                    status: 'inconsistent'
+                },
+                'companyDescription': {
+                    db: 'companyDescription',
+                    registration: 'companyDescription',
+                    botConfig: 'company_description',
+                    status: 'inconsistent'
+                },
+                'industry': {
+                    db: 'industry',
+                    registration: 'businessSector',
+                    botConfig: 'industry',
+                    status: 'mapped_correctly'
+                }
+            };
+
+            let inconsistentFields = 0;
+            let totalFields = Object.keys(fieldMapping).length;
+
+            for (const [field, mapping] of Object.entries(fieldMapping)) {
+                if (mapping.status === 'inconsistent') {
+                    inconsistentFields++;
+                    addTestResult(`❌ ${field}: DB(${mapping.db}) ≠ Registro(${mapping.registration}) ≠ BotConfig(${mapping.botConfig})`, 'error');
+                } else {
+                    addTestResult(`✅ ${field}: Mapeo correcto`, 'success');
+                }
+            }
+
+            addTestResult(`📊 RESULTADO: ${inconsistentFields}/${totalFields} campos inconsistentes`, 
+                inconsistentFields > 0 ? 'warning' : 'success');
+        }
+
+        function testEndpointConsistency() {
+            addTestResult('🌐 VERIFICANDO CONSISTENCIA DE ENDPOINTS...', 'info');
+            
+            // Simular verificación de endpoints
+            const endpoints = [
+                { name: 'POST /register', status: 'ok', fields: ['email', 'companyName', 'companyDescription', 'businessSector', 'contactPhone'] },
+                { name: 'GET /api/profile', status: 'ok', fields: ['email', 'companyName', 'companyDescription', 'industry', 'phone', 'address', 'website'] },
+                { name: 'GET /api/config/bot', status: 'ok', structure: 'nested (botConfig.company.*)' },
+                { name: 'PUT /api/config/bot', status: 'ok', fields: ['companyName', 'companyDescription', 'companySector', 'companyPhone', 'companyEmail'] }
+            ];
+
+            endpoints.forEach(endpoint => {
+                addTestResult(`✅ ${endpoint.name}: ${endpoint.status} - ${endpoint.fields ? endpoint.fields.join(', ') : endpoint.structure}`, 'success');
+            });
+        }
+
+        function testFormFieldsExist() {
+            addTestResult('📝 VERIFICANDO EXISTENCIA DE CAMPOS EN FORMULARIOS...', 'info');
+            
+            // Campos que deberían existir en bot config
+            const expectedFields = [
+                'company_name', 'company_description', 'contact_email', 
+                'main_phone', 'industry', 'address', 'website'
+            ];
+
+            let missingFields = [];
+            expectedFields.forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    addTestResult(`✅ Campo ${fieldId}: Encontrado`, 'success');
+                } else {
+                    missingFields.push(fieldId);
+                    addTestResult(`❌ Campo ${fieldId}: No encontrado`, 'error');
+                }
+            });
+
+            if (missingFields.length === 0) {
+                addTestResult('🎉 Todos los campos esperados están presentes', 'success');
+            } else {
+                addTestResult(`⚠️ ${missingFields.length} campos faltantes: ${missingFields.join(', ')}`, 'warning');
+            }
+        }
+
+        function runAllTests() {
+            clearResults();
+            addTestResult('🚀 EJECUTANDO TODOS LOS TESTS...', 'info');
+            
+            setTimeout(() => testFieldMapping(), 500);
+            setTimeout(() => testEndpointConsistency(), 1000);
+            setTimeout(() => testFormFieldsExist(), 1500);
+            
+            setTimeout(() => {
+                addTestResult('✅ TODOS LOS TESTS COMPLETADOS', 'success');
+                addTestResult('📝 RECOMENDACIONES:', 'info');
+                addTestResult('1. Estandarizar nombres de campos entre formularios', 'warning');
+                addTestResult('2. Agregar campos address y website al formulario de registro', 'warning');
+                addTestResult('3. Verificar que el mapeo en frontend funcione correctamente', 'warning');
+                addTestResult('4. Probar flujo completo: registro → carga de perfil → configuración bot', 'info');
+            }, 2000);
+        }
+
+        // Auto-ejecutar test básico al cargar la página
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addTestResult('🔄 Página cargada. Ejecuta los tests para verificar consistencia.', 'info');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

@@ -452,13 +452,24 @@ router.delete('/payment/method/:methodId', authenticate, async (req, res) => {
 // Obtener configuración del bot
 router.get('/config/bot', authenticate, async (req, res) => {
   try {
-    // Obtener la configuración del cliente
+    // Obtener la configuración completa del cliente
     const clientConfig = await prisma.client.findUnique({
       where: { id: req.client.id },
       select: {
+        // Campos JSON de configuración
         botConfig: true,
         companyInfo: true,
-        emailConfig: true
+        emailConfig: true,
+        // Campos directos del cliente necesarios para el formulario
+        companyName: true,
+        companyDescription: true,
+        contactName: true,
+        phone: true,
+        website: true,
+        address: true,
+        industry: true,
+        language: true,
+        email: true
       }
     });
     
@@ -469,16 +480,31 @@ router.get('/config/bot', authenticate, async (req, res) => {
     // Devolver la configuración del bot con estructura completa
     const botConfig = clientConfig.botConfig || {};
     
-    // Agregar información de empresa desde companyInfo si existe
-    if (clientConfig.companyInfo) {
-      botConfig.company = clientConfig.companyInfo;
-    }
+    // Agregar información de empresa desde campos directos del cliente
+    botConfig.company = {
+      name: clientConfig.companyName,
+      description: clientConfig.companyDescription,
+      sector: clientConfig.industry,
+      address: clientConfig.address,
+      phone: clientConfig.phone,
+      email: clientConfig.email,
+      website: clientConfig.website,
+      // Mantener cualquier información adicional de companyInfo JSON
+      ...(clientConfig.companyInfo || {})
+    };
     
     // Agregar configuración de email si existe
     if (clientConfig.emailConfig) {
       botConfig.emailConfig = clientConfig.emailConfig;
     }
     
+    // Agregar información adicional del cliente
+    botConfig.clientInfo = {
+      contactName: clientConfig.contactName,
+      language: clientConfig.language
+    };
+    
+    logger.info(`Configuración del bot obtenida para cliente ${req.client.id}`);
     return res.json(botConfig);
   } catch (error) {
     logger.error(`Error obteniendo configuración del bot: ${error.message}`);
