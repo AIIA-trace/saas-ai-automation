@@ -3287,131 +3287,9 @@ function setupEventListeners() {
     
     // Función compartida para guardar la configuración
     const handleSaveConfig = function(event) {
-        // Obtener el botón que fue clickeado
-        const clickedButton = event.currentTarget;
-        const originalText = clickedButton.innerHTML;
-        
-        // Cambiar el texto del botón a "Guardando..."
-        clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
-        clickedButton.disabled = true;
-        
-        console.log('Guardando configuración del bot...');
-        
-        // Obtener todos los valores de configuración del formulario
-        const welcomeMessage = document.getElementById('welcomeMessage')?.value || '';
-        const voiceId = document.getElementById('voiceSelection')?.value || '';
-        const language = document.getElementById('languageSelection')?.value || 'es-ES';
-        const confirmationMessage = document.getElementById('confirmationMessage')?.value || '';
-        const personality = document.getElementById('personalitySelection')?.value || 'friendly';
-        
-        // Horario de atención
-        const openingTime = document.getElementById('openingTime')?.value || '09:00';
-        const closingTime = document.getElementById('closingTime')?.value || '18:00';
-        
-        // Días de trabajo (checkboxes)
-        const workingDays = {
-            monday: document.getElementById('monday')?.checked || false,
-            tuesday: document.getElementById('tuesday')?.checked || false,
-            wednesday: document.getElementById('wednesday')?.checked || false,
-            thursday: document.getElementById('thursday')?.checked || false,
-            friday: document.getElementById('friday')?.checked || false,
-            saturday: document.getElementById('saturday')?.checked || false,
-            sunday: document.getElementById('sunday')?.checked || false
-        };
-        
-        // Obtener datos de configuración de email
-        const emailProvider = document.getElementById('email_provider')?.value || '';
-        const outgoingEmail = document.getElementById('outgoing_email')?.value || '';
-        const recipientEmail = document.getElementById('recipient_email')?.value || '';
-        const emailPassword = document.getElementById('email_password')?.value || '';
-        const imapServer = document.getElementById('imap_server')?.value || '';
-        const imapPort = document.getElementById('imap_port')?.value || '';
-        const smtpServer = document.getElementById('smtp_server')?.value || '';
-        const smtpPort = document.getElementById('smtp_port')?.value || '';
-        const useSSL = document.getElementById('use_ssl')?.checked || false;
-        const emailConsent = document.getElementById('email_consent')?.checked || false;
-        const emailBotActive = document.getElementById('email_bot_active')?.checked || false;
-        const autoReply = document.getElementById('auto_reply')?.checked || false;
-        const emailLanguage = document.getElementById('email_language')?.value || 'es-ES';
-        const forwardRules = document.getElementById('forward_rules')?.value || '';
-        
-        // Construir objeto de datos a enviar
-        const botConfigData = {
-            // Configuración del bot de llamadas
-            welcomeMessage,
-            voiceId,
-            language,
-            confirmationMessage,
-            personality,
-            workingHours: {
-                opening: openingTime,
-                closing: closingTime
-            },
-            workingDays,
-            
-            // Configuración del bot de emails
-            emailConfig: {
-                provider: emailProvider,
-                outgoingEmail: outgoingEmail,
-                recipientEmail: recipientEmail,
-                password: emailPassword, // Nota: En producción debería usarse OAuth
-                imapServer: imapServer,
-                imapPort: imapPort,
-                smtpServer: smtpServer,
-                smtpPort: smtpPort,
-                useSSL: useSSL,
-                consent: emailConsent,
-                active: emailBotActive,
-                autoReply: autoReply,
-                language: emailLanguage,
-                forwardRules: forwardRules
-            }
-        };
-        
-        console.log('🔧 Usando ApiHelper para guardar la configuración');
-        
-        // Usar el sistema ApiHelper para manejar la petición API
-        window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
-            method: 'PUT',
-            body: JSON.stringify(botConfigData)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
-            }
-
-        })
-        .then(data => {
-            console.log('Configuración guardada exitosamente:', data);
-            
-            // Mostrar "Guardado" brevemente
-            clickedButton.innerHTML = '<i class="fas fa-check me-2"></i>Guardado';
-            
-            // Mostrar notificación toast
-            toastr.success('Configuración del bot guardada correctamente', '¡Éxito!');
-            
-            // Restaurar texto original después de 2 segundos
-            setTimeout(() => {
-                clickedButton.innerHTML = originalText;
-                clickedButton.disabled = false;
-            }, 2000);
-        })
-        .catch(error => {
-            console.error('Error guardando configuración:', error);
-            
-            // Mostrar notificación de error
-            toastr.error('Error al guardar la configuración. Por favor, inténtalo de nuevo.', 'Error');
-            
-            // Restaurar el botón a su estado original
-            clickedButton.innerHTML = originalText;
-            clickedButton.disabled = false;
-            
-            // Si falla la API, intentamos cargar datos de prueba
-            console.warn('Usando modo de fallback para simular guardado');
-            setTimeout(() => {
-                toastr.info('Simulación de guardado completada en modo local', 'Modo Demo');
-            }, 1000);
-        })
+        console.log('🔄 Redirigiendo a saveUnifiedConfig - función actualizada');
+        // Redirigir a la función saveUnifiedConfig que tiene todos los campos correctos
+        saveUnifiedConfig();
     };
     
     // Añadir listeners a ambos botones
@@ -3807,10 +3685,9 @@ function loadBotConfiguration() {
             }
         };
         
-        // Información básica del bot
-        safeSetValue('bot_name', botConfig.botName);
-        safeSetValue('welcome_message', botConfig.welcomeMessage);
-        safeSetValue('confirmation_message', botConfig.confirmationMessage);
+        // Información básica del bot - IDs obsoletos eliminados
+        // NOTA: bot_name, welcome_message, confirmation_message no existen en el HTML actual
+        // Estos campos se manejan a través de call_greeting y otros campos específicos
         
         // Datos de empresa - Mapeo según estructura del endpoint GET /api/config/bot
         if (botConfig.companyInfo) {
@@ -3855,30 +3732,29 @@ function loadBotConfiguration() {
             if (personalitySelect) personalitySelect.value = botConfig.personality;
         }
         
-        // Configuración de horarios
-        if (botConfig.businessHours) {
-            document.getElementById('business_hours').value = botConfig.businessHours;
-        }
-        
-        // Horas de trabajo
+        // Configuración de horarios - IDs y condición corregidos
         if (botConfig.workingHours) {
-            if (botConfig.workingHours.opening) {
-                safeSetValue('opening_hour', botConfig.workingHours.opening);
-            }
-            if (botConfig.workingHours.closing) {
-                safeSetValue('closing_hour', botConfig.workingHours.closing);
-            }
+            safeSetValue('business-hours-start', botConfig.workingHours.opening);
+            console.log('🕰️ Hora apertura cargada:', botConfig.workingHours.opening);
+            
+            safeSetValue('business-hours-end', botConfig.workingHours.closing);
+            console.log('🕰️ Hora cierre cargada:', botConfig.workingHours.closing);
         }
         
-        // Días laborables
+        // Campo business_hours (texto resumen)
+        if (botConfig.businessHours) {
+            safeSetValue('business_hours', botConfig.businessHours);
+        }
+        
+        // Días laborables - IDs corregidos
         if (botConfig.workingDays) {
-            if (botConfig.workingDays.monday !== undefined) document.getElementById('monday').checked = botConfig.workingDays.monday;
-            if (botConfig.workingDays.tuesday !== undefined) document.getElementById('tuesday').checked = botConfig.workingDays.tuesday;
-            if (botConfig.workingDays.wednesday !== undefined) document.getElementById('wednesday').checked = botConfig.workingDays.wednesday;
-            if (botConfig.workingDays.thursday !== undefined) document.getElementById('thursday').checked = botConfig.workingDays.thursday;
-            if (botConfig.workingDays.friday !== undefined) document.getElementById('friday').checked = botConfig.workingDays.friday;
-            if (botConfig.workingDays.saturday !== undefined) document.getElementById('saturday').checked = botConfig.workingDays.saturday;
-            if (botConfig.workingDays.sunday !== undefined) document.getElementById('sunday').checked = botConfig.workingDays.sunday;
+            if (botConfig.workingDays.monday !== undefined) safeSetChecked('day-mon', botConfig.workingDays.monday);
+            if (botConfig.workingDays.tuesday !== undefined) safeSetChecked('day-tue', botConfig.workingDays.tuesday);
+            if (botConfig.workingDays.wednesday !== undefined) safeSetChecked('day-wed', botConfig.workingDays.wednesday);
+            if (botConfig.workingDays.thursday !== undefined) safeSetChecked('day-thu', botConfig.workingDays.thursday);
+            if (botConfig.workingDays.friday !== undefined) safeSetChecked('day-fri', botConfig.workingDays.friday);
+            if (botConfig.workingDays.saturday !== undefined) safeSetChecked('day-sat', botConfig.workingDays.saturday);
+            if (botConfig.workingDays.sunday !== undefined) safeSetChecked('day-sun', botConfig.workingDays.sunday);
         }
         
         // Configuración avanzada de IA
@@ -7373,25 +7249,25 @@ function saveUnifiedConfig() {
             companyEmail: document.getElementById('contact_email')?.value || '', // contact_email en formulario
             companyWebsite: document.getElementById('website')?.value || '', // website en formulario
             
-            // Configuración general
-            botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',
+            // Configuración general - IDs corregidos
+            botName: 'Asistente Virtual', // bot_name no existe en HTML, usar valor por defecto
             botPersonality: document.getElementById('bot_personality')?.value || 'professional',
-            welcomeMessage: document.getElementById('welcome_message')?.value || 'Bienvenido a nuestro asistente virtual',
+            welcomeMessage: document.getElementById('call_greeting')?.value || 'Bienvenido a nuestro asistente virtual', // usar call_greeting que sí existe
             businessHours: document.getElementById('business_hours')?.value || 'Lun-Vie: 9:00-18:00',
             
-            // Configuración de horarios
+            // Configuración de horarios - IDs corregidos
             workingHours: {
-                opening: document.getElementById('opening_hour')?.value || '09:00',
-                closing: document.getElementById('closing_hour')?.value || '18:00'
+                opening: document.getElementById('business-hours-start')?.value || '09:00',
+                closing: document.getElementById('business-hours-end')?.value || '18:00'
             },
             workingDays: {
-                monday: document.getElementById('monday')?.checked || false,
-                tuesday: document.getElementById('tuesday')?.checked || false,
-                wednesday: document.getElementById('wednesday')?.checked || false,
-                thursday: document.getElementById('thursday')?.checked || false,
-                friday: document.getElementById('friday')?.checked || false,
-                saturday: document.getElementById('saturday')?.checked || false,
-                sunday: document.getElementById('sunday')?.checked || false
+                monday: document.getElementById('day-mon')?.checked || false,
+                tuesday: document.getElementById('day-tue')?.checked || false,
+                wednesday: document.getElementById('day-wed')?.checked || false,
+                thursday: document.getElementById('day-thu')?.checked || false,
+                friday: document.getElementById('day-fri')?.checked || false,
+                saturday: document.getElementById('day-sat')?.checked || false,
+                sunday: document.getElementById('day-sun')?.checked || false
             },
             
             // Configuración de llamadas - IDs corregidos
