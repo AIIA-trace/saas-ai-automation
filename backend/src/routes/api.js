@@ -928,11 +928,35 @@ router.put('/config/notifications', authenticate, async (req, res) => {
       }
     });
     
+    // Parsear JSON de forma segura para evitar errores
+    let parsedDefaultRecipients, parsedUrgencyRules, parsedClassificationRules;
+    
+    try {
+      parsedDefaultRecipients = JSON.parse(notificationConfig.defaultRecipients || "[]");
+    } catch (e) {
+      logger.warn(`Error parseando defaultRecipients: ${e.message}`);
+      parsedDefaultRecipients = [];
+    }
+    
+    try {
+      parsedUrgencyRules = JSON.parse(notificationConfig.urgencyRules || "{}");
+    } catch (e) {
+      logger.warn(`Error parseando urgencyRules: ${e.message}`);
+      parsedUrgencyRules = {};
+    }
+    
+    try {
+      parsedClassificationRules = JSON.parse(notificationConfig.classificationRules || "[]");
+    } catch (e) {
+      logger.warn(`Error parseando classificationRules: ${e.message}`);
+      parsedClassificationRules = [];
+    }
+    
     return res.json({
       ...notificationConfig,
-      defaultRecipients: JSON.parse(notificationConfig.defaultRecipients || "[]"),
-      urgencyRules: JSON.parse(notificationConfig.urgencyRules || "{}"),
-      classificationRules: JSON.parse(notificationConfig.classificationRules || "[]")
+      defaultRecipients: parsedDefaultRecipients,
+      urgencyRules: parsedUrgencyRules,
+      classificationRules: parsedClassificationRules
     });
   } catch (error) {
     logger.error(`Error actualizando configuración de notificaciones: ${error.message}`);
