@@ -254,69 +254,133 @@ router.get('/profile', authenticate, async (req, res) => {
 // Endpoint /api/auth/me como alias de /api/profile para compatibilidad
 router.get('/auth/me', authenticate, async (req, res) => {
   try {
+    // LOGGING DETALLADO PARA DIAGNOSTICAR PROBLEMA JSON
+    logger.info('🚀 INICIANDO GET /auth/me (alias de /profile)');
+    logger.info(`🔑 Cliente autenticado: ${!!req.client}`);
+    logger.info(`🆔 Cliente ID: ${req.client?.id}`);
+    
     // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
     if (!prisma || !prisma.client) {
-      logger.error('Prisma client no está inicializado');
-      return res.status(500).json({ 
+      logger.error('❌ Prisma client no está inicializado');
+      const errorResponse = { 
         error: 'Error de base de datos - Prisma no inicializado',
         success: false 
-      });
+      };
+      logger.info(`📤 Enviando respuesta de error: ${JSON.stringify(errorResponse)}`);
+      return res.status(500).json(errorResponse);
     }
     
-    // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
+    // Asegurar que req.client exista después de autenticación
     if (!req.client || !req.client.id) {
-      logger.error('Cliente no autenticado en request');
-      return res.status(401).json({ 
-        error: 'Cliente no autenticado',
-        success: false 
-      });
+      logger.error('❌ Cliente no autenticado correctamente');
+      const errorResponse = {
+        error: 'Autenticación no válida',
+        success: false
+      };
+      logger.info(`📤 Enviando respuesta de error: ${JSON.stringify(errorResponse)}`);
+      return res.status(401).json(errorResponse);
     }
     
-    logger.info(`Obteniendo perfil para cliente ID: ${req.client.id}`);
+    logger.info(`🔍 Obteniendo perfil para cliente ID: ${req.client.id}`);
     
-    const client = await prisma.client.findUnique({
-      where: { id: req.client.id },
-      select: {
-        id: true,
-        companyName: true,
-        contactName: true,
-        email: true,
-        phone: true,
-        website: true,
-        industry: true,
-        address: true,
-        timezone: true,
-        language: true,
-        companyDescription: true,
-        createdAt: true,
-        updatedAt: true
-        // Excluir password y apiKey por seguridad
+    try {
+      // Consulta a la base de datos
+      const client = await prisma.client.findUnique({
+        where: { id: req.client.id },
+        select: {
+          id: true,
+          companyName: true,
+          contactName: true,
+          email: true,
+          phone: true,
+          website: true,
+          industry: true,
+          address: true,
+          timezone: true,
+          language: true,
+          companyDescription: true,
+          createdAt: true,
+          updatedAt: true
+          // Excluir password y apiKey por seguridad
+        }
+      });
+      
+      if (!client) {
+        logger.warn(`⚠️ Cliente no encontrado en BD: ${req.client.id}`);
+        const errorResponse = { 
+          error: 'Cliente no encontrado',
+          success: false 
+        };
+        logger.info(`📤 Enviando respuesta de error: ${JSON.stringify(errorResponse)}`);
+        return res.status(404).json(errorResponse);
       }
-    });
-    
-    if (!client) {
-      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
-      return res.status(404).json({ 
-        error: 'Cliente no encontrado',
-        success: false 
+      
+      // Asegurar estructura completa del objeto cliente para evitar undefined
+      const clientData = {
+        id: client.id,
+        companyName: client.companyName || '',
+        contactName: client.contactName || '',
+        email: client.email || '',
+        phone: client.phone || '',
+        website: client.website || '',
+        industry: client.industry || '',
+        address: client.address || '',
+        timezone: client.timezone || 'Europe/Madrid',
+        language: client.language || 'es',
+        companyDescription: client.companyDescription || '',
+        createdAt: client.createdAt || new Date(),
+        updatedAt: client.updatedAt || new Date()
+      };
+      
+      // Crear respuesta exitosa con estructura validada
+      const successResponse = {
+        success: true,
+        client: clientData
+      };
+      
+      // Validar que la respuesta sea JSON válido
+      const jsonString = JSON.stringify(successResponse);
+      JSON.parse(jsonString); // Verificar que se puede parsear sin errores
+      
+      logger.info(`📊 Cliente encontrado en BD: ${!!client}`);
+      logger.info(`✅ Perfil obtenido exitosamente para: ${client.email}`);
+      logger.info(`📤 Enviando respuesta exitosa (${jsonString.length} bytes)`);
+      logger.info('🏁 FINALIZANDO GET /auth/me exitosamente');
+      
+      return res.json(successResponse);
+      
+    } catch (dbError) {
+      // Manejo específico para errores de base de datos
+      logger.error(`❌ ERROR DE BASE DE DATOS: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        error: 'Error accediendo a la base de datos',
+        details: dbError.message
       });
     }
-    
-    logger.info(`Perfil obtenido exitosamente para: ${client.email}`);
-    
-    return res.json({
-      success: true,
-      client: client
-    });
   } catch (error) {
-    logger.error(`Error obteniendo perfil: ${error.message}`);
-    logger.error(`Stack trace: ${error.stack}`);
+    logger.error(`❌ ERROR CRÍTICO en GET /auth/me: ${error.message}`);
+    logger.error(`📋 Stack trace completo: ${error.stack}`);
+    logger.error(`🔍 Tipo de error: ${error.constructor.name}`);
     
-    return res.status(500).json({ 
+    // Crear respuesta de error genérica pero con estructura garantizada
+    const errorResponse = {
       error: 'Error interno del servidor obteniendo perfil',
       success: false,
-      details: error.message 
-    });
+      details: error.message,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Asegurar que la respuesta sea un JSON válido
+    try {
+      const jsonString = JSON.stringify(errorResponse);
+      JSON.parse(jsonString); // Verificar que se puede parsear sin errores
+      logger.info(`📤 Enviando respuesta de error: ${jsonString}`);
+      return res.status(500).json(errorResponse);
+    } catch (jsonError) {
+      logger.error(`❌ ERROR FATAL: No se pudo crear JSON de error: ${jsonError.message}`);
+      return res.status(500).send('{"error": "Error interno del servidor", "success": false}');
+    }
   }
 });
 
