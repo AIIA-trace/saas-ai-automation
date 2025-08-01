@@ -3287,9 +3287,40 @@ function setupEventListeners() {
     
     // Función compartida para guardar la configuración
     const handleSaveConfig = function(event) {
-        console.log('🔄 Redirigiendo a saveUnifiedConfig - función actualizada');
-        // Redirigir a la función saveUnifiedConfig que tiene todos los campos correctos
-        saveUnifiedConfig();
+        console.log('🔄 Iniciando guardado de configuración del bot...');
+        
+        // Prevenir comportamiento por defecto del botón
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
+        // Deshabilitar botones temporalmente para evitar clics múltiples
+        const saveButtons = [document.getElementById('save-bot-config-btn'), document.getElementById('save-bot-config-btn-bottom')];
+        saveButtons.forEach(btn => {
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            }
+        });
+        
+        // Llamar a la función saveUnifiedConfig que tiene todos los campos correctos
+        saveUnifiedConfig()
+            .then(() => {
+                console.log('✅ Configuración guardada exitosamente desde handleSaveConfig');
+            })
+            .catch((error) => {
+                console.error('❌ Error guardando configuración desde handleSaveConfig:', error);
+            })
+            .finally(() => {
+                // Rehabilitar botones
+                saveButtons.forEach(btn => {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save"></i> Guardar Configuración';
+                    }
+                });
+            });
     };
     
     // Añadir listeners a ambos botones
@@ -7232,8 +7263,20 @@ function collectContextFiles() {
  * Guardar configuración unificada del bot
  * @returns {Promise} Promesa que se resuelve cuando se completa el guardado
  */
+// Variable global para evitar doble ejecución
+let isSavingConfig = false;
+
 function saveUnifiedConfig() {
     return new Promise((resolve, reject) => {
+        // Protección contra doble ejecución
+        if (isSavingConfig) {
+            console.warn('⚠️ saveUnifiedConfig ya está en ejecución, ignorando llamada duplicada');
+            return resolve();
+        }
+        
+        isSavingConfig = true;
+        console.log('🔒 Bloqueando saveUnifiedConfig para evitar doble ejecución');
+        
         // Obtener información del usuario actual
         const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
         console.log(`💾 Guardando configuración unificada del bot para el usuario ${userId}...`);
@@ -7536,12 +7579,25 @@ function saveUnifiedConfig() {
             }
             
             toastr.success('Configuración guardada correctamente', '¡Éxito!');
+            
+            // Recargar automáticamente la configuración después de guardar exitosamente
+            console.log('🔄 Recargando configuración después de guardar exitosamente...');
+            setTimeout(() => {
+                loadBotConfiguration();
+                console.log('✅ Configuración recargada automáticamente');
+            }, 1000); // Delay de 1 segundo para asegurar que el backend haya procesado los cambios
+            
             resolve();
         })
         .catch(error => {
             console.error('Error guardando configuración:', error);
             toastr.error('Error al guardar la configuración: ' + error.message, 'Error');
             reject(error);
+        })
+        .finally(() => {
+            // Liberar el bloqueo independientemente del resultado
+            isSavingConfig = false;
+            console.log('🔓 Liberando bloqueo de saveUnifiedConfig');
         });
     });
 }
