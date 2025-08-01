@@ -22,17 +22,25 @@ if (typeof window.API_CONFIG === 'undefined') {
     
     // Endpoints principales del dashboard (TODOS requieren JWT token)
     DASHBOARD: {
-      // Configuración de cliente
-      CLIENT_CONFIG: { url: '/api/config', auth: 'jwt' },
+      // === ENDPOINT UNIFICADO (USAR ESTE) ===
+      // Endpoint unificado para toda la configuración del cliente
+      CLIENT_DATA: { url: '/api/client', auth: 'jwt' },
+      
+      // === ENDPOINTS LEGACY (OBSOLETOS - PROGRAMADOS PARA ELIMINACIÓN) ===
+      // ADVERTENCIA: Estos endpoints serán eliminados en la próxima versión
+      // Usar EXCLUSIVAMENTE CLIENT_DATA: { url: '/api/client', auth: 'jwt' }
+      
+      // Configuración de cliente (endpoints legacy)
+      CLIENT_CONFIG: { url: '/api/config', auth: 'jwt', deprecated: true },
       UPDATE_PROFILE: { url: '/api/profile', auth: 'jwt' },
       CHANGE_PASSWORD: { url: '/api/profile/password', auth: 'jwt' },
       
-      // Configuración del bot
-      BOT_CONFIG: { url: '/api/config/bot', auth: 'jwt' },
-      BOT_UPLOAD_CONTEXT: { url: '/api/bot/upload-context', auth: 'jwt' },
+      // Configuración del bot (OBSOLETO - usar CLIENT_DATA)
+      BOT_CONFIG: { url: '/api/config/bot', auth: 'jwt', deprecated: true },
+      BOT_UPLOAD_CONTEXT: { url: '/api/bot/upload-context', auth: 'jwt', deprecated: true },
       
-      // Configuración de email
-      EMAIL_CONFIG: { url: '/api/config/email', auth: 'jwt' },
+      // Configuración de email (OBSOLETO - usar CLIENT_DATA)
+      EMAIL_CONFIG: { url: '/api/config/email', auth: 'jwt', deprecated: true },
       EMAIL_TEMPLATES: { url: '/api/config/email/templates', auth: 'jwt' },
       
       // Notificaciones
@@ -89,15 +97,10 @@ if (typeof window.API_CONFIG === 'undefined') {
   console.log('API_CONFIG inicializado con URL base:', window.API_CONFIG.apiBaseUrl);
 }
 
-// Exportar para compatibilidad con módulos
-if (typeof module !== 'undefined' && module.exports) {
+// Exportar para compatibilidad con módulos (versión unificada sin duplicación)
+if (typeof module !== 'undefined') {
   module.exports = window.API_CONFIG;
 }
 
 // Log de confirmación
-console.log('api-config.js cargado correctamente');
-
-// Para usar en módulos ES
-if (typeof module !== 'undefined') {
-  module.exports = API_CONFIG;
-}
+console.log('api-config.js cargado correctamente - Solo usar endpoint CLIENT_DATA');

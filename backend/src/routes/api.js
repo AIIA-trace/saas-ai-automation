@@ -28,38 +28,103 @@ try {
   prisma = null;
 }
 
+const twilioService = require('../services/twilioService');
+const emailService = require('../services/emailService');
+const elevenlabsService = require('../services/elevenlabsService');
+const authService = require('../services/authService');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const logger = require('../utils/logger');
+
+// Middleware para verificar la autenticación JWT
+const authenticate = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Autenticación requerida' });
+  }
+  
+  const token = authHeader.substring(7);
+  
+  try {
+    // Verificar JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    // Buscar el cliente por ID del token
+    const client = await prisma.client.findUnique({
+      where: {
+        id: decoded.id
+      }
+    });
+    
+    if (!client) {
+      return res.status(401).json({ error: 'Usuario no encontrado' });
+    }
+    
+    // Verificar si el cliente está activo
+    if (!client.isActive) {
+      return res.status(403).json({ error: 'Cuenta desactivada' });
+    }
+    
+    // Añadir cliente a la request
+    req.client = client;
+    next();
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expirado' });
+    } else if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    logger.error(`Error de autenticación: ${error.message}`);
+    return res.status(500).json({ error: 'Error de autenticación' });
+  }
+};
+
+// === ENDPOINTS UNIFICADOS DEL CLIENTE (NUEVA API) ===
+
 /**
- * @route GET /api/client
- * @desc Obtiene toda la información del cliente usando campos directos (endpoint unificado)
- * @access Privado - Requiere JWT
+ * ENDPOINT UNIFICADO para obtener TODOS los datos del cliente
+ * - Esta es la ÚNICA fuente de verdad para datos del cliente
+ * - Reemplaza múltiples endpoints fragmentados
+ * - Elimina duplicaciones y posibles inconsistencias
  */
+ 
+// Alias de endpoints para compatibilidad con el frontend que usa /api/client
 router.get('/api/client', authenticate, async (req, res) => {
   try {
-    // Verificar Prisma disponible
-    if (!prisma || !prisma.client) {
-      logger.error('Error de conexión a la base de datos en GET /api/client');
-      return res.status(500).json({ error: 'Error de conexión a la base de datos', success: false });
-    }
-
-    // Verificar autenticación
-    if (!req.client || !req.client.id) {
-      logger.error('Cliente no autenticado en GET /api/client');
-      return res.status(401).json({ error: 'No autenticado', success: false });
-    }
-
-    logger.info(`Obteniendo datos completos del cliente ID: ${req.client.id}`);
-
+    logger.info('🔄 Redirigiendo /api/client a /client para compatibilidad');
+    
     // Obtener cliente desde la base de datos
     const client = await prisma.client.findUnique({
-      where: { id: req.client.id }
+      where: { id: req.client.id },
+      select: {
+        // Datos de perfil
+        id: true,
+        email: true,
+        companyName: true,
+        contactName: true,
+        phone: true,
+        industry: true,
+        address: true,
+        website: true,
+        companyDescription: true,
+        createdAt: true,
+        updatedAt: true,
+        
+        // Datos de suscripción
+        subscriptionStatus: true,
+        subscriptionExpiresAt: true,
+        
+        // Configuraciones (objetos JSON)
+        botConfig: true,
+        companyInfo: true,
+        emailConfig: true,
+        notificationConfig: true
+      }
     });
-
+    
     if (!client) {
-      logger.error(`Cliente no encontrado con ID: ${req.client.id}`);
       return res.status(404).json({ error: 'Cliente no encontrado', success: false });
     }
-
-    // Devolver toda la información del cliente
+    
     return res.json({
       success: true,
       data: {
@@ -96,27 +161,10 @@ router.get('/api/client', authenticate, async (req, res) => {
   }
 });
 
-/**
- * @route PUT /api/client
- * @desc Actualiza toda la información del cliente usando campos directos (endpoint unificado)
- * @access Privado - Requiere JWT
- */
 router.put('/api/client', authenticate, async (req, res) => {
   try {
-    // Verificar Prisma disponible
-    if (!prisma || !prisma.client) {
-      logger.error('Error de conexión a la base de datos en PUT /api/client');
-      return res.status(500).json({ error: 'Error de conexión a la base de datos', success: false });
-    }
-
-    // Verificar autenticación
-    if (!req.client || !req.client.id) {
-      logger.error('Cliente no autenticado en PUT /api/client');
-      return res.status(401).json({ error: 'No autenticado', success: false });
-    }
-
-    logger.info(`Actualizando datos completos del cliente ID: ${req.client.id}`);
-
+    logger.info('🔄 Redirigiendo PUT /api/client a PUT /client para compatibilidad');
+    
     // Extraer datos del body
     const {
       companyName,
@@ -134,7 +182,7 @@ router.put('/api/client', authenticate, async (req, res) => {
       faqs,
       contextFiles
     } = req.body;
-
+    
     // Preparar objeto de actualización con campos directos
     const updateData = {};
     
@@ -214,15 +262,11 @@ router.put('/api/client', authenticate, async (req, res) => {
       updateData.botConfig.contextFiles = contextFiles;
     }
     
-    logger.info('Datos preparados para actualización:', JSON.stringify(updateData, null, 2));
-    
     // Actualizar cliente en la base de datos
     const updatedClient = await prisma.client.update({
       where: { id: req.client.id },
       data: updateData
     });
-    
-    logger.info('Cliente actualizado exitosamente');
     
     return res.json({
       success: true,
@@ -250,64 +294,6 @@ router.put('/api/client', authenticate, async (req, res) => {
   }
 });
 
-const twilioService = require('../services/twilioService');
-const emailService = require('../services/emailService');
-const elevenlabsService = require('../services/elevenlabsService');
-const authService = require('../services/authService');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const logger = require('../utils/logger');
-
-// Middleware para verificar la autenticación JWT
-const authenticate = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Autenticación requerida' });
-  }
-  
-  const token = authHeader.substring(7);
-  
-  try {
-    // Verificar JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    // Buscar el cliente por ID del token
-    const client = await prisma.client.findUnique({
-      where: {
-        id: decoded.id
-      }
-    });
-    
-    if (!client) {
-      return res.status(401).json({ error: 'Usuario no encontrado' });
-    }
-    
-    // Verificar si el cliente está activo
-    if (!client.isActive) {
-      return res.status(403).json({ error: 'Cuenta desactivada' });
-    }
-    
-    // Añadir cliente a la request
-    req.client = client;
-    next();
-  } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expirado' });
-    } else if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ error: 'Token inválido' });
-    }
-    logger.error(`Error de autenticación: ${error.message}`);
-    return res.status(500).json({ error: 'Error de autenticación' });
-  }
-};
-
-// === ENDPOINTS UNIFICADOS DEL CLIENTE (NUEVA API) ===
-
-/**
- * ENDPOINT UNIFICADO para obtener TODOS los datos del cliente
- * - Esta es la ÚNICA fuente de verdad para datos del cliente
- * - Reemplaza múltiples endpoints fragmentados
- * - Elimina duplicaciones y posibles inconsistencias
- */
 /**
  * @route GET /api/client
  * @desc Obtiene todos los datos del cliente - ENDPOINT UNIFICADO
