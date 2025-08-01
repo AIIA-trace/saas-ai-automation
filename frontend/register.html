@@ -760,20 +760,46 @@
             
             // Recopilar datos y adaptarlos al formato que espera la API
             const userData = {
+                // Datos básicos de autenticación
                 email: document.getElementById('email').value.trim(),
                 password: document.getElementById('password').value,
-                name: document.getElementById('companyName').value.trim(), // Usando companyName como nombre de usuario
-                companyName: document.getElementById('companyName').value.trim(), // Cambiado a camelCase
-                companyDescription: document.getElementById('companyDescription').value.trim(), // Cambiado a camelCase
+                
+                // Datos de la empresa y contacto
+                companyName: document.getElementById('companyName').value.trim(),
+                companyDescription: document.getElementById('companyDescription').value.trim(),
                 businessSector: document.getElementById('businessSector').value,
+                industry: document.getElementById('businessSector').value, // También enviamos como industry para asegurar compatibilidad
+                contactName: document.getElementById('companyName').value.trim(), // Podría ser diferente si hay un campo específico
                 phone: document.getElementById('contactPhone').value.trim(),
-                role: 'admin', // Rol por defecto para nuevos registros
-                country: 'España', // Valor por defecto
+                website: document.getElementById('website')?.value?.trim() || '',
+                address: document.getElementById('address')?.value?.trim() || '',
+                
+                // Datos para la cuenta
+                role: 'client', // Rol por defecto para nuevos registros
                 plan: document.querySelector('input[name="plan"]').value,
-                // Añadimos campos adicionales que podrían ser requeridos
-                firstName: document.getElementById('companyName').value.trim().split(' ')[0], // Primer palabra del nombre de empresa
-                lastName: 'Admin' // Valor por defecto
+                language: 'es', // Por defecto español
+                timezone: 'Europe/Madrid', // Por defecto Madrid
+                
+                // Estructura para asegurar compatibilidad con todos los endpoints
+                profile: {
+                    companyName: document.getElementById('companyName').value.trim(),
+                    companyDescription: document.getElementById('companyDescription').value.trim(),
+                    industry: document.getElementById('businessSector').value,
+                    address: document.getElementById('address')?.value?.trim() || '',
+                    phone: document.getElementById('contactPhone').value.trim(),
+                    website: document.getElementById('website')?.value?.trim() || '',
+                    email: document.getElementById('email').value.trim()
+                }
             };
+            
+            // Registrar campos que pudieran estar en el formulario pero no se encontraron
+            if (!document.getElementById('website')) {
+                console.warn('Campo "website" no encontrado en el formulario');
+            }
+            
+            if (!document.getElementById('address')) {
+                console.warn('Campo "address" no encontrado en el formulario');
+            }
             
             console.log('Datos del usuario preparados para registro:', userData.email);
             

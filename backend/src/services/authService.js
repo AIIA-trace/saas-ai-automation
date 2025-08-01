@@ -83,23 +83,40 @@ class AuthService {
       // Fecha de fin de prueba (14 días desde ahora)
       const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
       
-      // Crear el cliente en la base de datos con los campos correctos según el esquema
+      // Crear el cliente en la base de datos con todos los campos posibles según el esquema
       logger.info('Creando cliente en la base de datos...');
       const client = await prisma.client.create({
         data: {
+          // Datos básicos de autenticación
           email,
           password: hashedPassword,
+          apiKey,
+          role: 'client',
+          isActive: true,
+          
+          // Datos de la empresa
           companyName,
           companyDescription: companyDescription || null,
           contactName: companyName,
           phone: contactPhone || null,
           industry: businessSector || null, // businessSector se mapea a industry
-          apiKey,
-          role: 'client',
-          isActive: true,
+          website: clientData.website || null, // Asegurar que website se guarde
+          address: clientData.address || null, // Asegurar que address se guarde
+          
+          // Datos adicionales que podrían venir del formulario
+          avatar: clientData.avatar || null,
+          timezone: clientData.timezone || 'UTC',
+          language: clientData.language || 'es',
+          
+          // Datos de suscripción
           subscriptionStatus,
           trialEndDate,
-          subscriptionExpiresAt: trialEndDate // Usar el mismo valor para ambos campos
+          subscriptionExpiresAt: trialEndDate, // Usar el mismo valor para ambos campos
+          
+          // Si hay datos iniciales de configuración
+          botConfig: clientData.botConfig || null,
+          emailConfig: clientData.emailConfig || null,
+          companyInfo: clientData.companyInfo || null
         }
       });
       
