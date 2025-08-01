@@ -174,6 +174,195 @@ router.get('/profile', authenticate, async (req, res) => {
   }
 });
 
+// Endpoint /api/auth/me como alias de /api/profile para compatibilidad
+router.get('/auth/me', authenticate, async (req, res) => {
+  try {
+    // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
+    if (!prisma || !prisma.client) {
+      logger.error('Prisma client no está inicializado');
+      return res.status(500).json({ 
+        error: 'Error de base de datos - Prisma no inicializado',
+        success: false 
+      });
+    }
+    
+    // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
+    if (!req.client || !req.client.id) {
+      logger.error('Cliente no autenticado en request');
+      return res.status(401).json({ 
+        error: 'Cliente no autenticado',
+        success: false 
+      });
+    }
+    
+    logger.info(`Obteniendo perfil para cliente ID: ${req.client.id}`);
+    
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: {
+        id: true,
+        companyName: true,
+        contactName: true,
+        email: true,
+        phone: true,
+        website: true,
+        industry: true,
+        address: true,
+        timezone: true,
+        language: true,
+        companyDescription: true,
+        createdAt: true,
+        updatedAt: true
+        // Excluir password y apiKey por seguridad
+      }
+    });
+    
+    if (!client) {
+      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
+    
+    logger.info(`Perfil obtenido exitosamente para: ${client.email}`);
+    
+    return res.json({
+      success: true,
+      client: client
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo perfil: ${error.message}`);
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    return res.status(500).json({ 
+      error: 'Error interno del servidor obteniendo perfil',
+      success: false,
+      details: error.message 
+    });
+  }
+});
+
+// Endpoint para estado de conexión de email
+router.get('/email/connection', authenticate, async (req, res) => {
+  try {
+    // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
+    if (!prisma || !prisma.client) {
+      logger.error('Prisma client no está inicializado');
+      return res.status(500).json({ 
+        error: 'Error de base de datos - Prisma no inicializado',
+        success: false 
+      });
+    }
+    
+    // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
+    if (!req.client || !req.client.id) {
+      logger.error('Cliente no autenticado en request');
+      return res.status(401).json({ 
+        error: 'Cliente no autenticado',
+        success: false 
+      });
+    }
+    
+    logger.info(`Obteniendo estado de conexión de email para cliente ID: ${req.client.id}`);
+    
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: {
+        emailConfig: true
+      }
+    });
+    
+    if (!client) {
+      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
+    
+    const emailConfig = client.emailConfig || {};
+    const isConnected = !!(emailConfig.outgoingEmail && emailConfig.imapServer && emailConfig.smtpServer);
+    
+    logger.info(`Estado de conexión de email para cliente ${req.client.id}: ${isConnected}`);
+    
+    return res.json({
+      success: true,
+      connected: isConnected,
+      hasConfig: !!emailConfig.outgoingEmail,
+      provider: emailConfig.emailProvider || 'none'
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo estado de conexión de email: ${error.message}`);
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    return res.status(500).json({ 
+      error: 'Error interno del servidor obteniendo estado de conexión',
+      success: false,
+      details: error.message 
+    });
+  }
+});
+
+// Endpoint para obtener FAQs del bot
+router.get('/bot/faqs', authenticate, async (req, res) => {
+  try {
+    // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
+    if (!prisma || !prisma.client) {
+      logger.error('Prisma client no está inicializado');
+      return res.status(500).json({ 
+        error: 'Error de base de datos - Prisma no inicializado',
+        success: false 
+      });
+    }
+    
+    // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
+    if (!req.client || !req.client.id) {
+      logger.error('Cliente no autenticado en request');
+      return res.status(401).json({ 
+        error: 'Cliente no autenticado',
+        success: false 
+      });
+    }
+    
+    logger.info(`Obteniendo FAQs para cliente ID: ${req.client.id}`);
+    
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: {
+        botConfig: true
+      }
+    });
+    
+    if (!client) {
+      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
+    
+    const botConfig = client.botConfig || {};
+    const faqs = botConfig.faqs || [];
+    
+    logger.info(`FAQs obtenidas para cliente ${req.client.id}: ${faqs.length} elementos`);
+    
+    return res.json({
+      success: true,
+      faqs: faqs
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo FAQs: ${error.message}`);
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    return res.status(500).json({ 
+      error: 'Error interno del servidor obteniendo FAQs',
+      success: false,
+      details: error.message 
+    });
+  }
+});
+
 // Actualizar perfil del cliente
 router.put('/profile', authenticate, async (req, res) => {
   try {
@@ -402,18 +591,55 @@ router.post('/payment/method', authenticate, async (req, res) => {
 // Obtener métodos de pago
 router.get('/payment/methods', authenticate, async (req, res) => {
   try {
+    // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
+    if (!prisma || !prisma.client) {
+      logger.error('Prisma client no está inicializado');
+      return res.status(500).json({ 
+        error: 'Error de base de datos - Prisma no inicializado',
+        success: false 
+      });
+    }
+    
+    // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
+    if (!req.client || !req.client.id) {
+      logger.error('Cliente no autenticado en request');
+      return res.status(401).json({ 
+        error: 'Cliente no autenticado',
+        success: false 
+      });
+    }
+    
+    logger.info(`Obteniendo métodos de pago para cliente ID: ${req.client.id}`);
+    
     const client = await prisma.client.findUnique({
       where: { id: req.client.id },
       select: { paymentMethods: true }
     });
     
+    if (!client) {
+      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
+    
+    const methods = client.paymentMethods || [];
+    logger.info(`Métodos de pago obtenidos para cliente ${req.client.id}: ${methods.length} métodos`);
+    
     return res.json({
       success: true,
-      methods: client.paymentMethods || []
+      methods: methods
     });
   } catch (error) {
     logger.error(`Error obteniendo métodos de pago: ${error.message}`);
-    return res.status(500).json({ error: 'Error obteniendo métodos de pago' });
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    return res.status(500).json({ 
+      error: 'Error interno del servidor obteniendo métodos de pago',
+      success: false,
+      details: error.message 
+    });
   }
 });
 

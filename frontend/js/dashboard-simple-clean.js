@@ -2591,7 +2591,7 @@ function getClassificationBadge(classification, urgency) {
             classificationBadge = '<span class="badge badge-warning mb-1">⚠️ RECLAMACIÓN</span>';
             break;
         default:
-            classificationBadge = `<span class="badge badge-primary mb-1">${classification.toUpperCase()}</span>`;
+            classificationBadge = `<span class="badge badge-primary mb-1">${(classification || 'SIN CLASIFICAR').toUpperCase()}</span>`;
     }
     
     // Badge de urgencia
