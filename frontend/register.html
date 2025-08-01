@@ -741,7 +741,8 @@
         }
         
         // Manejar registro
-        async function handleRegistration() {
+        // Exponer al ámbito global para herramientas de diagnóstico
+        window.handleRegistration = async function() {
             console.log('=== INICIANDO REGISTRO ===');
             
             // Verificar términos con feedback visual
