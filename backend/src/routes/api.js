@@ -678,6 +678,26 @@ router.delete('/payment/method/:methodId', authenticate, async (req, res) => {
 // Obtener configuración del bot
 router.get('/config/bot', authenticate, async (req, res) => {
   try {
+    // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
+    if (!prisma || !prisma.client) {
+      logger.error('Prisma client no está inicializado');
+      return res.status(500).json({ 
+        error: 'Error de base de datos - Prisma no inicializado',
+        success: false 
+      });
+    }
+    
+    // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
+    if (!req.client || !req.client.id) {
+      logger.error('Cliente no autenticado en request');
+      return res.status(401).json({ 
+        error: 'Cliente no autenticado',
+        success: false 
+      });
+    }
+    
+    logger.info(`Obteniendo configuración del bot para cliente ID: ${req.client.id}`);
+    
     // Obtener la configuración completa del cliente
     const clientConfig = await prisma.client.findUnique({
       where: { id: req.client.id },
@@ -700,7 +720,11 @@ router.get('/config/bot', authenticate, async (req, res) => {
     });
     
     if (!clientConfig) {
-      return res.status(404).json({ error: 'Configuración no encontrada' });
+      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
     }
     
     // Construir estructura de respuesta que espera el frontend
@@ -767,196 +791,161 @@ router.get('/config/bot', authenticate, async (req, res) => {
       }
     };
     
-    logger.info(`Configuración del bot obtenida para cliente ${req.client.id}`);
-    return res.json(response);
+    logger.info(`Configuración del bot obtenida exitosamente para cliente ${req.client.id}`);
+    
+    return res.json({
+      success: true,
+      ...response
+    });
   } catch (error) {
     logger.error(`Error obteniendo configuración del bot: ${error.message}`);
-    return res.status(500).json({ error: 'Error obteniendo configuración del bot' });
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    return res.status(500).json({ 
+      error: 'Error interno del servidor obteniendo configuración del bot',
+      success: false,
+      details: error.message 
+    });
   }
 });
 
-// Actualizar configuración del bot
+// Endpoint PUT /config/bot - Actualizar configuración del bot
 router.put('/config/bot', authenticate, async (req, res) => {
   try {
+    logger.info(`Actualizando configuración del bot para cliente ID: ${req.client.id}`);
+    logger.info('Datos recibidos:', JSON.stringify(req.body, null, 2));
+    
+    // Extraer datos del request body
     const {
       // Información de empresa
-      companyName,
-      companyDescription,
-      companySector,
-      companyAddress,
-      companyPhone,
-      companyEmail,
-      companyWebsite,
-      
+      companyName, companyDescription, companySector, companyAddress, companyPhone, companyEmail, companyWebsite,
       // Configuración general
-      botName,
-      botPersonality,
-      welcomeMessage,
-      businessHours,
-      
+      botName, botPersonality, welcomeMessage, businessHours,
       // Configuración de horarios
-      workingHours,
-      workingDays,
-      
+      workingHours, workingDays,
       // Configuración de llamadas
       callConfig,
-      
       // Configuración de emails
       emailConfig,
-      
-      // Configuración manual de email (IMAP/SMTP)
-      emailManualConfig,
-      
-      // Configuración SMTP
-      smtpConfig,
-      
-      // Configuración de IA
+      // Configuración avanzada de IA
       aiConfig,
-      
-      // FAQs
+      // Preguntas frecuentes
       faqs,
-      
       // Archivos de contexto
-      contextFiles,
-      files,
-      
+      files, contextFiles,
       // Campos legacy para compatibilidad
-      voiceId,
-      language,
-      confirmationMessage,
-      dtmfOptions,
-      personality
+      voiceId, language, confirmationMessage, dtmfOptions, personality
     } = req.body;
     
-    // Obtener configuración actual del bot
+    // Obtener configuración actual del cliente
     const currentClient = await prisma.client.findUnique({
       where: { id: req.client.id }
     });
     
-    const currentBotConfig = currentClient.botConfig || {};
-    const currentCompanyInfo = currentClient.companyInfo || {};
-    const currentEmailConfig = currentClient.emailConfig || {};
+    if (!currentClient) {
+      return res.status(404).json({ error: 'Cliente no encontrado', success: false });
+    }
     
-    // Construir nueva configuración del bot
+    // Preparar datos para actualización
+    const updateData = {};
+    
+    // Construir configuración del bot
+    const currentBotConfig = currentClient.botConfig || {};
     const newBotConfig = {
       ...currentBotConfig,
-      // Configuración general
-      botName: botName || currentBotConfig.botName || 'Asistente Virtual',
-      botPersonality: botPersonality || personality || currentBotConfig.botPersonality || currentBotConfig.personality || 'professional',
-      welcomeMessage: welcomeMessage || currentBotConfig.welcomeMessage || "Bienvenido a nuestro asistente virtual",
-      businessHours: businessHours || currentBotConfig.businessHours || 'Lun-Vie: 9:00-18:00',
+      // Información básica
+      name: botName || currentBotConfig.name || 'Asistente Virtual',
+      personality: botPersonality || personality || currentBotConfig.personality || 'professional',
+      welcomeMessage: welcomeMessage || confirmationMessage || currentBotConfig.welcomeMessage || currentBotConfig.confirmationMessage || '',
+      businessHours: businessHours || currentBotConfig.businessHours || '',
       
       // Configuración de horarios
-      workingHours: workingHours || currentBotConfig.workingHours || { opening: "09:00", closing: "18:00" },
-      workingDays: workingDays || currentBotConfig.workingDays || {
-        monday: true,
-        tuesday: true,
-        wednesday: true,
-        thursday: true,
-        friday: true,
-        saturday: false,
-        sunday: false
-      },
+      workingHours: workingHours || currentBotConfig.workingHours || {},
+      workingDays: workingDays || currentBotConfig.workingDays || {},
       
-      // Configuración de llamadas - Estructura actualizada
+      // Configuración de llamadas
       callConfig: callConfig ? {
-        enabled: callConfig.enabled || false,
-        recordCalls: callConfig.recordCalls || false,
-        transcribeCalls: callConfig.transcribeCalls || false,
-        voiceId: callConfig.voiceId || currentBotConfig.callConfig?.voiceId || process.env.ELEVENLABS_VOICE_ID,
-        language: callConfig.language || currentBotConfig.callConfig?.language || "es-ES",
-        greeting: callConfig.greeting || currentBotConfig.callConfig?.greeting || currentBotConfig.callConfig?.confirmationMessage || "Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?"
-      } : currentBotConfig.callConfig || {
-        enabled: false,
-        recordCalls: false,
-        transcribeCalls: false,
-        voiceId: process.env.ELEVENLABS_VOICE_ID,
-        language: "es-ES",
-        greeting: "Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?"
-      },
+        ...currentBotConfig.callConfig,
+        ...callConfig
+      } : currentBotConfig.callConfig || {},
       
-      // Configuración de IA
-      aiConfig: aiConfig || currentBotConfig.aiConfig || {
-        temperature: 0.7,
-        maxTokens: 150,
-        model: 'gpt-3.5-turbo'
-      },
+      // Configuración avanzada de IA
+      aiConfig: aiConfig ? {
+        ...currentBotConfig.aiConfig,
+        ...aiConfig
+      } : currentBotConfig.aiConfig || {},
       
-      // FAQs
+      // Preguntas frecuentes
       faqs: faqs || currentBotConfig.faqs || [],
       
       // Archivos de contexto
-      contextFiles: files || contextFiles || currentBotConfig.contextFiles || {},
+      contextFiles: contextFiles || files || currentBotConfig.contextFiles || {},
       
       // Campos legacy para compatibilidad
-      voiceId: voiceId || callConfig?.voiceId || currentBotConfig.voiceId || process.env.ELEVENLABS_VOICE_ID,
-      language: language || callConfig?.language || currentBotConfig.language || "es-ES",
-      confirmationMessage: confirmationMessage || callConfig?.confirmationMessage || currentBotConfig.confirmationMessage || "Gracias por la información. Alguien se pondrá en contacto con usted a la brevedad.",
-      dtmfOptions: dtmfOptions || currentBotConfig.dtmfOptions || [],
-      personality: personality || botPersonality || currentBotConfig.personality || "professional"
+      voiceId: voiceId || callConfig?.voiceId || currentBotConfig.voiceId || process.env.ELEVENLABS_VOICE_ID || 'female',
+      language: language || callConfig?.language || currentBotConfig.language || 'es-ES',
+      confirmationMessage: confirmationMessage || welcomeMessage || callConfig?.greeting || currentBotConfig.confirmationMessage || '',
+      dtmfOptions: dtmfOptions || currentBotConfig.dtmfOptions || []
     };
+    
+    updateData.botConfig = newBotConfig;
     
     // Construir información de empresa
-    const newCompanyInfo = {
-      ...currentCompanyInfo,
-      name: companyName || currentCompanyInfo.name || '',
-      description: companyDescription || currentCompanyInfo.description || '',
-      sector: companySector || currentCompanyInfo.sector || '',
-      address: companyAddress || currentCompanyInfo.address || '',
-      phone: companyPhone || currentCompanyInfo.phone || '',
-      email: companyEmail || currentCompanyInfo.email || '',
-      website: companyWebsite || currentCompanyInfo.website || ''
-    };
+    const currentCompanyInfo = currentClient.companyInfo || {};
+    if (companyName || companyDescription || companySector || companyAddress || companyPhone || companyEmail || companyWebsite) {
+      const newCompanyInfo = {
+        ...currentCompanyInfo,
+        name: companyName || currentCompanyInfo.name || '',
+        description: companyDescription || currentCompanyInfo.description || '',
+        sector: companySector || currentCompanyInfo.sector || '',
+        address: companyAddress || currentCompanyInfo.address || '',
+        phone: companyPhone || currentCompanyInfo.phone || '',
+        email: companyEmail || currentCompanyInfo.email || '',
+        website: companyWebsite || currentCompanyInfo.website || ''
+      };
+      updateData.companyInfo = newCompanyInfo;
+    }
     
-    // Construir configuración de email - Estructura completa
-    const newEmailConfig = emailConfig ? {
-      ...currentEmailConfig,
-      enabled: emailConfig.enabled || false,
-      provider: emailConfig.provider || currentEmailConfig.provider || '',
-      outgoingEmail: emailConfig.outgoingEmail || currentEmailConfig.outgoingEmail || '',
-      recipientEmail: emailConfig.recipientEmail || currentEmailConfig.recipientEmail || '',
-      forwardRules: emailConfig.forwardRules || currentEmailConfig.forwardRules || '',
-      autoReply: emailConfig.autoReply || false,
-      autoReplyMessage: emailConfig.autoReplyMessage || currentEmailConfig.autoReplyMessage || '',
-      language: emailConfig.language || currentEmailConfig.language || 'es-ES',
-      emailSignature: emailConfig.emailSignature || currentEmailConfig.emailSignature || '',
-      emailConsent: emailConfig.emailConsent || false,
-      imapServer: emailConfig.imapServer || currentEmailConfig.imapServer || '',
-      imapPort: emailConfig.imapPort || currentEmailConfig.imapPort || 993,
-      smtpServer: emailConfig.smtpServer || currentEmailConfig.smtpServer || '',
-      smtpPort: emailConfig.smtpPort || currentEmailConfig.smtpPort || 587,
-      useSSL: emailConfig.useSSL || false,
-      // Configuraciones legacy para compatibilidad
-      smtpConfig: emailConfig.smtpConfig || smtpConfig || currentEmailConfig.smtpConfig || {},
-      emailManualConfig: emailConfig.emailManualConfig || emailManualConfig || currentEmailConfig.emailManualConfig || null
-    } : {
-      ...currentEmailConfig,
-      smtpConfig: smtpConfig || currentEmailConfig.smtpConfig || {},
-      emailManualConfig: emailManualConfig || currentEmailConfig.emailManualConfig || null
-    };
+    // Construir configuración de email
+    const currentEmailConfig = currentClient.emailConfig || {};
+    if (emailConfig) {
+      const newEmailConfig = {
+        ...currentEmailConfig,
+        ...emailConfig
+      };
+      updateData.emailConfig = newEmailConfig;
+    }
     
-    // Actualizar cliente con toda la configuración
+    // Actualizar también campos individuales del cliente para consistencia
+    if (companyName) updateData.companyName = companyName;
+    if (companySector) updateData.industry = companySector;
+    
+    logger.info('Datos preparados para actualización:', JSON.stringify(updateData, null, 2));
+    
+    // Actualizar cliente en la base de datos
     const updatedClient = await prisma.client.update({
       where: { id: req.client.id },
-      data: {
-        botConfig: newBotConfig,
-        companyInfo: newCompanyInfo,
-        emailConfig: newEmailConfig,
-        // Actualizar también el campo industry del cliente para consistencia
-        industry: companySector || currentClient.industry
-      }
+      data: updateData
     });
+    
+    logger.info('Cliente actualizado exitosamente');
     
     return res.json({
       success: true,
-      message: 'Configuración completa actualizada correctamente',
-      botConfig: newBotConfig,
-      companyInfo: newCompanyInfo,
-      emailConfig: newEmailConfig
+      message: 'Configuración del bot actualizada correctamente',
+      botConfig: updatedClient.botConfig,
+      companyInfo: updatedClient.companyInfo,
+      emailConfig: updatedClient.emailConfig
     });
   } catch (error) {
     logger.error(`Error actualizando configuración del bot: ${error.message}`);
-    return res.status(500).json({ error: 'Error actualizando configuración del bot' });
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    return res.status(500).json({ 
+      error: 'Error interno del servidor actualizando configuración del bot',
+      success: false,
+      details: error.message 
+    });
   }
 });
 
