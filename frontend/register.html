@@ -872,14 +872,17 @@
                     console.log('Datos de usuario almacenados manualmente');
                 }
                 
-                // Mostrar mensaje de éxito con animación
-                showSuccessAnimation();
+                // Mostrar un mensaje sencillo (sin popup) usando toastr si está disponible
+                if (window.toastr) {
+                    toastr.success('Tu cuenta ha sido creada con éxito');
+                }
                 
-                // Redirigir después de un breve retraso para que el usuario vea el mensaje
+                console.log('Registro exitoso, redirigiendo a dashboard...');
+                
+                // Redirigir inmediatamente al dashboard sin popup
                 setTimeout(() => {
-                    console.log('Redirigiendo a dashboard...');
                     window.location.href = 'dashboard.html';
-                }, 1500);
+                }, 500); // Tiempo mínimo para que el usuario vea el mensaje de éxito
             } catch (error) {
                 // Cancelar timeout ya que tuvimos respuesta (de error)
                 clearTimeout(registrationTimeout);
@@ -1011,147 +1014,7 @@
             }, 8000);
         }
         
-        // Animación de éxito mejorada
-        function showSuccessAnimation() {
-            // Crear elemento para la animación de éxito
-            const successOverlay = document.createElement('div');
-            successOverlay.className = 'success-overlay';
-            successOverlay.innerHTML = `
-                <div class="success-content p-4 bg-white shadow rounded-3">
-                    <div class="success-icon text-center">
-                        <div class="checkmark-circle">
-                            <div class="checkmark draw"></div>
-                        </div>
-                        <h4 class="mt-4 fw-bold text-success">¡Registro completado!</h4>
-                        <p class="text-muted mb-4">Tu cuenta ha sido creada con éxito</p>
-                        
-                        <div class="d-flex justify-content-center gap-2 mt-3">
-                            <button id="goDashboardBtn" class="btn btn-primary btn-sm">
-                                <i class="fas fa-tachometer-alt me-1"></i> Ir al dashboard
-                            </button>
-                            <button id="goLoginBtn" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-sign-in-alt me-1"></i> Iniciar sesión
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Estilos para la animación
-            successOverlay.style.position = 'fixed';
-            successOverlay.style.top = '0';
-            successOverlay.style.left = '0';
-            successOverlay.style.width = '100%';
-            successOverlay.style.height = '100%';
-            successOverlay.style.backgroundColor = 'rgba(255,255,255,0.94)';
-            successOverlay.style.display = 'flex';
-            successOverlay.style.justifyContent = 'center';
-            successOverlay.style.alignItems = 'center';
-            successOverlay.style.zIndex = '9999';
-            successOverlay.style.opacity = '0';
-            successOverlay.style.transition = 'all 0.4s ease-in-out';
-            
-            // Añadir estilos CSS para la animación de checkmark
-            const styleEl = document.createElement('style');
-            styleEl.textContent = `
-                .checkmark-circle {
-                    width: 80px;
-                    height: 80px;
-                    position: relative;
-                    display: inline-block;
-                    vertical-align: top;
-                    margin-left: auto;
-                    margin-right: auto;
-                }
-                
-                .checkmark-circle .background {
-                    width: 80px;
-                    height: 80px;
-                    border-radius: 50%;
-                    background: #28a745;
-                    position: absolute;
-                }
-                
-                .checkmark-circle .checkmark {
-                    border-radius: 5px;
-                }
-                
-                .checkmark-circle .checkmark.draw:after {
-                    animation-delay: 100ms;
-                    animation-duration: 0.8s;
-                    animation-timing-function: ease;
-                    animation-name: checkmark;
-                    transform: scaleX(-1) rotate(135deg);
-                    opacity: 1;
-                    animation-fill-mode: forwards;
-                }
-                
-                .checkmark-circle .checkmark:after {
-                    opacity: 1;
-                    height: 40px;
-                    width: 17px;
-                    transform-origin: left top;
-                    border-right: 5px solid #28a745;
-                    border-top: 5px solid #28a745;
-                    border-radius: 2px !important;
-                    content: '';
-                    left: 25px;
-                    top: 45px;
-                    position: absolute;
-                }
-                
-                @keyframes checkmark {
-                    0% {
-                        height: 0;
-                        width: 0;
-                        opacity: 1;
-                    }
-                    20% {
-                        height: 0;
-                        width: 17px;
-                        opacity: 1;
-                    }
-                    40% {
-                        height: 40px;
-                        width: 17px;
-                        opacity: 1;
-                    }
-                    100% {
-                        height: 40px;
-                        width: 17px;
-                        opacity: 1;
-                    }
-                }
-            `;
-            document.head.appendChild(styleEl);
-            
-            document.body.appendChild(successOverlay);
-            
-            // Event listeners para botones
-            setTimeout(() => {
-                const dashboardBtn = document.getElementById('goDashboardBtn');
-                const loginBtn = document.getElementById('goLoginBtn');
-                
-                if (dashboardBtn) {
-                    dashboardBtn.addEventListener('click', () => {
-                        console.log('Redirigiendo al dashboard...');
-                        window.location.href = 'dashboard.html';
-                    });
-                }
-                
-                if (loginBtn) {
-                    loginBtn.addEventListener('click', () => {
-                        console.log('Redirigiendo a login...');
-                        window.location.href = 'login.html';
-                    });
-                }
-            }, 300);
-            
-            // Mostrar con animación
-            setTimeout(() => {
-                successOverlay.style.opacity = '1';
-            }, 50);
-        }
+        // La función showSuccessAnimation ha sido eliminada para implementar una redirección directa al dashboard
         
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {

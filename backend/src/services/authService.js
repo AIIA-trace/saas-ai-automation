@@ -114,9 +114,10 @@ class AuthService {
           subscriptionExpiresAt: trialEndDate, // Usar el mismo valor para ambos campos
           
           // Si hay datos iniciales de configuración
-          botConfig: clientData.botConfig || null,
-          emailConfig: clientData.emailConfig || null,
-          companyInfo: clientData.companyInfo || null
+          // Usando undefined en lugar de null como requiere Prisma para campos JSON
+          ...(clientData.botConfig ? { botConfig: clientData.botConfig } : {}),
+          ...(clientData.emailConfig ? { emailConfig: clientData.emailConfig } : {}),
+          ...(clientData.companyInfo ? { companyInfo: clientData.companyInfo } : {})
         }
       });
       
