@@ -420,12 +420,12 @@
                                 </div>
                                 
                                 <div class="mb-4">
-                                    <label for="businessSector" class="form-label fw-medium">Sector empresarial</label>
+                                    <label for="industry" class="form-label fw-medium">Sector empresarial</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-transparent border-end-0">
                                             <i class="fas fa-briefcase text-muted"></i>
                                         </span>
-                                        <select class="form-select border-start-0" id="businessSector" required>
+                                        <select class="form-select border-start-0" id="industry" required>
                                             <option value="" selected disabled>Selecciona un sector</option>
                                             <option value="retail">Comercio (Retail)</option>
                                             <option value="restaurant">Restaurante</option>
@@ -439,12 +439,12 @@
                                 </div>
                                 
                                 <div class="mb-4">
-                                    <label for="contactPhone" class="form-label fw-medium">Teléfono</label>
+                                    <label for="phone" class="form-label fw-medium">Teléfono</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-transparent border-end-0">
                                             <i class="fas fa-phone text-muted"></i>
                                         </span>
-                                        <input type="tel" class="form-control border-start-0" id="contactPhone" placeholder="+34 XXX XXX XXX" required>
+                                        <input type="tel" class="form-control border-start-0" id="phone" placeholder="+34 XXX XXX XXX" required>
                                     </div>
                                 </div>
                                 
@@ -767,16 +767,15 @@
                 // Datos de la empresa y contacto
                 companyName: document.getElementById('companyName').value.trim(),
                 companyDescription: document.getElementById('companyDescription').value.trim(),
-                businessSector: document.getElementById('businessSector').value,
-                industry: document.getElementById('businessSector').value, // También enviamos como industry para asegurar compatibilidad
+                industry: document.getElementById('industry').value, // Nombre unificado
                 contactName: document.getElementById('companyName').value.trim(), // Podría ser diferente si hay un campo específico
-                phone: document.getElementById('contactPhone').value.trim(),
+                phone: document.getElementById('phone').value.trim(), // Nombre unificado
                 website: document.getElementById('website')?.value?.trim() || '',
                 address: document.getElementById('address')?.value?.trim() || '',
                 
                 // Datos para la cuenta
                 role: 'client', // Rol por defecto para nuevos registros
-                plan: document.querySelector('input[name="plan"]').value,
+                subscriptionStatus: document.querySelector('input[name="plan"]').value, // Nombre alineado con DB
                 language: 'es', // Por defecto español
                 timezone: 'Europe/Madrid', // Por defecto Madrid
                 
@@ -784,9 +783,9 @@
                 profile: {
                     companyName: document.getElementById('companyName').value.trim(),
                     companyDescription: document.getElementById('companyDescription').value.trim(),
-                    industry: document.getElementById('businessSector').value,
+                    industry: document.getElementById('industry').value, // Nombre unificado
                     address: document.getElementById('address')?.value?.trim() || '',
-                    phone: document.getElementById('contactPhone').value.trim(),
+                    phone: document.getElementById('phone').value.trim(), // Nombre unificado
                     website: document.getElementById('website')?.value?.trim() || '',
                     email: document.getElementById('email').value.trim()
                 }

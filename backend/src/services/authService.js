@@ -52,7 +52,7 @@ class AuthService {
   async registerClient(clientData) {
     try {
       logger.info(`Iniciando registro de cliente: ${JSON.stringify(clientData, null, 2)}`);
-      const { email, password, companyName, companyDescription, businessSector, contactPhone, plan } = clientData;
+      const { email, password, companyName, companyDescription, industry, phone, subscriptionStatus } = clientData;
       
       // Verificar si ya existe un cliente con ese email
       logger.info(`Verificando si existe cliente con email: ${email}`);
@@ -76,9 +76,9 @@ class AuthService {
       logger.info('Generando API key...');
       const apiKey = crypto.randomBytes(32).toString('hex');
       
-      // Determinar el estado de suscripción basado en el plan seleccionado
-      const subscriptionStatus = plan || 'trial';
-      logger.info(`Plan seleccionado: ${subscriptionStatus}`);
+      // Usar el estado de suscripción recibido o valor por defecto
+      const finalSubscriptionStatus = subscriptionStatus || 'trial';
+      logger.info(`Plan seleccionado: ${finalSubscriptionStatus}`);
       
       // Fecha de fin de prueba (14 días desde ahora)
       const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
@@ -97,9 +97,9 @@ class AuthService {
           // Datos de la empresa
           companyName,
           companyDescription: companyDescription || null,
-          contactName: companyName,
-          phone: contactPhone || null,
-          industry: businessSector || null, // businessSector se mapea a industry
+          contactName: clientData.contactName || companyName,
+          phone: clientData.phone || null,
+          industry: clientData.industry || null, // Nombre unificado
           website: clientData.website || null, // Asegurar que website se guarde
           address: clientData.address || null, // Asegurar que address se guarde
           
@@ -109,7 +109,7 @@ class AuthService {
           language: clientData.language || 'es',
           
           // Datos de suscripción
-          subscriptionStatus,
+          subscriptionStatus: finalSubscriptionStatus,
           trialEndDate,
           subscriptionExpiresAt: trialEndDate, // Usar el mismo valor para ambos campos
           
