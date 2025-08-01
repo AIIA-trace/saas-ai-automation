@@ -77,6 +77,512 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+// === ENDPOINTS UNIFICADOS DEL CLIENTE (NUEVA API) ===
+
+/**
+ * ENDPOINT UNIFICADO para obtener TODOS los datos del cliente
+ * - Esta es la ÚNICA fuente de verdad para datos del cliente
+ * - Reemplaza múltiples endpoints fragmentados
+ * - Elimina duplicaciones y posibles inconsistencias
+ */
+router.get('/client', authenticate, async (req, res) => {
+  try {
+    logger.info('🚀 INICIANDO GET /client - ENDPOINT UNIFICADO');
+    logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
+    
+    // Obtener datos completos del cliente
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: {
+        // Datos de perfil
+        id: true,
+        email: true,
+        companyName: true,
+        contactName: true,
+        phone: true,
+        industry: true,
+        address: true,
+        website: true,
+        createdAt: true,
+        updatedAt: true,
+        
+        // Datos de suscripción
+        subscriptionStatus: true,
+        subscriptionExpiresAt: true,
+        
+        // Configuraciones (objetos JSON)
+        botConfig: true,
+        companyInfo: true,
+        emailConfig: true,
+        notificationConfig: true
+      }
+    });
+    
+    if (!client) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Cliente no encontrado'
+      });
+    }
+    
+    // NORMALIZAR estructura de datos para frontend
+    const responseData = {
+      // Datos de perfil
+      profile: {
+        id: client.id,
+        email: client.email || '',
+        companyName: client.companyName || '',
+        contactName: client.contactName || '',
+        phone: client.phone || '',
+        industry: client.industry || 
+                (client.companyInfo?.sector) || '',
+        address: client.address || 
+                (client.companyInfo?.address) || '',
+        website: client.website || 
+                (client.companyInfo?.website) || ''
+      },
+      
+      // Datos del bot
+      bot: {
+        name: client.botConfig?.name || 'Asistente Virtual',
+        personality: client.botConfig?.personality || '',
+        workingHours: client.botConfig?.workingHours || {
+          opening: '09:00',
+          closing: '18:00'
+        },
+        workingDays: client.botConfig?.workingDays || {
+          monday: true,
+          tuesday: true,
+          wednesday: true,
+          thursday: true,
+          friday: true,
+          saturday: false,
+          sunday: false
+        }
+      },
+      
+      // Configuración de llamadas
+      calls: {
+        enabled: client.botConfig?.callConfig?.enabled || false,
+        voiceId: client.botConfig?.callConfig?.voiceId || 'es-ES-Standard-A',
+        language: client.botConfig?.callConfig?.language || 'es-ES',
+        recordCalls: client.botConfig?.callConfig?.recordCalls || true,
+        greeting: client.botConfig?.callConfig?.greeting || ''
+      },
+      
+      // Configuración de email
+      email: client.emailConfig || {
+        emailProvider: '',
+        imapHost: '',
+        imapPort: '',
+        imapUser: '',
+        smtpHost: '',
+        smtpPort: '',
+        smtpUser: '',
+        emailSignature: '',
+        useSSL: false
+      },
+      
+      // Configuración de IA
+      aiConfig: client.botConfig?.aiConfig || {
+        model: 'gpt-4',
+        temperature: 0.7,
+        maxTokens: 800
+      },
+      
+      // FAQs y archivos de contexto
+      faqs: client.botConfig?.faqs || [],
+      contextFiles: client.botConfig?.contextFiles || [],
+      
+      // Datos de suscripción
+      subscription: {
+        status: client.subscriptionStatus || 'inactive',
+        expiresAt: client.subscriptionExpiresAt || null
+      }
+    };
+    
+    // Enviar respuesta exitosa
+    const successResponse = {
+      success: true,
+      data: responseData
+    };
+    
+    const jsonString = JSON.stringify(successResponse);
+    logger.info(`📤 Enviando respuesta unificada exitosa (${jsonString.length} bytes)`);
+    logger.info('🏁 FINALIZANDO GET /client exitosamente');
+    
+    return res.json(successResponse);
+  } catch (error) {
+    logger.error(`❌ ERROR en GET /client: ${error.message}`);
+    logger.error(`📋 Stack trace: ${error.stack}`);
+    
+    return res.status(500).json({
+      success: false,
+      error: 'Error obteniendo datos del cliente',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * ENDPOINT UNIFICADO para actualizar TODOS los datos del cliente
+ * - Esta es la ÚNICA forma de actualizar datos del cliente
+ * - Reemplaza múltiples endpoints fragmentados
+ * - Garantiza consistencia de datos
+ */
+router.put('/client', authenticate, async (req, res) => {
+  try {
+    logger.info('🚀 INICIANDO PUT /client - ENDPOINT UNIFICADO');
+    logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
+    
+    // Extraer datos de la petición
+    const { profile, bot, calls, email, aiConfig, faqs, contextFiles } = req.body;
+    
+    // Validar que hay datos para actualizar
+    if (!profile && !bot && !calls && !email && !aiConfig && !faqs) {
+      return res.status(400).json({
+        success: false,
+        error: 'No hay datos para actualizar'
+      });
+    }
+    
+    // Obtener cliente actual para preservar datos existentes
+    const currentClient = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: {
+        botConfig: true,
+        companyInfo: true,
+        emailConfig: true
+      }
+    });
+    
+    if (!currentClient) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Cliente no encontrado'
+      });
+    }
+    
+    // PREPARAR DATOS PARA ACTUALIZACIÓN
+    
+    // 1. Datos de perfil (campos directos en la tabla client)
+    const profileData = profile ? {
+      companyName: profile.companyName,
+      contactName: profile.contactName,
+      phone: profile.phone,
+      industry: profile.industry,
+      address: profile.address,
+      website: profile.website
+    } : {};
+    
+    // 2. Configuración del bot (objeto JSON botConfig)
+    const currentBotConfig = currentClient.botConfig || {};
+    let newBotConfig = { ...currentBotConfig };
+    
+    // Actualizar configuración general del bot
+    if (bot) {
+      newBotConfig = {
+        ...newBotConfig,
+        name: bot.name || newBotConfig.name || 'Asistente Virtual',
+        personality: bot.personality || newBotConfig.personality || '',
+        workingHours: bot.workingHours || newBotConfig.workingHours || {
+          opening: '09:00',
+          closing: '18:00'
+        },
+        workingDays: bot.workingDays || newBotConfig.workingDays || {
+          monday: true,
+          tuesday: true,
+          wednesday: true,
+          thursday: true,
+          friday: true,
+          saturday: false,
+          sunday: false
+        }
+      };
+    }
+    
+    // Actualizar configuración de llamadas
+    if (calls) {
+      newBotConfig.callConfig = {
+        ...newBotConfig.callConfig || {},
+        enabled: calls.enabled !== undefined ? calls.enabled : 
+                 newBotConfig.callConfig?.enabled || false,
+        voiceId: calls.voiceId || newBotConfig.callConfig?.voiceId || 'es-ES-Standard-A',
+        language: calls.language || newBotConfig.callConfig?.language || 'es-ES',
+        recordCalls: calls.recordCalls !== undefined ? calls.recordCalls : 
+                     newBotConfig.callConfig?.recordCalls || true,
+        greeting: calls.greeting || newBotConfig.callConfig?.greeting || ''
+      };
+    }
+    
+    // Actualizar configuración de IA
+    if (aiConfig) {
+      newBotConfig.aiConfig = {
+        ...newBotConfig.aiConfig || {},
+        model: aiConfig.model || newBotConfig.aiConfig?.model || 'gpt-4',
+        temperature: aiConfig.temperature || newBotConfig.aiConfig?.temperature || 0.7,
+        maxTokens: aiConfig.maxTokens || newBotConfig.aiConfig?.maxTokens || 800
+      };
+    }
+    
+    // Actualizar FAQs
+    if (faqs) {
+      newBotConfig.faqs = faqs;
+    }
+    
+    // Actualizar archivos de contexto
+    if (contextFiles) {
+      newBotConfig.contextFiles = contextFiles;
+    }
+    
+    // 3. Información de la empresa (objeto JSON companyInfo)
+    const currentCompanyInfo = currentClient.companyInfo || {};
+    const newCompanyInfo = profile ? {
+      ...currentCompanyInfo,
+      name: profile.companyName || currentCompanyInfo.name || '',
+      sector: profile.industry || currentCompanyInfo.sector || '',
+      phone: profile.phone || currentCompanyInfo.phone || '',
+      email: profile.email || currentCompanyInfo.email || '',
+      address: profile.address || currentCompanyInfo.address || '',
+      website: profile.website || currentCompanyInfo.website || ''
+    } : currentCompanyInfo;
+    
+    // 4. Configuración de email (objeto JSON emailConfig)
+    const newEmailConfig = email || currentClient.emailConfig || {};
+    
+    // EJECUTAR ACTUALIZACIÓN
+    const updateData = {
+      // Campos directos
+      ...profileData,
+      
+      // Objetos JSON
+      botConfig: newBotConfig,
+      companyInfo: newCompanyInfo,
+      emailConfig: newEmailConfig,
+      
+      // Timestamp de actualización
+      updatedAt: new Date()
+    };
+    
+    // Log de los datos que se van a actualizar (sin datos sensibles)
+    const sanitizedUpdateData = { ...updateData };
+    if (sanitizedUpdateData.emailConfig) {
+      sanitizedUpdateData.emailConfig = { 
+        ...sanitizedUpdateData.emailConfig,
+        imapPassword: '[REDACTED]',
+        smtpPassword: '[REDACTED]'
+      };
+    }
+    logger.info(`📝 Datos a actualizar: ${JSON.stringify(sanitizedUpdateData)}`);
+    
+    // Actualizar en la base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: updateData
+    });
+    
+    logger.info('✅ Cliente actualizado exitosamente');
+    logger.info('🏁 FINALIZANDO PUT /client exitosamente');
+    
+    return res.json({
+      success: true,
+      message: 'Cliente actualizado exitosamente'
+    });
+  } catch (error) {
+    logger.error(`❌ ERROR en PUT /client: ${error.message}`);
+    logger.error(`📋 Stack trace: ${error.stack}`);
+    
+    return res.status(500).json({
+      success: false,
+      error: 'Error actualizando datos del cliente',
+      details: error.message
+    });
+  }
+});
+
+// === ENDPOINTS UNIFICADOS PARA ARCHIVOS DE CONTEXTO ===
+
+// Subir archivos de contexto (endpoint unificado)
+router.post('/client/context-files', authenticate, async (req, res) => {
+  try {
+    logger.info('🚀 INICIANDO POST /client/context-files - ENDPOINT UNIFICADO');
+    logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
+    
+    const { fileType, fileName, fileContent, fileSize } = req.body;
+    
+    if (!fileType || !fileName || !fileContent) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Faltan datos del archivo' 
+      });
+    }
+    
+    // Validar tipo de archivo
+    const allowedTypes = ['inventory', 'catalog', 'pricing', 'menu', 'samples', 'info'];
+    if (!allowedTypes.includes(fileType)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Tipo de archivo no permitido' 
+      });
+    }
+    
+    // Validar tamaño (10MB máximo)
+    if (fileSize > 10 * 1024 * 1024) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Archivo muy grande (máximo 10MB)' 
+      });
+    }
+    
+    // Obtener configuración actual del bot
+    const currentClient = await prisma.client.findUnique({
+      where: { id: req.client.id }
+    });
+    
+    if (!currentClient) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Cliente no encontrado'
+      });
+    }
+    
+    const currentBotConfig = currentClient.botConfig || {};
+    const currentContextFiles = currentBotConfig.contextFiles || {};
+    
+    // En producción, aquí se subiría el archivo a un servicio de almacenamiento
+    // Por ahora, simulamos guardando la información del archivo
+    const fileInfo = {
+      fileName,
+      fileSize,
+      uploadedAt: new Date().toISOString(),
+      status: 'processed'
+    };
+    
+    // Actualizar archivos de contexto
+    const updatedContextFiles = {
+      ...currentContextFiles,
+      [fileType]: fileInfo
+    };
+    
+    const updatedBotConfig = {
+      ...currentBotConfig,
+      contextFiles: updatedContextFiles
+    };
+    
+    // Actualizar en la base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: {
+        botConfig: updatedBotConfig
+      }
+    });
+    
+    logger.info(`✅ Archivo de contexto ${fileName} subido correctamente para cliente ${req.client.id}`);
+    
+    return res.json({
+      success: true,
+      message: 'Archivo de contexto subido correctamente',
+      fileInfo
+    });
+  } catch (error) {
+    logger.error(`❌ Error subiendo archivo de contexto: ${error.message}`);
+    logger.error(`Stack: ${error.stack}`);
+    return res.status(500).json({
+      success: false,
+      error: 'Error interno al subir archivo de contexto',
+      details: error.message
+    });
+  }
+});
+
+// Eliminar archivos de contexto (endpoint unificado)
+router.post('/client/context-files/delete', authenticate, async (req, res) => {
+  try {
+    logger.info('🚀 INICIANDO POST /client/context-files/delete - ENDPOINT UNIFICADO');
+    logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
+    
+    const { files } = req.body;
+    
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Se requiere una lista de archivos para eliminar' 
+      });
+    }
+    
+    // Obtener configuración actual del bot
+    const currentClient = await prisma.client.findUnique({
+      where: { id: req.client.id }
+    });
+    
+    if (!currentClient) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Cliente no encontrado'
+      });
+    }
+    
+    const currentBotConfig = currentClient.botConfig || {};
+    const currentContextFiles = currentBotConfig.contextFiles || {};
+    
+    // Crear una copia del objeto de archivos de contexto
+    const updatedContextFiles = { ...currentContextFiles };
+    
+    // Eliminar los archivos indicados
+    let deletedCount = 0;
+    files.forEach(fileName => {
+      // Buscar el archivo por nombre en todas las categorías
+      Object.keys(updatedContextFiles).forEach(fileType => {
+        if (updatedContextFiles[fileType] && updatedContextFiles[fileType].fileName === fileName) {
+          delete updatedContextFiles[fileType];
+          deletedCount++;
+        }
+      });
+    });
+    
+    if (deletedCount === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'No se encontraron los archivos para eliminar' 
+      });
+    }
+    
+    // Actualizar la configuración del bot
+    const updatedBotConfig = {
+      ...currentBotConfig,
+      contextFiles: updatedContextFiles
+    };
+    
+    // Guardar en la base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: {
+        botConfig: updatedBotConfig
+      }
+    });
+    
+    logger.info(`✅ Se eliminaron ${deletedCount} archivos de contexto para cliente ${req.client.id}`);
+    
+    return res.json({
+      success: true,
+      message: `Se eliminaron ${deletedCount} archivos de contexto`,
+      deletedCount
+    });
+  } catch (error) {
+    logger.error(`❌ Error eliminando archivos de contexto: ${error.message}`);
+    logger.error(`Stack: ${error.stack}`);
+    return res.status(500).json({
+      success: false,
+      error: 'Error interno al eliminar archivos de contexto',
+      details: error.message
+    });
+  }
+});
+
 // === ENDPOINTS PARA CLIENTES ===
 
 // Obtener configuración actual del cliente
@@ -104,7 +610,10 @@ router.get('/config', authenticate, async (req, res) => {
   }
 });
 
-// Obtener perfil del cliente
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado GET /api/client
+ * Este endpoint será eliminado en futuras versiones
+ */
 router.get('/profile', authenticate, async (req, res) => {
   try {
     // LOGGING DETALLADO PARA DIAGNOSTICAR PROBLEMA JSON
@@ -251,7 +760,10 @@ router.get('/profile', authenticate, async (req, res) => {
   }
 });
 
-// Endpoint /api/auth/me como alias de /api/profile para compatibilidad
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado GET /api/client
+ * Este endpoint era un alias de /api/profile y será eliminado en futuras versiones
+ */
 router.get('/auth/me', authenticate, async (req, res) => {
   try {
     // LOGGING DETALLADO PARA DIAGNOSTICAR PROBLEMA JSON
@@ -446,7 +958,11 @@ router.get('/email/connection', authenticate, async (req, res) => {
 });
 
 // Endpoint para obtener FAQs del bot
+// ENDPOINT OBSOLETO: Usar GET /api/client en su lugar y acceder a botConfig.faqs
 router.get('/bot/faqs', authenticate, async (req, res) => {
+  logger.warn(`⚠️ Endpoint obsoleto GET /bot/faqs usado por cliente ${req.client?.id}`);
+  logger.warn('Este endpoint será eliminado próximamente. Usar GET /api/client en su lugar.');
+  
   try {
     // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
     if (!prisma || !prisma.client) {
@@ -505,6 +1021,10 @@ router.get('/bot/faqs', authenticate, async (req, res) => {
 });
 
 // Actualizar perfil del cliente
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado PUT /api/client
+ * Este endpoint será eliminado en futuras versiones
+ */
 router.put('/profile', authenticate, async (req, res) => {
   try {
     const { 
@@ -817,10 +1337,16 @@ router.delete('/payment/method/:methodId', authenticate, async (req, res) => {
 });
 
 // Obtener configuración del bot
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado GET /api/client
+ * Este endpoint será eliminado en la próxima versión (V2.0)
+ * Toda la funcionalidad ha sido migrada al endpoint unificado
+ */
 router.get('/config/bot', authenticate, async (req, res) => {
   try {
-    logger.info('🚀 INICIANDO GET /config/bot');
-    logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
+    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto GET /config/bot usado por cliente ${req.client?.id}`);
+    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a GET /api/client antes de la próxima actualización');
+    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
     
     // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
     if (!prisma || !prisma.client) {
@@ -840,7 +1366,7 @@ router.get('/config/bot', authenticate, async (req, res) => {
       });
     }
     
-    logger.info(`🔍 Obteniendo configuración del bot para cliente ID: ${req.client.id}`);
+    logger.info(`🔍 Redirigiendo solicitud al nuevo endpoint unificado GET /client`);
     
     try {
       // Obtener la configuración completa del cliente
@@ -1021,11 +1547,16 @@ router.get('/config/bot', authenticate, async (req, res) => {
   }
 });
 
-// Endpoint PUT /config/bot - Actualizar configuración del bot
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado PUT /api/client
+ * Este endpoint será eliminado en la próxima versión (V2.0)
+ * Toda la funcionalidad ha sido migrada al endpoint unificado
+ */
 router.put('/config/bot', authenticate, async (req, res) => {
   try {
-    logger.info(`Actualizando configuración del bot para cliente ID: ${req.client.id}`);
-    logger.info('Datos recibidos:', JSON.stringify(req.body, null, 2));
+    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto PUT /config/bot usado por cliente ${req.client?.id}`);
+    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a PUT /api/client antes de la próxima actualización');
+    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
     
     // Extraer datos del request body
     const {
@@ -1162,8 +1693,18 @@ router.put('/config/bot', authenticate, async (req, res) => {
 });
 
 // Eliminar archivos de contexto
+// ENDPOINT OBSOLETO: Usar POST /api/client/context-files/delete en su lugar
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado POST /api/client/context-files/delete
+ * Este endpoint será eliminado en la próxima versión (V2.0)
+ * Toda la funcionalidad ha sido migrada al endpoint unificado
+ */
 router.post('/config/delete-context-files', authenticate, async (req, res) => {
   try {
+    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto POST /config/delete-context-files usado por cliente ${req.client?.id}`);
+    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a POST /api/client/context-files/delete antes de la próxima actualización');
+    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
+    
     const { filesToDelete } = req.body;
     
     if (!filesToDelete || !Array.isArray(filesToDelete) || filesToDelete.length === 0) {
@@ -1266,8 +1807,18 @@ router.get('/config/verify-bot-config', authenticate, async (req, res) => {
 });
 
 // Subir archivo de contexto para el bot
+// ENDPOINT OBSOLETO: Usar POST /api/client/context-files en su lugar
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado POST /api/client/context-files
+ * Este endpoint será eliminado en la próxima versión (V2.0)
+ * Toda la funcionalidad ha sido migrada al endpoint unificado
+ */
 router.post('/bot/upload-context', authenticate, async (req, res) => {
   try {
+    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto POST /bot/upload-context usado por cliente ${req.client?.id}`);
+    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a POST /api/client/context-files antes de la próxima actualización');
+    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
+    
     const { fileType, fileName, fileContent, fileSize } = req.body;
     
     if (!fileType || !fileName || !fileContent) {
@@ -2381,9 +2932,17 @@ router.put('/account', authenticate, async (req, res) => {
 
 // === ENDPOINTS PARA CONFIGURACIÓN DE EMAILS ===
 
-// Obtener configuración de email (endpoint para frontend)
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado GET /api/client
+ * Este endpoint será eliminado en la próxima versión (V2.0)
+ * Toda la funcionalidad ha sido migrada al endpoint unificado
+ */
 router.get('/config/email', authenticate, async (req, res) => {
   try {
+    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto GET /config/email usado por cliente ${req.client?.id}`);
+    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a GET /api/client antes de la próxima actualización');
+    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
+    
     // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
     if (!prisma || !prisma.client) {
       logger.error('Prisma client no está inicializado');
@@ -2460,9 +3019,17 @@ router.get('/config/email', authenticate, async (req, res) => {
   }
 });
 
-// Guardar configuración de email (endpoint para frontend)
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado PUT /api/client
+ * Este endpoint será eliminado en la próxima versión (V2.0)
+ * Toda la funcionalidad ha sido migrada al endpoint unificado
+ */
 router.put('/config/email', authenticate, async (req, res) => {
   try {
+    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto PUT /config/email usado por cliente ${req.client?.id}`);
+    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a PUT /api/client antes de la próxima actualización');
+    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
+    
     logger.info(`Guardando configuración de email para cliente ${req.client.id}`);
     logger.info('Datos recibidos:', JSON.stringify(req.body, null, 2));
     
@@ -2519,7 +3086,10 @@ router.put('/config/email', authenticate, async (req, res) => {
   }
 });
 
-// Obtener configuración de email (endpoint legacy - redirige a /config/email)
+/**
+ * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado GET /api/client
+ * Este endpoint será eliminado en futuras versiones
+ */
 router.get('/email/config', authenticate, async (req, res) => {
   try {
     logger.info(`Redirigiendo /email/config a /config/email para cliente ${req.client.id}`);
