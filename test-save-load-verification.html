@@ -175,6 +175,16 @@
             }
         };
 
+        // Verificar que el backend esté disponible
+        fetch(`${window.API_CONFIG.apiBaseUrl}/api/health`)
+            .then(response => response.json())
+            .then(data => {
+                log(`✅ Backend disponible: ${data.status} - ${data.timestamp}`, 'success');
+            })
+            .catch(error => {
+                log(`❌ Backend no disponible: ${error.message}`, 'error');
+            });
+
         let testLog = [];
 
         function log(message, type = 'info') {

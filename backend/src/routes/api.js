@@ -905,38 +905,8 @@ router.post('/bot/upload-context', authenticate, async (req, res) => {
   }
 });
 
-// Actualizar configuración de emails
-router.put('/config/email', authenticate, async (req, res) => {
-  try {
-    const { forwardingRules, defaultRecipients, autoReply, autoReplyMessage } = req.body;
-    
-    const emailConfig = await prisma.emailConfig.upsert({
-      where: { clientId: req.client.id },
-      update: {
-        forwardingRules: forwardingRules ? JSON.stringify(forwardingRules) : undefined,
-        defaultRecipients: defaultRecipients ? JSON.stringify(defaultRecipients) : undefined,
-        autoReply: autoReply !== undefined ? autoReply : undefined,
-        autoReplyMessage: autoReplyMessage || undefined,
-      },
-      create: {
-        clientId: req.client.id,
-        forwardingRules: forwardingRules ? JSON.stringify(forwardingRules) : "[]",
-        defaultRecipients: defaultRecipients ? JSON.stringify(defaultRecipients) : "[]",
-        autoReply: autoReply !== undefined ? autoReply : true,
-        autoReplyMessage: autoReplyMessage || "Gracias por su email. Lo hemos recibido y será atendido a la brevedad.",
-      }
-    });
-    
-    return res.json({
-      ...emailConfig,
-      forwardingRules: JSON.parse(emailConfig.forwardingRules || "[]"),
-      defaultRecipients: JSON.parse(emailConfig.defaultRecipients || "[]")
-    });
-  } catch (error) {
-    logger.error(`Error actualizando configuración de emails: ${error.message}`);
-    return res.status(500).json({ error: 'Error actualizando configuración de emails' });
-  }
-});
+// ENDPOINT ELIMINADO: Duplicado de PUT /config/email
+// El endpoint correcto está más abajo en el archivo y usa client.emailConfig JSON correctamente
 
 // Actualizar configuración de notificaciones
 router.put('/config/notifications', authenticate, async (req, res) => {
@@ -1964,10 +1934,10 @@ router.put('/account', authenticate, async (req, res) => {
 router.get('/config/email', authenticate, async (req, res) => {
   try {
     // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
-    if (!prisma || !prisma.emailConfig) {
-      logger.error('Prisma emailConfig no está inicializado');
+    if (!prisma || !prisma.client) {
+      logger.error('Prisma client no está inicializado');
       return res.status(500).json({ 
-        error: 'Error de base de datos - Prisma emailConfig no inicializado',
+        error: 'Error de base de datos - Prisma no inicializado',
         success: false 
       });
     }
@@ -1983,18 +1953,40 @@ router.get('/config/email', authenticate, async (req, res) => {
     
     logger.info(`Obteniendo configuración de email para cliente ID: ${req.client.id}`);
     
-    const emailConfig = await prisma.emailConfig.findUnique({
-      where: { clientId: req.client.id }
+    // Obtener cliente con su emailConfig JSON
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { emailConfig: true }
     });
     
-    if (!emailConfig) {
+    if (!client) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
+    
+    const emailConfig = client.emailConfig || {};
+    
+    // Si no hay configuración, devolver configuración por defecto
+    if (!emailConfig || Object.keys(emailConfig).length === 0) {
       const defaultConfig = {
-        autoResponse: true,
-        defaultRecipients: [],
-        forwardRules: '',
-        signature: '',
+        enabled: false,
         provider: '',
-        outgoingEmail: ''
+        outgoingEmail: '',
+        recipientEmail: '',
+        forwardRules: '',
+        autoReply: false,
+        autoReplyMessage: '',
+        language: 'es-ES',
+        emailSignature: '',
+        emailConsent: false,
+        imapServer: '',
+        imapPort: 993,
+        smtpServer: '',
+        smtpPort: 587,
+        useSSL: false
       };
       return res.json(defaultConfig);
     }
@@ -2003,182 +1995,126 @@ router.get('/config/email', authenticate, async (req, res) => {
     const safeConfig = { ...emailConfig };
     delete safeConfig.imapPassword;
     delete safeConfig.smtpPassword;
+    delete safeConfig.emailPassword;
     
     return res.json(safeConfig);
   } catch (error) {
     logger.error(`Error obteniendo configuración de email: ${error.message}`);
-    return res.status(500).json({ error: 'Error obteniendo configuración de email' });
+    logger.error(`Stack trace: ${error.stack}`);
+    return res.status(500).json({ 
+      error: 'Error obteniendo configuración de email',
+      success: false,
+      details: error.message
+    });
   }
 });
 
 // Guardar configuración de email (endpoint para frontend)
 router.put('/config/email', authenticate, async (req, res) => {
   try {
-    const {
-      autoResponse,
-      forwardRules,
-      signature,
-      provider,
-      outgoingEmail,
-      imapHost,
-      imapPort,
-      imapUser,
-      imapPassword,
-      smtpHost,
-      smtpPort,
-      smtpUser,
-      smtpPassword,
-      defaultRecipients,
-      templates
-    } = req.body;
+    logger.info(`Guardando configuración de email para cliente ${req.client.id}`);
+    logger.info('Datos recibidos:', JSON.stringify(req.body, null, 2));
     
-    const emailConfig = await prisma.emailConfig.upsert({
-      where: { clientId: req.client.id },
-      update: {
-        autoResponse: autoResponse !== undefined ? autoResponse : undefined,
-        forwardRules: forwardRules || undefined,
-        signature: signature || undefined,
-        provider: provider || undefined,
-        outgoingEmail: outgoingEmail || undefined,
-        imapHost: imapHost || undefined,
-        imapPort: imapPort || undefined,
-        imapUser: imapUser || undefined,
-        imapPassword: imapPassword || undefined,
-        smtpHost: smtpHost || undefined,
-        smtpPort: smtpPort || undefined,
-        smtpUser: smtpUser || undefined,
-        smtpPassword: smtpPassword || undefined,
-        defaultRecipients: defaultRecipients || undefined,
-        templates: templates || undefined
+    // Obtener configuración actual del cliente
+    const currentClient = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { emailConfig: true }
+    });
+    
+    if (!currentClient) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
+    
+    // Combinar configuración existente con nueva configuración
+    const currentEmailConfig = currentClient.emailConfig || {};
+    const newEmailConfig = {
+      ...currentEmailConfig,
+      ...req.body, // Sobrescribir con nuevos valores
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Actualizar el campo emailConfig JSON en la tabla Client
+    const updatedClient = await prisma.client.update({
+      where: { id: req.client.id },
+      data: {
+        emailConfig: newEmailConfig
       },
-      create: {
-        clientId: req.client.id,
-        autoResponse: autoResponse || true,
-        forwardRules: forwardRules || '',
-        signature: signature || '',
-        provider: provider || '',
-        outgoingEmail: outgoingEmail || '',
-        imapHost: imapHost || '',
-        imapPort: imapPort || 993,
-        imapUser: imapUser || '',
-        imapPassword: imapPassword || '',
-        smtpHost: smtpHost || '',
-        smtpPort: smtpPort || 587,
-        smtpUser: smtpUser || '',
-        smtpPassword: smtpPassword || '',
-        defaultRecipients: defaultRecipients || [],
-        templates: templates || []
-      }
+      select: { emailConfig: true }
     });
     
     // No devolver contraseñas por seguridad
-    const safeConfig = { ...emailConfig };
+    const safeConfig = { ...updatedClient.emailConfig };
     delete safeConfig.imapPassword;
     delete safeConfig.smtpPassword;
+    delete safeConfig.emailPassword;
     
-    logger.info(`Configuración de email actualizada para cliente ${req.client.id}`);
-    return res.json(safeConfig);
+    logger.info(`Configuración de email actualizada exitosamente para cliente ${req.client.id}`);
+    return res.json({
+      success: true,
+      emailConfig: safeConfig
+    });
   } catch (error) {
     logger.error(`Error guardando configuración de email: ${error.message}`);
-    return res.status(500).json({ error: 'Error guardando configuración de email' });
+    logger.error(`Stack trace: ${error.stack}`);
+    return res.status(500).json({ 
+      error: 'Error guardando configuración de email',
+      success: false,
+      details: error.message
+    });
   }
 });
 
-// Obtener configuración de email
+// Obtener configuración de email (endpoint legacy - redirige a /config/email)
 router.get('/email/config', authenticate, async (req, res) => {
   try {
-    const emailConfig = await prisma.emailConfig.findUnique({
-      where: { clientId: req.client.id }
+    logger.info(`Redirigiendo /email/config a /config/email para cliente ${req.client.id}`);
+    
+    // Obtener cliente con su emailConfig JSON
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { emailConfig: true }
     });
     
-    if (!emailConfig) {
-      const defaultConfig = await prisma.emailConfig.create({
-        data: {
-          clientId: req.client.id,
-          autoResponse: true,
-          defaultRecipients: []
-        }
+    if (!client) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
       });
-      return res.json(defaultConfig);
     }
+    
+    const emailConfig = client.emailConfig || {
+      enabled: false,
+      autoResponse: true,
+      defaultRecipients: [],
+      provider: '',
+      outgoingEmail: ''
+    };
     
     // No devolver contraseñas por seguridad
     const safeConfig = { ...emailConfig };
     delete safeConfig.imapPassword;
     delete safeConfig.smtpPassword;
+    delete safeConfig.emailPassword;
     
     return res.json(safeConfig);
   } catch (error) {
     logger.error(`Error obteniendo configuración de email: ${error.message}`);
-    return res.status(500).json({ error: 'Error obteniendo configuración de email' });
+    logger.error(`Stack trace: ${error.stack}`);
+    return res.status(500).json({ 
+      error: 'Error obteniendo configuración de email',
+      success: false,
+      details: error.message
+    });
   }
 });
 
-// Actualizar configuración de email
-router.put('/email/config', authenticate, async (req, res) => {
-  try {
-    const {
-      imapHost,
-      imapPort,
-      imapUser,
-      imapPassword,
-      smtpHost,
-      smtpPort,
-      smtpUser,
-      smtpPassword,
-      autoResponse,
-      forwardingRules,
-      templates,
-      signature,
-      defaultRecipients
-    } = req.body;
-    
-    const emailConfig = await prisma.emailConfig.upsert({
-      where: { clientId: req.client.id },
-      update: {
-        imapHost: imapHost || undefined,
-        imapPort: imapPort || undefined,
-        imapUser: imapUser || undefined,
-        imapPassword: imapPassword || undefined,
-        smtpHost: smtpHost || undefined,
-        smtpPort: smtpPort || undefined,
-        smtpUser: smtpUser || undefined,
-        smtpPassword: smtpPassword || undefined,
-        autoResponse: autoResponse !== undefined ? autoResponse : undefined,
-        forwardingRules: forwardingRules || undefined,
-        templates: templates || undefined,
-        signature: signature || undefined,
-        defaultRecipients: defaultRecipients || undefined
-      },
-      create: {
-        clientId: req.client.id,
-        imapHost: imapHost || null,
-        imapPort: imapPort || 993,
-        imapUser: imapUser || null,
-        imapPassword: imapPassword || null,
-        smtpHost: smtpHost || null,
-        smtpPort: smtpPort || 587,
-        smtpUser: smtpUser || null,
-        smtpPassword: smtpPassword || null,
-        autoResponse: autoResponse ?? true,
-        forwardingRules: forwardingRules || null,
-        templates: templates || null,
-        signature: signature || null,
-        defaultRecipients: defaultRecipients || []
-      }
-    });
-    
-    // No devolver contraseñas
-    const safeConfig = { ...emailConfig };
-    delete safeConfig.imapPassword;
-    delete safeConfig.smtpPassword;
-    
-    return res.json(safeConfig);
-  } catch (error) {
-    logger.error(`Error actualizando configuración de email: ${error.message}`);
-    return res.status(500).json({ error: 'Error actualizando configuración de email' });
-  }
-});
+// ENDPOINT ELIMINADO: Duplicado de PUT /config/email
+// El endpoint correcto usa client.emailConfig JSON y está en la sección principal
 
 // Probar conexión de email
 router.post('/email/test-connection', authenticate, async (req, res) => {
@@ -2216,24 +2152,48 @@ router.post('/email/test-connection', authenticate, async (req, res) => {
 // Iniciar monitoreo de emails
 router.post('/email/start-monitoring', authenticate, async (req, res) => {
   try {
-    const emailConfig = await prisma.emailConfig.findUnique({
-      where: { clientId: req.client.id }
+    logger.info(`Iniciando monitoreo de emails para cliente ${req.client.id}`);
+    
+    // Obtener cliente con su emailConfig JSON
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { emailConfig: true }
     });
     
-    if (!emailConfig || !emailConfig.imapHost || !emailConfig.imapUser || !emailConfig.imapPassword) {
-      return res.status(400).json({ error: 'Configuración de email incompleta' });
+    if (!client) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
+    
+    const emailConfig = client.emailConfig || {};
+    
+    if (!emailConfig.imapHost || !emailConfig.imapUser || !emailConfig.imapPassword) {
+      return res.status(400).json({ 
+        error: 'Configuración de email incompleta. Faltan datos IMAP.',
+        success: false
+      });
     }
     
     const result = await emailService.startEmailMonitoring(req.client.id, emailConfig);
     
     if (result.success) {
+      logger.info(`Monitoreo de emails iniciado exitosamente para cliente ${req.client.id}`);
       return res.json({ success: true, message: 'Monitoreo de emails iniciado' });
     } else {
+      logger.error(`Error en emailService: ${result.error}`);
       return res.status(400).json({ success: false, error: result.error });
     }
   } catch (error) {
     logger.error(`Error iniciando monitoreo de emails: ${error.message}`);
-    return res.status(500).json({ error: 'Error iniciando monitoreo de emails' });
+    logger.error(`Stack trace: ${error.stack}`);
+    return res.status(500).json({ 
+      error: 'Error iniciando monitoreo de emails',
+      success: false,
+      details: error.message
+    });
   }
 });
 
@@ -2270,15 +2230,35 @@ router.post('/email/send-test', authenticate, async (req, res) => {
     const { to, subject, message } = req.body;
     
     if (!to || !subject || !message) {
-      return res.status(400).json({ error: 'Faltan datos para enviar el email' });
+      return res.status(400).json({ 
+        error: 'Faltan datos para enviar el email',
+        success: false
+      });
     }
     
-    const emailConfig = await prisma.emailConfig.findUnique({
-      where: { clientId: req.client.id }
+    logger.info(`Enviando email de prueba para cliente ${req.client.id} a ${to}`);
+    
+    // Obtener cliente con su emailConfig JSON
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { emailConfig: true }
     });
     
-    if (!emailConfig || !emailConfig.smtpHost || !emailConfig.smtpUser || !emailConfig.smtpPassword) {
-      return res.status(400).json({ error: 'Configuración SMTP incompleta' });
+    if (!client) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
+    
+    const emailConfig = client.emailConfig || {};
+    
+    if (!emailConfig.smtpHost || !emailConfig.smtpUser || !emailConfig.smtpPassword) {
+      return res.status(400).json({ 
+        error: 'Configuración SMTP incompleta. Faltan datos de servidor.',
+        success: false
+      });
     }
     
     const result = await emailService.sendEmail(emailConfig, {
@@ -2289,46 +2269,90 @@ router.post('/email/send-test', authenticate, async (req, res) => {
     });
     
     if (result.success) {
+      logger.info(`Email de prueba enviado exitosamente a ${to}`);
       return res.json({ success: true, message: 'Email de prueba enviado correctamente' });
     } else {
+      logger.error(`Error enviando email de prueba: ${result.error}`);
       return res.status(400).json({ success: false, error: result.error });
     }
   } catch (error) {
     logger.error(`Error enviando email de prueba: ${error.message}`);
-    return res.status(500).json({ error: 'Error enviando email de prueba' });
+    logger.error(`Stack trace: ${error.stack}`);
+    return res.status(500).json({ 
+      error: 'Error enviando email de prueba',
+      success: false,
+      details: error.message
+    });
   }
 });
 
 // Obtener plantillas de email
 router.get('/email/templates', authenticate, async (req, res) => {
   try {
-    const emailConfig = await prisma.emailConfig.findUnique({
-      where: { clientId: req.client.id }
+    logger.info(`Obteniendo plantillas de email para cliente ${req.client.id}`);
+    
+    // Obtener cliente con su emailConfig JSON
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { emailConfig: true }
     });
     
-    const templates = emailConfig?.templates || [];
+    if (!client) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
     
-    return res.json({ templates });
+    const emailConfig = client.emailConfig || {};
+    const templates = emailConfig.templates || [];
+    
+    logger.info(`Plantillas encontradas: ${templates.length}`);
+    return res.json({ 
+      success: true,
+      templates 
+    });
   } catch (error) {
     logger.error(`Error obteniendo plantillas de email: ${error.message}`);
-    return res.status(500).json({ error: 'Error obteniendo plantillas de email' });
+    logger.error(`Stack trace: ${error.stack}`);
+    return res.status(500).json({ 
+      error: 'Error obteniendo plantillas de email',
+      success: false,
+      details: error.message
+    });
   }
 });
 
 // Guardar plantilla de email
 router.post('/email/templates', authenticate, async (req, res) => {
   try {
+    logger.info(`Guardando plantilla de email para cliente ${req.client.id}`);
     const { name, subject, body, isDefault } = req.body;
     
     if (!name || !subject || !body) {
-      return res.status(400).json({ error: 'Faltan datos de la plantilla' });
+      return res.status(400).json({ 
+        error: 'Faltan datos de la plantilla',
+        success: false
+      });
     }
     
-    const emailConfig = await prisma.emailConfig.findUnique({
-      where: { clientId: req.client.id }
+    // Obtener cliente con su emailConfig JSON
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { emailConfig: true }
     });
     
-    let templates = emailConfig?.templates || [];
+    if (!client) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({ 
+        error: 'Cliente no encontrado',
+        success: false 
+      });
+    }
+    
+    const currentEmailConfig = client.emailConfig || {};
+    let templates = currentEmailConfig.templates || [];
     
     // Si es plantilla por defecto, quitar el flag de otras
     if (isDefault) {
@@ -2347,21 +2371,33 @@ router.post('/email/templates', authenticate, async (req, res) => {
     
     templates.push(newTemplate);
     
-    await prisma.emailConfig.upsert({
-      where: { clientId: req.client.id },
-      update: { templates },
-      create: {
-        clientId: req.client.id,
-        templates,
-        autoResponse: true,
-        defaultRecipients: []
+    // Actualizar emailConfig JSON en la tabla Client
+    const updatedEmailConfig = {
+      ...currentEmailConfig,
+      templates,
+      updatedAt: new Date().toISOString()
+    };
+    
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: {
+        emailConfig: updatedEmailConfig
       }
     });
     
-    return res.json({ success: true, template: newTemplate });
+    logger.info(`Plantilla guardada exitosamente: ${newTemplate.name}`);
+    return res.json({ 
+      success: true, 
+      template: newTemplate 
+    });
   } catch (error) {
     logger.error(`Error guardando plantilla de email: ${error.message}`);
-    return res.status(500).json({ error: 'Error guardando plantilla de email' });
+    logger.error(`Stack trace: ${error.stack}`);
+    return res.status(500).json({ 
+      error: 'Error guardando plantilla de email',
+      success: false,
+      details: error.message
+    });
   }
 });
 
