@@ -42,7 +42,7 @@ const authenticate = async (req, res, next) => {
 // Registro de nuevo cliente
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, companyName, companyDescription, businessSector, phone, plan } = req.body;
+    const { email, password, companyName, companyDescription, industry, phone, plan } = req.body;
     
     // Validaciones básicas
     if (!email || !password || !companyName) {
@@ -59,7 +59,7 @@ router.post('/register', async (req, res) => {
       password,
       companyName,
       companyDescription,
-      businessSector,
+      industry,
       phone
     });
     
