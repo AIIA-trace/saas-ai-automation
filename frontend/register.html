@@ -663,16 +663,16 @@
         function validateStep2() {
             const companyNameInput = document.getElementById('companyName');
             const companyDescriptionInput = document.getElementById('companyDescription');
-            const businessSectorInput = document.getElementById('businessSector');
-            const contactPhoneInput = document.getElementById('contactPhone');
+            const industryInput = document.getElementById('industry');
+            const phoneInput = document.getElementById('phone');
             
             const companyName = companyNameInput.value.trim();
             const companyDescription = companyDescriptionInput.value.trim();
-            const businessSector = businessSectorInput.value;
-            const contactPhone = contactPhoneInput.value.trim();
+            const industry = industryInput.value;
+            const phone = phoneInput.value.trim();
             
             // Restablecer estilos previos
-            resetValidationStyles([companyNameInput, companyDescriptionInput, businessSectorInput, contactPhoneInput]);
+            resetValidationStyles([companyNameInput, companyDescriptionInput, industryInput, phoneInput]);
             
             let isValid = true;
             let errorMessages = [];
@@ -703,26 +703,26 @@
                 markAsValid(companyDescriptionInput);
             }
             
-            // Validar sector
-            if (!businessSector) {
-                markAsInvalid(businessSectorInput, 'Selecciona un sector empresarial');
+            // Validar sector/industria
+            if (!industry) {
+                markAsInvalid(industryInput, 'Selecciona un sector empresarial');
                 errorMessages.push('Selecciona un sector empresarial');
                 isValid = false;
             } else {
-                markAsValid(businessSectorInput);
+                markAsValid(industryInput);
             }
             
             // Validar teléfono
-            if (!contactPhone) {
-                markAsInvalid(contactPhoneInput, 'El teléfono es obligatorio');
+            if (!phone) {
+                markAsInvalid(phoneInput, 'El teléfono es obligatorio');
                 errorMessages.push('El teléfono es obligatorio');
                 isValid = false;
-            } else if (!validatePhoneNumber(contactPhone)) {
-                markAsInvalid(contactPhoneInput, 'Formato de teléfono inválido');
+            } else if (!validatePhoneNumber(phone)) {
+                markAsInvalid(phoneInput, 'Formato de teléfono inválido');
                 errorMessages.push('Formato de teléfono inválido');
                 isValid = false;
             } else {
-                markAsValid(contactPhoneInput);
+                markAsValid(phoneInput);
             }
             
             // Mostrar errores
