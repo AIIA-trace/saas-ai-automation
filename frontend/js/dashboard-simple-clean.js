@@ -1285,24 +1285,24 @@ function createBotConfigTabContent() {
                                 <div class="card-body">
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label for="company_name" class="form-label">Nombre de la Empresa</label>
-                                            <input type="text" class="form-control" id="company_name" name="company_name" placeholder="Nombre de tu empresa" required>
+                                            <label for="companyName" class="form-label">Nombre de la Empresa</label>
+                                            <input type="text" class="form-control" id="companyName" name="companyName" placeholder="Nombre de tu empresa" required>
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="contact_email" class="form-label">Email de Contacto</label>
-                                            <input type="email" class="form-control" id="contact_email" name="contact_email" placeholder="email@tuempresa.com" required>
+                                            <label for="email" class="form-label">Email de Contacto</label>
+                                            <input type="email" class="form-control" id="email" name="email" placeholder="email@tuempresa.com" required>
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="main_phone" class="form-label">Teléfono Principal</label>
-                                            <input type="tel" class="form-control" id="main_phone" name="main_phone" placeholder="+34 XXX XXX XXX" required>
+                                            <label for="phone" class="form-label">Teléfono Principal</label>
+                                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="+34 XXX XXX XXX" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="address" class="form-label">Dirección</label>
                                             <input type="text" class="form-control" id="address" name="address" placeholder="Dirección de tu empresa">
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="company_description" class="form-label">Descripción de la Empresa</label>
-                                            <textarea class="form-control" id="company_description" name="company_description" rows="5" style="min-height: 155px;" placeholder="Describe brevemente a qué se dedica tu empresa..."></textarea>
+                                            <label for="description" class="form-label">Descripción de la Empresa</label>
+                                            <textarea class="form-control" id="description" name="description" rows="5" style="min-height: 155px;" placeholder="Describe brevemente a qué se dedica tu empresa..."></textarea>
                                             <small class="text-muted">Esta descripción ayuda al bot a entender mejor el contexto de tu negocio.</small>
                                         </div>
                                         <div class="col-md-6">
@@ -3485,7 +3485,7 @@ function loadExistingData() {
         console.log('🔄 Iniciando carga de datos después del renderizado del DOM...');
         console.log('🎯 Elementos en DOM después del delay:', document.querySelectorAll('input, select, textarea').length);
         console.log('📋 Elementos específicos del bot:');
-        console.log('   - company_name:', !!document.getElementById('company_name'));
+        console.log('   - companyName:', !!document.getElementById('companyName'));
         console.log('   - address:', !!document.getElementById('address'));
         console.log('   - call_bot_active:', !!document.getElementById('call_bot_active'));
         console.log('   - email_signature:', !!document.getElementById('email_signature'));
@@ -3572,17 +3572,21 @@ function loadRegistrationData() {
                 }
             };
             
-            // Cargar datos de la empresa
-            safeSetValue('company_name', registrationData.companyName || registrationData.company_name || registrationData.name, 'Nombre de empresa');
-            safeSetValue('company_description', registrationData.description || registrationData.company_description, 'Descripción de empresa');
-            safeSetValue('company_sector', registrationData.sector || registrationData.industry, 'Sector de empresa');
-            safeSetValue('company_phone', registrationData.phone || registrationData.company_phone, 'Teléfono de empresa');
-            safeSetValue('company_email', registrationData.email || registrationData.company_email, 'Email de empresa');
-            safeSetValue('company_website', registrationData.website || registrationData.company_website, 'Website de empresa');
+            // Cargar datos de la empresa usando los IDs unificados
+            safeSetValue('companyName', registrationData.companyName || registrationData.company_name || registrationData.name, 'Nombre de empresa');
+            safeSetValue('description', registrationData.description || registrationData.company_description, 'Descripción de empresa');
+            safeSetValue('industry', registrationData.industry || registrationData.sector, 'Sector de empresa');
+            safeSetValue('phone', registrationData.phone || registrationData.company_phone, 'Teléfono de empresa');
+            safeSetValue('email', registrationData.email || registrationData.company_email, 'Email de empresa');
+            safeSetValue('website', registrationData.website || registrationData.company_website, 'Website de empresa');
             
-            // Cargar datos del contacto
-            safeSetValue('contact_email', registrationData.email || registrationData.contactEmail, 'Email de contacto');
-            safeSetValue('contact_name', registrationData.contactName || registrationData.name, 'Nombre de contacto');
+            // Cargar datos del contacto usando los IDs unificados
+            safeSetValue('contactEmail', registrationData.email || registrationData.contactEmail, 'Email de contacto');
+            safeSetValue('contactName', registrationData.contactName || registrationData.name, 'Nombre de contacto');
+            
+            // Compatibilidad: intentar también con los IDs antiguos para asegurar que no hay errores
+            // durante la transición a los nuevos IDs unificados
+            console.log('✅ Usando IDs unificados para cargar datos del registro');
             
             console.log('✅ Datos del registro cargados en el formulario');
         } else {
@@ -3610,22 +3614,22 @@ function loadProfileData() {
         
         // Rellenar campos del formulario con los datos del perfil
         // Mapeo: BD → Formulario Bot Config
-        const companyNameField = document.getElementById('company_name');
+        const companyNameField = document.getElementById('companyName');
         if (companyNameField) {
             companyNameField.value = profileData.companyName || '';
-            console.log('✅ Campo company_name cargado:', profileData.companyName);
+            console.log('✅ Campo companyName cargado:', profileData.companyName);
         }
         
-        const contactEmailField = document.getElementById('contact_email');
-        if (contactEmailField) {
-            contactEmailField.value = profileData.email || '';
-            console.log('✅ Campo contact_email cargado:', profileData.email);
+        const emailField = document.getElementById('email');
+        if (emailField && profileData.email) {
+            emailField.value = profileData.email;
+            console.log('✅ Campo email (contacto) cargado:', profileData.email);
         }
         
-        const mainPhoneField = document.getElementById('main_phone');
-        if (mainPhoneField) {
-            mainPhoneField.value = profileData.phone || '';
-            console.log('✅ Campo main_phone cargado:', profileData.phone);
+        const phoneField = document.getElementById('phone');
+        if (phoneField) {
+            phoneField.value = profileData.phone || '';
+            console.log('✅ Campo phone cargado:', profileData.phone);
         }
         
         const addressField = document.getElementById('address');
@@ -3634,10 +3638,10 @@ function loadProfileData() {
             console.log('✅ Campo address cargado:', profileData.address);
         }
         
-        const descriptionField = document.getElementById('company_description');
+        const descriptionField = document.getElementById('description');
         if (descriptionField) {
             descriptionField.value = profileData.companyDescription || '';
-            console.log('✅ Campo company_description cargado:', profileData.companyDescription);
+            console.log('✅ Campo description cargado:', profileData.companyDescription);
         }
         
         // Mapear campo website si existe
@@ -3684,7 +3688,9 @@ function loadBotConfiguration() {
     // Usar el ApiHelper unificado
     console.log('🔗 Usando ApiHelper unificado para cargar configuración');
     
-    window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
+    // Usar el endpoint unificado /api/client en lugar del legacy /api/config/bot
+    console.log('🔄 Usando endpoint unificado CLIENT_DATA: ' + window.API_CONFIG.DASHBOARD.CLIENT_DATA.url);
+    window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, {
         method: 'GET'
     })
     .then(botConfig => {
@@ -3720,17 +3726,27 @@ function loadBotConfiguration() {
         // NOTA: bot_name, welcome_message, confirmation_message no existen en el HTML actual
         // Estos campos se manejan a través de call_greeting y otros campos específicos
         
-        // Datos de empresa - Mapeo según estructura del endpoint GET /api/config/bot
-        if (botConfig.companyInfo) {
-            safeSetValue('company_name', botConfig.companyInfo.name);
-            safeSetValue('company_description', botConfig.companyInfo.description);
-            safeSetValue('industry', botConfig.companyInfo.sector); // sector → industry
-            safeSetValue('address', botConfig.companyInfo.address);
-            safeSetValue('main_phone', botConfig.companyInfo.phone); // ✅ CORREGIDO: companyInfo.phone → main_phone
-            safeSetValue('contact_email', botConfig.companyInfo.email); // company_email → contact_email
-            safeSetValue('website', botConfig.companyInfo.website); // company_website → website
-            
-            console.log('📞 Teléfono cargado desde companyInfo:', botConfig.companyInfo.phone);
+        // Datos de empresa - Usando campos directos
+        safeSetValue('companyName', botConfig.companyName || '');
+        safeSetValue('description', botConfig.companyDescription || '');
+        safeSetValue('industry', botConfig.industry || ''); // Campo directo industry
+        safeSetValue('address', botConfig.address || '');
+        safeSetValue('phone', botConfig.phone || ''); // Campo directo phone
+        safeSetValue('email', botConfig.email || ''); // Campo directo email
+        safeSetValue('website', botConfig.website || ''); // Campo directo website
+        
+        console.log('📞 Teléfono cargado desde campo directo:', botConfig.phone);
+        
+        // Compatibilidad con ambos formatos (transitorio)
+        if (botConfig.companyInfo && !botConfig.phone) {
+            console.log('Usando datos de companyInfo como fallback (formato antiguo)');
+            if (!botConfig.companyName && botConfig.companyInfo.name) safeSetValue('companyName', botConfig.companyInfo.name);
+            if (!botConfig.companyDescription && botConfig.companyInfo.description) safeSetValue('description', botConfig.companyInfo.description);
+            if (!botConfig.industry && botConfig.companyInfo.sector) safeSetValue('industry', botConfig.companyInfo.sector);
+            if (!botConfig.address && botConfig.companyInfo.address) safeSetValue('address', botConfig.companyInfo.address);
+            if (!botConfig.phone && botConfig.companyInfo.phone) safeSetValue('phone', botConfig.companyInfo.phone);
+            if (!botConfig.email && botConfig.companyInfo.email) safeSetValue('email', botConfig.companyInfo.email);
+            if (!botConfig.website && botConfig.companyInfo.website) safeSetValue('website', botConfig.companyInfo.website);
         }
         
         // Configuración de llamadas
@@ -4044,13 +4060,21 @@ function deleteContextFile(fileId) {
 }
 
 /**
- * Cargar configuración de emails desde el backend
+ * Cargar configuración de emails desde el backend usando el endpoint unificado
  */
 function loadEmailConfiguration() {
+    console.log('🚨 ===== INICIANDO CARGA DE CONFIGURACIÓN DE EMAIL =====');
     console.log('📧 Cargando configuración de emails...');
+    console.log('🕰️ Timestamp:', new Date().toISOString());
     
-    window.ApiHelper.fetchApi({ url: '/api/config/email', auth: 'jwt' }, { method: 'GET' })
-    .then(emailConfig => {
+    // Usar el endpoint unificado /api/client en lugar del legacy /api/config/email
+    console.log('🔄 Usando endpoint unificado CLIENT_DATA: ' + window.API_CONFIG.DASHBOARD.CLIENT_DATA.url);
+    window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
+    .then(clientData => {
+        // En el endpoint unificado, la configuración de email está en clientData.emailConfig
+        const emailConfig = clientData.emailConfig || {};
+        console.log('💾 Configuración de email recibida:', emailConfig);
+
         // Rellenar campos del formulario con la configuración de emails
         if (emailConfig.forwardRules) {
             document.getElementById('forward_rules').value = emailConfig.forwardRules;
@@ -4132,7 +4156,7 @@ function loadEmailConfiguration() {
 }
 
 /**
-        company_description: 'Empresa líder en soluciones tecnológicas para negocios, especializada en software de gestión y automatización de procesos.',
+        description: 'Empresa líder en soluciones tecnológicas para negocios, especializada en software de gestión y automatización de procesos.',
         primary_language: 'es',
         bot_personality: 'professional',
         timezone: 'Europe/Madrid',
@@ -5604,10 +5628,10 @@ Equipo de Atención al Cliente</textarea>
         setTimeout(() => {
             // Obtener firma configurada
             const signature = document.getElementById('email_signature')?.value || '';
-            const companyName = document.getElementById('company_name')?.value || 'Tu Empresa';
+            const companyName = document.getElementById('companyName')?.value || 'Tu Empresa';
             const outgoingEmail = document.getElementById('outgoing_email')?.value || `soporte@${companyName.toLowerCase().replace(/\s+/g, '')}.com`;
             const website = document.getElementById('website')?.value || 'www.empresa.com';
-            const phone = document.getElementById('main_phone')?.value || '+34 900 000 000';
+            const phone = document.getElementById('phone')?.value || '+34 900 000 000';
             
             // Procesar firma con variables
             const processedSignature = signature
@@ -5710,7 +5734,7 @@ function previewEmailTemplate() {
     const companyName = document.getElementById('company_name')?.value || 'Tu Empresa';
     const outgoingEmail = document.getElementById('outgoing_email')?.value || `soporte@${companyName.toLowerCase().replace(/\s+/g, '')}.com`;
     const website = document.getElementById('website')?.value || 'www.empresa.com';
-    const phone = document.getElementById('main_phone')?.value || '+34 900 000 000';
+    const phone = document.getElementById('phone')?.value || '+34 900 000 000';
     
     // Reemplazar variables en la firma
     const processedSignature = signature
@@ -6943,7 +6967,7 @@ function updateUserUI(userData) {
         userEmailEl.value = userData.email || '';
     }
     
-    const userCompanyEl = document.getElementById('company_name');
+    const userCompanyEl = document.getElementById('companyName');
     if (userCompanyEl) {
         userCompanyEl.value = userData.company || '';
     }
@@ -7284,12 +7308,12 @@ function saveUnifiedConfig() {
         // Recopilar todos los datos del formulario
         const config = {
             // Información de empresa - Mapeo correcto con IDs del formulario
-            companyName: document.getElementById('company_name')?.value || '',
-            companyDescription: document.getElementById('company_description')?.value || '',
+            companyName: document.getElementById('companyName')?.value || '',
+            companyDescription: document.getElementById('description')?.value || '',
             companySector: document.getElementById('industry')?.value || '', // industry en formulario
             companyAddress: document.getElementById('address')?.value || '',
-            companyPhone: document.getElementById('main_phone')?.value || '', // main_phone en formulario
-            companyEmail: document.getElementById('contact_email')?.value || '', // contact_email en formulario
+            companyPhone: document.getElementById('phone')?.value || '', // Usando ID unificado 'phone' en formulario
+            companyEmail: document.getElementById('email')?.value || '', // Usando ID unificado 'email' en formulario
             companyWebsite: document.getElementById('website')?.value || '', // website en formulario
             
             // Configuración general - IDs corregidos
@@ -7363,8 +7387,8 @@ function saveUnifiedConfig() {
     
     // Validar campos requeridos
     const requiredFields = [
-        { id: 'company_name', label: 'Nombre de empresa' },
-        { id: 'company_email', label: 'Email de empresa' }
+        { id: 'companyName', label: 'Nombre de empresa' },
+        { id: 'email', label: 'Email de empresa' }
     ];
     
     for (const field of requiredFields) {
@@ -7378,10 +7402,10 @@ function saveUnifiedConfig() {
     
     // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const companyEmail = document.getElementById('company_email')?.value;
+    const companyEmail = document.getElementById('email')?.value;
     if (companyEmail && !emailRegex.test(companyEmail)) {
         toastr.error('El formato del email de empresa no es válido', 'Error');
-        document.getElementById('company_email')?.focus();
+        document.getElementById('email')?.focus();
         return;
     }
     
@@ -7534,34 +7558,55 @@ function saveUnifiedConfig() {
                 botConfigData.contextFiles = result.files;
             }
             
-            console.log('📤 Enviando configuración completa al backend:', botConfigData);
+            console.log('📤 Enviando configuración unificada al backend:', botConfigData);
             
-            // Guardar configuración del bot en la API
-            return window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.BOT_CONFIG, {
+            // Preparar objeto unificado para enviar al endpoint centralizado /api/client
+            // Usando campos directos en lugar de objetos anidados para la información de la empresa
+            const unifiedClientData = {
+                // Datos directos de la empresa - sin objeto anidado 'profile'
+                companyName: config.companyName,
+                companyDescription: config.companyDescription,
+                industry: config.companySector,
+                address: config.companyAddress,
+                phone: config.companyPhone,
+                email: config.companyEmail,
+                website: config.companyWebsite,
+                
+                // Configuración del bot
+                bot: {
+                    name: config.botName,
+                    personality: config.botPersonality,
+                    workingHours: config.workingHours,
+                    workingDays: config.workingDays
+                },
+                
+                // Configuración de llamadas
+                calls: config.callConfig,
+                
+                // Configuración de email
+                email: config.emailConfig,
+                
+                // Configuración de IA
+                aiConfig: config.aiConfig,
+                
+                // FAQs
+                faqs: config.faqs,
+                
+                // Archivos de contexto
+                contextFiles: botConfigData.contextFiles
+            };
+            
+            console.log('💾 Datos unificados preparados para /api/client:', unifiedClientData);
+            
+            // Guardar toda la configuración en un solo endpoint unificado
+            return window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, {
                 method: 'PUT',
-                body: JSON.stringify(botConfigData)
+                body: JSON.stringify(unifiedClientData)
             });
         })
         
         .then(data => {
-            console.log('✅ Configuración del bot guardada:', data);
-            
-            // Actualizar perfil de empresa
-            return window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.UPDATE_PROFILE, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    companyName: config.companyName,
-                    email: config.companyEmail,
-                    phone: config.companyPhone,
-                    website: config.companyWebsite,
-                    industry: config.companySector,
-                    address: config.companyAddress
-                })
-            });
-        })
-        
-        .then(profileData => {
-            console.log('✅ Perfil de empresa actualizado:', profileData);
+            console.log('✅ Configuración unificada guardada correctamente:', data);
             
             // Registrar la acción en el sistema de seguimiento de uso
             if (window.UsageTracker) {
@@ -7578,7 +7623,7 @@ function saveUnifiedConfig() {
                 }
             }
             
-            toastr.success('Configuración guardada correctamente', '¡Éxito!');
+            toastr.success('Guardado', 'Configuración');
             
             // Recargar automáticamente la configuración después de guardar exitosamente
             console.log('🔄 Recargando configuración después de guardar exitosamente...');
@@ -7612,7 +7657,7 @@ function testBotConfiguration() {
     toastr.info('Probando configuración del bot...', 'Procesando');
     
     // Recopilar datos de configuración relevantes para la prueba
-    const companyName = document.getElementById('company_name')?.value || 'Empresa';
+    const companyName = document.getElementById('companyName')?.value || 'Empresa';
     const businessHours = document.getElementById('business_hours')?.value || 'Lun-Vie: 9:00-18:00';
     const botPersonality = document.getElementById('bot_personality')?.value || 'professional';
     
@@ -7829,16 +7874,16 @@ function loadSampleFaqs() {
             return;
         }
         
-        // Intentar cargar desde la API
-        console.log('📡 Intentando cargar preguntas frecuentes desde la API...');
-        window.ApiHelper.fetchApi({ url: '/api/bot/faqs', auth: 'jwt' }, { method: 'GET' })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
-            }
+        // Intentar cargar desde la API unificada
+        console.log('💻 Intentando cargar preguntas frecuentes desde el endpoint unificado...');
+        console.log('🔄 Usando endpoint unificado CLIENT_DATA: ' + window.API_CONFIG.DASHBOARD.CLIENT_DATA.url);
+        
+        window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
+        .then(clientData => {
+            // En el endpoint unificado, las FAQs están en clientData.botConfig.faqs
+            const faqs = (clientData && clientData.botConfig && clientData.botConfig.faqs) || [];
+            console.log('💾 FAQs recibidas del endpoint unificado:', faqs.length);
 
-        })
-        .then(faqs => {
             // Añadir preguntas al DOM
             if (faqs && faqs.length > 0) {
                 faqs.forEach(faq => addFaqItemToDOM(faq));
@@ -8180,8 +8225,12 @@ function processContextFilesWithBackend(filesData) {
             formData.append('fileName', file.name);
             formData.append('fileSize', file.size);
             
-            // Usar la API correcta y el token adecuado
-            return fetchApi('/api/config/upload-context', {
+            // Usar el endpoint unificado CLIENT_DATA para subir archivos de contexto
+            console.log('🔄 Subiendo archivo de contexto usando endpoint unificado CLIENT_DATA');
+            return window.ApiHelper.fetchApi({
+                url: `${window.API_CONFIG.DASHBOARD.CLIENT_DATA.url}/context-files`,
+                auth: 'jwt'
+            }, {
                 method: 'POST',
                 body: formData,
                 // No enviamos headers con Content-Type porque FormData lo establece automáticamente
@@ -8210,8 +8259,12 @@ function processContextFilesWithBackend(filesData) {
     if (filesData.deletedFiles && filesData.deletedFiles.length > 0) {
         console.log(`🗑️ Eliminando ${filesData.deletedFiles.length} archivos del servidor...`);
         
-        // Crear promesa para eliminar archivos
-        const deletePromise = fetchApi('/api/config/delete-context-files', {
+        // Crear promesa para eliminar archivos usando el endpoint unificado
+        console.log('🔄 Eliminando archivos de contexto usando endpoint unificado CLIENT_DATA');
+        const deletePromise = window.ApiHelper.fetchApi({
+            url: `${window.API_CONFIG.DASHBOARD.CLIENT_DATA.url}/context-files/delete`,
+            auth: 'jwt'
+        }, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ files: filesData.deletedFiles })

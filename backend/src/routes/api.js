@@ -27,6 +27,229 @@ try {
   console.error('❌ Error inicializando Prisma:', error.message);
   prisma = null;
 }
+
+/**
+ * @route GET /api/client
+ * @desc Obtiene toda la información del cliente usando campos directos (endpoint unificado)
+ * @access Privado - Requiere JWT
+ */
+router.get('/api/client', authenticate, async (req, res) => {
+  try {
+    // Verificar Prisma disponible
+    if (!prisma || !prisma.client) {
+      logger.error('Error de conexión a la base de datos en GET /api/client');
+      return res.status(500).json({ error: 'Error de conexión a la base de datos', success: false });
+    }
+
+    // Verificar autenticación
+    if (!req.client || !req.client.id) {
+      logger.error('Cliente no autenticado en GET /api/client');
+      return res.status(401).json({ error: 'No autenticado', success: false });
+    }
+
+    logger.info(`Obteniendo datos completos del cliente ID: ${req.client.id}`);
+
+    // Obtener cliente desde la base de datos
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id }
+    });
+
+    if (!client) {
+      logger.error(`Cliente no encontrado con ID: ${req.client.id}`);
+      return res.status(404).json({ error: 'Cliente no encontrado', success: false });
+    }
+
+    // Devolver toda la información del cliente
+    return res.json({
+      success: true,
+      data: {
+        // Campos directos
+        id: client.id,
+        email: client.email,
+        companyName: client.companyName,
+        contactName: client.contactName,
+        phone: client.phone,
+        industry: client.industry,
+        address: client.address,
+        website: client.website,
+        companyDescription: client.companyDescription,
+        
+        // Configuraciones
+        botConfig: client.botConfig || {},
+        emailConfig: client.emailConfig || {},
+        notificationConfig: client.notificationConfig || {},
+        
+        // Información de suscripción
+        subscriptionStatus: client.subscriptionStatus,
+        subscriptionExpiresAt: client.subscriptionExpiresAt,
+        trialEndDate: client.trialEndDate
+      }
+    });
+  } catch (error) {
+    logger.error(`Error en GET /api/client: ${error.message}`);
+    logger.error(error.stack);
+    return res.status(500).json({ 
+      error: 'Error interno del servidor', 
+      success: false,
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * @route PUT /api/client
+ * @desc Actualiza toda la información del cliente usando campos directos (endpoint unificado)
+ * @access Privado - Requiere JWT
+ */
+router.put('/api/client', authenticate, async (req, res) => {
+  try {
+    // Verificar Prisma disponible
+    if (!prisma || !prisma.client) {
+      logger.error('Error de conexión a la base de datos en PUT /api/client');
+      return res.status(500).json({ error: 'Error de conexión a la base de datos', success: false });
+    }
+
+    // Verificar autenticación
+    if (!req.client || !req.client.id) {
+      logger.error('Cliente no autenticado en PUT /api/client');
+      return res.status(401).json({ error: 'No autenticado', success: false });
+    }
+
+    logger.info(`Actualizando datos completos del cliente ID: ${req.client.id}`);
+
+    // Extraer datos del body
+    const {
+      companyName,
+      companyDescription,
+      industry,
+      address, 
+      phone,
+      email,
+      website,
+      contactName,
+      bot,
+      calls,
+      email: emailConfig,
+      aiConfig,
+      faqs,
+      contextFiles
+    } = req.body;
+
+    // Preparar objeto de actualización con campos directos
+    const updateData = {};
+    
+    // Actualizar campos directos si están presentes
+    if (companyName) updateData.companyName = companyName;
+    if (companyDescription) updateData.companyDescription = companyDescription;
+    if (industry) updateData.industry = industry;
+    if (address) updateData.address = address;
+    if (phone) updateData.phone = phone;
+    if (email) updateData.email = email;
+    if (website) updateData.website = website;
+    if (contactName) updateData.contactName = contactName;
+    
+    // Actualizar configuraciones de objetos JSON
+    const currentClient = await prisma.client.findUnique({
+      where: { id: req.client.id }
+    });
+
+    if (!currentClient) {
+      return res.status(404).json({ error: 'Cliente no encontrado', success: false });
+    }
+    
+    // Bot
+    if (bot) {
+      const currentBotConfig = currentClient.botConfig || {};
+      updateData.botConfig = {
+        ...currentBotConfig,
+        ...bot,
+        // Actualizado en timestamp UTC
+        updatedAt: new Date().toISOString()
+      };
+    }
+    
+    // Llamadas
+    if (calls) {
+      if (!updateData.botConfig) {
+        updateData.botConfig = currentClient.botConfig || {};
+      }
+      updateData.botConfig.callConfig = {
+        ...((currentClient.botConfig && currentClient.botConfig.callConfig) || {}),
+        ...calls
+      };
+    }
+    
+    // Email
+    if (emailConfig) {
+      updateData.emailConfig = {
+        ...(currentClient.emailConfig || {}),
+        ...emailConfig
+      };
+    }
+    
+    // IA Config
+    if (aiConfig) {
+      if (!updateData.botConfig) {
+        updateData.botConfig = currentClient.botConfig || {};
+      }
+      updateData.botConfig.aiConfig = {
+        ...((currentClient.botConfig && currentClient.botConfig.aiConfig) || {}),
+        ...aiConfig
+      };
+    }
+    
+    // FAQs
+    if (faqs) {
+      if (!updateData.botConfig) {
+        updateData.botConfig = currentClient.botConfig || {};
+      }
+      updateData.botConfig.faqs = faqs;
+    }
+    
+    // Archivos de contexto
+    if (contextFiles) {
+      if (!updateData.botConfig) {
+        updateData.botConfig = currentClient.botConfig || {};
+      }
+      updateData.botConfig.contextFiles = contextFiles;
+    }
+    
+    logger.info('Datos preparados para actualización:', JSON.stringify(updateData, null, 2));
+    
+    // Actualizar cliente en la base de datos
+    const updatedClient = await prisma.client.update({
+      where: { id: req.client.id },
+      data: updateData
+    });
+    
+    logger.info('Cliente actualizado exitosamente');
+    
+    return res.json({
+      success: true,
+      message: 'Datos del cliente actualizados correctamente',
+      data: {
+        companyName: updatedClient.companyName,
+        industry: updatedClient.industry,
+        phone: updatedClient.phone,
+        email: updatedClient.email,
+        address: updatedClient.address,
+        website: updatedClient.website,
+        companyDescription: updatedClient.companyDescription,
+        botConfig: updatedClient.botConfig,
+        emailConfig: updatedClient.emailConfig
+      }
+    });
+  } catch (error) {
+    logger.error(`Error en PUT /api/client: ${error.message}`);
+    logger.error(error.stack);
+    return res.status(500).json({ 
+      error: 'Error interno del servidor actualizando datos del cliente', 
+      success: false,
+      details: error.message 
+    });
+  }
+});
+
 const twilioService = require('../services/twilioService');
 const emailService = require('../services/emailService');
 const elevenlabsService = require('../services/elevenlabsService');
@@ -84,6 +307,11 @@ const authenticate = async (req, res, next) => {
  * - Esta es la ÚNICA fuente de verdad para datos del cliente
  * - Reemplaza múltiples endpoints fragmentados
  * - Elimina duplicaciones y posibles inconsistencias
+ */
+/**
+ * @route GET /api/client
+ * @desc Obtiene todos los datos del cliente - ENDPOINT UNIFICADO
+ * @access Privado - Requiere JWT
  */
 router.get('/client', authenticate, async (req, res) => {
   try {
@@ -236,7 +464,69 @@ router.put('/client', authenticate, async (req, res) => {
     logger.info('🚀 INICIANDO PUT /client - ENDPOINT UNIFICADO');
     logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
     
-    // Extraer datos de la petición
+    // Validar que req.body es un objeto válido
+    if (!req.body) {
+      logger.error(`❌ ERROR: req.body es ${req.body}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Formato de request inválido: req.body es null o undefined',
+        debug: {
+          receivedBody: String(req.body),
+          receivedType: typeof req.body,
+          contentType: req.headers['content-type']
+        }
+      });
+    }
+    
+    if (typeof req.body !== 'object') {
+      logger.error(`❌ ERROR: req.body no es un objeto, es ${typeof req.body}`);
+      logger.error(`❌ Contenido de req.body: ${String(req.body).substring(0, 200)}...`);
+      return res.status(400).json({
+        success: false,
+        error: 'Formato de request inválido: req.body no es un objeto',
+        debug: {
+          receivedType: typeof req.body,
+          contentType: req.headers['content-type'],
+          bodyPreview: String(req.body).substring(0, 100)
+        }
+      });
+    }
+    
+    // Registrar el contenido del req.body para diagnóstico
+    logger.info(`📦 Contenido de req.body (primeros 200 caracteres): ${JSON.stringify(req.body).substring(0, 200)}...`);
+    
+    // Intentar serializar y re-parsear para verificar integridad del JSON
+    try {
+      const serialized = JSON.stringify(req.body);
+      logger.info(`✅ Serialización exitosa, longitud: ${serialized.length} chars`);
+      
+      // Buscar caracteres problemáticos
+      const problematicChars = serialized.match(/[\u0000-\u001F\u007F-\u009F]/g);
+      if (problematicChars && problematicChars.length > 0) {
+        logger.warn(`⚠️ Encontrados ${problematicChars.length} caracteres de control potencialmente problemáticos`);
+        const charCodes = problematicChars.map(c => c.charCodeAt(0).toString(16)).join(', ');
+        logger.warn(`🔍 Códigos hex de caracteres problemáticos: ${charCodes}`);
+      } else {
+        logger.info('✅ No se encontraron caracteres de control problemáticos');
+      }
+      
+      // Re-parsear para verificar
+      const parsed = JSON.parse(serialized);
+      logger.info('✅ Re-parseo exitoso, objeto JSON íntegro');
+    } catch (jsonError) {
+      logger.error(`❌ ERROR al manipular JSON: ${jsonError.message}`);
+      logger.error(`📍 Posición del error: ${jsonError.position || 'desconocida'}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Error al procesar JSON de la solicitud',
+        details: jsonError.message
+      });
+    }
+    
+    // Log completo del body para debug
+    logger.debug(`Body recibido: ${JSON.stringify(req.body).substring(0, 500)}...`);
+    
+    // Extraer datos de la petición con validación
     const { profile, bot, calls, email, aiConfig, faqs, contextFiles } = req.body;
     
     // Validar que hay datos para actualizar
@@ -375,30 +665,135 @@ router.put('/client', authenticate, async (req, res) => {
         smtpPassword: '[REDACTED]'
       };
     }
-    logger.info(`📝 Datos a actualizar: ${JSON.stringify(sanitizedUpdateData)}`);
+    
+    // Verificar la integridad del objeto antes de enviarlo a la base de datos
+    try {
+      const jsonUpdateData = JSON.stringify(sanitizedUpdateData);
+      logger.info(`📝 Datos a actualizar (primeros 200 chars): ${jsonUpdateData.substring(0, 200)}...`);
+      logger.info(`📎 Longitud total del JSON: ${jsonUpdateData.length} caracteres`);
+      
+      // Verificar estructuras anidadas potencialmente problemáticas
+      if (updateData.botConfig && updateData.botConfig.faqs) {
+        logger.info(`🔍 FAQs encontrados: ${updateData.botConfig.faqs.length || 0}`);
+        try {
+          const faqsJson = JSON.stringify(updateData.botConfig.faqs);
+          logger.info(`✅ FAQs serializados correctamente: ${faqsJson.length} chars`);
+        } catch (faqError) {
+          logger.error(`❌ ERROR serializando FAQs: ${faqError.message}`);
+        }
+      }
+      
+      if (updateData.botConfig && updateData.botConfig.contextFiles) {
+        logger.info(`🔍 contextFiles encontrados: ${Object.keys(updateData.botConfig.contextFiles || {}).length} tipos`);
+        try {
+          const contextFilesJson = JSON.stringify(updateData.botConfig.contextFiles);
+          logger.info(`✅ contextFiles serializados correctamente: ${contextFilesJson.length} chars`);
+        } catch (contextError) {
+          logger.error(`❌ ERROR serializando contextFiles: ${contextError.message}`);
+        }
+      }
+    } catch (jsonError) {
+      logger.error(`❌ ERROR CRÍTICO: No se puede serializar el objeto updateData: ${jsonError.message}`);
+      logger.error(`📊 Claves del objeto: ${Object.keys(updateData).join(', ')}`);
+      return res.status(500).json({
+        success: false,
+        error: 'Error de serialización de datos',
+        details: jsonError.message
+      });
+    }
     
     // Actualizar en la base de datos
-    await prisma.client.update({
-      where: { id: req.client.id },
-      data: updateData
-    });
+    try {
+      logger.info('📦 Iniciando actualización en la base de datos...');
+      const updatedClient = await prisma.client.update({
+        where: { id: req.client.id },
+        data: updateData
+      });
+      logger.info(`✅ Cliente actualizado en BD correctamente: ID ${updatedClient.id}`);
+      
+      // Verificar si la actualización fue correcta
+      try {
+        const updatedJson = JSON.stringify(updatedClient);
+        logger.info(`✅ Cliente actualizado serializable: ${updatedJson.length} chars`);
+      } catch (serError) {
+        logger.warn(`⚠️ Cliente actualizado pero hay problemas de serialización: ${serError.message}`);
+      }
+    } catch (dbError) {
+      logger.error(`❌ ERROR en base de datos: ${dbError.message}`);
+      logger.error(`💥 Stack: ${dbError.stack}`);
+      return res.status(500).json({
+        success: false,
+        error: 'Error al actualizar en base de datos',
+        details: dbError.message
+      });
+    }
     
     logger.info('✅ Cliente actualizado exitosamente');
     logger.info('🏁 FINALIZANDO PUT /client exitosamente');
     
-    return res.json({
+    // Crear una respuesta JSON válida y verificarla
+    const successResponse = {
       success: true,
-      message: 'Cliente actualizado exitosamente'
-    });
+      message: 'Cliente actualizado exitosamente',
+      timestamp: new Date().toISOString(),
+      clientId: req.client.id
+    };
+    
+    // Validar que la respuesta puede convertirse a JSON sin errores
+    try {
+      const responseJson = JSON.stringify(successResponse);
+      logger.info(`✅ Respuesta JSON válida generada: ${responseJson}`);
+      
+      // Agregar encabezados específicos para evitar problemas de parsing
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      
+      logger.info('🌟 FINALIZANDO PUT /client - RESPUESTA EXITOSA ENVIADA');
+      return res.json(successResponse);
+    } catch (jsonError) {
+      logger.error(`❌ Error al generar respuesta JSON: ${jsonError.message}`);
+      logger.error(`💣 Respuesta problemática: ${JSON.stringify(successResponse)}`);
+      
+      // Respuesta alternativa como texto plano en caso de error
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.status(500).send('Error interno del servidor al generar respuesta');
+    }
   } catch (error) {
     logger.error(`❌ ERROR en PUT /client: ${error.message}`);
     logger.error(`📋 Stack trace: ${error.stack}`);
     
-    return res.status(500).json({
-      success: false,
-      error: 'Error actualizando datos del cliente',
-      details: error.message
-    });
+    // Asegurar que la respuesta de error es un JSON válido
+    try {
+      // Crear un objeto de error con información de diagnóstico
+      const errorResponse = {
+        success: false,
+        error: 'Error actualizando datos del cliente',
+        details: error.message,
+        timestamp: new Date().toISOString(),
+        errorType: error.constructor.name,
+        errorCode: error.code || 'UNKNOWN'
+      };
+      
+      // Verificar que es serializable
+      const errorJson = JSON.stringify(errorResponse);
+      logger.info(`ℹ️ Error serializado correctamente: ${errorJson.substring(0, 200)}`);
+      
+      // Establecer encabezados explícitos
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      
+      // Si es un error relacionado con JSON, agregar diagnóstico especial
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        logger.error('📢 ERROR DE SINTAXIS JSON DETECTADO');
+        logger.error(`🔍 Posición del error: ${error.position || 'desconocida'}`);
+      }
+      
+      logger.info('💬 FINALIZANDO PUT /client - ENVIANDO RESPUESTA DE ERROR');
+      return res.status(500).json(errorResponse);
+    } catch (jsonError) {
+      // Si aún hay error al serializar, enviar texto plano
+      logger.error(`❌ ERROR CRÍTICO: No se puede serializar ni el mensaje de error: ${jsonError.message}`);
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.status(500).send(`Error interno del servidor. Detalles: ${error.message}`);
+    }
   }
 });
 
@@ -1633,21 +2028,14 @@ router.put('/config/bot', authenticate, async (req, res) => {
     
     updateData.botConfig = newBotConfig;
     
-    // Construir información de empresa
-    const currentCompanyInfo = currentClient.companyInfo || {};
-    if (companyName || companyDescription || companySector || companyAddress || companyPhone || companyEmail || companyWebsite) {
-      const newCompanyInfo = {
-        ...currentCompanyInfo,
-        name: companyName || currentCompanyInfo.name || '',
-        description: companyDescription || currentCompanyInfo.description || '',
-        sector: companySector || currentCompanyInfo.sector || '',
-        address: companyAddress || currentCompanyInfo.address || '',
-        phone: companyPhone || currentCompanyInfo.phone || '',
-        email: companyEmail || currentCompanyInfo.email || '',
-        website: companyWebsite || currentCompanyInfo.website || ''
-      };
-      updateData.companyInfo = newCompanyInfo;
-    }
+    // Actualizar todos los campos directamente en la tabla Client
+    if (companyName) updateData.companyName = companyName;
+    if (companySector) updateData.industry = companySector;
+    if (companyDescription) updateData.companyDescription = companyDescription;
+    if (companyAddress) updateData.address = companyAddress;
+    if (companyPhone) updateData.phone = companyPhone;
+    if (companyEmail) updateData.email = companyEmail;
+    if (companyWebsite) updateData.website = companyWebsite;
     
     // Construir configuración de email
     const currentEmailConfig = currentClient.emailConfig || {};
@@ -1659,9 +2047,7 @@ router.put('/config/bot', authenticate, async (req, res) => {
       updateData.emailConfig = newEmailConfig;
     }
     
-    // Actualizar también campos individuales del cliente para consistencia
-    if (companyName) updateData.companyName = companyName;
-    if (companySector) updateData.industry = companySector;
+    // Estos campos ya están actualizados arriba
     
     logger.info('Datos preparados para actualización:', JSON.stringify(updateData, null, 2));
     
@@ -1677,7 +2063,15 @@ router.put('/config/bot', authenticate, async (req, res) => {
       success: true,
       message: 'Configuración del bot actualizada correctamente',
       botConfig: updatedClient.botConfig,
-      companyInfo: updatedClient.companyInfo,
+      companyInfo: {
+        name: updatedClient.companyName || '',
+        description: updatedClient.companyDescription || '',
+        sector: updatedClient.industry || '',
+        address: updatedClient.address || '',
+        phone: updatedClient.phone || '',
+        email: updatedClient.email || '',
+        website: updatedClient.website || ''
+      },
       emailConfig: updatedClient.emailConfig
     });
   } catch (error) {
