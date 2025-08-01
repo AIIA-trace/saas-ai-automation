@@ -107,70 +107,147 @@ router.get('/config', authenticate, async (req, res) => {
 // Obtener perfil del cliente
 router.get('/profile', authenticate, async (req, res) => {
   try {
+    // LOGGING DETALLADO PARA DIAGNOSTICAR PROBLEMA JSON
+    logger.info('🚀 INICIANDO GET /profile');
+    logger.info(`📋 Headers recibidos: ${JSON.stringify(req.headers, null, 2)}`);
+    logger.info(`🔑 Cliente autenticado: ${!!req.client}`);
+    logger.info(`🆔 Cliente ID: ${req.client?.id}`);
+    
     // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
     if (!prisma || !prisma.client) {
-      logger.error('Prisma client no está inicializado');
-      return res.status(500).json({ 
+      logger.error('❌ Prisma client no está inicializado');
+      const errorResponse = { 
         error: 'Error de base de datos - Prisma no inicializado',
         success: false 
-      });
+      };
+      logger.info(`📤 Enviando respuesta de error: ${JSON.stringify(errorResponse)}`);
+      return res.status(500).json(errorResponse);
     }
     
     // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
     if (!req.client || !req.client.id) {
-      logger.error('Cliente no autenticado en request');
-      return res.status(401).json({ 
+      logger.error('❌ Cliente no autenticado en request');
+      const errorResponse = { 
         error: 'Cliente no autenticado',
         success: false 
-      });
+      };
+      logger.info(`📤 Enviando respuesta de error: ${JSON.stringify(errorResponse)}`);
+      return res.status(401).json(errorResponse);
     }
     
-    logger.info(`Obteniendo perfil para cliente ID: ${req.client.id}`);
+    logger.info(`🔍 Obteniendo perfil para cliente ID: ${req.client.id}`);
     
-    const client = await prisma.client.findUnique({
-      where: { id: req.client.id },
-      select: {
-        id: true,
-        companyName: true,
-        contactName: true,
-        email: true,
-        phone: true,
-        website: true,
-        industry: true,
-        address: true,
-        timezone: true,
-        language: true,
-        companyDescription: true, // Agregar campo nuevo
-        createdAt: true,
-        updatedAt: true
-        // Excluir password y apiKey por seguridad
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.client.id },
+        select: {
+          id: true,
+          companyName: true,
+          contactName: true,
+          email: true,
+          phone: true,
+          website: true,
+          industry: true,
+          address: true,
+          timezone: true,
+          language: true,
+          companyDescription: true, // Agregar campo nuevo
+          createdAt: true,
+          updatedAt: true
+          // Excluir password y apiKey por seguridad
+        }
+      });
+      
+      logger.info(`📊 Cliente encontrado en BD: ${!!client}`);
+      
+      if (!client) {
+        logger.error(`❌ Cliente no encontrado en BD: ${req.client.id}`);
+        const errorResponse = { 
+          error: 'Cliente no encontrado',
+          success: false 
+        };
+        logger.info(`📤 Enviando respuesta de error: ${JSON.stringify(errorResponse)}`);
+        return res.status(404).json(errorResponse);
       }
-    });
-    
-    if (!client) {
-      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
-      return res.status(404).json({ 
-        error: 'Cliente no encontrado',
-        success: false 
+      
+      logger.info(`✅ Perfil obtenido exitosamente para: ${client.email}`);
+      
+      // Verificar que el cliente tenga los datos mínimos necesarios
+      if (!client.companyName) {
+        logger.warn(`⚠️ Cliente ${req.client.id} sin companyName`);
+      }
+      
+      // Asegurar estructura completa del objeto cliente
+      const clientData = {
+        id: client.id,
+        companyName: client.companyName || '',
+        contactName: client.contactName || '',
+        email: client.email || '',
+        phone: client.phone || '',
+        website: client.website || '',
+        industry: client.industry || '',
+        address: client.address || '',
+        timezone: client.timezone || 'Europe/Madrid',
+        language: client.language || 'es',
+        companyDescription: client.companyDescription || '',
+        createdAt: client.createdAt,
+        updatedAt: client.updatedAt
+      };
+      
+      const successResponse = {
+        success: true,
+        client: clientData
+      };
+      
+      // Verificar que la respuesta sea un JSON válido
+      const jsonString = JSON.stringify(successResponse);
+      if (!jsonString) {
+        throw new Error('No se pudo convertir la respuesta a JSON string');
+      }
+      
+      logger.info(`📤 Enviando respuesta exitosa (${jsonString.length} bytes)`);
+      logger.info('🏁 FINALIZANDO GET /profile exitosamente');
+      
+      return res.json(successResponse);
+    } catch (dbError) {
+      // Manejo específico para errores de base de datos
+      logger.error(`❌ ERROR DE BASE DE DATOS: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        error: 'Error accediendo a la base de datos',
+        details: dbError.message
       });
     }
-    
-    logger.info(`Perfil obtenido exitosamente para: ${client.email}`);
-    
-    return res.json({
-      success: true,
-      client: client
-    });
   } catch (error) {
-    logger.error(`Error obteniendo perfil: ${error.message}`);
-    logger.error(`Stack trace: ${error.stack}`);
+    logger.error(`❌ ERROR CRÍTICO en GET /profile: ${error.message}`);
+    logger.error(`📋 Stack trace completo: ${error.stack}`);
+    logger.error(`🔍 Tipo de error: ${error.constructor.name}`);
+    logger.error(`📊 Cliente ID en error: ${req.client?.id}`);
     
-    // RESPUESTA SIEMPRE VÁLIDA JSON
-    return res.status(500).json({ 
+    // RESPUESTA SIEMPRE VÁLIDA JSON CON LOGGING DETALLADO
+    const errorResponse = { 
       error: 'Error interno del servidor obteniendo perfil',
       success: false,
-      details: error.message 
-    });
+      details: error.message,
+      timestamp: new Date().toISOString()
+    };
+    
+    try {
+      // Verificar que podemos convertir a JSON antes de enviar
+      const jsonString = JSON.stringify(errorResponse);
+      if (!jsonString) {
+        return res.status(500).send('{"error": "Error interno del servidor", "success": false}');
+      }
+      
+      logger.info(`📤 Enviando respuesta de error crítico: ${jsonString}`);
+      logger.info('🏁 FINALIZANDO GET /profile con error');
+      
+      return res.status(500).json(errorResponse);
+    } catch (jsonError) {
+      // Si ni siquiera podemos convertir el error a JSON, enviar respuesta de fallback
+      logger.error(`❌ ERROR FATAL: No se pudo crear JSON de error: ${jsonError.message}`);
+      return res.status(500).send('{"error": "Error interno del servidor", "success": false}');
+    }
   }
 });
 
@@ -678,9 +755,12 @@ router.delete('/payment/method/:methodId', authenticate, async (req, res) => {
 // Obtener configuración del bot
 router.get('/config/bot', authenticate, async (req, res) => {
   try {
+    logger.info('🚀 INICIANDO GET /config/bot');
+    logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
+    
     // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
     if (!prisma || !prisma.client) {
-      logger.error('Prisma client no está inicializado');
+      logger.error('❌ Prisma client no está inicializado');
       return res.status(500).json({ 
         error: 'Error de base de datos - Prisma no inicializado',
         success: false 
@@ -689,123 +769,191 @@ router.get('/config/bot', authenticate, async (req, res) => {
     
     // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
     if (!req.client || !req.client.id) {
-      logger.error('Cliente no autenticado en request');
+      logger.error('❌ Cliente no autenticado en request');
       return res.status(401).json({ 
         error: 'Cliente no autenticado',
         success: false 
       });
     }
     
-    logger.info(`Obteniendo configuración del bot para cliente ID: ${req.client.id}`);
+    logger.info(`🔍 Obteniendo configuración del bot para cliente ID: ${req.client.id}`);
     
-    // Obtener la configuración completa del cliente
-    const clientConfig = await prisma.client.findUnique({
-      where: { id: req.client.id },
-      select: {
-        // Campos JSON de configuración
-        botConfig: true,
-        companyInfo: true,
-        emailConfig: true,
-        // Campos directos del cliente necesarios para el formulario
-        companyName: true,
-        companyDescription: true,
-        contactName: true,
-        phone: true,
-        website: true,
-        address: true,
-        industry: true,
-        language: true,
-        email: true
-      }
-    });
-    
-    if (!clientConfig) {
-      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
-      return res.status(404).json({ 
-        error: 'Cliente no encontrado',
-        success: false 
+    try {
+      // Obtener la configuración completa del cliente
+      const clientConfig = await prisma.client.findUnique({
+        where: { id: req.client.id },
+        select: {
+          // Campos JSON de configuración
+          botConfig: true,
+          companyInfo: true,
+          emailConfig: true,
+          // Campos directos del cliente necesarios para el formulario
+          companyName: true,
+          companyDescription: true,
+          contactName: true,
+          phone: true,
+          website: true,
+          address: true,
+          industry: true,
+          language: true,
+          email: true
+        }
       });
-    }
-    
-    // Construir estructura de respuesta que espera el frontend
-    const response = {
-      // Configuración del bot
-      botConfig: clientConfig.botConfig || {
-        botName: 'Asistente Virtual',
-        botPersonality: 'professional',
-        welcomeMessage: 'Bienvenido a nuestro asistente virtual',
-        businessHours: 'Lun-Vie: 9:00-18:00',
-        callConfig: {
+      
+      if (!clientConfig) {
+        logger.error(`❌ Cliente no encontrado en BD: ${req.client.id}`);
+        return res.status(404).json({ 
+          error: 'Cliente no encontrado',
+          success: false 
+        });
+      }
+      
+      logger.info(`✅ Cliente encontrado en BD: ${clientConfig.email || req.client.id}`);
+      
+      // Asegurar que todos los campos existan, incluso los que falten
+      // Construir estructura de respuesta que espera el frontend con valores por defecto seguros
+      const response = {
+        // Configuración del bot
+        botConfig: clientConfig.botConfig || {
+          botName: 'Asistente Virtual',
+          botPersonality: 'professional',
+          welcomeMessage: 'Bienvenido a nuestro asistente virtual',
+          businessHours: 'Lun-Vie: 9:00-18:00',
+          callConfig: {
+            enabled: false,
+            recordCalls: false,
+            transcribeCalls: false,
+            voiceId: 'female',
+            language: 'es-ES',
+            greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?'
+          },
+          aiConfig: {
+            temperature: 0.7,
+            maxTokens: 150,
+            model: 'gpt-3.5-turbo'
+          },
+          faqs: [],
+          contextFiles: {}
+        },
+        
+        // Información de empresa
+        companyInfo: {
+          name: clientConfig.companyName || '',
+          description: clientConfig.companyDescription || '',
+          sector: clientConfig.industry || '',
+          address: clientConfig.address || '',
+          phone: clientConfig.phone || '',
+          email: clientConfig.email || '',
+          website: clientConfig.website || '',
+          // Mantener cualquier información adicional de companyInfo JSON
+          ...(clientConfig.companyInfo || {})
+        },
+        
+        // Configuración de email
+        emailConfig: clientConfig.emailConfig || {
+          enabled: false,
+          provider: '',
+          outgoingEmail: '',
+          recipientEmail: '',
+          forwardRules: '',
+          autoReply: false,
+          autoReplyMessage: '',
+          language: 'es-ES',
+          emailSignature: '',
+          emailConsent: false,
+          imapServer: '',
+          imapPort: 993,
+          smtpServer: '',
+          smtpPort: 587,
+          useSSL: false
+        },
+        
+        // Información adicional del cliente
+        clientInfo: {
+          contactName: clientConfig.contactName || '',
+          language: clientConfig.language || 'es'
+        }
+      };
+      
+      // Verificar botConfig callConfig para evitar objeto nulo
+      if (response.botConfig && !response.botConfig.callConfig) {
+        response.botConfig.callConfig = {
           enabled: false,
           recordCalls: false,
           transcribeCalls: false,
           voiceId: 'female',
           language: 'es-ES',
           greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?'
-        },
-        aiConfig: {
+        };
+      }
+      
+      // Verificar botConfig aiConfig para evitar objeto nulo
+      if (response.botConfig && !response.botConfig.aiConfig) {
+        response.botConfig.aiConfig = {
           temperature: 0.7,
           maxTokens: 150,
           model: 'gpt-3.5-turbo'
-        },
-        faqs: [],
-        contextFiles: {}
-      },
-      
-      // Información de empresa
-      companyInfo: {
-        name: clientConfig.companyName || '',
-        description: clientConfig.companyDescription || '',
-        sector: clientConfig.industry || '',
-        address: clientConfig.address || '',
-        phone: clientConfig.phone || '',
-        email: clientConfig.email || '',
-        website: clientConfig.website || '',
-        // Mantener cualquier información adicional de companyInfo JSON
-        ...(clientConfig.companyInfo || {})
-      },
-      
-      // Configuración de email
-      emailConfig: clientConfig.emailConfig || {
-        enabled: false,
-        provider: '',
-        outgoingEmail: '',
-        recipientEmail: '',
-        forwardRules: '',
-        autoReply: false,
-        autoReplyMessage: '',
-        language: 'es-ES',
-        emailSignature: '',
-        emailConsent: false,
-        imapServer: '',
-        imapPort: 993,
-        smtpServer: '',
-        smtpPort: 587,
-        useSSL: false
-      },
-      
-      // Información adicional del cliente
-      clientInfo: {
-        contactName: clientConfig.contactName,
-        language: clientConfig.language || 'es'
+        };
       }
-    };
-    
-    logger.info(`Configuración del bot obtenida exitosamente para cliente ${req.client.id}`);
-    
-    return res.json({
-      success: true,
-      ...response
-    });
+      
+      logger.info(`✅ Configuración del bot obtenida exitosamente para cliente ${req.client.id}`);
+      
+      // Verificar que la respuesta sea un JSON válido
+      try {
+        const jsonString = JSON.stringify({
+          success: true,
+          ...response
+        });
+        
+        if (!jsonString) {
+          throw new Error('No se pudo convertir la respuesta a JSON string');
+        }
+        
+        logger.info(`📤 Enviando respuesta exitosa (${jsonString.length} bytes)`);
+        logger.info('🏁 FINALIZANDO GET /config/bot exitosamente');
+        
+        return res.json({
+          success: true,
+          ...response
+        });
+      } catch (jsonError) {
+        logger.error(`❌ ERROR JSON STRINGIFY: ${jsonError.message}`);
+        throw new Error(`Error al convertir configuración del bot a JSON: ${jsonError.message}`);
+      }
+    } catch (dbError) {
+      // Manejo específico para errores de base de datos
+      logger.error(`❌ ERROR DE BASE DE DATOS: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        error: 'Error accediendo a la base de datos',
+        details: dbError.message
+      });
+    }
   } catch (error) {
-    logger.error(`Error obteniendo configuración del bot: ${error.message}`);
-    logger.error(`Stack trace: ${error.stack}`);
+    logger.error(`❌ ERROR CRÍTICO en GET /config/bot: ${error.message}`);
+    logger.error(`📋 Stack trace: ${error.stack}`);
     
-    return res.status(500).json({ 
-      error: 'Error interno del servidor obteniendo configuración del bot',
-      success: false,
-      details: error.message 
-    });
+    try {
+      // Verificar que podemos convertir a JSON antes de enviar
+      const errorResponse = { 
+        error: 'Error interno del servidor obteniendo configuración del bot',
+        success: false,
+        details: error.message,
+        timestamp: new Date().toISOString()
+      };
+      
+      const jsonString = JSON.stringify(errorResponse);
+      if (!jsonString) {
+        return res.status(500).send('{"error": "Error interno del servidor", "success": false}');
+      }
+      
+      logger.info(`📤 Enviando respuesta de error: ${jsonString.substring(0, 200)}`);
+      return res.status(500).json(errorResponse);
+    } catch (jsonError) {
+      // Si ni siquiera podemos convertir el error a JSON, enviar respuesta de fallback
+      logger.error(`❌ ERROR FATAL: No se pudo crear JSON de error: ${jsonError.message}`);
+      return res.status(500).send('{"error": "Error interno del servidor", "success": false}');
+    }
   }
 });
 
