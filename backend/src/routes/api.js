@@ -35,6 +35,45 @@ const authService = require('../services/authService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const logger = require('../utils/logger');
 
+// Función para normalizar nombres de campo entre camelCase y snake_case
+function normalizeFieldNames(data) {
+  const normalized = {};
+  
+  // Mapeo explícito de nombres de campo inconsistentes
+  const fieldMappings = {
+    // AI Config
+    'maxTokens': 'max_tokens',
+    'topP': 'top_p',
+    'presencePenalty': 'presence_penalty',
+    'frequencyPenalty': 'frequency_penalty',
+    
+    // DTMF Options
+    'message': 'description',
+    'key': 'digit',
+    'dtmfKey': 'digit',
+    
+    // Files
+    'url': 'file_url',
+    'type': 'file_type',
+    'size': 'file_size',
+    'name': 'filename',
+    'fileName': 'filename',
+    'fileSize': 'file_size',
+    'fileType': 'file_type',
+    'fileUrl': 'file_url'
+  };
+  
+  // Copiar todos los campos, normalizando los nombres si es necesario
+  if (!data) return normalized;
+  
+  Object.keys(data).forEach(key => {
+    const normalizedKey = fieldMappings[key] || key;
+    normalized[normalizedKey] = data[key];
+  });
+  
+  return normalized;
+}
+
 // Middleware para verificar la autenticación JWT
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -2049,7 +2088,8 @@ router.put('/config/bot', authenticate, async (req, res) => {
       callConfig: req.body.calls || req.body.callConfig || currentBotConfig.callConfig || {},
       aiConfig: req.body.aiConfig || currentBotConfig.aiConfig || {},
       faqs: req.body.faqs || currentBotConfig.faqs || [],
-      contextFiles: req.body.contextFiles || req.body.files || currentBotConfig.contextFiles || {}
+      contextFiles: req.body.contextFiles || req.body.files || currentBotConfig.contextFiles || {},
+      dtmfOptions: req.body.dtmfOptions || currentBotConfig.dtmfOptions || []
     };
     
     // Configuración de la empresa en formato JSON
@@ -2088,9 +2128,9 @@ router.put('/config/bot', authenticate, async (req, res) => {
       });
       
       // 2.2 Manejar la configuración AI
-      if (updateData.aiConfig) {
+      if (updateData.botConfig.aiConfig) {
         // Normalizar nombres de campos usando la función centralizada
-        const normalizedAiConfig = normalizeFieldNames(updateData.aiConfig);
+        const normalizedAiConfig = normalizeFieldNames(updateData.botConfig.aiConfig);
         
         // Buscar si ya existe una configuración AI para este cliente
         const existingAiConfig = await tx.botAiConfig.findFirst({
@@ -2179,16 +2219,16 @@ router.put('/config/bot', authenticate, async (req, res) => {
       }
       
       // 2.5 Manejar opciones DTMF
-      if (dtmfOptions && Array.isArray(dtmfOptions)) {
+      if (updateData.botConfig.dtmfOptions && Array.isArray(updateData.botConfig.dtmfOptions)) {
         // Eliminar opciones existentes
         await tx.botDtmfOption.deleteMany({
           where: { client_id: req.client.id }
         });
         
         // Crear nuevas opciones
-        if (dtmfOptions.length > 0) {
+        if (updateData.botConfig.dtmfOptions.length > 0) {
           await tx.botDtmfOption.createMany({
-            data: dtmfOptions.map(option => {
+            data: updateData.botConfig.dtmfOptions.map(option => {
               const normalizedOption = normalizeFieldNames(option);
               return {
                 client_id: req.client.id,
