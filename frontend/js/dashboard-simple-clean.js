@@ -7561,18 +7561,20 @@ function saveUnifiedConfig() {
             console.log('📤 Enviando configuración unificada al backend:', botConfigData);
             
             // Preparar objeto unificado para enviar al endpoint centralizado /api/client
-            // Usando campos directos en lugar de objetos anidados para la información de la empresa
+            // REESTRUCTURADO: Formato exactamente como lo espera el backend según api.js
             const unifiedClientData = {
-                // Datos directos de la empresa - sin objeto anidado 'profile'
-                companyName: config.companyName,
-                companyDescription: config.companyDescription,
-                industry: config.companySector,
-                address: config.companyAddress,
-                phone: config.companyPhone,
-                email: config.companyEmail,
-                website: config.companyWebsite,
+                // Datos del perfil como objeto profile
+                profile: {
+                    companyName: config.companyName,
+                    companyDescription: config.companyDescription,
+                    industry: config.companySector, // Se mapea industry como espera el backend
+                    address: config.companyAddress,
+                    phone: config.companyPhone,
+                    email: config.companyEmail,
+                    website: config.companyWebsite
+                },
                 
-                // Configuración del bot
+                // Configuración del bot como objeto bot
                 bot: {
                     name: config.botName,
                     personality: config.botPersonality,
@@ -7596,12 +7598,25 @@ function saveUnifiedConfig() {
                 contextFiles: botConfigData.contextFiles
             };
             
+            console.log('🛠️ Datos reestructurados para coincidir exactamente con el backend:', unifiedClientData);
+            
             console.log('💾 Datos unificados preparados para /api/client:', unifiedClientData);
             
-            // Guardar toda la configuración en un solo endpoint unificado
-            return window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, {
+            // USAR ENDPOINT DIRECTO: Asegurarnos de que se use la ruta correcta
+            console.log('🔄 Usando endpoint directo /api/config/bot para mayor compatibilidad');
+            return fetch('/api/config/bot', {
                 method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + authToken
+                },
                 body: JSON.stringify(unifiedClientData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error en la respuesta: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
             });
         })
         
