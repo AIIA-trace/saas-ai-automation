@@ -1291,7 +1291,7 @@ function createBotConfigTabContent() {
                                             <input type="text" class="form-control" id="companyName" name="companyName" placeholder="Nombre de tu empresa" required>
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="email" class="form-label">Email de Contacto</label>
+                                            <label for="email" class="form-label">Registration Email</label>
                                             <input type="email" class="form-control" id="email" name="email" placeholder="email@tuempresa.com" required>
                                         </div>
                                         <div class="col-md-6">
@@ -3533,7 +3533,8 @@ function loadBotConfiguration() {
     
     // Usar el endpoint unificado /api/client para obtener toda la configuración
     window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
-    .then(clientData => {
+    .then(response => {
+        const clientData = response.data || response; // Manejar estructura de respuesta
         console.log('📊 Datos del cliente recibidos:', clientData);
         
         // 1. Cargar configuración de llamadas
@@ -6970,14 +6971,14 @@ function saveUnifiedConfig() {
         
         // Recopilar todos los datos del formulario
         const config = {
-            // Información de empresa - Mapeo correcto con IDs del formulario
-            companyName: document.getElementById('companyName')?.value || '',
-            companyDescription: document.getElementById('description')?.value || '',
-            companySector: document.getElementById('industry')?.value || '', // industry en formulario
-            companyAddress: document.getElementById('address')?.value || '',
-            companyPhone: document.getElementById('phone')?.value || '', // Usando ID unificado 'phone' en formulario
-            companyEmail: document.getElementById('email')?.value || '', // Usando ID unificado 'email' en formulario
-            companyWebsite: document.getElementById('website')?.value || '', // website en formulario
+            // Información de empresa - Mapeo con IDs alternativos para mayor compatibilidad
+            companyName: document.getElementById('companyName')?.value || document.getElementById('company_name')?.value || '',
+            companyDescription: document.getElementById('companyDescription')?.value || document.getElementById('company_description')?.value || document.getElementById('description')?.value || '',
+            companySector: document.getElementById('companySector')?.value || document.getElementById('company_sector')?.value || document.getElementById('industry')?.value || '', 
+            companyAddress: document.getElementById('companyAddress')?.value || document.getElementById('company_address')?.value || document.getElementById('address')?.value || '',
+            companyPhone: document.getElementById('companyPhone')?.value || document.getElementById('company_phone')?.value || document.getElementById('phone')?.value || '',
+            companyEmail: document.getElementById('companyEmail')?.value || document.getElementById('company_email')?.value || document.getElementById('email')?.value || '',
+            companyWebsite: document.getElementById('companyWebsite')?.value || document.getElementById('company_website')?.value || document.getElementById('website')?.value || '',
             
             // Configuración general - IDs corregidos
             botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',
@@ -7218,8 +7219,8 @@ function saveUnifiedConfig() {
         personality: config.botPersonality
     };
     
-    console.log('📁 Preguntas frecuentes incluidas:', botConfigData.faqs);
-    console.log('📁 Archivos de contexto a procesar:', config.files);
+    console.log(' Preguntas frecuentes incluidas:', botConfigData.faqs);
+    console.log(' Archivos de contexto a procesar:', config.files);
     
     // Obtener token de autenticación
     const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
@@ -7230,103 +7231,102 @@ function saveUnifiedConfig() {
     
     // Enviar la configuración del bot al backend usando la URL completa
     const apiUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
-    console.log('🔗 Usando URL base de API:', apiUrl);
+    console.log(' Usando URL base de API:', apiUrl);
     
     // Primero procesamos los archivos de contexto y luego guardamos la configuración completa
-    console.log('📚 Procesando archivos de contexto...');
+    console.log(' Procesando archivos de contexto...');
     
     // Actualizar botConfigData con los FAQs recolectados
     botConfigData.faqs = collectFaqItems();
-    console.log('📝 FAQs recopiladas:', botConfigData.faqs);
+    console.log(' FAQs recopiladas:', botConfigData.faqs);
     
     // PROCESAMIENTO DE ARCHIVOS DE CONTEXTO ELIMINADO
     // Esta funcionalidad ha sido removida como parte de la eliminación del sistema legacy
-    console.log('🗑️ Procesamiento de archivos de contexto omitido (funcionalidad eliminada)');
+    console.log(' Procesamiento de archivos de contexto omitido (funcionalidad eliminada)');
     
     // Proceder directamente con el guardado de configuración
     Promise.resolve()
         .then(() => {
-            
             console.log('📤 Enviando configuración unificada al backend:', botConfigData);
             
             // SOLUCIÓN FINAL: Formato híbrido con campos tanto directos como anidados
             // para garantizar la compatibilidad con el backend actualizado
             const unifiedClientData = {
                 // IMPORTANTE: Campos críticos en nivel superior (directos)
-                companyName: config.companyName, 
-                companyDescription: config.companyDescription,
-                companySector: config.companySector,
-                companyAddress: config.companyAddress,
-                companyPhone: config.companyPhone,
-                companyEmail: config.companyEmail,
-                companyWebsite: config.companyWebsite,
+                // Aseguramos que todos los campos se envíen explícitamente, incluso si están vacíos
+                companyName: config.companyName !== undefined ? config.companyName : '', 
+                companyDescription: config.companyDescription !== undefined ? config.companyDescription : '',
+                companySector: config.companySector !== undefined ? config.companySector : '',
+                companyAddress: config.companyAddress !== undefined ? config.companyAddress : '',
+                companyPhone: config.companyPhone !== undefined ? config.companyPhone : '',
+                companyEmail: config.companyEmail !== undefined ? config.companyEmail : '',
+                companyWebsite: config.companyWebsite !== undefined ? config.companyWebsite : '',
                 
                 // DUPLICAR en structure profile para compatibilidad con versiones
+                // Aseguramos que los campos se envíen explícitamente, incluso si están vacíos
                 profile: {
-                    companyName: config.companyName,
-                    companyDescription: config.companyDescription,
-                    industry: config.companySector,
-                    address: config.companyAddress,
-                    phone: config.companyPhone,
-                    email: config.companyEmail,
-                    website: config.companyWebsite
+                    companyName: config.companyName !== undefined ? config.companyName : '',
+                    companyDescription: config.companyDescription !== undefined ? config.companyDescription : '',
+                    industry: config.companySector !== undefined ? config.companySector : '',
+                    address: config.companyAddress !== undefined ? config.companyAddress : '',
+                    phone: config.companyPhone !== undefined ? config.companyPhone : '',
+                    email: config.companyEmail !== undefined ? config.companyEmail : '',
+                    website: config.companyWebsite !== undefined ? config.companyWebsite : ''
                 },
                 
-                // Configuración del bot (tanto plana como anidada)
-                botName: config.botName,
-                botPersonality: config.botPersonality,
-                welcomeMessage: config.welcomeMessage,
-                bot: {
+                // Configuración del bot
+                botConfig: {
                     name: config.botName,
                     personality: config.botPersonality,
-                    welcomeMessage: config.welcomeMessage,
                     workingHours: config.workingHours,
-                    workingDays: config.workingDays
+                    workingDays: config.workingDays,
+                    callConfig: config.callConfig
                 },
                 
-                // Configuración de llamadas y horarios
-                workingHours: config.workingHours,
-                workingDays: config.workingDays,
+                // Configuración de llamadas
                 callConfig: config.callConfig,
-                calls: config.callConfig,
                 
                 // Configuración de email
                 emailConfig: config.emailConfig,
-                email: config.emailConfig,
                 
-                // Configuración de transferencias (ambos formatos)
+                // Configuración de transferencias
                 transferConfig: config.transferConfig,
-                transfers: config.transferConfig,
                 
-                // Configuración de scripts (ambos formatos)
+                // Configuración de scripts
                 scriptConfig: config.scriptConfig,
-                script: config.scriptConfig,
                 
                 // Configuración de IA
                 aiConfig: config.aiConfig,
-                ai: config.aiConfig, // duplicado para compatibilidad
                 
                 // FAQs
                 faqs: config.faqs,
                 
-                // ARCHIVOS DE CONTEXTO ELIMINADOS
-                // Esta funcionalidad ha sido removida del sistema legacy
-                
-                // Campos adicionales para asegurar compatibilidad con legacy
-                modelName: config.scriptConfig?.model || 'gpt-3.5-turbo',
-                personality: config.scriptConfig?.personality || config.botPersonality || 'professional',
-                customPersonality: config.scriptConfig?.customPersonality || '',
-                capabilities: config.scriptConfig?.capabilities || []
+                // Archivos de contexto
+                files: config.files
             };
             
-            // Añadir logs específicos para companyName
-            console.log('🏢 Valor de companyName:', config.companyName);
-            console.log('🔍 Elemento DOM companyName:', document.getElementById('companyName'));
-            console.log('📤 Enviando companyName como:', unifiedClientData.companyName);
+            // Añadir logs específicos para todos los campos de empresa
+            console.log(' Valor de companyName:', config.companyName);
+            console.log(' Valor de companyDescription:', config.companyDescription);
+            console.log(' Valor de companySector:', config.companySector);
+            console.log(' Valor de companyAddress:', config.companyAddress);
+            console.log(' Valor de companyPhone:', config.companyPhone);
+            console.log(' Valor de companyEmail:', config.companyEmail);
+            console.log(' Valor de companyWebsite:', config.companyWebsite);
             
-            console.log('💾 Datos unificados preparados para el backend:', unifiedClientData);
+            console.log(' IDs de formulario encontrados para campos de empresa:');
+            console.log('- companyName:', document.getElementById('companyName') ? 'companyName' : document.getElementById('company_name') ? 'company_name' : 'no encontrado');
+            console.log('- companyDescription:', document.getElementById('companyDescription') ? 'companyDescription' : document.getElementById('company_description') ? 'company_description' : document.getElementById('description') ? 'description' : 'no encontrado');
+            console.log('- companySector:', document.getElementById('companySector') ? 'companySector' : document.getElementById('company_sector') ? 'company_sector' : document.getElementById('industry') ? 'industry' : 'no encontrado');
+            
+            console.log(' Enviando companyName como:', unifiedClientData.companyName);
+            console.log(' Enviando companyDescription como:', unifiedClientData.companyDescription);
+            console.log(' Enviando companySector como:', unifiedClientData.companySector);
+            
+            console.log(' Datos unificados preparados para el backend:', unifiedClientData);
             
             // USAR ENDPOINT UNIFICADO
+            console.log(' Usando endpoint unificado /api/client');
             console.log('🔄 Usando endpoint unificado /api/client');
             return fetch('/api/client', {
                 method: 'PUT',

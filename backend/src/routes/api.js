@@ -258,6 +258,7 @@ router.get('/api/client', authenticate, async (req, res) => {
 router.put('/api/client', authenticate, async (req, res) => {
   try {
     logger.info('🔄 Redirigiendo PUT /api/client a PUT /client para compatibilidad');
+    logger.info('📝 Body recibido:', JSON.stringify(req.body, null, 2));
     
     // Extraer datos del cuerpo de la petición
     const {
@@ -296,13 +297,24 @@ router.put('/api/client', authenticate, async (req, res) => {
     const updateData = {};
     
     // Actualizar campos directos si están presentes (mapeo correcto)
-    if (companyName) updateData.companyName = companyName;
-    if (companyDescription) updateData.companyDescription = companyDescription;
-    if (companySector) updateData.industry = companySector; // Mapeo correcto
-    if (companyAddress) updateData.address = companyAddress; // Mapeo correcto
-    if (companyPhone) updateData.phone = companyPhone; // Mapeo correcto
-    if (companyWebsite) updateData.website = companyWebsite; // Mapeo correcto
+    logger.info('🔍 Verificando campos de empresa:');
+    logger.info(`- companyName: ${companyName !== undefined ? `"${companyName}"` : 'undefined'}`);
+    logger.info(`- companyDescription: ${companyDescription !== undefined ? `"${companyDescription}"` : 'undefined'}`);
+    logger.info(`- companySector: ${companySector !== undefined ? `"${companySector}"` : 'undefined'}`);
+    logger.info(`- companyAddress: ${companyAddress !== undefined ? `"${companyAddress}"` : 'undefined'}`);
+    logger.info(`- companyPhone: ${companyPhone !== undefined ? `"${companyPhone}"` : 'undefined'}`);
+    logger.info(`- companyWebsite: ${companyWebsite !== undefined ? `"${companyWebsite}"` : 'undefined'}`);
+    
+    // Actualizamos incluso con valores vacíos para asegurar consistencia
+    if (companyName !== undefined) updateData.companyName = companyName;
+    if (companyDescription !== undefined) updateData.companyDescription = companyDescription;
+    if (companySector !== undefined) updateData.industry = companySector; // Mapeo correcto
+    if (companyAddress !== undefined) updateData.address = companyAddress; // Mapeo correcto
+    if (companyPhone !== undefined) updateData.phone = companyPhone; // Mapeo correcto
+    if (companyWebsite !== undefined) updateData.website = companyWebsite; // Mapeo correcto
     // email no se actualiza aquí por seguridad
+    
+    logger.info('✅ Datos de actualización preparados:', JSON.stringify(updateData, null, 2));
     
     // Campos individuales de configuración del bot
     if (botName) updateData.botName = botName;
@@ -336,12 +348,11 @@ router.put('/api/client', authenticate, async (req, res) => {
       if (bot.personality) updateData.botPersonality = bot.personality;
     }
     
-    // Configuraciones JSON complejas (nuevos campos)
+    // Configuración de llamadas (mapear a campos individuales según schema)
     if (callConfig) {
-      updateData.callConfig = {
-        ...(currentClient.callConfig || {}),
-        ...callConfig
-      };
+      if (callConfig.language) updateData.botLanguage = callConfig.language;
+      if (callConfig.greeting) updateData.confirmationMessage = callConfig.greeting;
+      // voiceId no existe en schema - se ignora por ahora
       logger.info(`📞 Actualizando configuración de llamadas para cliente ${req.client.id}`);
     }
     
@@ -396,10 +407,12 @@ router.put('/api/client', authenticate, async (req, res) => {
     }
     
     // Actualizar cliente en la base de datos
+    logger.info(`🔄 Actualizando cliente ${req.client.id} con datos:`, JSON.stringify(updateData, null, 2));
     const updatedClient = await prisma.client.update({
       where: { id: req.client.id },
       data: updateData
     });
+    logger.info('✅ Cliente actualizado correctamente');
     
     return res.json({
       success: true,
@@ -489,7 +502,11 @@ router.get('/client', authenticate, async (req, res) => {
         botPersonality: true,
         companyInfo: true,
         emailConfig: true,
-        notificationConfig: true
+        notificationConfig: true,
+        
+        // FAQs y archivos de contexto
+        faqs: true,
+        contextFiles: true
       }
     });
     
@@ -532,9 +549,12 @@ router.get('/client', authenticate, async (req, res) => {
         language: client.botLanguage || 'es'
       },
       
-      // CONFIGURACIÓN DE LLAMADAS LEGACY ELIMINADA
-      // Esta funcionalidad era parte del sistema legacy y ha sido removida
-      // calls: { ... } - Era parte del sistema botConfig legacy
+      // Configuración de llamadas (mapeada desde campos individuales)
+      callConfig: {
+        language: client.botLanguage || 'es',
+        greeting: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
+        voiceId: 'default' // Campo no existe en schema, valor por defecto
+      },
       
       // Configuración de email
       email: client.emailConfig || {
@@ -549,10 +569,9 @@ router.get('/client', authenticate, async (req, res) => {
         useSSL: false
       },
       
-      // CONFIGURACIONES LEGACY ELIMINADAS:
-      // - aiConfig: Era parte del sistema botConfig legacy
-      // - faqs: Ahora se manejan a través del sistema unificado
-      // - contextFiles: Funcionalidad completamente removida
+      // FAQs y archivos de contexto
+      faqs: client.faqs || [],
+      files: client.contextFiles || [],
       
       // Datos de suscripción
       subscription: {
