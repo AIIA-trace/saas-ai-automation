@@ -2146,7 +2146,7 @@ router.put('/config/bot', authenticate, async (req, res) => {
       }
       
       // 2.4 Manejar archivos de contexto
-      const filesToProcess = contextFiles || files;
+      const filesToProcess = updateData.botConfig.contextFiles;
       if (filesToProcess && (Array.isArray(filesToProcess) || typeof filesToProcess === 'object')) {
         // Eliminar archivos existentes
         await tx.botContextFile.deleteMany({
