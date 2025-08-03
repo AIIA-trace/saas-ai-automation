@@ -436,73 +436,11 @@ function disconnectEmailAccount() {
 /**
  * Guardar configuración manual de IMAP/SMTP
  */
-function saveManualEmailConfig() {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-        toastr.error('Error de autenticación', 'Error');
-        return;
-    }
-    
-    // Obtener valores de los campos
-    const emailAddress = document.getElementById('email_address').value;
-    const emailPassword = document.getElementById('email_password').value;
-    const imapServer = document.getElementById('imap_server').value;
-    const imapPort = document.getElementById('imap_port').value;
-    const smtpServer = document.getElementById('smtp_server').value;
-    const smtpPort = document.getElementById('smtp_port').value;
-    const useSSL = document.getElementById('use_ssl').checked;
-    const emailConsent = document.getElementById('email_consent').checked;
-    
-    // Validar campos requeridos
-    if (!emailAddress || !emailPassword || !imapServer || !imapPort || !smtpServer || !smtpPort) {
-        toastr.error('Todos los campos son obligatorios', 'Error');
-        return;
-    }
-    
-    // Verificar consentimiento
-    if (!emailConsent) {
-        toastr.error('Debes dar tu consentimiento para acceder a tu correo electrónico', 'Error');
-        return;
-    }
-    
-    // Enviar configuración al backend
-    fetch('/api/email/manual-config', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            email: emailAddress,
-            password: emailPassword,
-            imapServer: imapServer,
-            imapPort: parseInt(imapPort),
-            smtpServer: smtpServer,
-            smtpPort: parseInt(smtpPort),
-            useSSL: useSSL,
-            consent: emailConsent
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        toastr.success('Configuración de correo guardada correctamente', 'Configuración guardada');
-        
-        // Actualizar estado de conexión
-        updateEmailConnectionStatus({
-            connected: true,
-            provider: 'other',
-            email: emailAddress
-        });
-    })
-    .catch(error => {
-        console.error('❌ Error al guardar configuración manual de email:', error);
-        toastr.error('Error al guardar configuración', 'Error');
-    });
+/**
+ * Función placeholder para mantener la estructura
+ */
+function placeholderEmailConfig() {
+    console.log('Esta función reemplaza a saveManualEmailConfig');
 }
 
 /**

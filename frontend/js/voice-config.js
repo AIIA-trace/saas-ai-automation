@@ -259,59 +259,9 @@ function generateVoicePreview() {
     });
 }
 
-// Save voice configuration
-function saveVoiceConfig() {
-    const token = localStorage.getItem('authToken');
-    
-    // Show saving indicator
-    const submitBtn = document.querySelector('#voice-config-form button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
-    submitBtn.disabled = true;
-    
-    // Get form values - Estructurado correctamente para el backend
-    const config = {
-        // Usar estructura 'calls' como espera el backend
-        calls: {
-            provider: document.getElementById('voice-provider').value,
-            voiceId: document.querySelector('input[name="voice-selection"]:checked').value,
-            speed: parseFloat(document.getElementById('voice-speed').value)
-        }
-    };
-    
-    fetch('/api/bot/voice', {
-        method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(config)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error saving voice configuration');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Show success message
-        showToast('Configuración de voz guardada correctamente', 'success');
-        
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        
-        // Show error message
-        showToast('Error al guardar la configuración de voz', 'danger');
-        
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
-}
+// ELIMINADO: Función saveVoiceConfig
+// Esta función ha sido eliminada para evitar conflictos
+// con la función unificada de guardado
 
 // Load mock data for demo purposes
 function loadMockVoiceConfig() {

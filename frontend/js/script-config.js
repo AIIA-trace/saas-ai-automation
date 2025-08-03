@@ -287,69 +287,13 @@ function loadScriptInterface(config) {
     });
 }
 
-// Save script configuration
-function saveScriptConfig() {
-    // Show saving indicator
-    const submitBtn = document.querySelector('#script-config-form button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
-    submitBtn.disabled = true;
-    
-    // Get form values
-    const config = {
-        model: document.getElementById('ai-model').value,
-        personality: document.getElementById('personality').value,
-        customPersonality: document.getElementById('custom-personality').value,
-        knowledgeBase: document.getElementById('knowledge-base').value,
-        capabilities: getSelectedCapabilities(),
-        scripts: {
-            intro: document.getElementById('intro-script').value,
-            unknown: document.getElementById('unknown-script').value,
-            forward: document.getElementById('forward-script').value,
-            goodbye: document.getElementById('goodbye-script').value
-        },
-        maxConversationTurns: parseInt(document.getElementById('max-turns').value),
-        silenceTimeoutSeconds: parseInt(document.getElementById('silence-timeout').value),
-        enableTranscriptionSummary: document.getElementById('transcription-summary').checked,
-        saveRecordings: document.getElementById('save-recordings').checked
-    };
-    
-    // Get auth token
-    const token = localStorage.getItem('authToken');
-    
-    // Send to API
-    fetch('/api/bot/script', {
-        method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(config)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error saving script configuration');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Show success message
-        showToast('Configuración de script guardada correctamente', 'success');
-        
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        
-        // Show error message
-        showToast('Error al guardar la configuración de script', 'danger');
-        
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
+// ELIMINADO: Función saveScriptConfig
+// Esta función ha sido eliminada para evitar conflictos
+// con la función unificada de guardado
+
+function placeholderFunction() {
+    // Función vacía para mantener la estructura del código
+    console.log('Esta función reemplaza a saveScriptConfig');
 }
 
 // Helper: Get selected capabilities

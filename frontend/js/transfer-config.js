@@ -156,61 +156,9 @@ function loadTransfersInterface(config) {
     });
 }
 
-// Save transfers configuration
-function saveTransfersConfig() {
-    // Show saving indicator
-    const submitBtn = document.querySelector('#transfers-config-form button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
-    submitBtn.disabled = true;
-    
-    // Get form values
-    const config = {
-        enableTransfers: document.getElementById('enable-transfers').checked,
-        transferOnRequest: document.getElementById('transfer-on-request').checked,
-        transferOnConfusion: document.getElementById('transfer-on-confusion').checked,
-        transferOnComplex: document.getElementById('transfer-on-complex').checked,
-        transferOnLimit: document.getElementById('transfer-on-limit').checked,
-        transferNumbers: getTransferNumbers()
-    };
-    
-    // Get auth token
-    const token = localStorage.getItem('authToken');
-    
-    // Send to API
-    fetch('/api/bot/transfers', {
-        method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(config)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error saving transfers configuration');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Show success message
-        showToast('Configuración de transferencias guardada correctamente', 'success');
-        
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        
-        // Show error message
-        showToast('Error al guardar la configuración de transferencias', 'danger');
-        
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
-}
+// ELIMINADO: Función saveTransfersConfig
+// Esta función ha sido eliminada para evitar conflictos
+// con la función unificada de guardado
 
 // Helper: Get transfer numbers from form
 function getTransferNumbers() {

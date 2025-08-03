@@ -7292,6 +7292,8 @@ let isSavingConfig = false;
 
 function saveUnifiedConfig() {
     return new Promise((resolve, reject) => {
+        console.log('🔴 COMENZANDO CAPTURA COMPLETA DE TODOS LOS CAMPOS DEL FORMULARIO');
+        
         // Protección contra doble ejecución
         if (isSavingConfig) {
             console.warn('⚠️ saveUnifiedConfig ya está en ejecución, ignorando llamada duplicada');
@@ -7303,7 +7305,7 @@ function saveUnifiedConfig() {
         
         // Obtener información del usuario actual
         const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
-        console.log(`💾 Guardando configuración unificada del bot para el usuario ${userId}...`);
+        console.log(`🔥 GUARDANDO TODOS LOS CAMPOS para usuario ${userId}...`);
         
         // Recopilar todos los datos del formulario
         const config = {
@@ -7317,9 +7319,9 @@ function saveUnifiedConfig() {
             companyWebsite: document.getElementById('website')?.value || '', // website en formulario
             
             // Configuración general - IDs corregidos
-            botName: 'Asistente Virtual', // bot_name no existe en HTML, usar valor por defecto
+            botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',
             botPersonality: document.getElementById('bot_personality')?.value || 'professional',
-            welcomeMessage: document.getElementById('call_greeting')?.value || 'Bienvenido a nuestro asistente virtual', // usar call_greeting que sí existe
+            welcomeMessage: document.getElementById('call_greeting')?.value || 'Bienvenido a nuestro asistente virtual',
             businessHours: document.getElementById('business_hours')?.value || 'Lun-Vie: 9:00-18:00',
             
             // Configuración de horarios - IDs corregidos
@@ -7337,43 +7339,80 @@ function saveUnifiedConfig() {
                 sunday: document.getElementById('day-sun')?.checked || false
             },
             
-            // Configuración de llamadas - IDs corregidos
+            // Configuración de llamadas - IDs corregidos y campos completos
             callConfig: {
-                enabled: document.getElementById('call_bot_active')?.checked || false,
-                recordCalls: document.getElementById('call_recording')?.checked || false,
-                transcribeCalls: document.getElementById('call_transcription')?.checked || false,
-                voiceId: document.getElementById('voice_type')?.value || 'female',
-                language: document.getElementById('call_language')?.value || 'es-ES',
-                greeting: document.getElementById('call_greeting')?.value || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?'
+                enabled: document.getElementById('call_bot_active')?.checked || document.getElementById('enable-calls')?.checked || false,
+                recordCalls: document.getElementById('call_recording')?.checked || document.getElementById('record-calls')?.checked || false,
+                transcribeCalls: document.getElementById('call_transcription')?.checked || document.getElementById('transcribe-calls')?.checked || false,
+                voiceId: document.getElementById('voice_type')?.value || document.getElementById('voice-selection')?.value || 'female',
+                language: document.getElementById('call_language')?.value || document.getElementById('language-selection')?.value || 'es-ES',
+                greeting: document.getElementById('call_greeting')?.value || document.getElementById('welcome-message')?.value || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
+                // Campos adicionales con IDs alternativos para mayor compatibilidad
+                volume: document.getElementById('voice_volume')?.value || document.getElementById('voice-volume')?.value || '1.0',
+                speed: document.getElementById('voice_speed')?.value || document.getElementById('voice-speed')?.value || '1.0',
+                pitch: document.getElementById('voice_pitch')?.value || document.getElementById('voice-pitch')?.value || '1.0',
+                useCustomVoice: document.getElementById('use_custom_voice')?.checked || document.getElementById('use-custom-voice')?.checked || false,
+                customVoiceId: document.getElementById('custom_voice_id')?.value || document.getElementById('custom-voice-id')?.value || ''
             },
             
-            // Configuración de emails - Estructura completa
+            // Configuración de emails - Estructura completa con IDs alternativos
             emailConfig: {
-                enabled: document.getElementById('email_bot_active')?.checked || false,
-                provider: document.getElementById('email_provider')?.value || 'gmail',
-                outgoingEmail: document.getElementById('outgoing_email')?.value || '',
-                recipientEmail: document.getElementById('recipient_email')?.value || '',
-                forwardRules: document.getElementById('forward_rules')?.value || '',
-                autoReply: document.getElementById('auto_reply')?.checked || false,
-                autoReplyMessage: document.getElementById('auto_reply_message')?.value || '',
-                language: document.getElementById('email_language')?.value || 'es-ES',
-                emailSignature: document.getElementById('email_signature')?.value || '',
-                emailConsent: document.getElementById('email_consent')?.checked || false,
-                // Configuración de servidores
-                imapServer: document.getElementById('imap_server')?.value || '',
-                imapPort: parseInt(document.getElementById('imap_port')?.value) || 993,
-                smtpServer: document.getElementById('smtp_server')?.value || '',
-                smtpPort: parseInt(document.getElementById('smtp_port')?.value) || 587,
-                useSSL: document.getElementById('use_ssl')?.checked !== false // Default true
+                enabled: document.getElementById('email_bot_active')?.checked || document.getElementById('enable-email')?.checked || false,
+                provider: document.getElementById('email_provider')?.value || document.getElementById('email-provider')?.value || 'gmail',
+                outgoingEmail: document.getElementById('outgoing_email')?.value || document.getElementById('outgoing-email')?.value || '',
+                recipientEmail: document.getElementById('recipient_email')?.value || document.getElementById('recipient-email')?.value || '',
+                forwardRules: document.getElementById('forward_rules')?.value || document.getElementById('forward-rules')?.value || '',
+                autoReply: document.getElementById('autoReplyEnabled')?.checked || document.getElementById('auto-reply-enabled')?.checked || document.getElementById('auto_reply')?.checked || false,
+                autoReplyMessage: document.getElementById('autoReplyMessage')?.value || document.getElementById('auto-reply-message')?.value || document.getElementById('auto_reply_message')?.value || '',
+                language: document.getElementById('email_language')?.value || document.getElementById('email-language')?.value || 'es-ES',
+                emailSignature: document.getElementById('email_signature')?.value || document.getElementById('email-signature')?.value || '',
+                emailConsent: document.getElementById('email_consent')?.checked || document.getElementById('email-consent')?.checked || false,
+                // Configuración de servidores con IDs alternativos
+                imapServer: document.getElementById('imap_server')?.value || document.getElementById('imap-server')?.value || '',
+                imapPort: parseInt(document.getElementById('imap_port')?.value || document.getElementById('imap-port')?.value) || 993,
+                smtpServer: document.getElementById('smtp_server')?.value || document.getElementById('smtp-server')?.value || '',
+                smtpPort: parseInt(document.getElementById('smtp_port')?.value || document.getElementById('smtp-port')?.value) || 587,
+                useSSL: document.getElementById('use_ssl')?.checked || document.getElementById('use-ssl')?.checked !== false, // Default true
+                // Campos adicionales de email-config.js
+                forwardingRules: typeof collectForwardingRules === 'function' ? collectForwardingRules() : []
             },
             
-            // Configuración avanzada de IA
+            // Configuración de transferencias - desde transfer-config.js con IDs alternativos
+            transferConfig: {
+                enableTransfers: document.getElementById('enable-transfers')?.checked || document.getElementById('enable_transfers')?.checked || false,
+                transferOnRequest: document.getElementById('transfer-on-request')?.checked || document.getElementById('transfer_on_request')?.checked || false,
+                transferOnConfusion: document.getElementById('transfer-on-confusion')?.checked || document.getElementById('transfer_on_confusion')?.checked || false,
+                transferOnComplex: document.getElementById('transfer-on-complex')?.checked || document.getElementById('transfer_on_complex')?.checked || false,
+                transferOnLimit: document.getElementById('transfer-on-limit')?.checked || document.getElementById('transfer_on_limit')?.checked || false,
+                transferNumbers: typeof getTransferNumbers === 'function' ? getTransferNumbers() : []
+            },
+            
+            // Configuración de script - desde script-config.js con IDs alternativos
+            scriptConfig: {
+                model: document.getElementById('ai-model')?.value || document.getElementById('ai_model')?.value || document.getElementById('model')?.value || 'gpt-3.5-turbo',
+                personality: document.getElementById('personality')?.value || document.getElementById('bot_personality')?.value || 'professional',
+                customPersonality: document.getElementById('custom-personality')?.value || document.getElementById('custom_personality')?.value || '',
+                knowledgeBase: document.getElementById('knowledge-base')?.value || document.getElementById('knowledge_base')?.value || '',
+                capabilities: typeof getSelectedCapabilities === 'function' ? getSelectedCapabilities() : [],
+                scripts: {
+                    intro: document.getElementById('intro-script')?.value || document.getElementById('intro_script')?.value || document.getElementById('welcome-message')?.value || '',
+                    unknown: document.getElementById('unknown-script')?.value || document.getElementById('unknown_script')?.value || document.getElementById('retry-prompt')?.value || '',
+                    forward: document.getElementById('forward-script')?.value || document.getElementById('forward_script')?.value || document.getElementById('transfer-message')?.value || '',
+                    goodbye: document.getElementById('goodbye-script')?.value || document.getElementById('goodbye_script')?.value || document.getElementById('goodbye-message')?.value || ''
+                },
+                maxConversationTurns: parseInt(document.getElementById('max-turns')?.value || document.getElementById('max_turns')?.value) || 10,
+                silenceTimeoutSeconds: parseInt(document.getElementById('silence-timeout')?.value || document.getElementById('silence_timeout')?.value) || 5,
+                enableTranscriptionSummary: document.getElementById('transcription-summary')?.checked || document.getElementById('transcription_summary')?.checked || false,
+                saveRecordings: document.getElementById('save-recordings')?.checked || document.getElementById('save_recordings')?.checked || false
+            },
+            
+            // Configuración avanzada de IA con IDs alternativos
             aiConfig: {
-                temperature: parseFloat(document.getElementById('ai_temperature')?.value || '0.7'),
-                max_tokens: parseInt(document.getElementById('ai_max_tokens')?.value || '150'),
-                top_p: parseFloat(document.getElementById('ai_top_p')?.value || '0.9'),
-                frequency_penalty: parseFloat(document.getElementById('ai_frequency_penalty')?.value || '0.0'),
-                presence_penalty: parseFloat(document.getElementById('ai_presence_penalty')?.value || '0.0')
+                temperature: parseFloat(document.getElementById('ai_temperature')?.value || document.getElementById('ai-temperature')?.value || document.getElementById('temperature')?.value || '0.7'),
+                max_tokens: parseInt(document.getElementById('ai_max_tokens')?.value || document.getElementById('ai-max-tokens')?.value || document.getElementById('max_tokens')?.value || '150'),
+                top_p: parseFloat(document.getElementById('ai_top_p')?.value || document.getElementById('ai-top-p')?.value || document.getElementById('top_p')?.value || '0.9'),
+                frequency_penalty: parseFloat(document.getElementById('ai_frequency_penalty')?.value || document.getElementById('ai-frequency-penalty')?.value || document.getElementById('frequency_penalty')?.value || '0.0'),
+                presence_penalty: parseFloat(document.getElementById('ai_presence_penalty')?.value || document.getElementById('ai-presence-penalty')?.value || document.getElementById('presence_penalty')?.value || '0.0')
             },
             
             // Preguntas frecuentes
@@ -7560,50 +7599,86 @@ function saveUnifiedConfig() {
             
             console.log('📤 Enviando configuración unificada al backend:', botConfigData);
             
-            // Preparar objeto unificado para enviar al endpoint centralizado /api/client
-            // REESTRUCTURADO: Formato exactamente como lo espera el backend según api.js
+            // SOLUCIÓN FINAL: Formato híbrido con campos tanto directos como anidados
+            // para garantizar la compatibilidad con el backend actualizado
             const unifiedClientData = {
-                // Datos del perfil como objeto profile
+                // IMPORTANTE: Campos críticos en nivel superior (directos)
+                companyName: config.companyName, 
+                companyDescription: config.companyDescription,
+                companySector: config.companySector,
+                companyAddress: config.companyAddress,
+                companyPhone: config.companyPhone,
+                companyEmail: config.companyEmail,
+                companyWebsite: config.companyWebsite,
+                
+                // DUPLICAR en structure profile para compatibilidad con versiones
                 profile: {
                     companyName: config.companyName,
                     companyDescription: config.companyDescription,
-                    industry: config.companySector, // Se mapea industry como espera el backend
+                    industry: config.companySector,
                     address: config.companyAddress,
                     phone: config.companyPhone,
                     email: config.companyEmail,
                     website: config.companyWebsite
                 },
                 
-                // Configuración del bot como objeto bot
+                // Configuración del bot (tanto plana como anidada)
+                botName: config.botName,
+                botPersonality: config.botPersonality,
+                welcomeMessage: config.welcomeMessage,
                 bot: {
                     name: config.botName,
                     personality: config.botPersonality,
+                    welcomeMessage: config.welcomeMessage,
                     workingHours: config.workingHours,
                     workingDays: config.workingDays
                 },
                 
-                // Configuración de llamadas
+                // Configuración de llamadas y horarios
+                workingHours: config.workingHours,
+                workingDays: config.workingDays,
+                callConfig: config.callConfig,
                 calls: config.callConfig,
                 
                 // Configuración de email
+                emailConfig: config.emailConfig,
                 email: config.emailConfig,
+                
+                // Configuración de transferencias (ambos formatos)
+                transferConfig: config.transferConfig,
+                transfers: config.transferConfig,
+                
+                // Configuración de scripts (ambos formatos)
+                scriptConfig: config.scriptConfig,
+                script: config.scriptConfig,
                 
                 // Configuración de IA
                 aiConfig: config.aiConfig,
+                ai: config.aiConfig, // duplicado para compatibilidad
                 
                 // FAQs
                 faqs: config.faqs,
                 
                 // Archivos de contexto
-                contextFiles: botConfigData.contextFiles
+                files: botConfigData.contextFiles,
+                contextFiles: botConfigData.contextFiles,
+                
+                // Campos adicionales para asegurar compatibilidad con legacy
+                modelName: config.scriptConfig?.model || 'gpt-3.5-turbo',
+                personality: config.scriptConfig?.personality || config.botPersonality || 'professional',
+                customPersonality: config.scriptConfig?.customPersonality || '',
+                capabilities: config.scriptConfig?.capabilities || []
             };
             
-            console.log('🛠️ Datos reestructurados para coincidir exactamente con el backend:', unifiedClientData);
+            // Añadir logs específicos para companyName
+            console.log('🏢 Valor de companyName:', config.companyName);
+            console.log('🔍 Elemento DOM companyName:', document.getElementById('companyName'));
+            console.log('📤 Enviando companyName como:', unifiedClientData.companyName);
             
-            console.log('💾 Datos unificados preparados para /api/client:', unifiedClientData);
+            console.log('💾 Datos unificados preparados para el backend:', unifiedClientData);
             
-            // USAR ENDPOINT DIRECTO: Asegurarnos de que se use la ruta correcta
-            console.log('🔄 Usando endpoint directo /api/config/bot para mayor compatibilidad');
+            // USAR ENDPOINT DIRECTO
+            console.log('🔄 Usando endpoint directo /api/config/bot');
             return fetch('/api/config/bot', {
                 method: 'PUT',
                 headers: {
@@ -7638,14 +7713,43 @@ function saveUnifiedConfig() {
                 }
             }
             
-            toastr.success('Guardado', 'Configuración');
+            // MEJORA UX: Mostrar mensaje de guardado visible por exactamente 2 segundos
+            const saveButton = document.querySelector('#saveConfigButton');
+            const originalText = saveButton ? saveButton.innerHTML : 'Guardar';
             
-            // Recargar automáticamente la configuración después de guardar exitosamente
-            console.log('🔄 Recargando configuración después de guardar exitosamente...');
+            // 1. Actualizar botón con mensaje de guardado
+            if (saveButton) {
+                saveButton.innerHTML = '<i class="fas fa-check-circle"></i> Guardado';
+                saveButton.classList.add('btn-success');
+                saveButton.classList.remove('btn-primary');
+                saveButton.disabled = true;
+            }
+            
+            // 2. Mostrar notificación toastr prominente
+            toastr.options = {
+                closeButton: false,
+                positionClass: "toast-top-center",
+                timeOut: 2000,
+                extendedTimeOut: 0,
+                tapToDismiss: false
+            };
+            toastr.success('Cambios guardados correctamente', 'Guardado');
+            
+            // 3. Recargar configuración y restaurar botón después de exactamente 2 segundos
+            console.log('💾 Guardado exitoso. Restaurando UI en 2 segundos exactos...');
             setTimeout(() => {
+                // Restaurar el botón
+                if (saveButton) {
+                    saveButton.innerHTML = originalText;
+                    saveButton.classList.add('btn-primary');
+                    saveButton.classList.remove('btn-success');
+                    saveButton.disabled = false;
+                }
+                
+                // Recargar datos
                 loadBotConfiguration();
-                console.log('✅ Configuración recargada automáticamente');
-            }, 1000); // Delay de 1 segundo para asegurar que el backend haya procesado los cambios
+                console.log('✅ Configuración recargada y UI restaurada');
+            }, 2000); // Exactamente 2 segundos como solicitó el usuario
             
             resolve();
         })
@@ -8112,7 +8216,42 @@ function collectFaqItems() {
         }
     });
     
+    console.log('📋 FAQs recopiladas:', faqs.length);
     return faqs;
+}
+
+/**
+ * Recopila todas las reglas de reenvío de email configuradas
+ * Esta función es usada por saveUnifiedConfig para asegurar que todas las reglas sean guardadas
+ * @returns {Array} Array de reglas de reenvío
+ */
+function collectForwardingRules() {
+    const rulesContainer = document.getElementById('forwardingRulesList');
+    if (!rulesContainer) return [];
+    
+    const rules = [];
+    const ruleElements = rulesContainer.querySelectorAll('.card');
+    
+    ruleElements.forEach((ruleElement) => {
+        const index = ruleElement.querySelector('[data-rule-index]')?.dataset.ruleIndex;
+        if (index !== undefined) {
+            const condition = ruleElement.querySelector(`[data-rule-index="${index}"][data-field="condition"]`)?.value || 'subject_contains';
+            const value = ruleElement.querySelector(`[data-rule-index="${index}"][data-field="value"]`)?.value || '';
+            const recipients = ruleElement.querySelector(`[data-rule-index="${index}"][data-field="recipients"]`)?.value || '';
+            
+            // Solo añadir si hay algo significativo
+            if (value.trim() !== '') {
+                rules.push({
+                    condition: condition,
+                    value: value.trim(),
+                    recipients: recipients.split(',').map(email => email.trim()).filter(email => email)
+                });
+            }
+        }
+    });
+    
+    console.log('📧 Reglas de reenvío recopiladas:', rules.length);
+    return rules;
 }
 
 /**

@@ -221,65 +221,13 @@ function loadBotConfigInterface(config) {
     });
 }
 
-// Save general configuration
-function saveGeneralConfig() {
-    // Show saving indicator
-    const submitBtn = document.querySelector('#general-config-form button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
-    submitBtn.disabled = true;
-    
-    // Get form values
-    const config = {
-        botName: document.getElementById('bot-name').value,
-        companyName: document.getElementById('company-name').value,
-        language: document.getElementById('language').value,
-        greetingMessage: document.getElementById('greeting-message').value,
-        businessHours: {
-            open: document.getElementById('open-time').value,
-            close: document.getElementById('close-time').value
-        },
-        workDays: getSelectedWorkDays(),
-        afterHoursMode: document.getElementById('after-hours-mode').checked,
-        afterHoursMessage: document.getElementById('after-hours-message').value
-    };
-    
-    // Get auth token
-    const token = localStorage.getItem('authToken');
-    
-    // Send to API
-    fetch('/api/bot/config', {
-        method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(config)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error saving configuration');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Show success message
-        showToast('Configuración guardada correctamente', 'success');
-        
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        
-        // Show error message
-        showToast('Error al guardar la configuración', 'danger');
-        
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
+// FUNCIÓN DE GUARDADO ELIMINADA
+// La función saveGeneralConfig ha sido eliminada para evitar conflictos
+// con la función unificada de guardado
+
+function showSavingError() {
+    console.log('Esta función reemplaza el manejo de errores de la anterior');
+    // Solo para mantener la estructura del código
 }
 
 // Helper: Get selected work days

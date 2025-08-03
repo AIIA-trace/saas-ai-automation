@@ -1999,65 +1999,10 @@ router.get('/config/bot', authenticate, async (req, res) => {
  */
 router.put('/config/bot', authenticate, async (req, res) => {
   try {
-    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto PUT /config/bot usado por cliente ${req.client?.id}`);
-    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a PUT /api/client antes de la próxima actualización');
-    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
+    logger.info(`🔧 Procesando actualización de configuración para cliente ${req.client?.id}`);
+    logger.info(`📦 Datos recibidos: ${JSON.stringify(req.body)}`);
     
-    // Función para normalizar nombres de campo y mantener compatibilidad con frontend
-    // mientras se usa la nomenclatura exacta de la base de datos
-    function normalizeFieldNames(data) {
-      const normalized = {};
-      
-      // Mapeo explícito de nombres de campo inconsistentes
-      const fieldMappings = {
-        // AI Config
-        'maxTokens': 'max_tokens',
-        
-        // DTMF Options
-        'message': 'description',
-        
-        // Files
-        'url': 'file_url',
-        'type': 'file_type',
-        'size': 'file_size',
-        
-        // Otros mapeos que puedan ser necesarios
-      };
-      
-      // Copiar todos los campos, normalizando los nombres si es necesario
-      if (!data) return normalized;
-      
-      Object.keys(data).forEach(key => {
-        const normalizedKey = fieldMappings[key] || key;
-        normalized[normalizedKey] = data[key];
-      });
-      
-      return normalized;
-    }
-    
-    // Extraer datos del request body
-    const {
-      // Información de empresa
-      companyName, companyDescription, companySector, companyAddress, companyPhone, companyEmail, companyWebsite,
-      // Configuración general
-      botName, botPersonality, welcomeMessage, businessHours,
-      // Configuración de horarios
-      workingHours, workingDays,
-      // Configuración de llamadas
-      callConfig,
-      // Configuración de emails
-      emailConfig,
-      // Configuración avanzada de IA
-      aiConfig,
-      // Preguntas frecuentes
-      faqs,
-      // Archivos de contexto
-      files, contextFiles,
-      // Campos legacy para compatibilidad
-      voiceId, language, confirmationMessage, dtmfOptions, personality
-    } = req.body;
-    
-    // Obtener configuración actual del cliente
+    // Obtener configuración actual del cliente para preservar datos existentes
     const currentClient = await prisma.client.findUnique({
       where: { id: req.client.id }
     });
@@ -2065,96 +2010,75 @@ router.put('/config/bot', authenticate, async (req, res) => {
     if (!currentClient) {
       return res.status(404).json({ error: 'Cliente no encontrado', success: false });
     }
-    
-    // Preparar datos para actualización en las tablas normalizadas
-    const updateData = {};
-    
-    // 1. Actualizar campos directos en Client
-    // Estos campos antes estaban en botConfig pero ahora son columnas propias
-    updateData.botName = botName || currentClient.botName || 'Asistente Virtual';
-    updateData.botPersonality = botPersonality || personality || currentClient.botPersonality || 'professional';
-    updateData.welcomeMessage = welcomeMessage || confirmationMessage || currentClient.welcomeMessage || '';
-    updateData.confirmationMessage = confirmationMessage || welcomeMessage || currentClient.confirmationMessage || '';
-    
-    // Configuración de horarios
-    if (workingHours) {
-      updateData.workingHoursOpening = workingHours.opening || currentClient.workingHoursOpening || '09:00';
-      updateData.workingHoursClosing = workingHours.closing || currentClient.workingHoursClosing || '18:00';
-    }
-    
-    if (workingDays) {
-      updateData.workingDays = workingDays;
-    }
-    
-    // Campos legacy para compatibilidad
-    updateData.botLanguage = language || callConfig?.language || currentClient.botLanguage || 'es-ES';
-    
-    // También mantener la estructura botConfig temporalmente para compatibilidad
-    // mientras se completa la migración
+
+    // Extraer los datos del cuerpo, soportando tanto estructura plana como anidada
+    const profile = req.body.profile || {};
+    const currentCompanyInfo = currentClient.companyInfo || {};
     const currentBotConfig = currentClient.botConfig || {};
-    const newBotConfig = {
-      ...currentBotConfig,
-      // Información básica
-      name: botName || currentBotConfig.name || 'Asistente Virtual',
-      personality: botPersonality || personality || currentBotConfig.personality || 'professional',
-      welcomeMessage: welcomeMessage || confirmationMessage || currentBotConfig.welcomeMessage || currentBotConfig.confirmationMessage || '',
-      businessHours: businessHours || currentBotConfig.businessHours || '',
+    const currentEmailConfig = currentClient.emailConfig || {};
+    
+    // Construir datos de actualización siguiendo el patrón exitoso del registro
+    const updateData = {
+      // Campos directos de la empresa - prioridad a campos del objeto profile
+      companyName: profile.companyName || req.body.companyName || currentClient.companyName,
+      companyDescription: profile.companyDescription || req.body.companyDescription || currentClient.companyDescription,
+      industry: profile.industry || req.body.companySector || req.body.industry || currentClient.industry,
+      address: profile.address || req.body.companyAddress || req.body.address || currentClient.address,
+      phone: profile.phone || req.body.companyPhone || req.body.phone || currentClient.phone,
+      email: profile.email || req.body.companyEmail || req.body.email || currentClient.email,
+      website: profile.website || req.body.companyWebsite || req.body.website || currentClient.website,
       
-      // Configuración de horarios
-      workingHours: workingHours || currentBotConfig.workingHours || {},
-      workingDays: workingDays || currentBotConfig.workingDays || {},
-      
-      // Configuración de llamadas
-      callConfig: callConfig ? {
-        ...currentBotConfig.callConfig,
-        ...callConfig
-      } : currentBotConfig.callConfig || {},
-      
-      // Configuración avanzada de IA
-      aiConfig: aiConfig ? {
-        ...currentBotConfig.aiConfig,
-        ...aiConfig
-      } : currentBotConfig.aiConfig || {},
-      
-      // Preguntas frecuentes
-      faqs: faqs || currentBotConfig.faqs || [],
-      
-      // Archivos de contexto
-      contextFiles: contextFiles || files || currentBotConfig.contextFiles || {},
-      
-      // Campos legacy para compatibilidad
-      voiceId: voiceId || callConfig?.voiceId || currentBotConfig.voiceId || process.env.ELEVENLABS_VOICE_ID || 'female',
-      language: language || callConfig?.language || currentBotConfig.language || 'es-ES',
-      confirmationMessage: confirmationMessage || welcomeMessage || callConfig?.greeting || currentBotConfig.confirmationMessage || '',
-      dtmfOptions: dtmfOptions || currentBotConfig.dtmfOptions || []
+      // Campos de configuración del bot
+      botName: req.body.bot?.name || req.body.botName || currentClient.botName || 'Asistente Virtual',
+      botPersonality: req.body.bot?.personality || req.body.botPersonality || req.body.personality || currentClient.botPersonality || 'professional',
+      welcomeMessage: req.body.bot?.welcomeMessage || req.body.welcomeMessage || req.body.confirmationMessage || currentClient.welcomeMessage || '',
     };
     
-    updateData.botConfig = newBotConfig;
+    // Log específico para seguimiento de companyName
+    logger.info(`🔍 Valor de companyName para actualizar: '${updateData.companyName}'`);
+    logger.info(`🔍 Origen: ${profile.companyName ? 'profile.companyName' : req.body.companyName ? 'req.body.companyName' : 'currentClient.companyName'}`);
     
-    // Actualizar todos los campos directamente en la tabla Client
-    if (companyName) updateData.companyName = companyName;
-    if (companySector) updateData.industry = companySector;
-    if (companyDescription) updateData.companyDescription = companyDescription;
-    if (companyAddress) updateData.address = companyAddress;
-    if (companyPhone) updateData.phone = companyPhone;
-    if (companyEmail) updateData.email = companyEmail;
-    if (companyWebsite) updateData.website = companyWebsite;
+    // Configuración del bot
+    updateData.botConfig = {
+      ...currentBotConfig,
+      name: updateData.botName,
+      personality: updateData.botPersonality,
+      welcomeMessage: updateData.welcomeMessage,
+      workingHours: req.body.bot?.workingHours || req.body.workingHours || currentBotConfig.workingHours || {},
+      workingDays: req.body.bot?.workingDays || req.body.workingDays || currentBotConfig.workingDays || {}, 
+      callConfig: req.body.calls || req.body.callConfig || currentBotConfig.callConfig || {},
+      aiConfig: req.body.aiConfig || currentBotConfig.aiConfig || {},
+      faqs: req.body.faqs || currentBotConfig.faqs || [],
+      contextFiles: req.body.contextFiles || req.body.files || currentBotConfig.contextFiles || {}
+    };
     
-    // Construir configuración de email
-    const currentEmailConfig = currentClient.emailConfig || {};
-    if (emailConfig) {
-      const newEmailConfig = {
-        ...currentEmailConfig,
-        ...emailConfig
-      };
-      updateData.emailConfig = newEmailConfig;
-    }
+    // Configuración de la empresa en formato JSON
+    updateData.companyInfo = {
+      ...currentCompanyInfo,
+      name: updateData.companyName,
+      description: updateData.companyDescription,
+      sector: updateData.industry,
+      address: updateData.address,
+      phone: updateData.phone,
+      email: updateData.email,
+      website: updateData.website
+    };
     
-    // Estos campos ya están actualizados arriba
+    // Configuración de email
+    updateData.emailConfig = {
+      ...currentEmailConfig,
+      ...(req.body.email || req.body.emailConfig || {})
+    };
     
-    logger.info('Datos preparados para actualización:', JSON.stringify(updateData, null, 2));
+    // Registrar los datos que se actualizarán
+    logger.info(`✅ Datos de actualización preparados: ${JSON.stringify(updateData)}`);
     
-    // 2. Crear o actualizar entradas en tablas relacionadas
+    // Ya hemos construido todos los campos de actualización en la parte anterior
+    // Ahora procedemos a guardar en la base de datos
+    
+    // Extra: Agregar timestamp para seguimiento de actualizaciones
+    updateData.updatedAt = new Date();
+    
     // Actualizar cliente en la base de datos utilizando una transacción para asegurar consistencia
     const updatedClient = await prisma.$transaction(async (tx) => {
       // 2.1 Actualizar cliente con los campos directos

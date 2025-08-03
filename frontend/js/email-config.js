@@ -492,23 +492,9 @@ class EmailConfig {
         }
     }
 
-    // Actualizar UI de configuración
-    updateConfigUI() {
-        // Autorespuesta
-        const autoReplyToggle = document.getElementById('autoReplyEnabled');
-        const autoReplyMessage = document.getElementById('autoReplyMessage');
-        
-        if (autoReplyToggle) {
-            autoReplyToggle.checked = this.currentConfig.autoReply || false;
-        }
-        
-        if (autoReplyMessage) {
-            autoReplyMessage.value = this.currentConfig.autoReplyMessage || '';
-        }
-
-        // Reglas de reenvío
-        this.updateForwardingRulesUI();
-    }
+    // ELIMINADO: Función updateConfigUI
+    // Esta función ha sido eliminada para evitar conflictos
+    // con la función unificada de guardado y actualización
 
     // Actualizar UI de reglas de reenvío
     updateForwardingRulesUI() {
@@ -649,39 +635,9 @@ class EmailConfig {
         });
     }
 
-    // Guardar configuración de emails
-    async saveEmailConfig() {
-        try {
-            const autoReply = document.getElementById('autoReplyEnabled')?.checked || false;
-            const autoReplyMessage = document.getElementById('autoReplyMessage')?.value || '';
-
-            const configData = {
-                autoReply,
-                autoReplyMessage,
-                forwardingRules: this.currentConfig.forwardingRules || []
-            };
-
-            // Usar el endpoint unificado /api/client en lugar del legacy /api/config/email
-            const response = await fetch(`${API_BASE_URL}/api/client`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${authService.getToken()}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(configData)
-            });
-
-            if (response.ok) {
-                this.currentConfig = await response.json();
-                console.log('Configuración de emails guardada correctamente');
-            } else {
-                throw new Error('Error guardando configuración');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            console.error('Error guardando configuración de emails');
-        }
-    }
+    // ELIMINADO: Función saveEmailConfig
+    // Esta función ha sido eliminada para evitar conflictos
+    // con la función unificada de guardado
 
     // Añadir regla de reenvío
     addForwardingRule() {
