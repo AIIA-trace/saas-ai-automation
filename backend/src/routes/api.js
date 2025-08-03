@@ -706,6 +706,7 @@ router.put('/client', authenticate, async (req, res) => {
     const profileData = profile ? {
       companyName: profile.companyName,
       contactName: profile.contactName,
+      email: profile.email,
       phone: profile.phone,
       industry: profile.industry,
       address: profile.address,
