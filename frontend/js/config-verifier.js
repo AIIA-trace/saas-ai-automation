@@ -27,26 +27,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Obtener la URL base de la API
             const apiBaseUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
             
-            // Intentar primero el endpoint específico de verificación
-            let response = await fetch(`${apiBaseUrl}/api/config/verify-bot-config`, {
+            // Usar el endpoint unificado /api/client
+            const response = await fetch(`${apiBaseUrl}/api/client`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 }
             });
-            
-            // Si el endpoint específico no existe, usar el endpoint unificado /api/client
-            if (response.status === 404) {
-                console.log('Endpoint de verificación no encontrado, usando endpoint unificado /api/client...');
-                response = await fetch(`${apiBaseUrl}/api/client`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-            }
             
             // Procesar la respuesta
             if (!response.ok) {
@@ -60,11 +48,8 @@ document.addEventListener('DOMContentLoaded', function() {
             configResults.classList.remove('d-none');
             configData.innerHTML = JSON.stringify(data, null, 2);
             
-            // Destacar información de archivos de contexto
-            if (data.botConfig && data.botConfig.contextFiles) {
-                configData.innerHTML += "\n\n--- ARCHIVOS DE CONTEXTO ---\n";
-                configData.innerHTML += JSON.stringify(data.botConfig.contextFiles, null, 2);
-            } else if (data.contextFiles) {
+            // Destacar información de archivos de contexto del nuevo sistema
+            if (data.contextFiles) {
                 configData.innerHTML += "\n\n--- ARCHIVOS DE CONTEXTO ---\n";
                 configData.innerHTML += JSON.stringify(data.contextFiles, null, 2);
             }

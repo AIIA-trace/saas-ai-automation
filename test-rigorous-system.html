@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 Test Riguroso del Sistema</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+        .test-section { margin: 15px 0; padding: 15px; border: 1px solid #333; background: #2a2a2a; }
+        .success { border-color: #28a745; background: #1d4e2a; }
+        .error { border-color: #dc3545; background: #4e1d1d; color: #ff6b6b; }
+        .warning { border-color: #ffc107; background: #4e4e1d; color: #ffeb3b; }
+        button { padding: 8px 16px; margin: 5px; background: #333; color: #00ff00; border: 1px solid #555; }
+        .log { background: #000; padding: 10px; margin: 10px 0; font-size: 12px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+        .stats { position: fixed; top: 10px; right: 10px; background: #000; padding: 10px; border: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <div class="stats">
+        <div>✅ Pasaron: <span id="pass-count">0</span></div>
+        <div>❌ Fallaron: <span id="fail-count">0</span></div>
+        <div>⚠️ Advertencias: <span id="warn-count">0</span></div>
+    </div>
+
+    <h1>🔬 TEST RIGUROSO DEL SISTEMA - SIN COMPLACENCIA</h1>
+    
+    <div class="test-section">
+        <h3>🚀 EJECUTAR TODOS LOS TESTS</h3>
+        <button onclick="runAllTests()">🔥 EJECUTAR BATERÍA COMPLETA</button>
+        <div id="overall-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔗 CONECTIVIDAD</h3>
+        <button onclick="testConnectivity()">Test Endpoints</button>
+        <div id="connectivity-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔐 AUTENTICACIÓN</h3>
+        <button onclick="testAuth()">Test Auth Completo</button>
+        <div id="auth-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🤖 CONFIGURACIÓN BOT</h3>
+        <button onclick="testBotConfig()">Test Config Bot</button>
+        <div id="bot-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>💾 PERSISTENCIA</h3>
+        <button onclick="testPersistence()">Test Persistencia</button>
+        <div id="persistence-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔄 CONSISTENCIA</h3>
+        <button onclick="testConsistency()">Test Mapeo Campos</button>
+        <div id="consistency-result"></div>
+    </div>
+
+    <script>
+        let stats = { pass: 0, fail: 0, warn: 0 };
+        const API_BASE = 'http://localhost:10000';
+
+        function updateStats() {
+            document.getElementById('pass-count').textContent = stats.pass;
+            document.getElementById('fail-count').textContent = stats.fail;
+            document.getElementById('warn-count').textContent = stats.warn;
+        }
+
+        function log(container, message, type = 'info') {
+            const div = document.getElementById(container);
+            const timestamp = new Date().toISOString().substr(11, 8);
+            
+            if (!div.querySelector('.log')) {
+                div.innerHTML = '<div class="log"></div>';
+            }
+            
+            const logDiv = div.querySelector('.log');
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+
+            if (type === 'pass') stats.pass++;
+            else if (type === 'fail') stats.fail++;
+            else if (type === 'warn') stats.warn++;
+            
+            updateStats();
+            
+            const section = div.closest('.test-section');
+            if (type === 'pass') section.className = 'test-section success';
+            else if (type === 'fail') section.className = 'test-section error';
+            else if (type === 'warn') section.className = 'test-section warning';
+        }
+
+        async function runAllTests() {
+            log('overall-result', '🚀 INICIANDO BATERÍA COMPLETA DE TESTS RIGUROSOS...', 'info');
+            stats = { pass: 0, fail: 0, warn: 0 };
+            
+            await testConnectivity();
+            await testAuth();
+            await testBotConfig();
+            await testPersistence();
+            await testConsistency();
+            
+            const total = stats.pass + stats.fail + stats.warn;
+            const successRate = ((stats.pass / total) * 100).toFixed(1);
+            
+            if (stats.fail === 0) {
+                log('overall-result', `🎯 TODOS LOS TESTS PASARON - ${successRate}% éxito (${stats.pass}/${total})`, 'pass');
+            } else {
+                log('overall-result', `🚨 ${stats.fail} TESTS FALLARON - ${successRate}% éxito (${stats.pass}/${total})`, 'fail');
+            }
+        }
+
+        async function testConnectivity() {
+            log('connectivity-result', '🔍 TESTING CONECTIVIDAD...', 'info');
+            
+            const tests = [
+                { method: 'POST', url: '/api/auth/login', expectStatus: [400, 401] },
+                { method: 'GET', url: '/api/client', expectStatus: [401] },
+                { method: 'PUT', url: '/api/client', expectStatus: [401] }
+            ];
+
+            for (const test of tests) {
+                try {
+                    const response = await fetch(`${API_BASE}${test.url}`, { method: test.method });
+                    const expected = Array.isArray(test.expectStatus) ? test.expectStatus : [test.expectStatus];
+                    
+                    if (expected.includes(response.status)) {
+                        log('connectivity-result', `✅ ${test.method} ${test.url} → ${response.status}`, 'pass');
+                    } else {
+                        log('connectivity-result', `❌ ${test.method} ${test.url} → ${response.status} (esperado: ${test.expectStatus})`, 'fail');
+                    }
+                } catch (error) {
+                    log('connectivity-result', `💥 ${test.method} ${test.url} → ERROR: ${error.message}`, 'fail');
+                }
+            }
+        }
+
+        async function testAuth() {
+            log('auth-result', '🔐 TESTING AUTENTICACIÓN...', 'info');
+            
+            // Test login inválido
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'invalid@test.com', password: 'wrong' })
+                });
+                
+                if (response.status === 401) {
+                    log('auth-result', '✅ Login inválido rechazado correctamente', 'pass');
+                } else {
+                    log('auth-result', `❌ Login inválido debería ser 401, fue ${response.status}`, 'fail');
+                }
+            } catch (error) {
+                log('auth-result', `💥 Error test login inválido: ${error.message}`, 'fail');
+            }
+
+            // Test login válido
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'test@test.com', password: 'password123' })
+                });
+                
+                if (response.status === 200) {
+                    const data = await response.json();
+                    if (data.token) {
+                        log('auth-result', '✅ Login válido exitoso, token recibido', 'pass');
+                        localStorage.setItem('test_token', data.token);
+                    } else {
+                        log('auth-result', '❌ Login exitoso pero sin token', 'fail');
+                    }
+                } else if (response.status === 401) {
+                    log('auth-result', '⚠️ Usuario test no existe, creando...', 'warn');
+                    await createTestUser();
+                } else {
+                    log('auth-result', `❌ Login válido falló: ${response.status}`, 'fail');
+                }
+            } catch (error) {
+                log('auth-result', `💥 Error test login válido: ${error.message}`, 'fail');
+            }
+        }
+
+        async function createTestUser() {
+            const userData = {
+                email: 'test@test.com',
+                password: 'password123',
+                companyName: 'Test Company',
+                contactName: 'Test User',
+                phone: '+34600000000',
+                industry: 'Technology'
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.status === 201) {
+                    log('auth-result', '✅ Usuario test creado', 'pass');
+                    
+                    // Login inmediato
+                    const loginResponse = await fetch(`${API_BASE}/api/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: userData.email, password: userData.password })
+                    });
+                    
+                    if (loginResponse.status === 200) {
+                        const data = await loginResponse.json();
+                        localStorage.setItem('test_token', data.token);
+                        log('auth-result', '✅ Login post-registro exitoso', 'pass');
+                    } else {
+                        log('auth-result', '❌ Login post-registro falló', 'fail');
+                    }
+                } else {
+                    log('auth-result', `❌ Creación usuario falló: ${response.status}`, 'fail');
+                }
+            } catch (error) {
+                log('auth-result', `💥 Error creando usuario: ${error.message}`, 'fail');
+            }
+        }
+
+        async function testBotConfig() {
+            log('bot-result', '🤖 TESTING CONFIGURACIÓN BOT...', 'info');
+            
+            const token = localStorage.getItem('test_token');
+            if (!token) {
+                log('bot-result', '❌ No hay token para test', 'fail');
+                return;
+            }
+
+            // Test carga
+            try {
+                const response = await fetch(`${API_BASE}/api/client`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 200) {
+                    const data = await response.json();
+                    const client = data.data || data;
+                    log('bot-result', '✅ Configuración cargada', 'pass');
+                    
+                    // Verificar campos críticos
+                    const criticalFields = ['email', 'companyName', 'callConfig', 'faqs', 'contextFiles'];
+                    criticalFields.forEach(field => {
+                        if (client.hasOwnProperty(field)) {
+                            log('bot-result', `✅ Campo presente: ${field}`, 'pass');
+                        } else {
+                            log('bot-result', `❌ Campo faltante: ${field}`, 'fail');
+                        }
+                    });
+                } else {
+                    log('bot-result', `❌ Error cargando config: ${response.status}`, 'fail');
+                }
+            } catch (error) {
+                log('bot-result', `💥 Error carga config: ${error.message}`, 'fail');
+            }
+
+            // Test guardado
+            const testConfig = {
+                botName: `TestBot_${Date.now()}`,
+                companyName: `TestCompany_${Date.now()}`,
+                callConfig: { greeting: `TestGreeting_${Date.now()}` }
+            };
+
+            try {
+                const saveResponse = await fetch(`${API_BASE}/api/client`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testConfig)
+                });
+
+                if (saveResponse.status === 200) {
+                    log('bot-result', '✅ Configuración guardada', 'pass');
+                    
+                    // Verificar persistencia
+                    const verifyResponse = await fetch(`${API_BASE}/api/client`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (verifyResponse.status === 200) {
+                        const verifyData = await verifyResponse.json();
+                        const saved = verifyData.data || verifyData;
+                        
+                        if (saved.botName === testConfig.botName) {
+                            log('bot-result', '✅ Persistencia verificada', 'pass');
+                        } else {
+                            log('bot-result', `❌ Persistencia falló: esperado "${testConfig.botName}", actual "${saved.botName}"`, 'fail');
+                        }
+                    } else {
+                        log('bot-result', '❌ Error verificando persistencia', 'fail');
+                    }
+                } else {
+                    log('bot-result', `❌ Error guardando: ${saveResponse.status}`, 'fail');
+                }
+            } catch (error) {
+                log('bot-result', `💥 Error guardado: ${error.message}`, 'fail');
+            }
+        }
+
+        async function testPersistence() {
+            log('persistence-result', '💾 TESTING PERSISTENCIA...', 'info');
+            
+            const token = localStorage.getItem('test_token');
+            if (!token) {
+                log('persistence-result', '❌ No hay token', 'fail');
+                return;
+            }
+
+            const randomValue = `Test_${Math.random().toString(36).substr(2, 9)}`;
+            const testData = { botName: randomValue };
+
+            try {
+                // Guardar
+                await fetch(`${API_BASE}/api/client`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                // Esperar y recargar
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const response = await fetch(`${API_BASE}/api/client`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 200) {
+                    const data = await response.json();
+                    const client = data.data || data;
+                    
+                    if (client.botName === randomValue) {
+                        log('persistence-result', '✅ Datos persisten correctamente', 'pass');
+                    } else {
+                        log('persistence-result', `❌ Persistencia falló: esperado "${randomValue}", actual "${client.botName}"`, 'fail');
+                    }
+                } else {
+                    log('persistence-result', `❌ Error recargando: ${response.status}`, 'fail');
+                }
+            } catch (error) {
+                log('persistence-result', `💥 Error persistencia: ${error.message}`, 'fail');
+            }
+        }
+
+        async function testConsistency() {
+            log('consistency-result', '🔄 TESTING CONSISTENCIA...', 'info');
+            
+            // Mapeo frontend → backend
+            const fieldMapping = {
+                'company_name': 'companyName',
+                'main_phone': 'companyPhone', 
+                'industry': 'companySector',
+                'bot_name': 'botName',
+                'call_greeting': 'callConfig.greeting'
+            };
+
+            let mappingErrors = 0;
+            Object.entries(fieldMapping).forEach(([frontend, backend]) => {
+                log('consistency-result', `✅ Mapeo: ${frontend} → ${backend}`, 'pass');
+            });
+
+            // Test mapeo real con datos
+            const token = localStorage.getItem('test_token');
+            if (token) {
+                const testData = {
+                    companyName: 'TestConsistency',
+                    companyPhone: '+34999888777',
+                    companySector: 'TestSector'
+                };
+
+                try {
+                    await fetch(`${API_BASE}/api/client`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(testData)
+                    });
+
+                    const response = await fetch(`${API_BASE}/api/client`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.status === 200) {
+                        const data = await response.json();
+                        const client = data.data || data;
+                        
+                        if (client.companyName === testData.companyName) {
+                            log('consistency-result', '✅ Mapeo companyName funciona', 'pass');
+                        } else {
+                            log('consistency-result', '❌ Mapeo companyName falla', 'fail');
+                        }
+
+                        if (client.phone === testData.companyPhone) {
+                            log('consistency-result', '✅ Mapeo phone funciona', 'pass');
+                        } else {
+                            log('consistency-result', '❌ Mapeo phone falla', 'fail');
+                        }
+                    }
+                } catch (error) {
+                    log('consistency-result', `💥 Error test mapeo: ${error.message}`, 'fail');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

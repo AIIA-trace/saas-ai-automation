@@ -1,303 +1,370 @@
-// Bot Configuration Module
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if the bot-config tab exists
-    const botConfigTab = document.getElementById('bot-config');
-    if (!botConfigTab) return;
+/**
+ * Bot Configuration Manager
+ * Maneja la configuración del bot de forma limpia y directa
+ * Comunica directamente con la API unificada /api/client
+ */
 
-    // Initialize the bot configuration tab content
-    initializeBotConfigTab();
-    
-    // Fetch bot configuration from API
-    fetchBotConfig();
-});
+class BotConfigManager {
+    constructor() {
+        this.apiBaseUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
+        this.authService = window.authService;
+        this.init();
+    }
 
-// Initialize tab content
-function initializeBotConfigTab() {
-    const botConfigTab = document.getElementById('bot-config');
-    
-    // Set initial HTML structure
-    botConfigTab.innerHTML = `
-        <h1 class="mb-4">Configuración del Bot de Llamadas</h1>
-        <p class="lead">Personaliza el comportamiento y respuestas de tu asistente virtual de llamadas.</p>
-        
-        <!-- Loading placeholder -->
-        <div id="loading-bot-config" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
-            <p class="mt-2">Cargando configuración...</p>
-        </div>
-        
-        <!-- Configuration will be loaded here -->
-        <div id="bot-config-content" class="d-none"></div>
-    `;
-}
+    init() {
+        console.log('🤖 Inicializando Bot Configuration Manager...');
+        this.bindEvents();
+        this.loadCurrentConfig();
+    }
 
-// Fetch bot configuration from API
-function fetchBotConfig() {
-    const token = localStorage.getItem('authToken');
-    
-    fetch('/api/bot/config', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+    bindEvents() {
+        // Evento para cargar configuración
+        document.getElementById('loadConfigBtn').addEventListener('click', () => {
+            this.loadCurrentConfig();
+        });
+
+        // Evento para guardar configuración
+        document.getElementById('botConfigForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveConfig();
+        });
+
+        // Validación en tiempo real
+        this.setupValidation();
+    }
+
+    setupValidation() {
+        // Validar nombre del bot
+        const botNameInput = document.getElementById('botName');
+        botNameInput.addEventListener('input', (e) => {
+            const value = e.target.value;
+            if (value.length > 50) {
+                this.showFieldError(botNameInput, 'El nombre no puede exceder 50 caracteres');
+            } else {
+                this.clearFieldError(botNameInput);
+            }
+        });
+
+        // Validar mensajes
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        welcomeMessage.addEventListener('input', (e) => {
+            const value = e.target.value;
+            if (value.length > 500) {
+                this.showFieldError(welcomeMessage, 'El mensaje no puede exceder 500 caracteres');
+            } else {
+                this.clearFieldError(welcomeMessage);
+            }
+        });
+
+        const confirmationMessage = document.getElementById('confirmationMessage');
+        confirmationMessage.addEventListener('input', (e) => {
+            const value = e.target.value;
+            if (value.length > 300) {
+                this.showFieldError(confirmationMessage, 'El mensaje no puede exceder 300 caracteres');
+            } else {
+                this.clearFieldError(confirmationMessage);
+            }
+        });
+    }
+
+    showFieldError(field, message) {
+        field.classList.add('is-invalid');
+        let feedback = field.parentNode.querySelector('.invalid-feedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback';
+            field.parentNode.appendChild(feedback);
         }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error loading bot configuration');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Hide loading indicator
-        document.getElementById('loading-bot-config').classList.add('d-none');
-        
-        // Show configuration content
-        const configContent = document.getElementById('bot-config-content');
-        configContent.classList.remove('d-none');
-        
-        // Load configuration interface
-        loadBotConfigInterface(data);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        // Load mock data for demo purposes
-        loadMockBotConfig();
-    });
-}
+        feedback.textContent = message;
+    }
 
-// Load bot configuration interface
-function loadBotConfigInterface(config) {
-    const configContent = document.getElementById('bot-config-content');
-    
-    configContent.innerHTML = `
-        <div class="row">
-            <!-- Configuration tabs -->
-            <div class="col-12 mb-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-0">
-                        <ul class="nav nav-pills nav-fill p-3" id="bot-config-tabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
-                                    <i class="fas fa-cog me-2"></i>General
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="voice-tab" data-bs-toggle="tab" data-bs-target="#voice" type="button" role="tab">
-                                    <i class="fas fa-microphone me-2"></i>Voz
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="script-tab" data-bs-toggle="tab" data-bs-target="#script" type="button" role="tab">
-                                    <i class="fas fa-file-alt me-2"></i>Script
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="forwarding-tab" data-bs-toggle="tab" data-bs-target="#forwarding" type="button" role="tab">
-                                    <i class="fas fa-exchange-alt me-2"></i>Transferencias
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+    clearFieldError(field) {
+        field.classList.remove('is-invalid');
+        const feedback = field.parentNode.querySelector('.invalid-feedback');
+        if (feedback) {
+            feedback.remove();
+        }
+    }
+
+    async loadCurrentConfig() {
+        try {
+            console.log('📥 Cargando configuración actual del bot...');
             
-            <!-- Tab content -->
-            <div class="col-12">
-                <div class="tab-content">
-                    <!-- General settings tab -->
-                    <div class="tab-pane fade show active" id="general" role="tabpanel">
-                        <div class="card border-0 shadow-sm mb-4">
-                            <div class="card-header bg-white">
-                                <h5 class="mb-0">Configuración general</h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="general-config-form">
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="bot-name" class="form-label">Nombre del asistente</label>
-                                                <input type="text" class="form-control" id="bot-name" value="${config.botName || 'Asistente Virtual'}" required>
-                                                <div class="form-text">Este nombre se usará cuando el bot se presente.</div>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <label for="company-name" class="form-label">Nombre de la empresa</label>
-                                                <input type="text" class="form-control" id="company-name" value="${config.companyName || ''}" required>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <label for="language" class="form-label">Idioma principal</label>
-                                                <select class="form-select" id="language">
-                                                    <option value="es-ES" ${config.language === 'es-ES' ? 'selected' : ''}>Español (España)</option>
-                                                    <option value="en-US" ${config.language === 'en-US' ? 'selected' : ''}>Inglés (EE.UU.)</option>
-                                                    <option value="ca-ES" ${config.language === 'ca-ES' ? 'selected' : ''}>Catalán</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="greeting-message" class="form-label">Mensaje de saludo</label>
-                                                <textarea class="form-control" id="greeting-message" rows="3">${config.greetingMessage || 'Buenos días, le atiende el asistente virtual de [Empresa]. ¿En qué puedo ayudarle?'}</textarea>
-                                                <div class="form-text">Este es el mensaje inicial que escuchará quien llame.</div>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <label for="business-hours" class="form-label">Horario de atención</label>
-                                                <div class="row g-2">
-                                                    <div class="col-6">
-                                                        <input type="time" class="form-control" id="open-time" value="${config.businessHours?.open || '09:00'}">
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <input type="time" class="form-control" id="close-time" value="${config.businessHours?.close || '18:00'}">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label d-block">Días laborables</label>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" id="day-mon" ${config.workDays?.includes('mon') ? 'checked' : ''}>
-                                                    <label class="form-check-label" for="day-mon">Lun</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" id="day-tue" ${config.workDays?.includes('tue') ? 'checked' : ''}>
-                                                    <label class="form-check-label" for="day-tue">Mar</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" id="day-wed" ${config.workDays?.includes('wed') ? 'checked' : ''}>
-                                                    <label class="form-check-label" for="day-wed">Mié</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" id="day-thu" ${config.workDays?.includes('thu') ? 'checked' : ''}>
-                                                    <label class="form-check-label" for="day-thu">Jue</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" id="day-fri" ${config.workDays?.includes('fri') ? 'checked' : ''}>
-                                                    <label class="form-check-label" for="day-fri">Vie</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" id="day-sat" ${config.workDays?.includes('sat') ? 'checked' : ''}>
-                                                    <label class="form-check-label" for="day-sat">Sáb</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" id="day-sun" ${config.workDays?.includes('sun') ? 'checked' : ''}>
-                                                    <label class="form-check-label" for="day-sun">Dom</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="after-hours-mode" ${config.afterHoursMode ? 'checked' : ''}>
-                                        <label class="form-check-label" for="after-hours-mode">Activar mensaje fuera de horario</label>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="after-hours-message" class="form-label">Mensaje fuera de horario</label>
-                                        <textarea class="form-control" id="after-hours-message" rows="2">${config.afterHoursMessage || 'Gracias por llamar a [Empresa]. En este momento nos encontramos fuera del horario de atención. Nuestro horario es de lunes a viernes de 9:00 a 18:00. Por favor, llame más tarde o deje un mensaje y nos pondremos en contacto con usted.'}</textarea>
-                                    </div>
-                                    
-                                    <div class="text-end">
-                                        <button type="button" class="btn btn-outline-secondary me-2">Cancelar</button>
-                                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Initialize form submission handler
-    document.getElementById('general-config-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        saveGeneralConfig();
-    });
-}
+            if (!this.authService.isAuthenticated()) {
+                throw new Error('Usuario no autenticado');
+            }
 
-// FUNCIÓN DE GUARDADO ELIMINADA
-// La función saveGeneralConfig ha sido eliminada para evitar conflictos
-// con la función unificada de guardado
+            const token = this.authService.getToken();
+            const response = await fetch(`${this.apiBaseUrl}/api/client`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-function showSavingError() {
-    console.log('Esta función reemplaza el manejo de errores de la anterior');
-    // Solo para mantener la estructura del código
-}
+            if (!response.ok) {
+                throw new Error(`Error al cargar configuración: ${response.status}`);
+            }
 
-// Helper: Get selected work days
-function getSelectedWorkDays() {
-    const days = [];
-    if (document.getElementById('day-mon').checked) days.push('mon');
-    if (document.getElementById('day-tue').checked) days.push('tue');
-    if (document.getElementById('day-wed').checked) days.push('wed');
-    if (document.getElementById('day-thu').checked) days.push('thu');
-    if (document.getElementById('day-fri').checked) days.push('fri');
-    if (document.getElementById('day-sat').checked) days.push('sat');
-    if (document.getElementById('day-sun').checked) days.push('sun');
-    return days;
-}
+            const clientData = await response.json();
+            console.log('✅ Configuración cargada:', clientData);
 
-// Helper: Show toast notification
-function showToast(message, type) {
-    // Create toast element
-    const toastContainer = document.createElement('div');
-    toastContainer.className = 'position-fixed bottom-0 end-0 p-3';
-    toastContainer.style.zIndex = '5';
-    toastContainer.innerHTML = `
-        <div id="liveToast" class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header bg-${type} text-white">
-                <strong class="me-auto">${type === 'success' ? 'Éxito' : 'Error'}</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
-            </div>
-        </div>
-    `;
-    
-    // Add to document
-    document.body.appendChild(toastContainer);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        const toast = bootstrap.Toast.getOrCreateInstance(document.getElementById('liveToast'));
-        toast.hide();
+            // Rellenar formulario con datos actuales
+            this.populateForm(clientData);
+            
+            toastr.success('Configuración cargada correctamente');
+
+        } catch (error) {
+            console.error('❌ Error cargando configuración:', error);
+            toastr.error('Error al cargar la configuración: ' + error.message);
+        }
+    }
+
+    populateForm(data) {
+        // Los datos vienen en la estructura data.bot.{campo} desde el backend
+        const botData = data.bot || data;
+        
+        // Información básica del bot
+        if (botData.name || data.botName) {
+            document.getElementById('botName').value = botData.name || data.botName;
+        }
+        
+        if (botData.language || data.botLanguage) {
+            document.getElementById('botLanguage').value = botData.language || data.botLanguage;
+        }
+        
+        if (botData.personality || data.botPersonality) {
+            document.getElementById('botPersonality').value = botData.personality || data.botPersonality;
+        }
+
+        // Mensajes
+        if (botData.welcomeMessage || data.welcomeMessage) {
+            document.getElementById('welcomeMessage').value = botData.welcomeMessage || data.welcomeMessage;
+        }
+        
+        if (botData.confirmationMessage || data.confirmationMessage) {
+            document.getElementById('confirmationMessage').value = botData.confirmationMessage || data.confirmationMessage;
+        }
+
+        // Horarios - pueden venir en workingHours.opening/closing o directamente
+        const openingTime = botData.workingHours?.opening || botData.workingHoursOpening || data.workingHoursOpening;
+        const closingTime = botData.workingHours?.closing || botData.workingHoursClosing || data.workingHoursClosing;
+        
+        if (openingTime) {
+            document.getElementById('workingHoursOpening').value = openingTime;
+        }
+        
+        if (closingTime) {
+            document.getElementById('workingHoursClosing').value = closingTime;
+        }
+
+        // Días laborables
+        const workingDaysData = botData.workingDays || data.workingDays;
+        if (workingDaysData) {
+            try {
+                let workingDays;
+                
+                if (typeof workingDaysData === 'string') {
+                    // Si es JSON string, parsearlo
+                    workingDays = JSON.parse(workingDaysData);
+                } else if (Array.isArray(workingDaysData)) {
+                    // Si ya es array, usarlo directamente
+                    workingDays = workingDaysData;
+                } else {
+                    // Si es string simple como "Lunes a Viernes", usar días por defecto
+                    workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+                }
+                
+                // Limpiar checkboxes
+                document.querySelectorAll('input[name="workingDays"]').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+
+                // Marcar días activos
+                if (Array.isArray(workingDays)) {
+                    workingDays.forEach(day => {
+                        const checkbox = document.getElementById(day);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn('Error parseando workingDays:', error);
+                // Usar días por defecto en caso de error
+                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
+                    const checkbox = document.getElementById(day);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+        }
+
+        console.log('📋 Formulario rellenado con configuración actual');
+    }
+
+    async saveConfig() {
+        try {
+            console.log('💾 Guardando configuración del bot...');
+            
+            if (!this.authService.isAuthenticated()) {
+                throw new Error('Usuario no autenticado');
+            }
+
+            // Mostrar loading
+            this.showLoading(true);
+
+            // Recopilar datos del formulario
+            const configData = this.collectFormData();
+            
+            // Validar datos
+            if (!this.validateConfigData(configData)) {
+                this.showLoading(false);
+                return;
+            }
+
+            console.log('📤 Enviando configuración:', configData);
+
+            const token = this.authService.getToken();
+            const response = await fetch(`${this.apiBaseUrl}/api/client`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(configData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Error del servidor: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('✅ Configuración guardada exitosamente:', result);
+
+            // Mostrar éxito
+            this.showSuccess();
+            toastr.success('Configuración del bot guardada correctamente');
+
+        } catch (error) {
+            console.error('❌ Error guardando configuración:', error);
+            toastr.error('Error al guardar: ' + error.message);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    collectFormData() {
+        // Recopilar días laborables
+        const workingDaysCheckboxes = document.querySelectorAll('input[name="workingDays"]:checked');
+        const workingDays = Array.from(workingDaysCheckboxes).map(cb => cb.value);
+
+        return {
+            // Configuración del bot en formato que espera el backend
+            bot: {
+                name: document.getElementById('botName').value.trim() || null,
+                language: document.getElementById('botLanguage').value || null,
+                personality: document.getElementById('botPersonality').value || null,
+                welcomeMessage: document.getElementById('welcomeMessage').value.trim() || null,
+                confirmationMessage: document.getElementById('confirmationMessage').value.trim() || null,
+                workingDays: workingDays.length > 0 ? JSON.stringify(workingDays) : null,
+                workingHoursOpening: document.getElementById('workingHoursOpening').value || null,
+                workingHoursClosing: document.getElementById('workingHoursClosing').value || null
+            }
+        };
+    }
+
+    validateConfigData(data) {
+        const botData = data.bot || {};
+        
+        // Validaciones básicas
+        if (botData.name && botData.name.length > 50) {
+            toastr.error('El nombre del bot no puede exceder 50 caracteres');
+            return false;
+        }
+
+        if (botData.welcomeMessage && botData.welcomeMessage.length > 500) {
+            toastr.error('El mensaje de bienvenida no puede exceder 500 caracteres');
+            return false;
+        }
+
+        if (botData.confirmationMessage && botData.confirmationMessage.length > 300) {
+            toastr.error('El mensaje de confirmación no puede exceder 300 caracteres');
+            return false;
+        }
+
+        // Validar horarios
+        if (botData.workingHoursOpening && botData.workingHoursClosing) {
+            if (botData.workingHoursOpening >= botData.workingHoursClosing) {
+                toastr.error('La hora de apertura debe ser anterior a la hora de cierre');
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    showLoading(show) {
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const saveBtn = document.getElementById('saveConfigBtn');
+        
+        if (show) {
+            loadingSpinner.style.display = 'block';
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+        } else {
+            loadingSpinner.style.display = 'none';
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Configuración';
+        }
+    }
+
+    showSuccess() {
+        const successMessage = document.getElementById('successMessage');
+        successMessage.style.display = 'block';
+        
+        // Ocultar después de 3 segundos
         setTimeout(() => {
-            document.body.removeChild(toastContainer);
-        }, 500);
-    }, 5000);
+            successMessage.style.display = 'none';
+        }, 3000);
+    }
 }
 
-// Load mock data for demo purposes
-function loadMockBotConfig() {
-    // Hide loading indicator
-    document.getElementById('loading-bot-config').classList.add('d-none');
+// Configurar Toastr
+toastr.options = {
+    closeButton: true,
+    debug: false,
+    newestOnTop: true,
+    progressBar: true,
+    positionClass: "toast-top-right",
+    preventDuplicates: false,
+    onclick: null,
+    showDuration: "300",
+    hideDuration: "1000",
+    timeOut: "5000",
+    extendedTimeOut: "1000",
+    showEasing: "swing",
+    hideEasing: "linear",
+    showMethod: "fadeIn",
+    hideMethod: "fadeOut"
+};
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando página de configuración del bot...');
     
-    // Show configuration content
-    const configContent = document.getElementById('bot-config-content');
-    configContent.classList.remove('d-none');
+    // Verificar autenticación
+    if (!window.authService || !window.authService.isAuthenticated()) {
+        console.warn('⚠️ Usuario no autenticado, redirigiendo a login...');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Inicializar manager
+    window.botConfigManager = new BotConfigManager();
     
-    // Mock data for bot configuration
-    const mockConfig = {
-        botName: 'Asistente Virtual',
-        companyName: 'Mi Empresa',
-        language: 'es-ES',
-        greetingMessage: 'Buenos días, le atiende el asistente virtual de Mi Empresa. ¿En qué puedo ayudarle?',
-        businessHours: {
-            open: '09:00',
-            close: '18:00'
-        },
-        workDays: ['mon', 'tue', 'wed', 'thu', 'fri'],
-        afterHoursMode: true,
-        afterHoursMessage: 'Gracias por llamar a Mi Empresa. En este momento nos encontramos fuera del horario de atención. Nuestro horario es de lunes a viernes de 9:00 a 18:00. Por favor, llame más tarde o deje un mensaje y nos pondremos en contacto con usted.'
-    };
-    
-    // Load interface with mock data
-    loadBotConfigInterface(mockConfig);
-}
+    console.log('✅ Bot Configuration Manager inicializado correctamente');
+});

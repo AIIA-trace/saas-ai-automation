@@ -153,10 +153,31 @@ router.get('/api/client', authenticate, async (req, res) => {
         subscriptionExpiresAt: true,
         
         // Configuraciones (objetos JSON)
-        botConfig: true,
+        // botConfig ELIMINADO - Sistema legacy removido
+        
+        // Campos directos de configuración del bot (nuevo sistema)
+        botName: true,
+        botLanguage: true,
+        welcomeMessage: true,
+        confirmationMessage: true,
+        workingDays: true,
+        workingHoursOpening: true,
+        workingHoursClosing: true,
+        botPersonality: true,
+        
+        // Configuraciones JSON complejas (nuevos campos)
+        callConfig: true,
+        transferConfig: true,
+        scriptConfig: true,
+        aiConfig: true,
+        workingHours: true,
+        
+        // Configuraciones existentes
         companyInfo: true,
         emailConfig: true,
-        notificationConfig: true
+        notificationConfig: true,
+        faqs: true,
+        contextFiles: true
       }
     });
     
@@ -178,10 +199,44 @@ router.get('/api/client', authenticate, async (req, res) => {
         website: client.website,
         companyDescription: client.companyDescription,
         
-        // Configuraciones
-        botConfig: client.botConfig || {},
+        // Configuraciones JSON complejas (nuevos campos)
+        callConfig: client.callConfig || {},
+        transferConfig: client.transferConfig || {},
+        scriptConfig: client.scriptConfig || {},
+        aiConfig: client.aiConfig || {},
+        workingHours: client.workingHours || {},
+        
+        // Configuraciones existentes
         emailConfig: client.emailConfig || {},
         notificationConfig: client.notificationConfig || {},
+        
+        // Configuración del bot (campos directos - nuevo sistema)
+        bot: {
+          name: client.botName || 'Asistente Virtual',
+          language: client.botLanguage || 'es',
+          welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
+          confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
+          workingDays: client.workingDays || 'Lunes a Viernes',
+          workingHoursOpening: client.workingHoursOpening || '09:00',
+          workingHoursClosing: client.workingHoursClosing || '18:00',
+          personality: client.botPersonality || 'profesional y amigable'
+        },
+        
+        // Campos individuales de configuración del bot (para compatibilidad)
+        botName: client.botName || 'Asistente Virtual',
+        botLanguage: client.botLanguage || 'es',
+        welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
+        confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
+        workingDays: client.workingDays || 'Lunes a Viernes',
+        workingHoursOpening: client.workingHoursOpening || '09:00',
+        workingHoursClosing: client.workingHoursClosing || '18:00',
+        botPersonality: client.botPersonality || 'profesional y amigable',
+        
+        // Preguntas frecuentes
+        faqs: client.faqs || [],
+        
+        // Archivos de contexto
+        files: client.contextFiles || [],
         
         // Información de suscripción
         subscriptionStatus: client.subscriptionStatus,
@@ -204,36 +259,61 @@ router.put('/api/client', authenticate, async (req, res) => {
   try {
     logger.info('🔄 Redirigiendo PUT /api/client a PUT /client para compatibilidad');
     
-    // Extraer datos del body
+    // Extraer datos del cuerpo de la petición
     const {
+      // Información de empresa - campos individuales (como en registro)
       companyName,
       companyDescription,
-      industry,
-      address, 
-      phone,
-      email,
-      website,
-      contactName,
-      bot,
-      calls,
-      email: emailConfig,
+      companySector, // Se mapea a industry
+      companyAddress, // Se mapea a address
+      companyPhone, // Se mapea a phone
+      companyEmail, // Se mapea a email (solo si se permite cambiar)
+      companyWebsite, // Se mapea a website
+      
+      // Configuración general - campos individuales
+      botName,
+      botPersonality,
+      welcomeMessage,
+      businessHours,
+      
+      // Configuraciones complejas - campos JSON
+      callConfig,
+      emailConfig,
+      transferConfig,
+      scriptConfig,
       aiConfig,
+      workingHours,
+      workingDays,
+      
+      // Datos específicos del bot unificado
+      bot,
+      email,
       faqs,
-      contextFiles
+      files
     } = req.body;
     
     // Preparar objeto de actualización con campos directos
     const updateData = {};
     
-    // Actualizar campos directos si están presentes
+    // Actualizar campos directos si están presentes (mapeo correcto)
     if (companyName) updateData.companyName = companyName;
     if (companyDescription) updateData.companyDescription = companyDescription;
-    if (industry) updateData.industry = industry;
-    if (address) updateData.address = address;
-    if (phone) updateData.phone = phone;
-    if (email) updateData.email = email;
-    if (website) updateData.website = website;
-    if (contactName) updateData.contactName = contactName;
+    if (companySector) updateData.industry = companySector; // Mapeo correcto
+    if (companyAddress) updateData.address = companyAddress; // Mapeo correcto
+    if (companyPhone) updateData.phone = companyPhone; // Mapeo correcto
+    if (companyWebsite) updateData.website = companyWebsite; // Mapeo correcto
+    // email no se actualiza aquí por seguridad
+    
+    // Campos individuales de configuración del bot
+    if (botName) updateData.botName = botName;
+    if (botPersonality) updateData.botPersonality = botPersonality;
+    if (welcomeMessage) updateData.welcomeMessage = welcomeMessage;
+    if (businessHours) {
+      // Parsear businessHours si viene como string
+      if (typeof businessHours === 'string') {
+        updateData.workingDays = businessHours;
+      }
+    }
     
     // Actualizar configuraciones de objetos JSON
     const currentClient = await prisma.client.findUnique({
@@ -244,61 +324,75 @@ router.put('/api/client', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado', success: false });
     }
     
-    // Bot
+    // Configuración del Bot (campos directos - nuevo sistema)
     if (bot) {
-      const currentBotConfig = currentClient.botConfig || {};
-      updateData.botConfig = {
-        ...currentBotConfig,
-        ...bot,
-        // Actualizado en timestamp UTC
-        updatedAt: new Date().toISOString()
-      };
+      if (bot.name) updateData.botName = bot.name;
+      if (bot.language) updateData.botLanguage = bot.language;
+      if (bot.welcomeMessage) updateData.welcomeMessage = bot.welcomeMessage;
+      if (bot.confirmationMessage) updateData.confirmationMessage = bot.confirmationMessage;
+      if (bot.workingDays) updateData.workingDays = bot.workingDays;
+      if (bot.workingHoursOpening) updateData.workingHoursOpening = bot.workingHoursOpening;
+      if (bot.workingHoursClosing) updateData.workingHoursClosing = bot.workingHoursClosing;
+      if (bot.personality) updateData.botPersonality = bot.personality;
     }
     
-    // Llamadas
-    if (calls) {
-      if (!updateData.botConfig) {
-        updateData.botConfig = currentClient.botConfig || {};
-      }
-      updateData.botConfig.callConfig = {
-        ...((currentClient.botConfig && currentClient.botConfig.callConfig) || {}),
-        ...calls
+    // Configuraciones JSON complejas (nuevos campos)
+    if (callConfig) {
+      updateData.callConfig = {
+        ...(currentClient.callConfig || {}),
+        ...callConfig
       };
+      logger.info(`📞 Actualizando configuración de llamadas para cliente ${req.client.id}`);
     }
     
-    // Email
+    if (transferConfig) {
+      updateData.transferConfig = {
+        ...(currentClient.transferConfig || {}),
+        ...transferConfig
+      };
+      logger.info(`🔄 Actualizando configuración de transferencias para cliente ${req.client.id}`);
+    }
+    
+    if (scriptConfig) {
+      updateData.scriptConfig = {
+        ...(currentClient.scriptConfig || {}),
+        ...scriptConfig
+      };
+      logger.info(`📝 Actualizando configuración de script para cliente ${req.client.id}`);
+    }
+    
+    if (aiConfig) {
+      updateData.aiConfig = {
+        ...(currentClient.aiConfig || {}),
+        ...aiConfig
+      };
+      logger.info(`🤖 Actualizando configuración de IA para cliente ${req.client.id}`);
+    }
+    
+    if (workingHours) {
+      updateData.workingHours = workingHours;
+      logger.info(`⏰ Actualizando horarios de trabajo para cliente ${req.client.id}`);
+    }
+    
+    // Configuración de Email (mantener sistema actual)
     if (emailConfig) {
       updateData.emailConfig = {
         ...(currentClient.emailConfig || {}),
         ...emailConfig
       };
+      logger.info(`📧 Actualizando configuración de email para cliente ${req.client.id}`);
     }
     
-    // IA Config
-    if (aiConfig) {
-      if (!updateData.botConfig) {
-        updateData.botConfig = currentClient.botConfig || {};
-      }
-      updateData.botConfig.aiConfig = {
-        ...((currentClient.botConfig && currentClient.botConfig.aiConfig) || {}),
-        ...aiConfig
-      };
-    }
-    
-    // FAQs
+    // Preguntas frecuentes (FAQs)
     if (faqs) {
-      if (!updateData.botConfig) {
-        updateData.botConfig = currentClient.botConfig || {};
-      }
-      updateData.botConfig.faqs = faqs;
+      updateData.faqs = faqs;
+      logger.info(`📋 Actualizando ${faqs.length} FAQs para cliente ${req.client.id}`);
     }
     
     // Archivos de contexto
-    if (contextFiles) {
-      if (!updateData.botConfig) {
-        updateData.botConfig = currentClient.botConfig || {};
-      }
-      updateData.botConfig.contextFiles = contextFiles;
+    if (files) {
+      updateData.contextFiles = files;
+      logger.info(`📁 Actualizando ${files.length} archivos de contexto para cliente ${req.client.id}`);
     }
     
     // Actualizar cliente en la base de datos
@@ -318,8 +412,26 @@ router.put('/api/client', authenticate, async (req, res) => {
         address: updatedClient.address,
         website: updatedClient.website,
         companyDescription: updatedClient.companyDescription,
-        botConfig: updatedClient.botConfig,
-        emailConfig: updatedClient.emailConfig
+        // botConfig ELIMINADO - Sistema legacy removido
+        emailConfig: updatedClient.emailConfig,
+        
+        // Configuración del bot (campos directos - nuevo sistema)
+        bot: {
+          name: updatedClient.botName || 'Asistente Virtual',
+          language: updatedClient.botLanguage || 'es',
+          welcomeMessage: updatedClient.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
+          confirmationMessage: updatedClient.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
+          workingDays: updatedClient.workingDays || 'Lunes a Viernes',
+          workingHoursOpening: updatedClient.workingHoursOpening || '09:00',
+          workingHoursClosing: updatedClient.workingHoursClosing || '18:00',
+          personality: updatedClient.botPersonality || 'profesional y amigable'
+        },
+        
+        // Preguntas frecuentes
+        faqs: updatedClient.faqs || [],
+        
+        // Archivos de contexto
+        files: updatedClient.contextFiles || []
       }
     });
   } catch (error) {
@@ -364,7 +476,17 @@ router.get('/client', authenticate, async (req, res) => {
         subscriptionExpiresAt: true,
         
         // Configuraciones (objetos JSON)
-        botConfig: true,
+        // botConfig ELIMINADO - Sistema legacy removido
+        
+        // Campos directos de configuración del bot (nuevo sistema)
+        botName: true,
+        botLanguage: true,
+        welcomeMessage: true,
+        confirmationMessage: true,
+        workingDays: true,
+        workingHoursOpening: true,
+        workingHoursClosing: true,
+        botPersonality: true,
         companyInfo: true,
         emailConfig: true,
         notificationConfig: true
@@ -396,33 +518,23 @@ router.get('/client', authenticate, async (req, res) => {
                 (client.companyInfo?.website) || ''
       },
       
-      // Datos del bot
+      // Datos del bot (campos directos - nuevo sistema)
       bot: {
-        name: client.botConfig?.name || 'Asistente Virtual',
-        personality: client.botConfig?.personality || '',
-        workingHours: client.botConfig?.workingHours || {
-          opening: '09:00',
-          closing: '18:00'
+        name: client.botName || 'Asistente Virtual',
+        personality: client.botPersonality || 'profesional y amigable',
+        workingHours: {
+          opening: client.workingHoursOpening || '09:00',
+          closing: client.workingHoursClosing || '18:00'
         },
-        workingDays: client.botConfig?.workingDays || {
-          monday: true,
-          tuesday: true,
-          wednesday: true,
-          thursday: true,
-          friday: true,
-          saturday: false,
-          sunday: false
-        }
+        workingDays: client.workingDays || 'Lunes a Viernes',
+        welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
+        confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
+        language: client.botLanguage || 'es'
       },
       
-      // Configuración de llamadas
-      calls: {
-        enabled: client.botConfig?.callConfig?.enabled || false,
-        voiceId: client.botConfig?.callConfig?.voiceId || 'es-ES-Standard-A',
-        language: client.botConfig?.callConfig?.language || 'es-ES',
-        recordCalls: client.botConfig?.callConfig?.recordCalls || true,
-        greeting: client.botConfig?.callConfig?.greeting || ''
-      },
+      // CONFIGURACIÓN DE LLAMADAS LEGACY ELIMINADA
+      // Esta funcionalidad era parte del sistema legacy y ha sido removida
+      // calls: { ... } - Era parte del sistema botConfig legacy
       
       // Configuración de email
       email: client.emailConfig || {
@@ -437,16 +549,10 @@ router.get('/client', authenticate, async (req, res) => {
         useSSL: false
       },
       
-      // Configuración de IA
-      aiConfig: client.botConfig?.aiConfig || {
-        model: 'gpt-4',
-        temperature: 0.7,
-        maxTokens: 800
-      },
-      
-      // FAQs y archivos de contexto
-      faqs: client.botConfig?.faqs || [],
-      contextFiles: client.botConfig?.contextFiles || [],
+      // CONFIGURACIONES LEGACY ELIMINADAS:
+      // - aiConfig: Era parte del sistema botConfig legacy
+      // - faqs: Ahora se manejan a través del sistema unificado
+      // - contextFiles: Funcionalidad completamente removida
       
       // Datos de suscripción
       subscription: {
@@ -552,10 +658,14 @@ router.put('/client', authenticate, async (req, res) => {
     logger.debug(`Body recibido: ${JSON.stringify(req.body).substring(0, 500)}...`);
     
     // Extraer datos de la petición con validación
-    const { profile, bot, calls, email, aiConfig, faqs, contextFiles } = req.body;
+    const { profile, bot, email } = req.body;
+    // calls - Era parte del sistema legacy
+    // faqs - Era parte del sistema legacy
+    // aiConfig - Era parte del sistema legacy
+    // contextFiles - Funcionalidad eliminada
     
     // Validar que hay datos para actualizar
-    if (!profile && !bot && !calls && !email && !aiConfig && !faqs) {
+    if (!profile && !bot && !email) {
       return res.status(400).json({
         success: false,
         error: 'No hay datos para actualizar'
@@ -566,7 +676,17 @@ router.put('/client', authenticate, async (req, res) => {
     const currentClient = await prisma.client.findUnique({
       where: { id: req.client.id },
       select: {
-        botConfig: true,
+        // botConfig ELIMINADO - Sistema legacy removido
+        
+        // Campos directos de configuración del bot (nuevo sistema)
+        botName: true,
+        botLanguage: true,
+        welcomeMessage: true,
+        confirmationMessage: true,
+        workingDays: true,
+        workingHoursOpening: true,
+        workingHoursClosing: true,
+        botPersonality: true,
         companyInfo: true,
         emailConfig: true
       }
@@ -592,65 +712,26 @@ router.put('/client', authenticate, async (req, res) => {
       website: profile.website
     } : {};
     
-    // 2. Configuración del bot (objeto JSON botConfig)
-    const currentBotConfig = currentClient.botConfig || {};
-    let newBotConfig = { ...currentBotConfig };
+    // 2. Configuración del bot (campos directos - nuevo sistema)
+    const botData = {};
     
-    // Actualizar configuración general del bot
+    // Actualizar configuración del bot con campos directos
     if (bot) {
-      newBotConfig = {
-        ...newBotConfig,
-        name: bot.name || newBotConfig.name || 'Asistente Virtual',
-        personality: bot.personality || newBotConfig.personality || '',
-        workingHours: bot.workingHours || newBotConfig.workingHours || {
-          opening: '09:00',
-          closing: '18:00'
-        },
-        workingDays: bot.workingDays || newBotConfig.workingDays || {
-          monday: true,
-          tuesday: true,
-          wednesday: true,
-          thursday: true,
-          friday: true,
-          saturday: false,
-          sunday: false
-        }
-      };
+      if (bot.name) botData.botName = bot.name;
+      if (bot.personality) botData.botPersonality = bot.personality;
+      if (bot.language) botData.botLanguage = bot.language;
+      if (bot.welcomeMessage) botData.welcomeMessage = bot.welcomeMessage;
+      if (bot.confirmationMessage) botData.confirmationMessage = bot.confirmationMessage;
+      if (bot.workingDays) botData.workingDays = bot.workingDays;
+      if (bot.workingHours?.opening) botData.workingHoursOpening = bot.workingHours.opening;
+      if (bot.workingHours?.closing) botData.workingHoursClosing = bot.workingHours.closing;
     }
     
-    // Actualizar configuración de llamadas
-    if (calls) {
-      newBotConfig.callConfig = {
-        ...newBotConfig.callConfig || {},
-        enabled: calls.enabled !== undefined ? calls.enabled : 
-                 newBotConfig.callConfig?.enabled || false,
-        voiceId: calls.voiceId || newBotConfig.callConfig?.voiceId || 'es-ES-Standard-A',
-        language: calls.language || newBotConfig.callConfig?.language || 'es-ES',
-        recordCalls: calls.recordCalls !== undefined ? calls.recordCalls : 
-                     newBotConfig.callConfig?.recordCalls || true,
-        greeting: calls.greeting || newBotConfig.callConfig?.greeting || ''
-      };
-    }
-    
-    // Actualizar configuración de IA
-    if (aiConfig) {
-      newBotConfig.aiConfig = {
-        ...newBotConfig.aiConfig || {},
-        model: aiConfig.model || newBotConfig.aiConfig?.model || 'gpt-4',
-        temperature: aiConfig.temperature || newBotConfig.aiConfig?.temperature || 0.7,
-        maxTokens: aiConfig.maxTokens || newBotConfig.aiConfig?.maxTokens || 800
-      };
-    }
-    
-    // Actualizar FAQs
-    if (faqs) {
-      newBotConfig.faqs = faqs;
-    }
-    
-    // Actualizar archivos de contexto
-    if (contextFiles) {
-      newBotConfig.contextFiles = contextFiles;
-    }
+    // CONFIGURACIONES LEGACY ELIMINADAS:
+    // - calls: Era parte del sistema botConfig legacy
+    // - aiConfig: Era parte del sistema botConfig legacy  
+    // - faqs: Ahora se manejan a través del sistema unificado
+    // - contextFiles: Funcionalidad completamente removida
     
     // 3. Información de la empresa (objeto JSON companyInfo)
     const currentCompanyInfo = currentClient.companyInfo || {};
@@ -669,11 +750,14 @@ router.put('/client', authenticate, async (req, res) => {
     
     // EJECUTAR ACTUALIZACIÓN
     const updateData = {
-      // Campos directos
+      // Campos directos de perfil
       ...profileData,
       
+      // Campos directos de configuración del bot (nuevo sistema)
+      ...botData,
+      
       // Objetos JSON
-      botConfig: newBotConfig,
+      // botConfig ELIMINADO - Sistema legacy removido
       companyInfo: newCompanyInfo,
       emailConfig: newEmailConfig,
       
@@ -697,26 +781,11 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`📝 Datos a actualizar (primeros 200 chars): ${jsonUpdateData.substring(0, 200)}...`);
       logger.info(`📎 Longitud total del JSON: ${jsonUpdateData.length} caracteres`);
       
-      // Verificar estructuras anidadas potencialmente problemáticas
-      if (updateData.botConfig && updateData.botConfig.faqs) {
-        logger.info(`🔍 FAQs encontrados: ${updateData.botConfig.faqs.length || 0}`);
-        try {
-          const faqsJson = JSON.stringify(updateData.botConfig.faqs);
-          logger.info(`✅ FAQs serializados correctamente: ${faqsJson.length} chars`);
-        } catch (faqError) {
-          logger.error(`❌ ERROR serializando FAQs: ${faqError.message}`);
-        }
-      }
+      // VERIFICACIONES LEGACY ELIMINADAS:
+      // - botConfig.faqs: Era parte del sistema legacy
+      // - botConfig.contextFiles: Era parte del sistema legacy
       
-      if (updateData.botConfig && updateData.botConfig.contextFiles) {
-        logger.info(`🔍 contextFiles encontrados: ${Object.keys(updateData.botConfig.contextFiles || {}).length} tipos`);
-        try {
-          const contextFilesJson = JSON.stringify(updateData.botConfig.contextFiles);
-          logger.info(`✅ contextFiles serializados correctamente: ${contextFilesJson.length} chars`);
-        } catch (contextError) {
-          logger.error(`❌ ERROR serializando contextFiles: ${contextError.message}`);
-        }
-      }
+
     } catch (jsonError) {
       logger.error(`❌ ERROR CRÍTICO: No se puede serializar el objeto updateData: ${jsonError.message}`);
       logger.error(`📊 Claves del objeto: ${Object.keys(updateData).join(', ')}`);
@@ -822,186 +891,31 @@ router.put('/client', authenticate, async (req, res) => {
   }
 });
 
-// === ENDPOINTS UNIFICADOS PARA ARCHIVOS DE CONTEXTO ===
+// === ENDPOINTS OBSOLETOS - ARCHIVOS DE CONTEXTO LEGACY ===
 
-// Subir archivos de contexto (endpoint unificado)
+// ENDPOINT OBSOLETO: Los archivos de contexto han sido eliminados del sistema
 router.post('/client/context-files', authenticate, async (req, res) => {
-  try {
-    logger.info('🚀 INICIANDO POST /client/context-files - ENDPOINT UNIFICADO');
-    logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
-    
-    const { fileType, fileName, fileContent, fileSize } = req.body;
-    
-    if (!fileType || !fileName || !fileContent) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Faltan datos del archivo' 
-      });
-    }
-    
-    // Validar tipo de archivo
-    const allowedTypes = ['inventory', 'catalog', 'pricing', 'menu', 'samples', 'info'];
-    if (!allowedTypes.includes(fileType)) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Tipo de archivo no permitido' 
-      });
-    }
-    
-    // Validar tamaño (10MB máximo)
-    if (fileSize > 10 * 1024 * 1024) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Archivo muy grande (máximo 10MB)' 
-      });
-    }
-    
-    // Obtener configuración actual del bot
-    const currentClient = await prisma.client.findUnique({
-      where: { id: req.client.id }
-    });
-    
-    if (!currentClient) {
-      logger.error(`Cliente no encontrado: ${req.client.id}`);
-      return res.status(404).json({
-        success: false,
-        error: 'Cliente no encontrado'
-      });
-    }
-    
-    const currentBotConfig = currentClient.botConfig || {};
-    const currentContextFiles = currentBotConfig.contextFiles || {};
-    
-    // En producción, aquí se subiría el archivo a un servicio de almacenamiento
-    // Por ahora, simulamos guardando la información del archivo
-    const fileInfo = {
-      fileName,
-      fileSize,
-      uploadedAt: new Date().toISOString(),
-      status: 'processed'
-    };
-    
-    // Actualizar archivos de contexto
-    const updatedContextFiles = {
-      ...currentContextFiles,
-      [fileType]: fileInfo
-    };
-    
-    const updatedBotConfig = {
-      ...currentBotConfig,
-      contextFiles: updatedContextFiles
-    };
-    
-    // Actualizar en la base de datos
-    await prisma.client.update({
-      where: { id: req.client.id },
-      data: {
-        botConfig: updatedBotConfig
-      }
-    });
-    
-    logger.info(`✅ Archivo de contexto ${fileName} subido correctamente para cliente ${req.client.id}`);
-    
-    return res.json({
-      success: true,
-      message: 'Archivo de contexto subido correctamente',
-      fileInfo
-    });
-  } catch (error) {
-    logger.error(`❌ Error subiendo archivo de contexto: ${error.message}`);
-    logger.error(`Stack: ${error.stack}`);
-    return res.status(500).json({
-      success: false,
-      error: 'Error interno al subir archivo de contexto',
-      details: error.message
-    });
-  }
+  logger.warn('⚠️ ENDPOINT OBSOLETO: /client/context-files - Funcionalidad eliminada');
+  return res.status(410).json({
+    success: false,
+    error: 'Funcionalidad eliminada',
+    message: 'Los archivos de contexto han sido eliminados del sistema. Esta funcionalidad ya no está disponible.'
+  });
 });
 
-// Eliminar archivos de contexto (endpoint unificado)
+
+
+// ENDPOINT OBSOLETO: Eliminar archivos de contexto
 router.post('/client/context-files/delete', authenticate, async (req, res) => {
-  try {
-    logger.info('🚀 INICIANDO POST /client/context-files/delete - ENDPOINT UNIFICADO');
-    logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
-    
-    const { files } = req.body;
-    
-    if (!files || !Array.isArray(files) || files.length === 0) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Se requiere una lista de archivos para eliminar' 
-      });
-    }
-    
-    // Obtener configuración actual del bot
-    const currentClient = await prisma.client.findUnique({
-      where: { id: req.client.id }
-    });
-    
-    if (!currentClient) {
-      logger.error(`Cliente no encontrado: ${req.client.id}`);
-      return res.status(404).json({
-        success: false,
-        error: 'Cliente no encontrado'
-      });
-    }
-    
-    const currentBotConfig = currentClient.botConfig || {};
-    const currentContextFiles = currentBotConfig.contextFiles || {};
-    
-    // Crear una copia del objeto de archivos de contexto
-    const updatedContextFiles = { ...currentContextFiles };
-    
-    // Eliminar los archivos indicados
-    let deletedCount = 0;
-    files.forEach(fileName => {
-      // Buscar el archivo por nombre en todas las categorías
-      Object.keys(updatedContextFiles).forEach(fileType => {
-        if (updatedContextFiles[fileType] && updatedContextFiles[fileType].fileName === fileName) {
-          delete updatedContextFiles[fileType];
-          deletedCount++;
-        }
-      });
-    });
-    
-    if (deletedCount === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'No se encontraron los archivos para eliminar' 
-      });
-    }
-    
-    // Actualizar la configuración del bot
-    const updatedBotConfig = {
-      ...currentBotConfig,
-      contextFiles: updatedContextFiles
-    };
-    
-    // Guardar en la base de datos
-    await prisma.client.update({
-      where: { id: req.client.id },
-      data: {
-        botConfig: updatedBotConfig
-      }
-    });
-    
-    logger.info(`✅ Se eliminaron ${deletedCount} archivos de contexto para cliente ${req.client.id}`);
-    
-    return res.json({
-      success: true,
-      message: `Se eliminaron ${deletedCount} archivos de contexto`,
-      deletedCount
-    });
-  } catch (error) {
-    logger.error(`❌ Error eliminando archivos de contexto: ${error.message}`);
-    logger.error(`Stack: ${error.stack}`);
-    return res.status(500).json({
-      success: false,
-      error: 'Error interno al eliminar archivos de contexto',
-      details: error.message
-    });
-  }
+  logger.warn('⚠️ ENDPOINT OBSOLETO: /client/context-files/delete - Funcionalidad eliminada');
+  return res.status(410).json({
+    success: false,
+    error: 'Funcionalidad eliminada',
+    message: 'Los archivos de contexto han sido eliminados del sistema. Esta funcionalidad ya no está disponible.'
+  });
 });
+
+// Código legacy eliminado - funcionalidad de archivos de contexto removida
 
 // === ENDPOINTS PARA CLIENTES ===
 
@@ -1377,67 +1291,14 @@ router.get('/email/connection', authenticate, async (req, res) => {
   }
 });
 
-// Endpoint para obtener FAQs del bot
-// ENDPOINT OBSOLETO: Usar GET /api/client en su lugar y acceder a botConfig.faqs
+// ENDPOINT OBSOLETO: FAQs del bot
 router.get('/bot/faqs', authenticate, async (req, res) => {
-  logger.warn(`⚠️ Endpoint obsoleto GET /bot/faqs usado por cliente ${req.client?.id}`);
-  logger.warn('Este endpoint será eliminado próximamente. Usar GET /api/client en su lugar.');
-  
-  try {
-    // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
-    if (!prisma || !prisma.client) {
-      logger.error('Prisma client no está inicializado');
-      return res.status(500).json({ 
-        error: 'Error de base de datos - Prisma no inicializado',
-        success: false 
-      });
-    }
-    
-    // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
-    if (!req.client || !req.client.id) {
-      logger.error('Cliente no autenticado en request');
-      return res.status(401).json({ 
-        error: 'Cliente no autenticado',
-        success: false 
-      });
-    }
-    
-    logger.info(`Obteniendo FAQs para cliente ID: ${req.client.id}`);
-    
-    const client = await prisma.client.findUnique({
-      where: { id: req.client.id },
-      select: {
-        botConfig: true
-      }
-    });
-    
-    if (!client) {
-      logger.error(`Cliente no encontrado en BD: ${req.client.id}`);
-      return res.status(404).json({ 
-        error: 'Cliente no encontrado',
-        success: false 
-      });
-    }
-    
-    const botConfig = client.botConfig || {};
-    const faqs = botConfig.faqs || [];
-    
-    logger.info(`FAQs obtenidas para cliente ${req.client.id}: ${faqs.length} elementos`);
-    
-    return res.json({
-      success: true,
-      faqs: faqs
-    });
-  } catch (error) {
-    logger.error(`Error obteniendo FAQs: ${error.message}`);
-    logger.error(`Stack trace: ${error.stack}`);
-    
-    return res.status(500).json({ 
-      error: 'Error interno del servidor obteniendo FAQs',
-      success: false,
-      details: error.message 
-    });
-  }
+  logger.warn(`⚠️ ENDPOINT OBSOLETO: /bot/faqs - Funcionalidad eliminada`);
+  return res.status(410).json({
+    success: false,
+    error: 'Funcionalidad eliminada',
+    message: 'Las FAQs han sido migradas al nuevo sistema. Use GET /api/client para obtener la configuración del bot.'
+  });
 });
 
 // Actualizar perfil del cliente
@@ -1756,782 +1617,13 @@ router.delete('/payment/method/:methodId', authenticate, async (req, res) => {
   }
 });
 
-// Obtener configuración del bot
-/**
- * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado GET /api/client
- * Este endpoint será eliminado en la próxima versión (V2.0)
- * Toda la funcionalidad ha sido migrada al endpoint unificado
- */
-router.get('/config/bot', authenticate, async (req, res) => {
-  try {
-    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto GET /config/bot usado por cliente ${req.client?.id}`);
-    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a GET /api/client antes de la próxima actualización');
-    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
-    
-    // VERIFICAR QUE PRISMA ESTÉ DISPONIBLE
-    if (!prisma || !prisma.client) {
-      logger.error('❌ Prisma client no está inicializado');
-      return res.status(500).json({ 
-        error: 'Error de base de datos - Prisma no inicializado',
-        success: false 
-      });
-    }
-    
-    // VERIFICAR QUE EL CLIENTE ESTÉ AUTENTICADO
-    if (!req.client || !req.client.id) {
-      logger.error('❌ Cliente no autenticado en request');
-      return res.status(401).json({ 
-        error: 'Cliente no autenticado',
-        success: false 
-      });
-    }
-    
-    logger.info(`🔍 Redirigiendo solicitud al nuevo endpoint unificado GET /client`);
-    
-    try {
-      // Obtener la configuración completa del cliente incluyendo tablas normalizadas
-      const clientConfig = await prisma.client.findUnique({
-        where: { id: req.client.id },
-        select: {
-          // Campos JSON de configuración (mantenidos por compatibilidad)
-          botConfig: true,
-          companyInfo: true,
-          emailConfig: true,
-          
-          // Campos normalizados que reemplazan botConfig
-          botName: true,
-          botLanguage: true,
-          botPersonality: true,
-          welcomeMessage: true,
-          confirmationMessage: true,
-          workingHoursOpening: true,
-          workingHoursClosing: true,
-          workingDays: true,
-          
-          // Relaciones con tablas normalizadas
-          BotAiConfig: true,
-          BotContextFile: true,
-          BotFAQ: true,
-          BotDtmfOption: true,
-          
-          // Campos directos del cliente necesarios para el formulario
-          companyName: true,
-          companyDescription: true,
-          contactName: true,
-          phone: true,
-          website: true,
-          address: true,
-          industry: true,
-          language: true,
-          email: true
-        }
-      });
-      
-      if (!clientConfig) {
-        logger.error(`❌ Cliente no encontrado en BD: ${req.client.id}`);
-        return res.status(404).json({ 
-          error: 'Cliente no encontrado',
-          success: false 
-        });
-      }
-      
-      logger.info(`✅ Cliente encontrado en BD: ${clientConfig.email || req.client.id}`);
-      
-      // Construir estructura de respuesta que espera el frontend con datos de las tablas normalizadas
-      // pero manteniendo el formato que el frontend espera
-      const response = {
-        // Configuración del bot (ahora construida desde campos normalizados)
-        botConfig: {
-          // Valores básicos desde campos directos de Client
-          botName: clientConfig.botName || 'Asistente Virtual',
-          botPersonality: clientConfig.botPersonality || 'professional',
-          welcomeMessage: clientConfig.welcomeMessage || 'Bienvenido a nuestro asistente virtual',
-          confirmationMessage: clientConfig.confirmationMessage || '',
-          businessHours: clientConfig.workingHoursOpening && clientConfig.workingHoursClosing ? 
-            `${clientConfig.workingHoursOpening}-${clientConfig.workingHoursClosing}` : 'Lun-Vie: 9:00-18:00',
-          
-          // Horarios de trabajo
-          workingHours: {
-            opening: clientConfig.workingHoursOpening || '09:00',
-            closing: clientConfig.workingHoursClosing || '18:00'
-          },
-          
-          // Días laborables
-          workingDays: clientConfig.workingDays || {},
-          
-          // Configuración de llamadas (por ahora mantener desde botConfig hasta normalizar)
-          callConfig: (clientConfig.botConfig && clientConfig.botConfig.callConfig) ? clientConfig.botConfig.callConfig : {
-            enabled: false,
-            recordCalls: false,
-            transcribeCalls: false,
-            voiceId: 'female',
-            language: clientConfig.botLanguage || 'es-ES',
-            greeting: clientConfig.welcomeMessage || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?'
-          },
-          
-          // Configuración AI desde tabla BotAiConfig
-          aiConfig: clientConfig.BotAiConfig && clientConfig.BotAiConfig[0] ? {
-            temperature: clientConfig.BotAiConfig[0].temperature || 0.7,
-            max_tokens: clientConfig.BotAiConfig[0].max_tokens || 150, // Usar nomenclatura exacta de la base de datos
-            model: clientConfig.BotAiConfig[0].model || 'gpt-3.5-turbo',
-            top_p: clientConfig.BotAiConfig[0].top_p,
-            presence_penalty: clientConfig.BotAiConfig[0].presence_penalty,
-            frequency_penalty: clientConfig.BotAiConfig[0].frequency_penalty
-          } : {
-            temperature: 0.7,
-            maxTokens: 150,
-            model: 'gpt-3.5-turbo'
-          },
-          
-          // FAQs desde tabla BotFAQ
-          faqs: clientConfig.BotFAQ ? clientConfig.BotFAQ.map(faq => ({
-            question: faq.question,
-            answer: faq.answer
-          })) : [],
-          
-          // Archivos de contexto desde tabla BotContextFile
-          contextFiles: clientConfig.BotContextFile ? 
-            clientConfig.BotContextFile.reduce((acc, file) => {
-              // Incluir toda la información del archivo, no solo la URL
-              acc[file.filename] = {
-                file_url: file.file_url,
-                file_type: file.file_type,
-                file_size: file.file_size,
-                processed: file.processed
-              };
-              return acc;
-            }, {}) : {},
-            
-          // Opciones DTMF desde tabla BotDtmfOption
-          dtmfOptions: clientConfig.BotDtmfOption ? clientConfig.BotDtmfOption.map(option => ({
-            digit: option.digit,
-            action: option.action,
-            description: option.description // Usar nomenclatura exacta de la base de datos
-          })) : []
-        },
-        
-        // Información de empresa
-        companyInfo: {
-          name: clientConfig.companyName || '',
-          description: clientConfig.companyDescription || '',
-          sector: clientConfig.industry || '',
-          address: clientConfig.address || '',
-          phone: clientConfig.phone || '',
-          email: clientConfig.email || '',
-          website: clientConfig.website || '',
-          // Mantener cualquier información adicional de companyInfo JSON
-          ...(clientConfig.companyInfo || {})
-        },
-        
-        // Configuración de email
-        emailConfig: clientConfig.emailConfig || {
-          enabled: false,
-          provider: '',
-          outgoingEmail: '',
-          recipientEmail: '',
-          forwardRules: '',
-          autoReply: false,
-          autoReplyMessage: '',
-          language: 'es-ES',
-          emailSignature: '',
-          emailConsent: false,
-          imapServer: '',
-          imapPort: 993,
-          smtpServer: '',
-          smtpPort: 587,
-          useSSL: false
-        },
-        
-        // Información adicional del cliente
-        clientInfo: {
-          contactName: clientConfig.contactName || '',
-          language: clientConfig.language || 'es'
-        }
-      };
-      
-      // Verificar botConfig callConfig para evitar objeto nulo
-      if (response.botConfig && !response.botConfig.callConfig) {
-        response.botConfig.callConfig = {
-          enabled: false,
-          recordCalls: false,
-          transcribeCalls: false,
-          voiceId: 'female',
-          language: 'es-ES',
-          greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?'
-        };
-      }
-      
-      // Verificar botConfig aiConfig para evitar objeto nulo
-      if (response.botConfig && !response.botConfig.aiConfig) {
-        response.botConfig.aiConfig = {
-          temperature: 0.7,
-          maxTokens: 150,
-          model: 'gpt-3.5-turbo'
-        };
-      }
-      
-      logger.info(`✅ Configuración del bot obtenida exitosamente para cliente ${req.client.id}`);
-      
-      // Verificar que la respuesta sea un JSON válido
-      try {
-        const jsonString = JSON.stringify({
-          success: true,
-          ...response
-        });
-        
-        if (!jsonString) {
-          throw new Error('No se pudo convertir la respuesta a JSON string');
-        }
-        
-        logger.info(`📤 Enviando respuesta exitosa (${jsonString.length} bytes)`);
-        logger.info('🏁 FINALIZANDO GET /config/bot exitosamente');
-        
-        return res.json({
-          success: true,
-          ...response
-        });
-      } catch (jsonError) {
-        logger.error(`❌ ERROR JSON STRINGIFY: ${jsonError.message}`);
-        throw new Error(`Error al convertir configuración del bot a JSON: ${jsonError.message}`);
-      }
-    } catch (dbError) {
-      // Manejo específico para errores de base de datos
-      logger.error(`❌ ERROR DE BASE DE DATOS: ${dbError.message}`);
-      return res.status(500).json({
-        success: false,
-        error: 'Error accediendo a la base de datos',
-        details: dbError.message
-      });
-    }
-  } catch (error) {
-    logger.error(`❌ ERROR CRÍTICO en GET /config/bot: ${error.message}`);
-    logger.error(`📋 Stack trace: ${error.stack}`);
-    
-    try {
-      // Verificar que podemos convertir a JSON antes de enviar
-      const errorResponse = { 
-        error: 'Error interno del servidor obteniendo configuración del bot',
-        success: false,
-        details: error.message,
-        timestamp: new Date().toISOString()
-      };
-      
-      const jsonString = JSON.stringify(errorResponse);
-      if (!jsonString) {
-        return res.status(500).send('{"error": "Error interno del servidor", "success": false}');
-      }
-      
-      logger.info(`📤 Enviando respuesta de error: ${jsonString.substring(0, 200)}`);
-      return res.status(500).json(errorResponse);
-    } catch (jsonError) {
-      // Si ni siquiera podemos convertir el error a JSON, enviar respuesta de fallback
-      logger.error(`❌ ERROR FATAL: No se pudo crear JSON de error: ${jsonError.message}`);
-      return res.status(500).send('{"error": "Error interno del servidor", "success": false}');
-    }
-  }
-});
+// Los endpoints GET /api/config/bot y PUT /api/config/bot han sido completamente eliminados como parte de la refactorización
 
-/**
- * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado PUT /api/client
- * Este endpoint será eliminado en la próxima versión (V2.0)
- * Toda la funcionalidad ha sido migrada al endpoint unificado
- */
-router.put('/config/bot', authenticate, async (req, res) => {
-  try {
-    logger.info(`🔧 Procesando actualización de configuración para cliente ${req.client?.id}`);
-    logger.info(`📦 Datos recibidos: ${JSON.stringify(req.body)}`);
-    
-    // Obtener configuración actual del cliente para preservar datos existentes
-    const currentClient = await prisma.client.findUnique({
-      where: { id: req.client.id }
-    });
-    
-    if (!currentClient) {
-      return res.status(404).json({ error: 'Cliente no encontrado', success: false });
-    }
+// El endpoint POST /config/delete-context-files ha sido completamente eliminado como parte de la refactorización
 
-    // Extraer los datos del cuerpo, soportando tanto estructura plana como anidada
-    const profile = req.body.profile || {};
-    const currentCompanyInfo = currentClient.companyInfo || {};
-    const currentBotConfig = currentClient.botConfig || {};
-    const currentEmailConfig = currentClient.emailConfig || {};
-    
-    // Construir datos de actualización siguiendo el patrón exitoso del registro
-    const updateData = {
-      // Campos directos de la empresa - prioridad a campos del objeto profile
-      companyName: profile.companyName || req.body.companyName || currentClient.companyName,
-      companyDescription: profile.companyDescription || req.body.companyDescription || currentClient.companyDescription,
-      industry: profile.industry || req.body.companySector || req.body.industry || currentClient.industry,
-      address: profile.address || req.body.companyAddress || req.body.address || currentClient.address,
-      phone: profile.phone || req.body.companyPhone || req.body.phone || currentClient.phone,
-      email: profile.email || req.body.companyEmail || req.body.email || currentClient.email,
-      website: profile.website || req.body.companyWebsite || req.body.website || currentClient.website,
-      
-      // Campos de configuración del bot
-      botName: req.body.bot?.name || req.body.botName || currentClient.botName || 'Asistente Virtual',
-      botPersonality: req.body.bot?.personality || req.body.botPersonality || req.body.personality || currentClient.botPersonality || 'professional',
-      welcomeMessage: req.body.bot?.welcomeMessage || req.body.welcomeMessage || req.body.confirmationMessage || currentClient.welcomeMessage || '',
-    };
-    
-    // Log específico para seguimiento de companyName
-    logger.info(`🔍 Valor de companyName para actualizar: '${updateData.companyName}'`);
-    logger.info(`🔍 Origen: ${profile.companyName ? 'profile.companyName' : req.body.companyName ? 'req.body.companyName' : 'currentClient.companyName'}`);
-    
-    // Configuración del bot
-    updateData.botConfig = {
-      ...currentBotConfig,
-      name: updateData.botName,
-      personality: updateData.botPersonality,
-      welcomeMessage: updateData.welcomeMessage,
-      workingHours: req.body.bot?.workingHours || req.body.workingHours || currentBotConfig.workingHours || {},
-      workingDays: req.body.bot?.workingDays || req.body.workingDays || currentBotConfig.workingDays || {}, 
-      callConfig: req.body.calls || req.body.callConfig || currentBotConfig.callConfig || {},
-      aiConfig: req.body.aiConfig || currentBotConfig.aiConfig || {},
-      faqs: req.body.faqs || currentBotConfig.faqs || [],
-      contextFiles: req.body.contextFiles || req.body.files || currentBotConfig.contextFiles || {},
-      dtmfOptions: req.body.dtmfOptions || currentBotConfig.dtmfOptions || []
-    };
-    
-    // Configuración de la empresa en formato JSON
-    updateData.companyInfo = {
-      ...currentCompanyInfo,
-      name: updateData.companyName,
-      description: updateData.companyDescription,
-      sector: updateData.industry,
-      address: updateData.address,
-      phone: updateData.phone,
-      email: updateData.email,
-      website: updateData.website
-    };
-    
-    // Configuración de email
-    updateData.emailConfig = {
-      ...currentEmailConfig,
-      ...(req.body.email || req.body.emailConfig || {})
-    };
-    
-    // Registrar los datos que se actualizarán
-    logger.info(`✅ Datos de actualización preparados: ${JSON.stringify(updateData)}`);
-    
-    // Ya hemos construido todos los campos de actualización en la parte anterior
-    // Ahora procedemos a guardar en la base de datos
-    
-    // Extra: Agregar timestamp para seguimiento de actualizaciones
-    updateData.updatedAt = new Date();
-    
-    // Actualizar cliente en la base de datos utilizando una transacción para asegurar consistencia
-    const updatedClient = await prisma.$transaction(async (tx) => {
-      // 2.1 Actualizar cliente con los campos directos
-      const client = await tx.client.update({
-        where: { id: req.client.id },
-        data: updateData
-      });
-      
-      // 2.2 Manejar la configuración AI
-      if (updateData.botConfig.aiConfig) {
-        // Normalizar nombres de campos usando la función centralizada
-        const normalizedAiConfig = normalizeFieldNames(updateData.botConfig.aiConfig);
-        
-        // Buscar si ya existe una configuración AI para este cliente
-        const existingAiConfig = await tx.botAiConfig.findFirst({
-          where: { client_id: req.client.id }
-        });
-        
-        if (existingAiConfig) {
-          // Actualizar configuración existente
-          await tx.botAiConfig.update({
-            where: { id: existingAiConfig.id },
-            data: {
-              model: normalizedAiConfig.model || existingAiConfig.model,
-              temperature: normalizedAiConfig.temperature || existingAiConfig.temperature,
-              max_tokens: normalizedAiConfig.max_tokens || existingAiConfig.max_tokens,
-              top_p: normalizedAiConfig.top_p,
-              presence_penalty: normalizedAiConfig.presence_penalty,
-              frequency_penalty: normalizedAiConfig.frequency_penalty
-            }
-          });
-        } else {
-          // Crear nueva configuración AI
-          await tx.botAiConfig.create({
-            data: {
-              client_id: req.client.id,
-              model: normalizedAiConfig.model || 'gpt-3.5-turbo',
-              temperature: normalizedAiConfig.temperature || 0.7,
-              max_tokens: normalizedAiConfig.max_tokens || 150,
-              top_p: normalizedAiConfig.top_p,
-              presence_penalty: normalizedAiConfig.presence_penalty,
-              frequency_penalty: normalizedAiConfig.frequency_penalty
-            }
-          });
-        }
-      }
-      
-      // 2.3 Manejar FAQs si se enviaron
-      if (updateData.botConfig.faqs && Array.isArray(updateData.botConfig.faqs)) {
-        // Eliminar FAQs existentes para reemplazarlas
-        await tx.botFAQ.deleteMany({
-          where: { client_id: req.client.id }
-        });
-        
-        // Crear las nuevas FAQs
-        if (updateData.botConfig.faqs.length > 0) {
-          await tx.botFAQ.createMany({
-            data: updateData.botConfig.faqs.map(faq => ({
-              client_id: req.client.id,
-              question: faq.question,
-              answer: faq.answer
-            }))
-          });
-        }
-      }
-      
-      // 2.4 Manejar archivos de contexto
-      const filesToProcess = updateData.botConfig.contextFiles;
-      if (filesToProcess && (Array.isArray(filesToProcess) || typeof filesToProcess === 'object')) {
-        // Eliminar archivos existentes
-        await tx.botContextFile.deleteMany({
-          where: { client_id: req.client.id }
-        });
-        
-        // Procesar nuevos archivos
-        if (Array.isArray(filesToProcess) && filesToProcess.length > 0) {
-          // Si es un array de objetos { filename, url }
-          await tx.botContextFile.createMany({
-            data: filesToProcess.map(file => ({
-              client_id: req.client.id,
-              filename: file.filename,
-              file_url: file.url
-            }))
-          });
-        } else if (typeof filesToProcess === 'object') {
-          // Si es un objeto { [filename]: url }
-          const fileEntries = Object.entries(filesToProcess);
-          if (fileEntries.length > 0) {
-            await tx.botContextFile.createMany({
-              data: fileEntries.map(([filename, url]) => ({
-                client_id: req.client.id,
-                filename: filename,
-                file_url: url
-              }))
-            });
-          }
-        }
-      }
-      
-      // 2.5 Manejar opciones DTMF
-      if (updateData.botConfig.dtmfOptions && Array.isArray(updateData.botConfig.dtmfOptions)) {
-        // Eliminar opciones existentes
-        await tx.botDtmfOption.deleteMany({
-          where: { client_id: req.client.id }
-        });
-        
-        // Crear nuevas opciones
-        if (updateData.botConfig.dtmfOptions.length > 0) {
-          await tx.botDtmfOption.createMany({
-            data: updateData.botConfig.dtmfOptions.map(option => {
-              const normalizedOption = normalizeFieldNames(option);
-              return {
-                client_id: req.client.id,
-                digit: normalizedOption.digit,
-                action: normalizedOption.action,
-                description: normalizedOption.description
-              };
-            })
-          });
-        }
-      }
-      
-      return client;
-    });
-    
-    logger.info('Cliente y configuraciones relacionadas actualizadas exitosamente');
-    
-    // 3. Obtener los datos completos actualizados incluyendo las relaciones para construir la respuesta
-    const clientFullData = await prisma.client.findUnique({
-      where: { id: req.client.id },
-      include: {
-        BotAiConfig: true,
-        BotContextFile: true,
-        BotFAQ: true,
-        BotDtmfOption: true
-      }
-    });
-    
-    // Construir respuesta con el formato que espera el frontend
-    return res.json({
-      success: true,
-      message: 'Configuración del bot actualizada correctamente',
-      
-      // Mantener estructura botConfig para compatibilidad con frontend
-      botConfig: {
-        botName: clientFullData.botName || 'Asistente Virtual',
-        botPersonality: clientFullData.botPersonality || 'professional',
-        welcomeMessage: clientFullData.welcomeMessage || '',
-        confirmationMessage: clientFullData.confirmationMessage || '',
-        
-        // Horarios de trabajo
-        workingHours: {
-          opening: clientFullData.workingHoursOpening || '09:00',
-          closing: clientFullData.workingHoursClosing || '18:00'
-        },
-        workingDays: clientFullData.workingDays || {},
-        
-        // Configuración AI
-        aiConfig: clientFullData.BotAiConfig && clientFullData.BotAiConfig[0] ? {
-          model: clientFullData.BotAiConfig[0].model,
-          temperature: clientFullData.BotAiConfig[0].temperature,
-          max_tokens: clientFullData.BotAiConfig[0].max_tokens,
-          top_p: clientFullData.BotAiConfig[0].top_p,
-          presence_penalty: clientFullData.BotAiConfig[0].presence_penalty,
-          frequency_penalty: clientFullData.BotAiConfig[0].frequency_penalty
-        } : updatedClient.botConfig?.aiConfig,
-        
-        // FAQs
-        faqs: clientFullData.BotFAQ ? clientFullData.BotFAQ.map(faq => ({
-          question: faq.question,
-          answer: faq.answer
-        })) : [],
-        
-        // Archivos de contexto - usar nombres exactos de la base de datos
-        contextFiles: clientFullData.BotContextFile ? 
-          clientFullData.BotContextFile.reduce((acc, file) => {
-            // Incluir toda la información del archivo, no solo la URL
-            acc[file.filename] = {
-              file_url: file.file_url,
-              file_type: file.file_type,
-              file_size: file.file_size,
-              processed: file.processed
-            };
-            return acc;
-          }, {}) : {},
-          
-        // Opciones DTMF - usar nombres exactos de la base de datos
-        dtmfOptions: clientFullData.BotDtmfOption ? clientFullData.BotDtmfOption.map(option => ({
-          digit: option.digit,
-          action: option.action,
-          description: option.description // Usar description en lugar de message para ser consistente con la BD
-        })) : [],
-        
-        // Mantener otros campos de botConfig para compatibilidad
-        ...(updatedClient.botConfig || {})
-      },
-      
-      // Información de la empresa
-      companyInfo: {
-        name: clientFullData.companyName || '',
-        description: clientFullData.companyDescription || '',
-        sector: clientFullData.industry || '',
-        address: clientFullData.address || '',
-        phone: clientFullData.phone || '',
-        email: clientFullData.email || '',
-        website: clientFullData.website || ''
-      },
-      
-      // Configuración de email
-      emailConfig: clientFullData.emailConfig
-    });
-  } catch (error) {
-    logger.error(`Error actualizando configuración del bot: ${error.message}`);
-    logger.error(`Stack trace: ${error.stack}`);
-    
-    return res.status(500).json({ 
-      error: 'Error interno del servidor actualizando configuración del bot',
-      success: false,
-      details: error.message 
-    });
-  }
-});
+// El endpoint GET /config/verify-bot-config ha sido completamente eliminado como parte de la refactorización
 
-// Eliminar archivos de contexto
-// ENDPOINT OBSOLETO: Usar POST /api/client/context-files/delete en su lugar
-/**
- * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado POST /api/client/context-files/delete
- * Este endpoint será eliminado en la próxima versión (V2.0)
- * Toda la funcionalidad ha sido migrada al endpoint unificado
- */
-router.post('/config/delete-context-files', authenticate, async (req, res) => {
-  try {
-    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto POST /config/delete-context-files usado por cliente ${req.client?.id}`);
-    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a POST /api/client/context-files/delete antes de la próxima actualización');
-    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
-    
-    const { filesToDelete } = req.body;
-    
-    if (!filesToDelete || !Array.isArray(filesToDelete) || filesToDelete.length === 0) {
-      return res.status(400).json({ error: 'Se requiere una lista de archivos para eliminar' });
-    }
-    
-    // Obtener configuración actual del bot
-    const currentClient = await prisma.client.findUnique({
-      where: { id: req.client.id }
-    });
-    
-    const currentBotConfig = currentClient.botConfig || {};
-    const currentContextFiles = currentBotConfig.contextFiles || {};
-    
-    // Crear una copia del objeto de archivos de contexto
-    const updatedContextFiles = { ...currentContextFiles };
-    
-    // Eliminar los archivos indicados
-    let deletedCount = 0;
-    filesToDelete.forEach(fileName => {
-      // Buscar el archivo por nombre en todas las categorías
-      Object.keys(updatedContextFiles).forEach(fileType => {
-        if (updatedContextFiles[fileType] && updatedContextFiles[fileType].fileName === fileName) {
-          delete updatedContextFiles[fileType];
-          deletedCount++;
-        }
-      });
-    });
-    
-    if (deletedCount === 0) {
-      return res.status(404).json({ error: 'No se encontraron los archivos para eliminar' });
-    }
-    
-    // Actualizar la configuración del bot
-    const updatedBotConfig = {
-      ...currentBotConfig,
-      contextFiles: updatedContextFiles
-    };
-    
-    // Guardar en la base de datos
-    await prisma.client.update({
-      where: { id: req.client.id },
-      data: {
-        botConfig: updatedBotConfig
-      }
-    });
-    
-    return res.json({
-      success: true,
-      message: `Se eliminaron ${deletedCount} archivos de contexto`,
-      deletedCount
-    });
-  } catch (error) {
-    logger.error(`Error eliminando archivos de contexto: ${error.message}`);
-    return res.status(500).json({ error: 'Error eliminando archivos de contexto' });
-  }
-});
-
-// Verificar configuración del bot en base de datos
-router.get('/config/verify-bot-config', authenticate, async (req, res) => {
-  try {
-    // Obtener la configuración actual del bot directamente de la base de datos
-    const client = await prisma.client.findUnique({
-      where: { id: req.client.id },
-      select: {
-        id: true,
-        email: true,
-        companyName: true,
-        botConfig: true
-      }
-    });
-    
-    if (!client) {
-      return res.status(404).json({ error: 'Cliente no encontrado' });
-    }
-    
-    // Extraer información sobre archivos de contexto
-    const contextFiles = client.botConfig?.contextFiles || {};
-    const filesInfo = Object.entries(contextFiles).map(([fileType, fileInfo]) => ({
-      fileType,
-      fileName: fileInfo.fileName,
-      fileSize: fileInfo.fileSize,
-      uploadedAt: fileInfo.uploadedAt,
-      status: fileInfo.status
-    }));
-    
-    return res.json({
-      success: true,
-      clientId: client.id,
-      email: client.email,
-      companyName: client.companyName,
-      botConfig: client.botConfig,
-      contextFiles: filesInfo,
-      contextFilesCount: filesInfo.length
-    });
-  } catch (error) {
-    logger.error(`Error verificando configuración del bot: ${error.message}`);
-    return res.status(500).json({ error: 'Error verificando configuración del bot' });
-  }
-});
-
-// Subir archivo de contexto para el bot
-// ENDPOINT OBSOLETO: Usar POST /api/client/context-files en su lugar
-/**
- * @deprecated ENDPOINT OBSOLETO - Usar el nuevo endpoint unificado POST /api/client/context-files
- * Este endpoint será eliminado en la próxima versión (V2.0)
- * Toda la funcionalidad ha sido migrada al endpoint unificado
- */
-router.post('/bot/upload-context', authenticate, async (req, res) => {
-  try {
-    logger.warn(`⚠️ DEPRECATED API: Endpoint obsoleto POST /bot/upload-context usado por cliente ${req.client?.id}`);
-    logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a POST /api/client/context-files antes de la próxima actualización');
-    logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
-    
-    const { fileType, fileName, fileContent, fileSize } = req.body;
-    
-    if (!fileType || !fileName || !fileContent) {
-      return res.status(400).json({ error: 'Faltan datos del archivo' });
-    }
-    
-    // Validar tipo de archivo
-    const allowedTypes = ['inventory', 'catalog', 'pricing', 'menu', 'samples', 'info'];
-    if (!allowedTypes.includes(fileType)) {
-      return res.status(400).json({ error: 'Tipo de archivo no permitido' });
-    }
-    
-    // Validar tamaño (10MB máximo)
-    if (fileSize > 10 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Archivo muy grande (máximo 10MB)' });
-    }
-    
-    // Obtener configuración actual del bot
-    const currentClient = await prisma.client.findUnique({
-      where: { id: req.client.id }
-    });
-    
-    const currentBotConfig = currentClient.botConfig || {};
-    const currentContextFiles = currentBotConfig.contextFiles || {};
-    
-    // En producción, aquí se subiría el archivo a un servicio de almacenamiento
-    // Por ahora, simulamos guardando la información del archivo
-    const fileInfo = {
-      fileName,
-      fileSize,
-      uploadedAt: new Date().toISOString(),
-      status: 'processed'
-    };
-    
-    // Actualizar archivos de contexto
-    const updatedContextFiles = {
-      ...currentContextFiles,
-      [fileType]: fileInfo
-    };
-    
-    const updatedBotConfig = {
-      ...currentBotConfig,
-      contextFiles: updatedContextFiles
-    };
-    
-    // Actualizar en la base de datos
-    await prisma.client.update({
-      where: { id: req.client.id },
-      data: {
-        botConfig: updatedBotConfig
-      }
-    });
-    
-    return res.json({
-      success: true,
-      message: 'Archivo de contexto subido correctamente',
-      fileInfo
-    });
-  } catch (error) {
-    logger.error(`Error subiendo archivo de contexto: ${error.message}`);
-    return res.status(500).json({ error: 'Error subiendo archivo de contexto' });
-  }
-});
+// El endpoint POST /bot/upload-context ha sido completamente eliminado como parte de la refactorización
 
 // ENDPOINT ELIMINADO: Duplicado de PUT /config/email
 // El endpoint correcto está más abajo en el archivo y usa client.emailConfig JSON correctamente
@@ -2875,115 +1967,34 @@ router.get('/voices', authenticate, async (req, res) => {
   }
 });
 
-// Obtener configuración de voz actual
+// ENDPOINT OBSOLETO: Configuración de voz
 router.get('/voice-config', authenticate, async (req, res) => {
-  try {
-    const botConfig = await prisma.botConfig.findUnique({
-      where: { clientId: req.client.id }
-    });
-    
-    if (!botConfig) {
-      return res.json({
-        voiceId: process.env.ELEVENLABS_VOICE_ID,
-        language: 'es-ES',
-        welcomeMessage: 'Gracias por llamar. ¿En qué podemos ayudarle?',
-        gatherPrompt: 'Por favor, indique su nombre y el motivo de su llamada.',
-        retryPrompt: 'No he podido entenderle. Por favor, intente de nuevo.',
-        followUpPrompt: '¿Hay algo más que le gustaría añadir?',
-        goodbyeMessage: 'Gracias por contactar con nosotros.'
-      });
-    }
-    
-    // Extraer los campos relevantes para la configuración de voz
-    return res.json({
-      voiceId: botConfig.voiceId || process.env.ELEVENLABS_VOICE_ID,
-      language: botConfig.language || 'es-ES',
-      welcomeMessage: botConfig.welcomeMessage,
-      gatherPrompt: botConfig.gatherPrompt,
-      retryPrompt: botConfig.retryPrompt,
-      followUpPrompt: botConfig.followUpPrompt,
-      goodbyeMessage: botConfig.goodbyeMessage
-    });
-  } catch (error) {
-    logger.error(`Error obteniendo configuración de voz: ${error.message}`);
-    return res.status(500).json({ error: 'Error obteniendo configuración de voz' });
-  }
+  logger.warn(`⚠️ ENDPOINT OBSOLETO: /voice-config - Funcionalidad eliminada`);
+  return res.status(410).json({
+    success: false,
+    error: 'Funcionalidad eliminada',
+    message: 'La configuración de voz ha sido migrada al nuevo sistema. Use GET /api/client para obtener la configuración del bot.'
+  });
 });
 
-// Actualizar configuración de voz
+// ENDPOINT OBSOLETO: Actualizar configuración de voz
 router.post('/voice-config', authenticate, async (req, res) => {
-  try {
-    const { voiceId, language } = req.body;
-    
-    if (!voiceId) {
-      return res.status(400).json({ error: 'Se requiere el ID de voz' });
-    }
-    
-    const botConfig = await prisma.botConfig.upsert({
-      where: { clientId: req.client.id },
-      update: {
-        voiceId,
-        language: language || 'es-ES'
-      },
-      create: {
-        clientId: req.client.id,
-        voiceId,
-        language: language || 'es-ES',
-        welcomeMessage: 'Gracias por llamar. ¿En qué podemos ayudarle?',
-        gatherPrompt: 'Por favor, indique su nombre y el motivo de su llamada.',
-        retryPrompt: 'No he podido entenderle. Por favor, intente de nuevo.',
-        followUpPrompt: '¿Hay algo más que le gustaría añadir?',
-        goodbyeMessage: 'Gracias por contactar con nosotros.'
-      }
-    });
-    
-    return res.json({
-      voiceId: botConfig.voiceId,
-      language: botConfig.language
-    });
-  } catch (error) {
-    logger.error(`Error actualizando configuración de voz: ${error.message}`);
-    return res.status(500).json({ error: 'Error actualizando configuración de voz' });
-  }
+  logger.warn(`⚠️ ENDPOINT OBSOLETO: POST /voice-config - Funcionalidad eliminada`);
+  return res.status(410).json({
+    success: false,
+    error: 'Funcionalidad eliminada',
+    message: 'La configuración de voz ha sido migrada al nuevo sistema. Use PUT /api/client para actualizar la configuración del bot.'
+  });
 });
 
-// Actualizar mensajes de llamada
+// ENDPOINT OBSOLETO: Actualizar mensajes de llamada
 router.post('/call-messages', authenticate, async (req, res) => {
-  try {
-    const { welcomeMessage, gatherPrompt, retryPrompt, followUpPrompt, goodbyeMessage } = req.body;
-    
-    const botConfig = await prisma.botConfig.upsert({
-      where: { clientId: req.client.id },
-      update: {
-        welcomeMessage: welcomeMessage || undefined,
-        gatherPrompt: gatherPrompt || undefined,
-        retryPrompt: retryPrompt || undefined,
-        followUpPrompt: followUpPrompt || undefined,
-        goodbyeMessage: goodbyeMessage || undefined
-      },
-      create: {
-        clientId: req.client.id,
-        voiceId: process.env.ELEVENLABS_VOICE_ID,
-        language: 'es-ES',
-        welcomeMessage: welcomeMessage || 'Gracias por llamar. ¿En qué podemos ayudarle?',
-        gatherPrompt: gatherPrompt || 'Por favor, indique su nombre y el motivo de su llamada.',
-        retryPrompt: retryPrompt || 'No he podido entenderle. Por favor, intente de nuevo.',
-        followUpPrompt: followUpPrompt || '¿Hay algo más que le gustaría añadir?',
-        goodbyeMessage: goodbyeMessage || 'Gracias por contactar con nosotros.'
-      }
-    });
-    
-    return res.json({
-      welcomeMessage: botConfig.welcomeMessage,
-      gatherPrompt: botConfig.gatherPrompt,
-      retryPrompt: botConfig.retryPrompt,
-      followUpPrompt: botConfig.followUpPrompt,
-      goodbyeMessage: botConfig.goodbyeMessage
-    });
-  } catch (error) {
-    logger.error(`Error actualizando mensajes de llamada: ${error.message}`);
-    return res.status(500).json({ error: 'Error actualizando mensajes de llamada' });
-  }
+  logger.warn(`⚠️ ENDPOINT OBSOLETO: POST /call-messages - Funcionalidad eliminada`);
+  return res.status(410).json({
+    success: false,
+    error: 'Funcionalidad eliminada',
+    message: 'Los mensajes de llamada han sido migrados al nuevo sistema. Use PUT /api/client para actualizar la configuración del bot.'
+  });
 });
 
 // Previsualización de voz

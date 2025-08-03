@@ -48,7 +48,7 @@ async function initVoiceSettingsPage() {
  */
 async function loadVoiceSettings() {
     try {
-        const response = await fetch(`${API_BASE_URL}/voice-config`, {
+        const response = await fetch(`${API_BASE_URL}/api/client`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -58,43 +58,43 @@ async function loadVoiceSettings() {
 
         if (!response.ok) throw new Error('Error al cargar la configuración de voz');
 
-        const voiceConfig = await response.json();
+        const clientData = await response.json();
         
         // Rellenar los campos del formulario con la configuración actual
-        if (voiceConfig) {
-            // Configuración de voz
-            if (voiceConfig.voiceId) {
+        if (clientData) {
+            // Configuración de voz desde los campos directos del cliente
+            if (clientData.voiceId) {
                 // Se establecerá después de cargar las voces disponibles
-                window.selectedVoiceId = voiceConfig.voiceId;
+                window.selectedVoiceId = clientData.voiceId;
             }
             
-            if (voiceConfig.language) {
-                document.getElementById('language-selection').value = voiceConfig.language;
+            if (clientData.language) {
+                document.getElementById('language-selection').value = clientData.language;
             }
             
-            // Mensajes personalizados
-            if (voiceConfig.welcomeMessage) {
-                document.getElementById('welcome-message').value = voiceConfig.welcomeMessage;
+            // Mensajes personalizados desde los campos directos del cliente
+            if (clientData.greeting) {
+                document.getElementById('welcome-message').value = clientData.greeting;
             }
             
-            if (voiceConfig.gatherPrompt) {
-                document.getElementById('gather-prompt').value = voiceConfig.gatherPrompt;
+            if (clientData.gatherPrompt) {
+                document.getElementById('gather-prompt').value = clientData.gatherPrompt;
             }
             
-            if (voiceConfig.retryPrompt) {
-                document.getElementById('retry-prompt').value = voiceConfig.retryPrompt;
+            if (clientData.retryPrompt) {
+                document.getElementById('retry-prompt').value = clientData.retryPrompt;
             }
             
-            if (voiceConfig.followUpPrompt) {
-                document.getElementById('followup-prompt').value = voiceConfig.followUpPrompt;
+            if (clientData.followUpPrompt) {
+                document.getElementById('followup-prompt').value = clientData.followUpPrompt;
             }
             
-            if (voiceConfig.goodbyeMessage) {
-                document.getElementById('goodbye-message').value = voiceConfig.goodbyeMessage;
+            if (clientData.goodbyeMessage) {
+                document.getElementById('goodbye-message').value = clientData.goodbyeMessage;
             }
         }
         
-        return voiceConfig;
+        return clientData;
     } catch (error) {
         console.error('Error cargando configuración de voz:', error);
         console.error('No se pudo cargar tu configuración de voz');
@@ -346,18 +346,16 @@ async function saveVoiceSettings() {
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
         
         // Guardar configuración con estructura correcta para el backend
-        const response = await fetch(`${API_BASE_URL}/voice-config`, {
-            method: 'POST',
+        const response = await fetch(`${API_BASE_URL}/api/client`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authService.getToken()}`
             },
             body: JSON.stringify({
-                // Estructura anidada 'calls' como espera el backend
-                calls: {
-                    voiceId,
-                    language
-                }
+                // Configuración de voz usando el nuevo sistema unificado
+                voiceId,
+                language
             })
         });
 
@@ -392,21 +390,19 @@ async function saveCallMessages() {
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
         
         // Guardar mensajes con estructura correcta para el backend
-        const response = await fetch(`${API_BASE_URL}/call-messages`, {
-            method: 'POST',
+        const response = await fetch(`${API_BASE_URL}/api/client`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authService.getToken()}`
             },
             body: JSON.stringify({
-                // Estructura anidada 'calls' como espera el backend
-                calls: {
-                    greeting: welcomeMessage,
-                    gatherPrompt,
-                    retryPrompt,
-                    followUpPrompt,
-                    goodbyeMessage
-                }
+                // Mensajes de llamada usando el nuevo sistema unificado
+                greeting: welcomeMessage,
+                gatherPrompt,
+                retryPrompt,
+                followUpPrompt,
+                goodbyeMessage
             })
         });
 

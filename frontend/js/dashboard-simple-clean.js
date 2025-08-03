@@ -47,6 +47,11 @@ function adaptOtherContextSimple(config) {
         // Configurar carga de archivos
         setupFileUploadHandlers();
         
+        // Cargar archivos de contexto existentes
+        setTimeout(() => {
+            loadContextFiles();
+        }, 800);
+        
         // Inicializar sistema de seguimiento de uso para el usuario actual
         if (window.UsageTracker) {
             // Obtener el ID del usuario actual
@@ -1685,21 +1690,32 @@ Web: {WEB}</textarea>
                                 <div class="card-body">
                                     <div class="row g-3">
                                         <div class="col-12">
-                                            <label for="context_files" class="form-label">Subir Archivos de Contexto (PDF, DOCX, TXT)</label>
-                                            <input type="file" class="form-control" id="context_files" name="context_files" multiple accept=".pdf,.docx,.txt">
-                                            <div class="form-text">Máximo 5 archivos, 10MB por archivo.</div>
-                                        </div>
-                                        
-                                        <div class="col-12">
-                                            <label class="form-label">Archivos Actuales</label>
-                                            <ul class="list-group" id="context-files-list">
-                                                <!-- Los archivos de contexto se cargarán dinámicamente desde el backend -->
-                                                <li class="list-group-item text-center text-muted py-3" id="no-context-files-message">
-                                                    <i class="fas fa-file-upload fa-2x mb-2"></i>
-                                                    <div>No hay archivos de contexto configurados</div>
-                                                    <small>Sube archivos para que el bot tenga más información</small>
-                                                </li>
-                                            </ul>
+                                            <p class="text-muted mb-3">Sube archivos que proporcionen contexto adicional al bot sobre tu empresa, productos o servicios.</p>
+                                            
+                                            <!-- Zona de subida de archivos -->
+                                            <div class="card border-2 border-dashed border-primary bg-light mb-3" id="file-upload-area">
+                                                <div class="card-body text-center py-4">
+                                                    <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                                    <h6 class="mb-2">Arrastra archivos aquí o haz clic para seleccionar</h6>
+                                                    <p class="text-muted mb-3">Formatos admitidos: PDF, DOCX, TXT</p>
+                                                    <p class="text-muted small mb-3">Máximo 5 archivos • 10MB por archivo</p>
+                                                    <input type="file" id="context-files" name="context_files" multiple accept=".pdf,.docx,.txt" class="d-none">
+                                                    <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('context-files').click()">
+                                                        <i class="fas fa-plus me-2"></i>Seleccionar archivos
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Lista de archivos subidos -->
+                                            <div id="uploaded-files-list" class="mb-3">
+                                                <!-- Los archivos subidos aparecerán aquí -->
+                                            </div>
+                                            
+                                            <!-- Información adicional -->
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                <strong>Consejos:</strong> Incluye documentos como catálogos de productos, políticas de la empresa, preguntas frecuentes detalladas, o cualquier información que ayude al bot a responder mejor a tus clientes.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -3336,7 +3352,7 @@ function setupEventListeners() {
     const testBotBtn = document.getElementById('test-bot-btn');
     if (testBotBtn) {
         testBotBtn.addEventListener('click', function() {
-            testBotConfiguration();
+            // testBotConfiguration() eliminada como parte de la limpieza del sistema legacy
         });
     }
     
@@ -3490,7 +3506,7 @@ function loadExistingData() {
         console.log('   - call_bot_active:', !!document.getElementById('call_bot_active'));
         console.log('   - email_signature:', !!document.getElementById('email_signature'));
         console.log('   - faq-items:', !!document.getElementById('faq-items'));
-        console.log('   - context-files-list:', !!document.getElementById('context-files-list'));
+        // context-files-list eliminado como parte de la limpieza del sistema legacy
         
         // PRIMERO: Cargar datos del registro desde localStorage
         console.log('📝 Cargando datos del registro desde localStorage...');
@@ -3500,9 +3516,8 @@ function loadExistingData() {
         console.log('👤 Iniciando carga de datos de perfil...');
         loadProfileData();
         
-        // Cargar configuración del bot
-        console.log('🤖 Iniciando carga de configuración del bot...');
-        loadBotConfiguration();
+        // La configuración del bot ha sido completamente eliminada como parte de la refactorización
+        console.log('🤖 La configuración del bot ha sido eliminada del sistema');
         
         // Cargar configuración de emails
         console.log('📧 Iniciando carga de configuración de emails...');
@@ -3673,391 +3688,9 @@ function loadProfileData() {
     });
 }
 
-/**
- * Cargar configuración del bot desde el backend
- */
-function loadBotConfiguration() {
-    console.log('🚨 ===== INICIANDO CARGA DE CONFIGURACIÓN DEL BOT =====');
-    console.log('💾 Cargando configuración del bot...');
-    console.log('🕰️ Timestamp:', new Date().toISOString());
-    console.log('🔑 Usando ApiHelper unificado con JWT automático');
-    console.log('🎯 Elementos en DOM:', document.querySelectorAll('input, select, textarea').length);
-    console.log('🌐 URL actual:', window.location.href);
-    console.log('📍 Función llamada desde:', new Error().stack.split('\n')[2]);
-    
-    // Usar el ApiHelper unificado
-    console.log('🔗 Usando ApiHelper unificado para cargar configuración');
-    
-    // Usar el endpoint unificado /api/client en lugar del legacy /api/config/bot
-    console.log('🔄 Usando endpoint unificado CLIENT_DATA: ' + window.API_CONFIG.DASHBOARD.CLIENT_DATA.url);
-    window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, {
-        method: 'GET'
-    })
-    .then(botConfig => {
-        // El ApiHelper ya parsea el JSON automáticamente
-        console.log('💾 Datos recibidos del servidor:', botConfig);
-        
-        // Función auxiliar para establecer valores de forma segura
-        const safeSetValue = (id, value) => {
-            const element = document.getElementById(id);
-            if (element && value !== undefined && value !== null) {
-                element.value = value;
-                console.log(`✅ Campo ${id} cargado con valor:`, value);
-                console.log(`✅ Elemento ${id} encontrado:`, element);
-            } else if (!element) {
-                console.warn(`⚠️ Elemento ${id} no encontrado en el DOM`);
-                console.warn('🔍 Elementos disponibles:', document.querySelectorAll('input, select, textarea').length);
-            } else {
-                console.warn(`⚠️ Valor vacío para ${id}:`, value);
-            }
-        };
-        
-        const safeSetChecked = (id, value) => {
-            const element = document.getElementById(id);
-            if (element && value !== undefined && value !== null) {
-                element.checked = value;
-                console.log(`✅ Checkbox ${id} cargado:`, value);
-            } else if (!element) {
-                console.warn(`⚠️ Elemento ${id} no encontrado en el DOM`);
-            }
-        };
-        
-        // Información básica del bot - IDs obsoletos eliminados
-        // NOTA: bot_name, welcome_message, confirmation_message no existen en el HTML actual
-        // Estos campos se manejan a través de call_greeting y otros campos específicos
-        
-        // Datos de empresa - Usando campos directos
-        safeSetValue('companyName', botConfig.companyName || '');
-        safeSetValue('description', botConfig.companyDescription || '');
-        safeSetValue('industry', botConfig.industry || ''); // Campo directo industry
-        safeSetValue('address', botConfig.address || '');
-        safeSetValue('phone', botConfig.phone || ''); // Campo directo phone
-        safeSetValue('email', botConfig.email || ''); // Campo directo email
-        safeSetValue('website', botConfig.website || ''); // Campo directo website
-        
-        console.log('📞 Teléfono cargado desde campo directo:', botConfig.phone);
-        
-        // Compatibilidad con ambos formatos (transitorio)
-        if (botConfig.companyInfo && !botConfig.phone) {
-            console.log('Usando datos de companyInfo como fallback (formato antiguo)');
-            if (!botConfig.companyName && botConfig.companyInfo.name) safeSetValue('companyName', botConfig.companyInfo.name);
-            if (!botConfig.companyDescription && botConfig.companyInfo.description) safeSetValue('description', botConfig.companyInfo.description);
-            if (!botConfig.industry && botConfig.companyInfo.sector) safeSetValue('industry', botConfig.companyInfo.sector);
-            if (!botConfig.address && botConfig.companyInfo.address) safeSetValue('address', botConfig.companyInfo.address);
-            if (!botConfig.phone && botConfig.companyInfo.phone) safeSetValue('phone', botConfig.companyInfo.phone);
-            if (!botConfig.email && botConfig.companyInfo.email) safeSetValue('email', botConfig.companyInfo.email);
-            if (!botConfig.website && botConfig.companyInfo.website) safeSetValue('website', botConfig.companyInfo.website);
-        }
-        
-        // Configuración de llamadas
-        if (botConfig.callConfig) {
-            safeSetChecked('call_bot_active', botConfig.callConfig.enabled);
-            safeSetChecked('call_recording', botConfig.callConfig.recordCalls);
-            safeSetChecked('call_transcription', botConfig.callConfig.transcribeCalls);
-        }
-        
-        // Configuración de llamadas - Mapeo corregido con IDs reales del formulario
-        if (botConfig.callConfig) {
-            // Idioma de llamadas - ID correcto: call_language
-            safeSetValue('call_language', botConfig.callConfig.language || 'es-ES');
-            
-            // Tipo de voz - ID correcto: voice_type
-            safeSetValue('voice_type', botConfig.callConfig.voiceId || 'female');
-            
-            // Saludo inicial - ID correcto: call_greeting
-            safeSetValue('call_greeting', botConfig.callConfig.greeting || botConfig.callConfig.confirmationMessage || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?');
-        } else {
-            // Compatibilidad con versiones anteriores
-            safeSetValue('call_language', botConfig.language || 'es-ES');
-            safeSetValue('voice_type', botConfig.voiceId || 'female');
-            safeSetValue('call_greeting', botConfig.confirmationMessage || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?');
-        }
-        
-        // Personalidad del bot
-        if (botConfig.personality) {
-            const personalitySelect = document.getElementById('bot_personality');
-            if (personalitySelect) personalitySelect.value = botConfig.personality;
-        }
-        
-        // Configuración de horarios - IDs y condición corregidos
-        if (botConfig.workingHours) {
-            safeSetValue('business-hours-start', botConfig.workingHours.opening);
-            console.log('🕰️ Hora apertura cargada:', botConfig.workingHours.opening);
-            
-            safeSetValue('business-hours-end', botConfig.workingHours.closing);
-            console.log('🕰️ Hora cierre cargada:', botConfig.workingHours.closing);
-        }
-        
-        // Campo business_hours (texto resumen)
-        if (botConfig.businessHours) {
-            safeSetValue('business_hours', botConfig.businessHours);
-        }
-        
-        // Días laborables - IDs corregidos
-        if (botConfig.workingDays) {
-            if (botConfig.workingDays.monday !== undefined) safeSetChecked('day-mon', botConfig.workingDays.monday);
-            if (botConfig.workingDays.tuesday !== undefined) safeSetChecked('day-tue', botConfig.workingDays.tuesday);
-            if (botConfig.workingDays.wednesday !== undefined) safeSetChecked('day-wed', botConfig.workingDays.wednesday);
-            if (botConfig.workingDays.thursday !== undefined) safeSetChecked('day-thu', botConfig.workingDays.thursday);
-            if (botConfig.workingDays.friday !== undefined) safeSetChecked('day-fri', botConfig.workingDays.friday);
-            if (botConfig.workingDays.saturday !== undefined) safeSetChecked('day-sat', botConfig.workingDays.saturday);
-            if (botConfig.workingDays.sunday !== undefined) safeSetChecked('day-sun', botConfig.workingDays.sunday);
-        }
-        
-        // Configuración avanzada de IA
-        if (botConfig.aiConfig) {
-            if (botConfig.aiConfig.temperature !== undefined) document.getElementById('ai_temperature').value = botConfig.aiConfig.temperature;
-            if (botConfig.aiConfig.max_tokens !== undefined) document.getElementById('ai_max_tokens').value = botConfig.aiConfig.max_tokens;
-            if (botConfig.aiConfig.top_p !== undefined) document.getElementById('ai_top_p').value = botConfig.aiConfig.top_p;
-            if (botConfig.aiConfig.frequency_penalty !== undefined) document.getElementById('ai_frequency_penalty').value = botConfig.aiConfig.frequency_penalty;
-            if (botConfig.aiConfig.presence_penalty !== undefined) document.getElementById('ai_presence_penalty').value = botConfig.aiConfig.presence_penalty;
-        }
-        
-        // Configuración de email - Mapeo completo
-        if (botConfig.emailConfig) {
-            // Bot de email activo
-            safeSetChecked('email_bot_active', botConfig.emailConfig.enabled);
-            
-            // Respuesta automática
-            safeSetChecked('auto_reply', botConfig.emailConfig.autoReply);
-            
-            // Idioma de email
-            safeSetValue('email_language', botConfig.emailConfig.language || 'es-ES');
-            
-            // Proveedor de email
-            safeSetValue('email_provider', botConfig.emailConfig.provider || 'gmail');
-            
-            // Email de salida
-            safeSetValue('outgoing_email', botConfig.emailConfig.outgoingEmail || '');
-            
-            // Email de recepción
-            safeSetValue('recipient_email', botConfig.emailConfig.recipientEmail || '');
-            
-            // Configuración de servidores
-            safeSetValue('imap_server', botConfig.emailConfig.imapServer || '');
-            safeSetValue('imap_port', botConfig.emailConfig.imapPort || 993);
-            safeSetValue('smtp_server', botConfig.emailConfig.smtpServer || '');
-            safeSetValue('smtp_port', botConfig.emailConfig.smtpPort || 587);
-            
-            // SSL
-            safeSetChecked('use_ssl', botConfig.emailConfig.useSSL !== false); // Default true
-            
-            // Firma de correo
-            safeSetValue('email_signature', botConfig.emailConfig.emailSignature || '');
-            
-            // Mensaje de respuesta automática
-            safeSetValue('auto_reply_message', botConfig.emailConfig.autoReplyMessage || '');
-            
-            // Reglas de reenvío
-            safeSetValue('forward_rules', botConfig.emailConfig.forwardRules || '');
-            
-            // Consentimiento de email (siempre requerir nueva autorización)
-            safeSetChecked('email_consent', false);
-        }
-        
-        // Cargar FAQs si existen
-        if (botConfig.faqs && Array.isArray(botConfig.faqs) && botConfig.faqs.length > 0) {
-            // Limpiar FAQs existentes
-            const faqContainer = document.getElementById('faq-items');
-            if (faqContainer) {
-                faqContainer.innerHTML = '';
-            }
-            
-            // Añadir FAQs desde la configuración
-            botConfig.faqs.forEach(faq => addFaqItemToDOM(faq));
-            
-            // Actualizar mensaje de no hay preguntas
-            updateNoFaqsMessage();
-        }
-        
-        // Cargar archivos de contexto si existen
-        if (botConfig.contextFiles && Object.keys(botConfig.contextFiles).length > 0) {
-            const filesList = document.getElementById('context-files-list');
-            if (filesList) {
-                // Limpiar archivos existentes - eliminando los hardcodeados
-                filesList.innerHTML = '';
-                
-                // Crear una representación global de archivos para uso en saveUnifiedConfig
-                window.contextFilesData = botConfig.contextFiles;
-                
-                // Convertir el objeto de archivos de contexto a un array
-                const filesArray = Object.entries(botConfig.contextFiles).map(([key, file]) => {
-                    // Asegurarse que cada archivo tenga su key/id
-                    return {...file, id: key};
-                });
-                
-                // Si no hay archivos, mostrar mensaje de "no hay archivos"
-                if (filesArray.length === 0) {
-                    const noFilesMessage = document.createElement('li');
-                    noFilesMessage.className = 'list-group-item text-center text-muted py-3';
-                    noFilesMessage.id = 'no-context-files-message';
-                    noFilesMessage.innerHTML = `
-                        <i class="fas fa-file-upload fa-2x mb-2"></i>
-                        <div>No hay archivos de contexto configurados</div>
-                        <small>Sube archivos para que el bot tenga más información</small>
-                    `;
-                    filesList.appendChild(noFilesMessage);
-                    console.log('⚠️ No hay archivos de contexto, mostrando mensaje');
-                    return; // Salir temprano si no hay archivos
-                }
-                
-                console.log(`📁 Cargando ${filesArray.length} archivos de contexto...`);
-                
-                filesArray.forEach(file => {
-                    const fileItem = document.createElement('li');
-                    fileItem.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
-                    fileItem.dataset.fileId = file.id; // Guardar ID para eliminar después
-                    
-                    // Determinar el icono según el tipo de archivo
-                    let fileIcon = 'fa-file-alt';
-                    if (file.filename) {
-                        const extension = file.filename.split('.').pop().toLowerCase();
-                        if (['pdf'].includes(extension)) fileIcon = 'fa-file-pdf';
-                        else if (['doc', 'docx'].includes(extension)) fileIcon = 'fa-file-word';
-                        else if (['xls', 'xlsx', 'csv'].includes(extension)) fileIcon = 'fa-file-excel';
-                    }
-                    
-                    fileItem.innerHTML = `
-                        <span>
-                            <i class="fas ${fileIcon} me-2"></i>
-                            ${file.filename || 'Archivo sin nombre'}
-                        </span>
-                        <div>
-                            <span class="badge bg-success rounded-pill me-2">${((file.file_size || 0) / 1024).toFixed(1)} KB</span>
-                            <button type="button" class="btn btn-sm btn-danger delete-file" data-file-id="${file.id}">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
-                    `;
-                    filesList.appendChild(fileItem);
-                });
-                
-                // Configurar eventos para eliminar archivos
-                console.log('🔧 Configurando eventos para botones de eliminar...');
-                const deleteButtons = document.querySelectorAll('.delete-file');
-                console.log(`🔍 Botones de eliminar encontrados: ${deleteButtons.length}`);
-                
-                deleteButtons.forEach((button, index) => {
-                    console.log(`🔘 Configurando botón ${index + 1}:`, {
-                        fileId: button.dataset.fileId,
-                        element: button
-                    });
-                    
-                    button.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        const fileId = this.dataset.fileId;
-                        console.log(`🗑️ Botón de eliminar clickeado para archivo: ${fileId}`);
-                        deleteContextFile(fileId);
-                    });
-                });
-                
-                console.log('✅ Eventos de eliminar configurados correctamente');
-                
-                // Actualizar contador de archivos
-                const countBadge = document.getElementById('context-files-count');
-                if (countBadge) {
-                    countBadge.textContent = filesArray.length;
-                    countBadge.style.display = filesArray.length > 0 ? 'inline' : 'none';
-                }
-            }
-        }
-        
-        console.log('✅ Configuración del bot cargada correctamente');
-    })
-    .catch(error => {
-        console.error('❌ Error al cargar configuración del bot:', error);
-        toastr.error('Error al cargar configuración del bot: ' + error.message, 'Error');
-    });
-}
+// La función loadBotConfiguration() ha sido completamente eliminada como parte de la refactorización
 
-/**
- * Elimina un archivo de contexto de la interfaz y del objeto de datos
- * @param {string} fileId - ID del archivo a eliminar
- */
-function deleteContextFile(fileId) {
-    console.log('🚨 ===== INICIANDO ELIMINACIÓN DE ARCHIVO =====');
-    console.log('🔑 FileId recibido:', fileId);
-    console.log('🔑 Tipo de fileId:', typeof fileId);
-    
-    if (!fileId) {
-        console.error('❌ ID de archivo no especificado');
-        return;
-    }
-    
-    console.log('🗑️ Eliminando archivo de contexto:', fileId);
-    
-    // Eliminar del DOM
-    const fileItem = document.querySelector(`li[data-file-id="${fileId}"]`);
-    console.log('🔍 Elemento DOM encontrado:', !!fileItem);
-    console.log('🔍 Selector usado:', `li[data-file-id="${fileId}"]`);
-    
-    if (fileItem) {
-        console.log('✅ Eliminando elemento del DOM...');
-        fileItem.remove();
-        console.log('✅ Elemento eliminado del DOM');
-    } else {
-        console.warn('⚠️ No se encontró el elemento en el DOM');
-        // Intentar con todos los elementos para debug
-        const allItems = document.querySelectorAll('li[data-file-id]');
-        console.log('🔍 Todos los elementos con data-file-id:', 
-            Array.from(allItems).map(item => ({
-                id: item.dataset.fileId,
-                element: item
-            }))
-        );
-    }
-    
-    // Verificar estado de window.contextFilesData
-    console.log('🔍 window.contextFilesData existe:', !!window.contextFilesData);
-    console.log('🔍 window.contextFilesData contenido:', window.contextFilesData);
-    
-    // Eliminar del objeto global de archivos
-    if (window.contextFilesData && window.contextFilesData[fileId]) {
-        console.log('✅ Archivo encontrado en datos globales');
-        // Marcar como eliminado para que processContextFilesWithBackend lo elimine del backend
-        window.contextFilesData[fileId].deleted = true;
-        console.log(`✅ Archivo ${fileId} marcado para eliminación`);
-        
-        // Actualizar contador de archivos
-        const countBadge = document.getElementById('context-files-count');
-        const filesList = document.getElementById('context-files-list');
-        console.log('🔍 Elementos de contador:', {
-            countBadge: !!countBadge,
-            filesList: !!filesList
-        });
-        
-        if (countBadge && filesList) {
-            const remainingFiles = filesList.querySelectorAll('li').length;
-            console.log(`📊 Archivos restantes: ${remainingFiles}`);
-            countBadge.textContent = remainingFiles;
-            countBadge.style.display = remainingFiles > 0 ? 'inline' : 'none';
-            
-            // Si no quedan archivos, mostrar mensaje de "no hay archivos"
-            if (remainingFiles === 0) {
-                const noFilesMessage = document.createElement('li');
-                noFilesMessage.className = 'list-group-item text-center text-muted py-3';
-                noFilesMessage.id = 'no-context-files-message';
-                noFilesMessage.innerHTML = `
-                    <i class="fas fa-file-upload fa-2x mb-2"></i>
-                    <div>No hay archivos de contexto configurados</div>
-                    <small>Sube archivos para que el bot tenga más información</small>
-                `;
-                filesList.appendChild(noFilesMessage);
-                console.log('⚠️ Último archivo eliminado, mostrando mensaje de "no hay archivos"');
-            }
-        }
-        
-        console.log('✅ Archivo eliminado correctamente');
-        toastr.success('Archivo eliminado correctamente', 'Éxito');
-    } else {
-        console.error('❌ No se encontró el archivo en los datos guardados');
-        console.error('🔍 Claves disponibles en contextFilesData:', 
-            window.contextFilesData ? Object.keys(window.contextFilesData) : 'NO DATA');
-        toastr.error('No se pudo eliminar el archivo', 'Error');
-    }
-    
-    console.log('🏁 ===== ELIMINACIÓN DE ARCHIVO COMPLETADA =====');
-}
+// Función deleteContextFile() eliminada como parte de la refactorización del sistema de configuración del bot
 
 /**
  * Cargar configuración de emails desde el backend usando el endpoint unificado
@@ -7250,38 +6883,9 @@ function sendManualResponse(emailId) {
     }, 1000);
 }
 
-/**
- * Recopilar archivos de contexto para guardar
- * @returns {Object} Objeto con información de archivos nuevos y eliminados
- */
-function collectContextFiles() {
-    // Obtener información del usuario actual
-    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
-    console.log(`📁 Recopilando archivos de contexto para el usuario ${userId}...`);
-    
-    // Obtener el input de archivos
-    const contextFilesInput = document.getElementById('context_files');
-    
-    // Obtener marcadores de archivos eliminados
-    const deletedFileMarkers = document.querySelectorAll('.deleted-file-marker');
-    const deletedFiles = Array.from(deletedFileMarkers).map(marker => marker.value);
-    
-    // Recopilar archivos existentes que no han sido eliminados
-    const contextFilesList = document.getElementById('context-files-list');
-    const existingFiles = contextFilesList ? 
-        Array.from(contextFilesList.querySelectorAll('li:not(.new-file)')).
-        filter(item => !deletedFiles.includes(item.querySelector('div').textContent.trim())).
-        map(item => item.querySelector('div').textContent.trim()) : 
-        [];
-    
-    console.log(`📂 Archivos recopilados: ${existingFiles.length} existentes, ${deletedFiles.length} eliminados`);
-    
-    return {
-        newFiles: contextFilesInput ? contextFilesInput.files : null,
-        existingFiles: existingFiles,
-        deletedFiles: deletedFiles
-    };
-}
+// FUNCIÓN collectContextFiles() ELIMINADA
+// Esta función era parte del sistema legacy de configuración del bot
+// y ha sido removida como parte de la limpieza exhaustiva del código legacy
 
 /**
  * Guardar configuración unificada del bot
@@ -7377,7 +6981,7 @@ function saveUnifiedConfig() {
                 forwardingRules: typeof collectForwardingRules === 'function' ? collectForwardingRules() : []
             },
             
-            // Configuración de transferencias - desde transfer-config.js con IDs alternativos
+            // Configuración de transferencias
             transferConfig: {
                 enableTransfers: document.getElementById('enable-transfers')?.checked || document.getElementById('enable_transfers')?.checked || false,
                 transferOnRequest: document.getElementById('transfer-on-request')?.checked || document.getElementById('transfer_on_request')?.checked || false,
@@ -7387,7 +6991,7 @@ function saveUnifiedConfig() {
                 transferNumbers: typeof getTransferNumbers === 'function' ? getTransferNumbers() : []
             },
             
-            // Configuración de script - desde script-config.js con IDs alternativos
+            // Configuración de script
             scriptConfig: {
                 model: document.getElementById('ai-model')?.value || document.getElementById('ai_model')?.value || document.getElementById('model')?.value || 'gpt-3.5-turbo',
                 personality: document.getElementById('personality')?.value || document.getElementById('bot_personality')?.value || 'professional',
@@ -7578,24 +7182,13 @@ function saveUnifiedConfig() {
     botConfigData.faqs = collectFaqItems();
     console.log('📝 FAQs recopiladas:', botConfigData.faqs);
     
-    // Procesar archivos de contexto
-    let processFilesPromise;
+    // PROCESAMIENTO DE ARCHIVOS DE CONTEXTO ELIMINADO
+    // Esta funcionalidad ha sido removida como parte de la eliminación del sistema legacy
+    console.log('🗑️ Procesamiento de archivos de contexto omitido (funcionalidad eliminada)');
     
-    // Verificamos si hay archivos para procesar
-    if (config.files && typeof config.files === 'object') {
-        processFilesPromise = processContextFilesWithBackend(config.files);
-    } else {
-        processFilesPromise = Promise.resolve({files: {}});
-    }
-    
-    processFilesPromise
-        .then((result) => {
-            console.log('✅ Archivos de contexto procesados:', result);
-            
-            // Actualizar el objeto botConfigData con los archivos de contexto procesados
-            if (result && result.files) {
-                botConfigData.contextFiles = result.files;
-            }
+    // Proceder directamente con el guardado de configuración
+    Promise.resolve()
+        .then(() => {
             
             console.log('📤 Enviando configuración unificada al backend:', botConfigData);
             
@@ -7659,9 +7252,8 @@ function saveUnifiedConfig() {
                 // FAQs
                 faqs: config.faqs,
                 
-                // Archivos de contexto
-                files: botConfigData.contextFiles,
-                contextFiles: botConfigData.contextFiles,
+                // ARCHIVOS DE CONTEXTO ELIMINADOS
+                // Esta funcionalidad ha sido removida del sistema legacy
                 
                 // Campos adicionales para asegurar compatibilidad con legacy
                 modelName: config.scriptConfig?.model || 'gpt-3.5-turbo',
@@ -7677,9 +7269,9 @@ function saveUnifiedConfig() {
             
             console.log('💾 Datos unificados preparados para el backend:', unifiedClientData);
             
-            // USAR ENDPOINT DIRECTO
-            console.log('🔄 Usando endpoint directo /api/config/bot');
-            return fetch('/api/config/bot', {
+            // USAR ENDPOINT UNIFICADO
+            console.log('🔄 Usando endpoint unificado /api/client');
+            return fetch('/api/client', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -7746,9 +7338,8 @@ function saveUnifiedConfig() {
                     saveButton.disabled = false;
                 }
                 
-                // Recargar datos
-                loadBotConfiguration();
-                console.log('✅ Configuración recargada y UI restaurada');
+                // Recargar datos - loadBotConfiguration() eliminada como parte de la refactorización
+                console.log('✅ UI restaurada - configuración del bot eliminada');
             }, 2000); // Exactamente 2 segundos como solicitó el usuario
             
             resolve();
@@ -7767,139 +7358,14 @@ function saveUnifiedConfig() {
 }
 
 // ...
+// FUNCIÓN testBotConfiguration() ELIMINADA
+// Esta función era parte del sistema legacy de configuración del bot
+// que dependía del endpoint /api/bot/test que no existe en el backend
+// Ha sido removida como parte de la limpieza exhaustiva del código legacy
 function testBotConfiguration() {
-    // Obtener información del usuario actual
-    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
-    console.log(`🤖 Probando configuración del bot para el usuario ${userId}...`);
-    
-    // Mostrar spinner de carga
-    toastr.info('Probando configuración del bot...', 'Procesando');
-    
-    // Recopilar datos de configuración relevantes para la prueba
-    const companyName = document.getElementById('companyName')?.value || 'Empresa';
-    const businessHours = document.getElementById('business_hours')?.value || 'Lun-Vie: 9:00-18:00';
-    const botPersonality = document.getElementById('bot_personality')?.value || 'professional';
-    
-    // Recopilar preguntas frecuentes
-    const faqs = collectFaqItems();
-    
-    // Preparar datos para la prueba
-    const testData = {
-        companyName,
-        businessHours,
-        botPersonality,
-        faqs,
-        testMessage: "Hola, me gustaría obtener información sobre sus servicios"
-    };
-    
-    // Enviar solicitud al backend para probar el bot
-    window.ApiHelper.fetchApi({ url: '/api/bot/test', auth: 'jwt' }, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(testData)
-    })
-    
-    .then(data => {
-        console.log('✅ Prueba del bot completada:', data);
-        
-        // Mostrar resultado de la prueba
-        const responseMessage = data.response || 'La configuración del bot parece correcta.';
-        
-        // Crear un modal para mostrar la respuesta del bot
-        const modalId = 'botTestResponseModal';
-        let modal = document.getElementById(modalId);
-        
-        if (!modal) {
-            // Crear el modal si no existe
-            const modalHTML = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="${modalId}Label">Resultado de la prueba del bot</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="card mb-3">
-                                    <div class="card-header bg-light">
-                                        <strong>Mensaje de prueba:</strong>
-                                    </div>
-                                    <div class="card-body">
-                                        <p>${testData.testMessage}</p>
-                                    </div>
-                                </div>
-                                <div class="card">
-                                    <div class="card-header bg-primary text-white">
-                                        <strong>Respuesta del bot:</strong>
-                                    </div>
-                                    <div class="card-body">
-                                        <p>${responseMessage}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Añadir el modal al DOM
-            const modalContainer = document.createElement('div');
-            modalContainer.innerHTML = modalHTML;
-            document.body.appendChild(modalContainer.firstChild);
-            
-            modal = document.getElementById(modalId);
-        } else {
-            // Actualizar el contenido del modal si ya existe
-            modal.querySelector('.modal-body').innerHTML = `
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <strong>Mensaje de prueba:</strong>
-                    </div>
-                    <div class="card-body">
-                        <p>${testData.testMessage}</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <strong>Respuesta del bot:</strong>
-                    </div>
-                    <div class="card-body">
-                        <p>${responseMessage}</p>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Mostrar el modal
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
-        
-        // Registrar la prueba en el sistema de seguimiento de uso
-        if (window.UsageTracker) {
-            // Las pruebas del bot pueden contar como llamadas en el sistema de seguimiento
-            window.UsageTracker.trackCall();
-            console.log(`📊 Prueba del bot registrada para el usuario ${userId}`);
-            
-            // Actualizar la UI del sistema de seguimiento
-            window.UsageTracker.updateUI();
-            
-            // Actualizar el resumen de uso si está visible
-            if (typeof showUsageSummary === 'function') {
-                showUsageSummary();
-            }
-        }
-        
-        toastr.success('Prueba del bot completada', '¡Éxito!');
-    })
-    .catch(error => {
-        console.error('Error probando configuración del bot:', error);
-        toastr.error('Error al probar la configuración del bot: ' + error.message, 'Error');
-    });
-    
-    // La prueba del bot ahora se maneja con la API real
+    console.log('⚠️ Función testBotConfiguration() ha sido deshabilitada');
+    toastr.warning('Esta funcionalidad ha sido temporalmente deshabilitada', 'Aviso');
+    return;
 }
 
 // La función showBotTestModal ha sido eliminada porque ahora usamos la API real
@@ -7999,8 +7465,8 @@ function loadSampleFaqs() {
         
         window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
         .then(clientData => {
-            // En el endpoint unificado, las FAQs están en clientData.botConfig.faqs
-            const faqs = (clientData && clientData.botConfig && clientData.botConfig.faqs) || [];
+            // En el endpoint unificado, las FAQs están directamente en clientData.faqs
+            const faqs = clientData?.faqs || [];
             console.log('💾 FAQs recibidas del endpoint unificado:', faqs.length);
 
             // Añadir preguntas al DOM
@@ -8255,415 +7721,359 @@ function collectForwardingRules() {
 }
 
 /**
- * Procesar archivos de contexto
- * @param {Object} files - Archivos a procesar (opcional)
- */
-function processContextFiles(files = null) {
-    // Obtener información del usuario actual
-    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
-    console.log(`📁 Procesando archivos de contexto para el usuario ${userId}...`);
-    
-    // Si se pasan archivos específicos (desde saveUnifiedConfig)
-    if (files) {
-        let fileCount = 0;
-        Object.keys(files).forEach(fileType => {
-            const file = files[fileType];
-            if (file) {
-                processFile(file);
-                fileCount++;
-            }
-        });
-        
-        // Registrar la subida de archivos en el sistema de seguimiento de uso
-        if (fileCount > 0 && window.UsageTracker) {
-            // Cada archivo subido cuenta como una acción de usuario
-            window.UsageTracker.updateUserCount(fileCount);
-            console.log(`📊 ${fileCount} archivos de contexto registrados para el usuario ${userId}`);
-            
-            // Actualizar la UI del sistema de seguimiento
-            window.UsageTracker.updateUI();
-            
-            // Actualizar el resumen de uso si está visible
-            if (typeof showUsageSummary === 'function') {
-                showUsageSummary();
-            }
-        }
-        
-        return;
-    }
-    
-    // Si no se pasan archivos, usar el input de archivos context_files
-    const contextFilesInput = document.getElementById('context_files');
-    if (!contextFilesInput || !contextFilesInput.files || contextFilesInput.files.length === 0) {
-        console.log(`No hay archivos seleccionados para el usuario ${userId}`);
-        return;
-    }
-    
-    // Validar número máximo de archivos
-    if (contextFilesInput.files.length > 5) {
-        toastr.error('Máximo 5 archivos permitidos', 'Error de Archivo');
-        return;
-    }
-    
-    // Procesar cada archivo seleccionado
-    const fileCount = contextFilesInput.files.length;
-    Array.from(contextFilesInput.files).forEach(file => {
-        processFile(file);
-    });
-    
-    // Registrar la subida de archivos en el sistema de seguimiento de uso
-    if (window.UsageTracker) {
-        // Cada archivo subido cuenta como una acción de usuario
-        window.UsageTracker.updateUserCount(fileCount);
-        console.log(`📊 ${fileCount} archivos de contexto registrados para el usuario ${userId}`);
-        
-        // Actualizar la UI del sistema de seguimiento
-        window.UsageTracker.updateUI();
-        
-        // Actualizar el resumen de uso si está visible
-        if (typeof showUsageSummary === 'function') {
-            showUsageSummary();
-        }
-    }
-    
-    // Actualizar la lista de archivos
-    updateContextFilesList();
-}
-
-/**
- * Procesar archivos de contexto (versión simulada)
- * @param {Object} files - Archivos de contexto
- */
-function processContextFilesSimulated(files) {
-    if (!files) return;
-    
-    console.log('📂 Procesando archivos de contexto:', files);
-    
-    // Simular procesamiento de archivos
-    Object.entries(files).forEach(([type, file]) => {
-        if (file) {
-            console.log(`📄 Procesando archivo ${type}: ${file.name}`);
-            // En producción, aquí se subiría el archivo al servidor
-        }
-    });
-}
-
-/**
- * Procesar archivos de contexto con el backend
- * @param {Object} filesData - Objeto con archivos nuevos, existentes y eliminados
- * @returns {Promise} - Promesa que se resuelve cuando todos los archivos han sido procesados
- */
-function processContextFilesWithBackend(filesData) {
-    // Obtener información del usuario actual
-    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
-    console.log(`📂 Procesando archivos de contexto con el backend para el usuario ${userId}:`, filesData);
-    
-    // Si no hay datos o son inválidos, resolver inmediatamente
-    if (!filesData) {
-        return Promise.resolve();
-    }
-    
-    const promises = [];
-    
-    // 1. Procesar archivos nuevos
-    if (filesData.newFiles && filesData.newFiles.length > 0) {
-        console.log(`📤 Subiendo ${filesData.newFiles.length} archivos nuevos...`);
-        
-        // Convertir FileList a Array para poder mapearlo
-        const newFilesArray = Array.from(filesData.newFiles);
-        
-        // Crear promesas para subir cada archivo nuevo
-        const uploadPromises = newFilesArray.map(file => {
-            const formData = new FormData();
-            formData.append('file', file);  // Enviar el archivo real
-            formData.append('filename', file.name);
-            formData.append('file_size', file.size);
-            
-            // Usar el endpoint unificado CLIENT_DATA para subir archivos de contexto
-            console.log('🔄 Subiendo archivo de contexto usando endpoint unificado CLIENT_DATA');
-            return window.ApiHelper.fetchApi({
-                url: `${window.API_CONFIG.DASHBOARD.CLIENT_DATA.url}/context-files`,
-                auth: 'jwt'
-            }, {
-                method: 'POST',
-                body: formData,
-                // No enviamos headers con Content-Type porque FormData lo establece automáticamente
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Error al subir archivo ${file.name}`);
-                }
-
-            })
-            .then(data => {
-                console.log(`✅ Archivo nuevo ${file.name} subido correctamente:`, data);
-                return data;
-            })
-            .catch(error => {
-                console.error(`❌ Error al subir archivo ${file.name}:`, error);
-                toastr.error(`Error al subir archivo ${file.name}: ${error.message}`, 'Error');
-                throw error;
-            });
-        });
-        
-        promises.push(...uploadPromises);
-    }
-    
-    // 2. Procesar archivos eliminados
-    if (filesData.deletedFiles && filesData.deletedFiles.length > 0) {
-        console.log(`🗑️ Eliminando ${filesData.deletedFiles.length} archivos del servidor...`);
-        
-        // Crear promesa para eliminar archivos usando el endpoint unificado
-        console.log('🔄 Eliminando archivos de contexto usando endpoint unificado CLIENT_DATA');
-        const deletePromise = window.ApiHelper.fetchApi({
-            url: `${window.API_CONFIG.DASHBOARD.CLIENT_DATA.url}/context-files/delete`,
-            auth: 'jwt'
-        }, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ files: filesData.deletedFiles })
-        })
-        
-        .then(data => {
-            console.log(`✅ Archivos eliminados correctamente:`, data);
-            // Eliminar marcadores de archivos eliminados del DOM
-            document.querySelectorAll('.deleted-file-marker').forEach(marker => marker.remove());
-            return data;
-        })
-        .catch(error => {
-            console.error(`❌ Error al eliminar archivos:`, error);
-            toastr.error(`Error al eliminar archivos: ${error.message}`, 'Error');
-            throw error;
-        });
-        
-        promises.push(deletePromise);
-    }
-    
-    // Si no hay operaciones pendientes, resolver inmediatamente
-    if (promises.length === 0) {
-        return Promise.resolve();
-    }
-    
-    // Devolver una promesa que se resuelve cuando todas las operaciones han sido procesadas
-    return Promise.all(promises)
-        .then(results => {
-            console.log('✅ Todas las operaciones de archivos completadas correctamente:', results);
-            return results;
-        })
-        .catch(error => {
-            console.error('❌ Error procesando operaciones de archivos:', error);
-            throw error;
-        });
-}
-
-/**
- * Procesar un archivo individual
- * @param {File} file - Archivo a procesar
- */
-function processFile(file) {
-    console.log(`📄 Procesando archivo:`, file.name);
-    
-    // Validar tamaño (máximo 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-        toastr.error(`El archivo ${file.name} es demasiado grande (máximo 10MB)`, 'Error de Archivo');
-        return false;
-    }
-    
-    // Validar tipo de archivo
-    const allowedTypes = ['.pdf', '.txt', '.docx'];
-    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-    
-    if (!allowedTypes.includes(fileExtension)) {
-        toastr.error(`Tipo de archivo no permitido: ${fileExtension}`, 'Error de Archivo');
-        return false;
-    }
-    
-    // Simular procesamiento por IA
-    setTimeout(() => {
-        toastr.success(`Archivo ${file.name} procesado correctamente`, 'Archivo Procesado');
-    }, 1000 + Math.random() * 2000); // Tiempo aleatorio entre 1-3 segundos
-    
-    return true;
-}
-
-/**
- * Configurar los manejadores de eventos para la carga de archivos
+ * Configurar manejadores de subida de archivos de contexto
  */
 function setupFileUploadHandlers() {
-    // Obtener información del usuario actual
-    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
-    console.log(`📎 Configurando manejadores de carga de archivos para el usuario ${userId}...`);
+    console.log('📁 Configurando manejadores de archivos de contexto...');
     
-    // Manejar cambios en el input de archivos de contexto
-    const contextFilesInput = document.getElementById('context_files');
-    if (contextFilesInput) {
-        contextFilesInput.addEventListener('change', () => {
-            if (contextFilesInput.files.length > 0) {
-                console.log(`📎 Archivos seleccionados (${contextFilesInput.files.length}) por el usuario ${userId}`);
-                processContextFiles();
-            }
-        });
+    const fileInput = document.getElementById('context-files');
+    const uploadArea = document.getElementById('file-upload-area');
+    const filesList = document.getElementById('uploaded-files-list');
+    
+    if (!fileInput || !uploadArea || !filesList) {
+        console.warn('⚠️ Elementos de subida de archivos no encontrados');
+        return;
     }
     
-    // Configurar botones de eliminación para archivos existentes
-    setupExistingFileDeleteButtons();
+    // Configurar drag & drop
+    setupDragAndDrop(uploadArea, fileInput);
+    
+    // Configurar cambio de archivos
+    fileInput.addEventListener('change', handleFileSelection);
+    
+    // Inicializar lista de archivos
+    updateFilesList();
 }
 
 /**
- * Configurar botones de eliminación para archivos existentes
+ * Configurar funcionalidad de drag & drop
  */
-function setupExistingFileDeleteButtons() {
-    const deleteButtons = document.querySelectorAll('#context-files-list .btn-outline-danger');
-    
-    deleteButtons.forEach(button => {
-        // Evitar duplicar event listeners
-        button.removeEventListener('click', handleFileDelete);
-        button.addEventListener('click', handleFileDelete);
+function setupDragAndDrop(uploadArea, fileInput) {
+    // Prevenir comportamiento por defecto del navegador
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
     });
-}
-
-/**
- * Manejar la eliminación de un archivo
- * @param {Event} event - Evento de click
- */
-function handleFileDelete(event) {
-    // Obtener información del usuario actual
-    const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
     
-    const button = event.currentTarget;
-    const listItem = button.closest('li');
+    // Resaltar área de drop
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
     
-    if (listItem) {
-        const fileName = listItem.querySelector('div').textContent.trim();
-        console.log(`🗑️ Eliminando archivo ${fileName} para el usuario ${userId}...`);
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    // Manejar drop
+    uploadArea.addEventListener('drop', handleDrop, false);
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight(e) {
+        uploadArea.classList.add('border-success', 'bg-success', 'bg-opacity-10');
+    }
+    
+    function unhighlight(e) {
+        uploadArea.classList.remove('border-success', 'bg-success', 'bg-opacity-10');
+    }
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
         
-        // Comprobar si es un archivo existente o un archivo recién cargado
-        const isNewFile = listItem.classList.contains('new-file');
-        
-        if (isNewFile) {
-            // Para archivos recién cargados, necesitamos resetear el input file
-            const contextFilesInput = document.getElementById('context_files');
-            if (contextFilesInput) {
-                // No podemos modificar el FileList directamente, así que creamos un nuevo input
-                // y transferimos todos los archivos excepto el eliminado
-                resetFileInputExcept(contextFilesInput, fileName);
-            }
-        } else {
-            // Para archivos existentes en el servidor, añadimos un campo oculto para marcar la eliminación
-            const fileIdInput = document.createElement('input');
-            fileIdInput.type = 'hidden';
-            fileIdInput.name = 'deleted_context_files[]';
-            fileIdInput.value = fileName;
-            fileIdInput.className = 'deleted-file-marker';
-            document.getElementById('bot-config-form').appendChild(fileIdInput);
-            console.log(`📁 Archivo ${fileName} marcado para eliminación en el servidor`);
-        }
-        
-        // Animación de desvanecimiento
-        listItem.style.transition = 'opacity 0.3s';
-        listItem.style.opacity = '0';
-        
-        setTimeout(() => {
-            listItem.remove();
-            
-            // Registrar la acción en el sistema de seguimiento de uso
-            if (window.UsageTracker) {
-                // La eliminación de archivos puede contar como una acción de usuario en el sistema de seguimiento
-                window.UsageTracker.updateUserCount(1);
-                console.log(`📊 Eliminación de archivo registrada para el usuario ${userId}`);
-                
-                // Actualizar la UI del sistema de seguimiento
-                window.UsageTracker.updateUI();
-                
-                // Actualizar el resumen de uso si está visible
-                if (typeof showUsageSummary === 'function') {
-                    showUsageSummary();
-                }
-            }
-            
-            toastr.success(`Archivo ${fileName} eliminado`, 'Archivo Eliminado');
-        }, 300);
+        fileInput.files = files;
+        handleFileSelection({ target: { files: files } });
     }
 }
 
 /**
- * Resetea un input file, excluyendo un archivo específico por nombre
- * @param {HTMLInputElement} fileInput - El input file a resetear
- * @param {string} fileNameToExclude - Nombre del archivo a excluir
+ * Manejar selección de archivos
  */
-function resetFileInputExcept(fileInput, fileNameToExclude) {
-    if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
+function handleFileSelection(event) {
+    const files = Array.from(event.target.files);
+    console.log(`📄 ${files.length} archivo(s) seleccionado(s)`);
     
-    // Crear un objeto DataTransfer para gestionar los archivos
-    const dataTransfer = new DataTransfer();
+    // Validar archivos
+    const validFiles = validateFiles(files);
     
-    // Añadir todos los archivos excepto el que queremos eliminar
-    Array.from(fileInput.files).forEach(file => {
-        if (file.name !== fileNameToExclude) {
-            dataTransfer.items.add(file);
-        }
-    });
+    if (validFiles.length > 0) {
+        // Agregar archivos válidos a la lista
+        addFilesToList(validFiles);
+        updateFilesList();
+        
+        toastr.success(`${validFiles.length} archivo(s) agregado(s) correctamente`, 'Archivos de Contexto');
+    }
     
-    // Reemplazar los archivos en el input
-    fileInput.files = dataTransfer.files;
-    
-    console.log(`📂 Input file actualizado: ${fileInput.files.length} archivos restantes`);
+    // Limpiar input
+    event.target.value = '';
 }
 
 /**
- * Actualizar la lista visual de archivos de contexto
+ * Validar archivos seleccionados
  */
-function updateContextFilesList() {
-    const contextFilesList = document.getElementById('context-files-list');
-    const contextFilesInput = document.getElementById('context_files');
+function validateFiles(files) {
+    const validFiles = [];
+    const maxFiles = 5;
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['.pdf', '.docx', '.txt'];
     
-    if (!contextFilesList || !contextFilesInput) return;
+    // Obtener archivos actuales
+    const currentFiles = getUploadedFiles();
     
-    // Limpiar la lista actual pero mantener los archivos existentes
-    const existingItems = Array.from(contextFilesList.querySelectorAll('li:not(.new-file)'));
+    for (let file of files) {
+        // Verificar número máximo de archivos
+        if (currentFiles.length + validFiles.length >= maxFiles) {
+            toastr.warning(`Máximo ${maxFiles} archivos permitidos`, 'Límite de archivos');
+            break;
+        }
+        
+        // Verificar tamaño
+        if (file.size > maxSize) {
+            toastr.error(`El archivo "${file.name}" es demasiado grande (máximo 10MB)`, 'Archivo demasiado grande');
+            continue;
+        }
+        
+        // Verificar tipo
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        if (!allowedTypes.includes(fileExtension)) {
+            toastr.error(`El archivo "${file.name}" no es un tipo permitido (PDF, DOCX, TXT)`, 'Tipo de archivo no válido');
+            continue;
+        }
+        
+        // Verificar duplicados
+        if (currentFiles.some(f => f.name === file.name)) {
+            toastr.warning(`El archivo "${file.name}" ya está en la lista`, 'Archivo duplicado');
+            continue;
+        }
+        
+        validFiles.push(file);
+    }
     
-    // Añadir los nuevos archivos
-    if (contextFilesInput.files && contextFilesInput.files.length > 0) {
-        Array.from(contextFilesInput.files).forEach(file => {
-            // Comprobar si el archivo ya existe en la lista
-            const fileExists = existingItems.some(item => 
-                item.querySelector('div').textContent.trim() === file.name);
-            
-            if (!fileExists) {
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center new-file';
-                
-                // Determinar el icono según la extensión
-                let iconClass = 'fas fa-file text-secondary';
-                const ext = file.name.split('.').pop().toLowerCase();
-                
-                if (ext === 'pdf') iconClass = 'fas fa-file-pdf text-danger';
-                else if (['doc', 'docx'].includes(ext)) iconClass = 'fas fa-file-word text-primary';
-                else if (['txt', 'text'].includes(ext)) iconClass = 'fas fa-file-alt text-info';
-                
-                li.innerHTML = `
-                    <div>
-                        <i class="${iconClass} me-2"></i>
-                        ${file.name}
+    return validFiles;
+}
+
+/**
+ * Agregar archivos a la lista
+ */
+function addFilesToList(files) {
+    const uploadedFiles = getUploadedFiles();
+    
+    files.forEach(file => {
+        const fileData = {
+            id: Date.now() + Math.random(),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            file: file,
+            uploaded: false
+        };
+        
+        uploadedFiles.push(fileData);
+    });
+    
+    // Guardar en localStorage temporalmente
+    localStorage.setItem('contextFiles', JSON.stringify(uploadedFiles.map(f => ({
+        id: f.id,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        uploaded: f.uploaded
+    }))));
+}
+
+/**
+ * Obtener archivos subidos
+ */
+function getUploadedFiles() {
+    try {
+        const stored = localStorage.getItem('contextFiles');
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        console.error('Error al obtener archivos:', e);
+        return [];
+    }
+}
+
+/**
+ * Limpiar lista de archivos subidos
+ */
+function clearUploadedFiles() {
+    localStorage.removeItem('contextFiles');
+    updateFilesList();
+}
+
+/**
+ * Agregar archivo a la lista de subidos
+ */
+function addUploadedFile(fileData) {
+    const files = getUploadedFiles();
+    files.push(fileData);
+    localStorage.setItem('contextFiles', JSON.stringify(files));
+}
+
+/**
+ * Actualizar visualización de archivos (alias para updateFilesList)
+ */
+function updateFileListDisplay() {
+    updateFilesList();
+}
+
+/**
+ * Generar ID único para archivo
+ */
+function generateFileId() {
+    return 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+/**
+ * Actualizar visualización de lista de archivos
+ */
+function updateFilesList() {
+    const filesList = document.getElementById('uploaded-files-list');
+    if (!filesList) return;
+    
+    const files = getUploadedFiles();
+    
+    if (files.length === 0) {
+        filesList.innerHTML = '';
+        return;
+    }
+    
+    filesList.innerHTML = files.map(file => `
+        <div class="card mb-2 border-light" id="file-${file.id}">
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="fas ${getFileIcon(file.name)} me-2 text-primary"></i>
+                        <div>
+                            <div class="fw-medium">${file.name}</div>
+                            <small class="text-muted">${formatFileSize(file.size)}</small>
+                        </div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-danger delete-file-btn">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                `;
-                
-                contextFilesList.appendChild(li);
-                
-                // Añadir event listener para eliminar el archivo
-                const deleteBtn = li.querySelector('.delete-file-btn');
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', () => {
-                        li.remove();
-                        toastr.success(`Archivo ${file.name} eliminado`, 'Archivo Eliminado');
-                    });
-                }
-            }
-        });
+                    <div class="d-flex align-items-center">
+                        ${file.uploaded ? 
+                            '<span class="badge bg-success me-2"><i class="fas fa-check me-1"></i>Subido</span>' : 
+                            '<span class="badge bg-secondary me-2"><i class="fas fa-clock me-1"></i>Pendiente</span>'
+                        }
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile('${file.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * Obtener icono según tipo de archivo
+ */
+function getFileIcon(filename) {
+    const extension = filename.split('.').pop().toLowerCase();
+    switch (extension) {
+        case 'pdf': return 'fa-file-pdf';
+        case 'docx': case 'doc': return 'fa-file-word';
+        case 'txt': return 'fa-file-alt';
+        default: return 'fa-file';
     }
+}
+
+/**
+ * Formatear tamaño de archivo
+ */
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Eliminar archivo de la lista
+ */
+function removeFile(fileId) {
+    let files = getUploadedFiles();
+    files = files.filter(f => f.id != fileId);
+    
+    localStorage.setItem('contextFiles', JSON.stringify(files));
+    updateFilesList();
+    
+    toastr.success('Archivo eliminado correctamente', 'Archivos de Contexto');
+}
+
+/**
+ * Cargar archivos de contexto desde la API
+ */
+function loadContextFiles() {
+    console.log('📁 Cargando archivos de contexto...');
+    console.log('🕰️ Timestamp:', new Date().toISOString());
+    
+    // Usar el endpoint unificado /api/client
+    console.log('🔄 Usando endpoint unificado CLIENT_DATA: ' + window.API_CONFIG.DASHBOARD.CLIENT_DATA.url);
+    
+    window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
+    .then(clientData => {
+        // En el endpoint unificado, los archivos están directamente en clientData.files
+        const files = clientData?.files || [];
+        console.log('💾 Archivos de contexto recibidos del endpoint unificado:', files.length);
+        
+        // Limpiar la lista actual
+        clearUploadedFiles();
+        
+        // Cargar archivos al estado local
+        if (files && files.length > 0) {
+            files.forEach(file => {
+                // Agregar archivo al estado local con flag de uploaded
+                const fileData = {
+                    id: file.id || generateFileId(),
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    uploaded: true // Marcar como ya subido
+                };
+                
+                addUploadedFile(fileData);
+            });
+            
+            console.log(`✅ ${files.length} archivos de contexto cargados correctamente`);
+            
+            // Actualizar la UI
+            updateFileListDisplay();
+        } else {
+            console.log('ℹ️ No hay archivos de contexto configurados');
+        }
+    })
+    .catch(error => {
+        console.log('ℹ️ No se pudieron cargar archivos de contexto desde la API:', error.message);
+    });
+}
+
+/**
+ * Obtener archivos para enviar al backend
+ */
+function getFilesForUpload() {
+    return getUploadedFiles().filter(f => !f.uploaded);
+}
+
+/**
+ * Recopilar archivos de contexto para guardar
+ * @returns {Array} Array de archivos de contexto
+ */
+function collectContextFiles() {
+    const files = getUploadedFiles();
+    console.log('📁 Archivos de contexto recopilados:', files.length);
+    
+    return files.map(file => ({
+        id: file.id,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        uploaded: file.uploaded || false
+    }));
 }
 
 /**
