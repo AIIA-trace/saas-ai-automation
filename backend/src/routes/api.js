@@ -2127,16 +2127,16 @@ router.put('/config/bot', authenticate, async (req, res) => {
       }
       
       // 2.3 Manejar FAQs si se enviaron
-      if (faqs && Array.isArray(faqs)) {
+      if (updateData.botConfig.faqs && Array.isArray(updateData.botConfig.faqs)) {
         // Eliminar FAQs existentes para reemplazarlas
         await tx.botFAQ.deleteMany({
           where: { client_id: req.client.id }
         });
         
         // Crear las nuevas FAQs
-        if (faqs.length > 0) {
+        if (updateData.botConfig.faqs.length > 0) {
           await tx.botFAQ.createMany({
-            data: faqs.map(faq => ({
+            data: updateData.botConfig.faqs.map(faq => ({
               client_id: req.client.id,
               question: faq.question,
               answer: faq.answer
