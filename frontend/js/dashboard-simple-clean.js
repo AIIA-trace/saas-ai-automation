@@ -3711,7 +3711,7 @@ function loadProfileData() {
             console.log('✅ Campo address cargado:', profileData.address);
         }
         
-        const descriptionField = document.getElementById('description');
+        const descriptionField = document.getElementById('companyDescription');
         if (descriptionField) {
             descriptionField.value = profileData.companyDescription || '';
             console.log('✅ Campo description cargado:', profileData.companyDescription);
