@@ -2088,9 +2088,9 @@ router.put('/config/bot', authenticate, async (req, res) => {
       });
       
       // 2.2 Manejar la configuración AI
-      if (aiConfig) {
+      if (updateData.aiConfig) {
         // Normalizar nombres de campos usando la función centralizada
-        const normalizedAiConfig = normalizeFieldNames(aiConfig);
+        const normalizedAiConfig = normalizeFieldNames(updateData.aiConfig);
         
         // Buscar si ya existe una configuración AI para este cliente
         const existingAiConfig = await tx.botAiConfig.findFirst({

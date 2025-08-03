@@ -55,50 +55,54 @@ document.addEventListener('DOMContentLoaded', function() {
     const unifiedSaveHandler = function(event) {
         console.log('🔄 Botón de guardado interceptado, redirigiendo a saveUnifiedConfig()');
         
-        // Prevenir comportamiento por defecto
         event.preventDefault();
-        event.stopPropagation();
         
-        // Identificar qué botón fue presionado
-        const buttonId = event.currentTarget.id || 'desconocido';
-        console.log(`🔘 Botón presionado: ${buttonId}`);
+        if (window.saveUnifiedConfigBusy) {
+            console.log(' saveUnifiedConfig está ocupado, ignorando click');
+            return;
+        }
+        
+        const button = event.currentTarget; // Guardar referencia al botón
+        const buttonId = button.id;
+        const originalText = button.innerHTML;
+        
+        // Cambiar el botón a "Guardando..."
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
         
         // Llamar a la función unificada
-        if (typeof window.saveUnifiedConfig === 'function') {
-            // Guardar el texto original del botón
-            const originalText = event.currentTarget.innerHTML;
-            
-            // Cambiar el botón a "Guardando..."
-            event.currentTarget.disabled = true;
-            event.currentTarget.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-            
-            // Llamar a la función unificada
-            window.saveUnifiedConfig()
-                .then(() => {
-                    console.log(`✅ Configuración guardada exitosamente desde botón ${buttonId}`);
-                    event.currentTarget.innerHTML = '<i class="fas fa-check-circle"></i> Guardado';
-                    event.currentTarget.classList.add('btn-success');
-                    event.currentTarget.classList.remove('btn-primary');
-                })
-                .catch((error) => {
-                    console.error(`❌ Error guardando configuración desde botón ${buttonId}:`, error);
-                    event.currentTarget.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
-                    event.currentTarget.classList.add('btn-danger');
-                    event.currentTarget.classList.remove('btn-primary');
-                })
-                .finally(() => {
-                    // Restaurar el botón después de 2 segundos
-                    setTimeout(() => {
-                        event.currentTarget.disabled = false;
-                        event.currentTarget.innerHTML = originalText;
-                        event.currentTarget.classList.add('btn-primary');
-                        event.currentTarget.classList.remove('btn-success');
-                        event.currentTarget.classList.remove('btn-danger');
-                    }, 2000);
-                });
-        } else {
-            console.error('❌ No se encontró la función saveUnifiedConfig()');
-        }
+        window.saveUnifiedConfig()
+            .then(() => {
+                console.log(` Configuración guardada exitosamente desde botón ${buttonId}`);
+                // Verificar que el botón aún existe en el DOM
+                if (document.getElementById(buttonId)) {
+                    button.innerHTML = '<i class="fas fa-check-circle"></i> Guardado';
+                    button.classList.add('btn-success');
+                    button.classList.remove('btn-primary');
+                }
+            })
+            .catch((error) => {
+                console.error(` Error guardando configuración desde botón ${buttonId}:`, error);
+                // Verificar que el botón aún existe en el DOM
+                if (document.getElementById(buttonId)) {
+                    button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                    button.classList.add('btn-danger');
+                    button.classList.remove('btn-primary');
+                }
+            })
+            .finally(() => {
+                // Restaurar el botón después de 2 segundos
+                setTimeout(() => {
+                    // Verificar que el botón aún existe en el DOM
+                    if (document.getElementById(buttonId)) {
+                        button.disabled = false;
+                        button.innerHTML = originalText;
+                        button.classList.add('btn-primary');
+                        button.classList.remove('btn-success');
+                        button.classList.remove('btn-danger');
+                    }
+                }, 2000);
+            });
     };
     
     // 4. Asignar el handler unificado a todos los botones de guardado
