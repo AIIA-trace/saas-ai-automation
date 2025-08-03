@@ -33,16 +33,17 @@ model Client {
   subscriptionExpiresAt DateTime?
   trialEndDate          DateTime?
   
-  // Campos de configuración del bot (existentes en BD pero no en el schema)
-  bot_language          String?        // Idioma del bot
-  bot_name              String?        // Nombre del bot
-  bot_personality       String?        // Personalidad del bot
-  welcome_message       String?        // Mensaje de bienvenida
-  confirmation_message  String?        // Mensaje de confirmación
-  working_days          String?        // Días laborables JSON
-  working_hours_opening String?        // Hora de apertura
-  working_hours_closing String?        // Hora de cierre
-  subscription_status   String?        // Estado de la suscripción
+  // Campos de configuración del bot (exactamente como existen en la DB)
+  botLanguage          String?        // Idioma del bot
+  botName              String?        // Nombre del bot
+  botPersonality       String?        // Personalidad del bot
+  welcomeMessage       String?        // Mensaje de bienvenida
+  confirmationMessage  String?        // Mensaje de confirmación
+  workingDays          String?        // Días laborables JSON
+  workingHoursOpening  String?        // Hora de apertura
+  workingHoursClosing  String?        // Hora de cierre
+  subscriptionStatus   String?        // Estado de la suscripción
+  personality          String?        // Campo personalidad adicional
   
   // Relaciones
   twilioNumbers         TwilioNumber[]
@@ -77,13 +78,13 @@ model BotAiConfig {
   client_id         Int
   client            Client   @relation(fields: [client_id], references: [id])
   model             String   @default("gpt-3.5-turbo")
-  temperature       Float    @default(0.7)
+  temperature       Decimal  @db.Decimal(3, 2) @default(0.7)
   max_tokens        Int      @default(256)
-  top_p             Float?   @default(0.9)
-  presence_penalty  Float?   @default(0.0)
-  frequency_penalty Float?   @default(0.0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @default(now()) @updatedAt
+  top_p             Decimal? @db.Decimal(3, 2) @default(0.9)
+  presence_penalty  Decimal? @db.Decimal(3, 2) @default(0.0)
+  frequency_penalty Decimal? @db.Decimal(3, 2) @default(0.0)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @default(now()) @updatedAt
 
   @@index([client_id])
 }
@@ -95,8 +96,8 @@ model BotDtmfOption {
   digit       String   // Número de tecla
   description String   // Descripción de la opción
   action      String   // Acción a realizar (transfer, message, etc)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
 
   @@index([client_id])
   @@unique([client_id, digit])
@@ -110,8 +111,8 @@ model BotContextFile {
   file_url    String   // URL del archivo
   file_type   String   // Tipo MIME
   file_size   Int      // Tamaño en bytes
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
 
   @@index([client_id])
 }
@@ -122,8 +123,8 @@ model BotFAQ {
   client      Client   @relation(fields: [client_id], references: [id])
   question    String   // Pregunta
   answer      String   // Respuesta
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
 
   @@index([client_id])
 }
