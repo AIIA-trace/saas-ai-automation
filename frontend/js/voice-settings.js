@@ -345,7 +345,7 @@ async function saveVoiceSettings() {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
         
-        // Guardar configuración
+        // Guardar configuración con estructura correcta para el backend
         const response = await fetch(`${API_BASE_URL}/voice-config`, {
             method: 'POST',
             headers: {
@@ -353,8 +353,11 @@ async function saveVoiceSettings() {
                 'Authorization': `Bearer ${authService.getToken()}`
             },
             body: JSON.stringify({
-                voiceId,
-                language
+                // Estructura anidada 'calls' como espera el backend
+                calls: {
+                    voiceId,
+                    language
+                }
             })
         });
 
@@ -388,7 +391,7 @@ async function saveCallMessages() {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
         
-        // Guardar mensajes
+        // Guardar mensajes con estructura correcta para el backend
         const response = await fetch(`${API_BASE_URL}/call-messages`, {
             method: 'POST',
             headers: {
@@ -396,11 +399,14 @@ async function saveCallMessages() {
                 'Authorization': `Bearer ${authService.getToken()}`
             },
             body: JSON.stringify({
-                welcomeMessage,
-                gatherPrompt,
-                retryPrompt,
-                followUpPrompt,
-                goodbyeMessage
+                // Estructura anidada 'calls' como espera el backend
+                calls: {
+                    greeting: welcomeMessage,
+                    gatherPrompt,
+                    retryPrompt,
+                    followUpPrompt,
+                    goodbyeMessage
+                }
             })
         });
 

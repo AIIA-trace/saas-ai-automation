@@ -36,10 +36,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            // Si el endpoint específico no existe, usar el endpoint regular de configuración
+            // Si el endpoint específico no existe, usar el endpoint unificado /api/client
             if (response.status === 404) {
-                console.log('Endpoint de verificación no encontrado, usando endpoint estándar...');
-                response = await fetch(`${apiBaseUrl}/api/config/bot`, {
+                console.log('Endpoint de verificación no encontrado, usando endpoint unificado /api/client...');
+                response = await fetch(`${apiBaseUrl}/api/client`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${apiKey}`,

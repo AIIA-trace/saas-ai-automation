@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Completo - Configuración del Bot</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .field-group { margin: 10px 0; }
+        label { display: inline-block; width: 200px; font-weight: bold; }
+        input, select, textarea { width: 300px; padding: 5px; margin: 5px 0; }
+        button { padding: 10px 20px; margin: 10px 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .success { color: green; } .error { color: red; }
+        #log { background: #f8f9fa; padding: 10px; border-radius: 5px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Completo - Configuración del Bot</h1>
+    
+    <div class="section">
+        <h3>🏢 Información de Empresa</h3>
+        <div class="field-group">
+            <label>Nombre:</label>
+            <input type="text" id="company_name" value="Empresa Test">
+        </div>
+        <div class="field-group">
+            <label>Teléfono:</label>
+            <input type="text" id="main_phone" value="+34 123 456 789">
+        </div>
+        <div class="field-group">
+            <label>Email:</label>
+            <input type="email" id="contact_email" value="test@empresa.com">
+        </div>
+        <div class="field-group">
+            <label>Sector:</label>
+            <select id="industry">
+                <option value="technology">Tecnología</option>
+                <option value="healthcare">Salud</option>
+                <option value="finance">Finanzas</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>🤖 Configuración del Bot</h3>
+        <div class="field-group">
+            <label>Nombre del Bot:</label>
+            <input type="text" id="bot_name" value="Asistente Virtual">
+        </div>
+        <div class="field-group">
+            <label>Personalidad:</label>
+            <select id="bot_personality">
+                <option value="professional">Profesional</option>
+                <option value="friendly">Amigable</option>
+                <option value="formal">Formal</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>📞 Configuración de Llamadas</h3>
+        <div class="field-group">
+            <label>Idioma:</label>
+            <select id="call_language">
+                <option value="es-ES">Español</option>
+                <option value="en-US">Inglés</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <label>Tipo de Voz:</label>
+            <select id="voice_type">
+                <option value="female">Femenina</option>
+                <option value="male">Masculina</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <label>Saludo:</label>
+            <textarea id="call_greeting">Hola, gracias por llamar. ¿En qué puedo ayudarle?</textarea>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>🧠 Configuración de IA</h3>
+        <div class="field-group">
+            <label>Temperatura:</label>
+            <input type="number" id="ai_temperature" value="0.7" step="0.1" min="0" max="2">
+        </div>
+        <div class="field-group">
+            <label>Max Tokens:</label>
+            <input type="number" id="ai_max_tokens" value="150" min="1" max="4000">
+        </div>
+        <div class="field-group">
+            <label>Top P:</label>
+            <input type="number" id="ai_top_p" value="1" step="0.1" min="0" max="1">
+        </div>
+        <div class="field-group">
+            <label>Frequency Penalty:</label>
+            <input type="number" id="ai_frequency_penalty" value="0" step="0.1" min="-2" max="2">
+        </div>
+        <div class="field-group">
+            <label>Presence Penalty:</label>
+            <input type="number" id="ai_presence_penalty" value="0" step="0.1" min="-2" max="2">
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>📧 Configuración de Email</h3>
+        <div class="field-group">
+            <label>Proveedor:</label>
+            <select id="email_provider">
+                <option value="gmail">Gmail</option>
+                <option value="outlook">Outlook</option>
+                <option value="custom">Personalizado</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <label>Email Saliente:</label>
+            <input type="email" id="outgoing_email" value="bot@empresa.com">
+        </div>
+        <div class="field-group">
+            <label>Servidor IMAP:</label>
+            <input type="text" id="imap_server" value="imap.gmail.com">
+        </div>
+        <div class="field-group">
+            <label>Puerto IMAP:</label>
+            <input type="number" id="imap_port" value="993">
+        </div>
+        <div class="field-group">
+            <label>Servidor SMTP:</label>
+            <input type="text" id="smtp_server" value="smtp.gmail.com">
+        </div>
+        <div class="field-group">
+            <label>Puerto SMTP:</label>
+            <input type="number" id="smtp_port" value="587">
+        </div>
+        <div class="field-group">
+            <label>Usar SSL:</label>
+            <input type="checkbox" id="use_ssl" checked>
+        </div>
+        <div class="field-group">
+            <label>Firma de Email:</label>
+            <textarea id="email_signature">Saludos cordiales,\nEquipo de Atención al Cliente</textarea>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>🔧 Controles</h3>
+        <button onclick="loadConfiguration()">📥 Cargar Configuración</button>
+        <button onclick="saveConfiguration()">💾 Guardar Configuración</button>
+        <button onclick="verifyConsistency()">✅ Verificar Consistencia</button>
+        <button onclick="clearLog()">🗑️ Limpiar Log</button>
+    </div>
+
+    <div class="section">
+        <h3>📋 Log de Resultados</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin.includes('localhost') ? 'http://localhost:3000' : 'https://tu-backend.onrender.com';
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function getAuthToken() {
+            return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        }
+
+        async function loadConfiguration() {
+            try {
+                log('🔄 Cargando configuración del bot...');
+                
+                const token = await getAuthToken();
+                if (!token) {
+                    log('❌ No se encontró token de autenticación', 'error');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE}/api/config/bot`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log('✅ Configuración cargada exitosamente', 'success');
+                
+                // Cargar información de empresa
+                if (data.companyInfo) {
+                    document.getElementById('company_name').value = data.companyInfo.name || '';
+                    document.getElementById('main_phone').value = data.companyInfo.phone || '';
+                    document.getElementById('contact_email').value = data.companyInfo.email || '';
+                    document.getElementById('industry').value = data.companyInfo.sector || '';
+                    log('📋 Información de empresa cargada');
+                }
+
+                // Cargar configuración del bot
+                if (data.botConfig) {
+                    document.getElementById('bot_name').value = data.botConfig.name || '';
+                    document.getElementById('bot_personality').value = data.botConfig.personality || '';
+                    
+                    // Configuración de llamadas
+                    if (data.botConfig.callConfig) {
+                        document.getElementById('call_language').value = data.botConfig.callConfig.language || '';
+                        document.getElementById('voice_type').value = data.botConfig.callConfig.voiceId || '';
+                        document.getElementById('call_greeting').value = data.botConfig.callConfig.greeting || '';
+                        log('📞 Configuración de llamadas cargada');
+                    }
+
+                    // Configuración de IA
+                    if (data.botConfig.aiConfig) {
+                        document.getElementById('ai_temperature').value = data.botConfig.aiConfig.temperature || 0.7;
+                        document.getElementById('ai_max_tokens').value = data.botConfig.aiConfig.maxTokens || 150;
+                        document.getElementById('ai_top_p').value = data.botConfig.aiConfig.topP || 1;
+                        document.getElementById('ai_frequency_penalty').value = data.botConfig.aiConfig.frequencyPenalty || 0;
+                        document.getElementById('ai_presence_penalty').value = data.botConfig.aiConfig.presencePenalty || 0;
+                        log('🧠 Configuración de IA cargada');
+                    }
+                }
+
+                // Cargar configuración de email
+                if (data.emailConfig) {
+                    document.getElementById('email_provider').value = data.emailConfig.provider || '';
+                    document.getElementById('outgoing_email').value = data.emailConfig.outgoingEmail || '';
+                    document.getElementById('imap_server').value = data.emailConfig.imapServer || '';
+                    document.getElementById('imap_port').value = data.emailConfig.imapPort || 993;
+                    document.getElementById('smtp_server').value = data.emailConfig.smtpServer || '';
+                    document.getElementById('smtp_port').value = data.emailConfig.smtpPort || 587;
+                    document.getElementById('use_ssl').checked = data.emailConfig.useSSL || false;
+                    document.getElementById('email_signature').value = data.emailConfig.emailSignature || '';
+                    log('📧 Configuración de email cargada');
+                }
+
+                log('🎉 Todas las configuraciones cargadas correctamente', 'success');
+
+            } catch (error) {
+                log(`❌ Error cargando configuración: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveConfiguration() {
+            try {
+                log('💾 Guardando configuración...');
+                
+                const token = await getAuthToken();
+                if (!token) {
+                    log('❌ No se encontró token de autenticación', 'error');
+                    return;
+                }
+
+                const config = {
+                    // Información de empresa
+                    companyName: document.getElementById('company_name').value,
+                    companyPhone: document.getElementById('main_phone').value,
+                    companyEmail: document.getElementById('contact_email').value,
+                    companySector: document.getElementById('industry').value,
+
+                    // Configuración del bot
+                    botName: document.getElementById('bot_name').value,
+                    botPersonality: document.getElementById('bot_personality').value,
+
+                    // Configuración de llamadas
+                    callConfig: {
+                        language: document.getElementById('call_language').value,
+                        voiceId: document.getElementById('voice_type').value,
+                        greeting: document.getElementById('call_greeting').value
+                    },
+
+                    // Configuración de IA
+                    aiConfig: {
+                        temperature: parseFloat(document.getElementById('ai_temperature').value),
+                        maxTokens: parseInt(document.getElementById('ai_max_tokens').value),
+                        topP: parseFloat(document.getElementById('ai_top_p').value),
+                        frequencyPenalty: parseFloat(document.getElementById('ai_frequency_penalty').value),
+                        presencePenalty: parseFloat(document.getElementById('ai_presence_penalty').value)
+                    },
+
+                    // Configuración de email
+                    emailConfig: {
+                        provider: document.getElementById('email_provider').value,
+                        outgoingEmail: document.getElementById('outgoing_email').value,
+                        imapServer: document.getElementById('imap_server').value,
+                        imapPort: parseInt(document.getElementById('imap_port').value),
+                        smtpServer: document.getElementById('smtp_server').value,
+                        smtpPort: parseInt(document.getElementById('smtp_port').value),
+                        useSSL: document.getElementById('use_ssl').checked,
+                        emailSignature: document.getElementById('email_signature').value
+                    }
+                };
+
+                log('📤 Enviando datos: ' + JSON.stringify(config, null, 2));
+
+                const response = await fetch(`${API_BASE}/api/config/bot`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorData}`);
+                }
+
+                const result = await response.json();
+                log('✅ Configuración guardada exitosamente', 'success');
+                log('📋 Respuesta del servidor: ' + JSON.stringify(result, null, 2));
+
+            } catch (error) {
+                log(`❌ Error guardando configuración: ${error.message}`, 'error');
+            }
+        }
+
+        async function verifyConsistency() {
+            log('🔍 Verificando consistencia...');
+            
+            // Guardar configuración actual
+            await saveConfiguration();
+            
+            // Esperar un momento
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Recargar y comparar
+            const originalValues = {};
+            const inputs = document.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                originalValues[input.id] = input.type === 'checkbox' ? input.checked : input.value;
+            });
+            
+            await loadConfiguration();
+            
+            // Comparar valores
+            let inconsistencies = 0;
+            inputs.forEach(input => {
+                const currentValue = input.type === 'checkbox' ? input.checked : input.value;
+                const originalValue = originalValues[input.id];
+                
+                if (currentValue != originalValue) {
+                    log(`⚠️ Inconsistencia en ${input.id}: enviado '${originalValue}', recibido '${currentValue}'`, 'error');
+                    inconsistencies++;
+                }
+            });
+            
+            if (inconsistencies === 0) {
+                log('✅ Verificación completa: Todos los campos son consistentes', 'success');
+            } else {
+                log(`❌ Se encontraron ${inconsistencies} inconsistencias`, 'error');
+            }
+        }
+
+        // Cargar configuración al inicio
+        window.addEventListener('load', () => {
+            log('🚀 Herramienta de test iniciada');
+            log('💡 Usa los botones para probar la configuración del bot');
+        });
+    </script>
+</body>
+</html>

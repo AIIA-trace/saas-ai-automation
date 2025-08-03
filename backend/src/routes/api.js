@@ -1750,14 +1750,31 @@ router.get('/config/bot', authenticate, async (req, res) => {
     logger.info(`🔍 Redirigiendo solicitud al nuevo endpoint unificado GET /client`);
     
     try {
-      // Obtener la configuración completa del cliente
+      // Obtener la configuración completa del cliente incluyendo tablas normalizadas
       const clientConfig = await prisma.client.findUnique({
         where: { id: req.client.id },
         select: {
-          // Campos JSON de configuración
+          // Campos JSON de configuración (mantenidos por compatibilidad)
           botConfig: true,
           companyInfo: true,
           emailConfig: true,
+          
+          // Campos normalizados que reemplazan botConfig
+          botName: true,
+          botLanguage: true,
+          botPersonality: true,
+          welcomeMessage: true,
+          confirmationMessage: true,
+          workingHoursOpening: true,
+          workingHoursClosing: true,
+          workingDays: true,
+          
+          // Relaciones con tablas normalizadas
+          BotAiConfig: true,
+          BotContextFile: true,
+          BotFAQ: true,
+          BotDtmfOption: true,
+          
           // Campos directos del cliente necesarios para el formulario
           companyName: true,
           companyDescription: true,
@@ -1781,30 +1798,77 @@ router.get('/config/bot', authenticate, async (req, res) => {
       
       logger.info(`✅ Cliente encontrado en BD: ${clientConfig.email || req.client.id}`);
       
-      // Asegurar que todos los campos existan, incluso los que falten
-      // Construir estructura de respuesta que espera el frontend con valores por defecto seguros
+      // Construir estructura de respuesta que espera el frontend con datos de las tablas normalizadas
+      // pero manteniendo el formato que el frontend espera
       const response = {
-        // Configuración del bot
-        botConfig: clientConfig.botConfig || {
-          botName: 'Asistente Virtual',
-          botPersonality: 'professional',
-          welcomeMessage: 'Bienvenido a nuestro asistente virtual',
-          businessHours: 'Lun-Vie: 9:00-18:00',
-          callConfig: {
+        // Configuración del bot (ahora construida desde campos normalizados)
+        botConfig: {
+          // Valores básicos desde campos directos de Client
+          botName: clientConfig.botName || 'Asistente Virtual',
+          botPersonality: clientConfig.botPersonality || 'professional',
+          welcomeMessage: clientConfig.welcomeMessage || 'Bienvenido a nuestro asistente virtual',
+          confirmationMessage: clientConfig.confirmationMessage || '',
+          businessHours: clientConfig.workingHoursOpening && clientConfig.workingHoursClosing ? 
+            `${clientConfig.workingHoursOpening}-${clientConfig.workingHoursClosing}` : 'Lun-Vie: 9:00-18:00',
+          
+          // Horarios de trabajo
+          workingHours: {
+            opening: clientConfig.workingHoursOpening || '09:00',
+            closing: clientConfig.workingHoursClosing || '18:00'
+          },
+          
+          // Días laborables
+          workingDays: clientConfig.workingDays || {},
+          
+          // Configuración de llamadas (por ahora mantener desde botConfig hasta normalizar)
+          callConfig: (clientConfig.botConfig && clientConfig.botConfig.callConfig) ? clientConfig.botConfig.callConfig : {
             enabled: false,
             recordCalls: false,
             transcribeCalls: false,
             voiceId: 'female',
-            language: 'es-ES',
-            greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?'
+            language: clientConfig.botLanguage || 'es-ES',
+            greeting: clientConfig.welcomeMessage || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?'
           },
-          aiConfig: {
+          
+          // Configuración AI desde tabla BotAiConfig
+          aiConfig: clientConfig.BotAiConfig && clientConfig.BotAiConfig[0] ? {
+            temperature: clientConfig.BotAiConfig[0].temperature || 0.7,
+            max_tokens: clientConfig.BotAiConfig[0].max_tokens || 150, // Usar nomenclatura exacta de la base de datos
+            model: clientConfig.BotAiConfig[0].model || 'gpt-3.5-turbo',
+            top_p: clientConfig.BotAiConfig[0].top_p,
+            presence_penalty: clientConfig.BotAiConfig[0].presence_penalty,
+            frequency_penalty: clientConfig.BotAiConfig[0].frequency_penalty
+          } : {
             temperature: 0.7,
             maxTokens: 150,
             model: 'gpt-3.5-turbo'
           },
-          faqs: [],
-          contextFiles: {}
+          
+          // FAQs desde tabla BotFAQ
+          faqs: clientConfig.BotFAQ ? clientConfig.BotFAQ.map(faq => ({
+            question: faq.question,
+            answer: faq.answer
+          })) : [],
+          
+          // Archivos de contexto desde tabla BotContextFile
+          contextFiles: clientConfig.BotContextFile ? 
+            clientConfig.BotContextFile.reduce((acc, file) => {
+              // Incluir toda la información del archivo, no solo la URL
+              acc[file.filename] = {
+                file_url: file.file_url,
+                file_type: file.file_type,
+                file_size: file.file_size,
+                processed: file.processed
+              };
+              return acc;
+            }, {}) : {},
+            
+          // Opciones DTMF desde tabla BotDtmfOption
+          dtmfOptions: clientConfig.BotDtmfOption ? clientConfig.BotDtmfOption.map(option => ({
+            digit: option.digit,
+            action: option.action,
+            description: option.description // Usar nomenclatura exacta de la base de datos
+          })) : []
         },
         
         // Información de empresa
@@ -1939,6 +2003,38 @@ router.put('/config/bot', authenticate, async (req, res) => {
     logger.warn('🛑 ACCIÓN REQUERIDA: Migrar a PUT /api/client antes de la próxima actualización');
     logger.warn('📝 Ver documentación: https://docs.example.com/api/migration-guide');
     
+    // Función para normalizar nombres de campo y mantener compatibilidad con frontend
+    // mientras se usa la nomenclatura exacta de la base de datos
+    function normalizeFieldNames(data) {
+      const normalized = {};
+      
+      // Mapeo explícito de nombres de campo inconsistentes
+      const fieldMappings = {
+        // AI Config
+        'maxTokens': 'max_tokens',
+        
+        // DTMF Options
+        'message': 'description',
+        
+        // Files
+        'url': 'file_url',
+        'type': 'file_type',
+        'size': 'file_size',
+        
+        // Otros mapeos que puedan ser necesarios
+      };
+      
+      // Copiar todos los campos, normalizando los nombres si es necesario
+      if (!data) return normalized;
+      
+      Object.keys(data).forEach(key => {
+        const normalizedKey = fieldMappings[key] || key;
+        normalized[normalizedKey] = data[key];
+      });
+      
+      return normalized;
+    }
+    
     // Extraer datos del request body
     const {
       // Información de empresa
@@ -1970,10 +2066,31 @@ router.put('/config/bot', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado', success: false });
     }
     
-    // Preparar datos para actualización
+    // Preparar datos para actualización en las tablas normalizadas
     const updateData = {};
     
-    // Construir configuración del bot
+    // 1. Actualizar campos directos en Client
+    // Estos campos antes estaban en botConfig pero ahora son columnas propias
+    updateData.botName = botName || currentClient.botName || 'Asistente Virtual';
+    updateData.botPersonality = botPersonality || personality || currentClient.botPersonality || 'professional';
+    updateData.welcomeMessage = welcomeMessage || confirmationMessage || currentClient.welcomeMessage || '';
+    updateData.confirmationMessage = confirmationMessage || welcomeMessage || currentClient.confirmationMessage || '';
+    
+    // Configuración de horarios
+    if (workingHours) {
+      updateData.workingHoursOpening = workingHours.opening || currentClient.workingHoursOpening || '09:00';
+      updateData.workingHoursClosing = workingHours.closing || currentClient.workingHoursClosing || '18:00';
+    }
+    
+    if (workingDays) {
+      updateData.workingDays = workingDays;
+    }
+    
+    // Campos legacy para compatibilidad
+    updateData.botLanguage = language || callConfig?.language || currentClient.botLanguage || 'es-ES';
+    
+    // También mantener la estructura botConfig temporalmente para compatibilidad
+    // mientras se completa la migración
     const currentBotConfig = currentClient.botConfig || {};
     const newBotConfig = {
       ...currentBotConfig,
@@ -2037,28 +2154,217 @@ router.put('/config/bot', authenticate, async (req, res) => {
     
     logger.info('Datos preparados para actualización:', JSON.stringify(updateData, null, 2));
     
-    // Actualizar cliente en la base de datos
-    const updatedClient = await prisma.client.update({
-      where: { id: req.client.id },
-      data: updateData
+    // 2. Crear o actualizar entradas en tablas relacionadas
+    // Actualizar cliente en la base de datos utilizando una transacción para asegurar consistencia
+    const updatedClient = await prisma.$transaction(async (tx) => {
+      // 2.1 Actualizar cliente con los campos directos
+      const client = await tx.client.update({
+        where: { id: req.client.id },
+        data: updateData
+      });
+      
+      // 2.2 Manejar la configuración AI
+      if (aiConfig) {
+        // Normalizar nombres de campos usando la función centralizada
+        const normalizedAiConfig = normalizeFieldNames(aiConfig);
+        
+        // Buscar si ya existe una configuración AI para este cliente
+        const existingAiConfig = await tx.botAiConfig.findFirst({
+          where: { client_id: req.client.id }
+        });
+        
+        if (existingAiConfig) {
+          // Actualizar configuración existente
+          await tx.botAiConfig.update({
+            where: { id: existingAiConfig.id },
+            data: {
+              model: normalizedAiConfig.model || existingAiConfig.model,
+              temperature: normalizedAiConfig.temperature || existingAiConfig.temperature,
+              max_tokens: normalizedAiConfig.max_tokens || existingAiConfig.max_tokens,
+              top_p: normalizedAiConfig.top_p,
+              presence_penalty: normalizedAiConfig.presence_penalty,
+              frequency_penalty: normalizedAiConfig.frequency_penalty
+            }
+          });
+        } else {
+          // Crear nueva configuración AI
+          await tx.botAiConfig.create({
+            data: {
+              client_id: req.client.id,
+              model: normalizedAiConfig.model || 'gpt-3.5-turbo',
+              temperature: normalizedAiConfig.temperature || 0.7,
+              max_tokens: normalizedAiConfig.max_tokens || 150,
+              top_p: normalizedAiConfig.top_p,
+              presence_penalty: normalizedAiConfig.presence_penalty,
+              frequency_penalty: normalizedAiConfig.frequency_penalty
+            }
+          });
+        }
+      }
+      
+      // 2.3 Manejar FAQs si se enviaron
+      if (faqs && Array.isArray(faqs)) {
+        // Eliminar FAQs existentes para reemplazarlas
+        await tx.botFAQ.deleteMany({
+          where: { client_id: req.client.id }
+        });
+        
+        // Crear las nuevas FAQs
+        if (faqs.length > 0) {
+          await tx.botFAQ.createMany({
+            data: faqs.map(faq => ({
+              client_id: req.client.id,
+              question: faq.question,
+              answer: faq.answer
+            }))
+          });
+        }
+      }
+      
+      // 2.4 Manejar archivos de contexto
+      const filesToProcess = contextFiles || files;
+      if (filesToProcess && (Array.isArray(filesToProcess) || typeof filesToProcess === 'object')) {
+        // Eliminar archivos existentes
+        await tx.botContextFile.deleteMany({
+          where: { client_id: req.client.id }
+        });
+        
+        // Procesar nuevos archivos
+        if (Array.isArray(filesToProcess) && filesToProcess.length > 0) {
+          // Si es un array de objetos { filename, url }
+          await tx.botContextFile.createMany({
+            data: filesToProcess.map(file => ({
+              client_id: req.client.id,
+              filename: file.filename,
+              file_url: file.url
+            }))
+          });
+        } else if (typeof filesToProcess === 'object') {
+          // Si es un objeto { [filename]: url }
+          const fileEntries = Object.entries(filesToProcess);
+          if (fileEntries.length > 0) {
+            await tx.botContextFile.createMany({
+              data: fileEntries.map(([filename, url]) => ({
+                client_id: req.client.id,
+                filename: filename,
+                file_url: url
+              }))
+            });
+          }
+        }
+      }
+      
+      // 2.5 Manejar opciones DTMF
+      if (dtmfOptions && Array.isArray(dtmfOptions)) {
+        // Eliminar opciones existentes
+        await tx.botDtmfOption.deleteMany({
+          where: { client_id: req.client.id }
+        });
+        
+        // Crear nuevas opciones
+        if (dtmfOptions.length > 0) {
+          await tx.botDtmfOption.createMany({
+            data: dtmfOptions.map(option => {
+              const normalizedOption = normalizeFieldNames(option);
+              return {
+                client_id: req.client.id,
+                digit: normalizedOption.digit,
+                action: normalizedOption.action,
+                description: normalizedOption.description
+              };
+            })
+          });
+        }
+      }
+      
+      return client;
     });
     
-    logger.info('Cliente actualizado exitosamente');
+    logger.info('Cliente y configuraciones relacionadas actualizadas exitosamente');
     
+    // 3. Obtener los datos completos actualizados incluyendo las relaciones para construir la respuesta
+    const clientFullData = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      include: {
+        BotAiConfig: true,
+        BotContextFile: true,
+        BotFAQ: true,
+        BotDtmfOption: true
+      }
+    });
+    
+    // Construir respuesta con el formato que espera el frontend
     return res.json({
       success: true,
       message: 'Configuración del bot actualizada correctamente',
-      botConfig: updatedClient.botConfig,
-      companyInfo: {
-        name: updatedClient.companyName || '',
-        description: updatedClient.companyDescription || '',
-        sector: updatedClient.industry || '',
-        address: updatedClient.address || '',
-        phone: updatedClient.phone || '',
-        email: updatedClient.email || '',
-        website: updatedClient.website || ''
+      
+      // Mantener estructura botConfig para compatibilidad con frontend
+      botConfig: {
+        botName: clientFullData.botName || 'Asistente Virtual',
+        botPersonality: clientFullData.botPersonality || 'professional',
+        welcomeMessage: clientFullData.welcomeMessage || '',
+        confirmationMessage: clientFullData.confirmationMessage || '',
+        
+        // Horarios de trabajo
+        workingHours: {
+          opening: clientFullData.workingHoursOpening || '09:00',
+          closing: clientFullData.workingHoursClosing || '18:00'
+        },
+        workingDays: clientFullData.workingDays || {},
+        
+        // Configuración AI
+        aiConfig: clientFullData.BotAiConfig && clientFullData.BotAiConfig[0] ? {
+          model: clientFullData.BotAiConfig[0].model,
+          temperature: clientFullData.BotAiConfig[0].temperature,
+          max_tokens: clientFullData.BotAiConfig[0].max_tokens,
+          top_p: clientFullData.BotAiConfig[0].top_p,
+          presence_penalty: clientFullData.BotAiConfig[0].presence_penalty,
+          frequency_penalty: clientFullData.BotAiConfig[0].frequency_penalty
+        } : updatedClient.botConfig?.aiConfig,
+        
+        // FAQs
+        faqs: clientFullData.BotFAQ ? clientFullData.BotFAQ.map(faq => ({
+          question: faq.question,
+          answer: faq.answer
+        })) : [],
+        
+        // Archivos de contexto - usar nombres exactos de la base de datos
+        contextFiles: clientFullData.BotContextFile ? 
+          clientFullData.BotContextFile.reduce((acc, file) => {
+            // Incluir toda la información del archivo, no solo la URL
+            acc[file.filename] = {
+              file_url: file.file_url,
+              file_type: file.file_type,
+              file_size: file.file_size,
+              processed: file.processed
+            };
+            return acc;
+          }, {}) : {},
+          
+        // Opciones DTMF - usar nombres exactos de la base de datos
+        dtmfOptions: clientFullData.BotDtmfOption ? clientFullData.BotDtmfOption.map(option => ({
+          digit: option.digit,
+          action: option.action,
+          description: option.description // Usar description en lugar de message para ser consistente con la BD
+        })) : [],
+        
+        // Mantener otros campos de botConfig para compatibilidad
+        ...(updatedClient.botConfig || {})
       },
-      emailConfig: updatedClient.emailConfig
+      
+      // Información de la empresa
+      companyInfo: {
+        name: clientFullData.companyName || '',
+        description: clientFullData.companyDescription || '',
+        sector: clientFullData.industry || '',
+        address: clientFullData.address || '',
+        phone: clientFullData.phone || '',
+        email: clientFullData.email || '',
+        website: clientFullData.website || ''
+      },
+      
+      // Configuración de email
+      emailConfig: clientFullData.emailConfig
     });
   } catch (error) {
     logger.error(`Error actualizando configuración del bot: ${error.message}`);

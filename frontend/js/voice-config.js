@@ -269,11 +269,14 @@ function saveVoiceConfig() {
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
     submitBtn.disabled = true;
     
-    // Get form values
+    // Get form values - Estructurado correctamente para el backend
     const config = {
-        provider: document.getElementById('voice-provider').value,
-        selectedVoice: document.querySelector('input[name="voice-selection"]:checked').value,
-        speed: parseFloat(document.getElementById('voice-speed').value)
+        // Usar estructura 'calls' como espera el backend
+        calls: {
+            provider: document.getElementById('voice-provider').value,
+            voiceId: document.querySelector('input[name="voice-selection"]:checked').value,
+            speed: parseFloat(document.getElementById('voice-speed').value)
+        }
     };
     
     fetch('/api/bot/voice', {

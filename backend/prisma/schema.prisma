@@ -29,7 +29,7 @@ model Client {
   address               String?
   stripeCustomerId      String?        @unique
   defaultPaymentMethodId String?       // ID del método de pago predeterminado
-  subscriptionStatus    String         @default("trial") // trial, active, past_due, cancelled
+  plan    String         @default("trial") // trial, active, past_due, cancelled
   subscriptionExpiresAt DateTime?
   trialEndDate          DateTime?
   twilioNumbers         TwilioNumber[]
@@ -47,7 +47,7 @@ model Client {
   updatedAt            DateTime        @updatedAt
 
   @@index([email])
-  @@index([subscriptionStatus])
+  @@index([plan])
   @@index([subscriptionExpiresAt])
   @@index([apiKey])
 }

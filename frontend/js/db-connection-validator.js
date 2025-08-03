@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Validar formularios existentes y sus conexiones
     const formsToValidate = [
         {
-            name: 'Configuración del Bot',
-            endpoint: API_CONFIG.DASHBOARD.BOT_CONFIG,
+            name: 'Configuración del Bot (Endpoint Unificado)',
+            endpoint: API_CONFIG.DASHBOARD.CLIENT_DATA,
             method: 'PUT',
             saveButton: 'save-bot-config-btn'
         },

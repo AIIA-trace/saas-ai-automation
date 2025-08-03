@@ -316,9 +316,9 @@ async function testBotConfigForm() {
             logTestResult('✅ Campos del formulario de configuración de email encontrados y rellenados', 'success');
         }
         
-        // Verificar el endpoint correcto
-        const endpoint = API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.BOT_CONFIG;
-        logTestResult(`🔍 Endpoint para configuración del bot: ${endpoint}`, 'info');
+        // Verificar el endpoint correcto (usando el endpoint unificado)
+        const endpoint = API_CONFIG.apiBaseUrl + API_CONFIG.DASHBOARD.CLIENT_DATA.url;
+        logTestResult(`🔍 Endpoint unificado para configuración del bot: ${endpoint}`, 'info');
         
         // Simular la petición
         await simulateAPICall('updateBotConfig', async () => {

@@ -3807,10 +3807,10 @@ function loadBotConfiguration() {
         // Configuración avanzada de IA
         if (botConfig.aiConfig) {
             if (botConfig.aiConfig.temperature !== undefined) document.getElementById('ai_temperature').value = botConfig.aiConfig.temperature;
-            if (botConfig.aiConfig.maxTokens !== undefined) document.getElementById('ai_max_tokens').value = botConfig.aiConfig.maxTokens;
-            if (botConfig.aiConfig.topP !== undefined) document.getElementById('ai_top_p').value = botConfig.aiConfig.topP;
-            if (botConfig.aiConfig.frequencyPenalty !== undefined) document.getElementById('ai_frequency_penalty').value = botConfig.aiConfig.frequencyPenalty;
-            if (botConfig.aiConfig.presencePenalty !== undefined) document.getElementById('ai_presence_penalty').value = botConfig.aiConfig.presencePenalty;
+            if (botConfig.aiConfig.max_tokens !== undefined) document.getElementById('ai_max_tokens').value = botConfig.aiConfig.max_tokens;
+            if (botConfig.aiConfig.top_p !== undefined) document.getElementById('ai_top_p').value = botConfig.aiConfig.top_p;
+            if (botConfig.aiConfig.frequency_penalty !== undefined) document.getElementById('ai_frequency_penalty').value = botConfig.aiConfig.frequency_penalty;
+            if (botConfig.aiConfig.presence_penalty !== undefined) document.getElementById('ai_presence_penalty').value = botConfig.aiConfig.presence_penalty;
         }
         
         // Configuración de email - Mapeo completo
@@ -3910,8 +3910,8 @@ function loadBotConfiguration() {
                     
                     // Determinar el icono según el tipo de archivo
                     let fileIcon = 'fa-file-alt';
-                    if (file.name) {
-                        const extension = file.name.split('.').pop().toLowerCase();
+                    if (file.filename) {
+                        const extension = file.filename.split('.').pop().toLowerCase();
                         if (['pdf'].includes(extension)) fileIcon = 'fa-file-pdf';
                         else if (['doc', 'docx'].includes(extension)) fileIcon = 'fa-file-word';
                         else if (['xls', 'xlsx', 'csv'].includes(extension)) fileIcon = 'fa-file-excel';
@@ -3920,10 +3920,10 @@ function loadBotConfiguration() {
                     fileItem.innerHTML = `
                         <span>
                             <i class="fas ${fileIcon} me-2"></i>
-                            ${file.name || 'Archivo sin nombre'}
+                            ${file.filename || 'Archivo sin nombre'}
                         </span>
                         <div>
-                            <span class="badge bg-success rounded-pill me-2">${((file.size || 0) / 1024).toFixed(1)} KB</span>
+                            <span class="badge bg-success rounded-pill me-2">${((file.file_size || 0) / 1024).toFixed(1)} KB</span>
                             <button type="button" class="btn btn-sm btn-danger delete-file" data-file-id="${file.id}">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
@@ -7370,10 +7370,10 @@ function saveUnifiedConfig() {
             // Configuración avanzada de IA
             aiConfig: {
                 temperature: parseFloat(document.getElementById('ai_temperature')?.value || '0.7'),
-                maxTokens: parseInt(document.getElementById('ai_max_tokens')?.value || '150'),
-                topP: parseFloat(document.getElementById('ai_top_p')?.value || '0.9'),
-                frequencyPenalty: parseFloat(document.getElementById('ai_frequency_penalty')?.value || '0.0'),
-                presencePenalty: parseFloat(document.getElementById('ai_presence_penalty')?.value || '0.0')
+                max_tokens: parseInt(document.getElementById('ai_max_tokens')?.value || '150'),
+                top_p: parseFloat(document.getElementById('ai_top_p')?.value || '0.9'),
+                frequency_penalty: parseFloat(document.getElementById('ai_frequency_penalty')?.value || '0.0'),
+                presence_penalty: parseFloat(document.getElementById('ai_presence_penalty')?.value || '0.0')
             },
             
             // Preguntas frecuentes
@@ -8222,8 +8222,8 @@ function processContextFilesWithBackend(filesData) {
         const uploadPromises = newFilesArray.map(file => {
             const formData = new FormData();
             formData.append('file', file);  // Enviar el archivo real
-            formData.append('fileName', file.name);
-            formData.append('fileSize', file.size);
+            formData.append('filename', file.name);
+            formData.append('file_size', file.size);
             
             // Usar el endpoint unificado CLIENT_DATA para subir archivos de contexto
             console.log('🔄 Subiendo archivo de contexto usando endpoint unificado CLIENT_DATA');

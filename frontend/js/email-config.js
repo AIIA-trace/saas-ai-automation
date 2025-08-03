@@ -427,7 +427,8 @@ class EmailConfig {
     // Cargar configuración de emails
     async loadEmailConfig() {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/config/email`, {
+            // Usar el endpoint unificado /api/client en lugar del legacy /api/config/email
+            const response = await fetch(`${API_BASE_URL}/api/client`, {
                 headers: {
                     'Authorization': `Bearer ${authService.getToken()}`,
                     'Content-Type': 'application/json'
@@ -660,7 +661,8 @@ class EmailConfig {
                 forwardingRules: this.currentConfig.forwardingRules || []
             };
 
-            const response = await fetch(`${API_BASE_URL}/api/config/email`, {
+            // Usar el endpoint unificado /api/client en lugar del legacy /api/config/email
+            const response = await fetch(`${API_BASE_URL}/api/client`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${authService.getToken()}`,
