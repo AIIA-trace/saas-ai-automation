@@ -216,7 +216,7 @@ router.get('/api/client', authenticate, async (req, res) => {
           language: client.botLanguage || 'es',
           welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
           confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
-          workingDays: client.workingDays || 'Lunes a Viernes',
+          workingDays: client.workingDays ? (typeof client.workingDays === 'string' ? JSON.parse(client.workingDays) : client.workingDays) : { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: false, sunday: false },
           workingHoursOpening: client.workingHoursOpening || '09:00',
           workingHoursClosing: client.workingHoursClosing || '18:00',
           personality: client.botPersonality || 'profesional y amigable'
@@ -227,7 +227,7 @@ router.get('/api/client', authenticate, async (req, res) => {
         botLanguage: client.botLanguage || 'es',
         welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
         confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
-        workingDays: client.workingDays || 'Lunes a Viernes',
+        workingDays: client.workingDays ? (typeof client.workingDays === 'string' ? JSON.parse(client.workingDays) : client.workingDays) : { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: false, sunday: false },
         workingHoursOpening: client.workingHoursOpening || '09:00',
         workingHoursClosing: client.workingHoursClosing || '18:00',
         botPersonality: client.botPersonality || 'profesional y amigable',
@@ -722,7 +722,7 @@ router.put('/client', authenticate, async (req, res) => {
       if (bot.language) botData.botLanguage = bot.language;
       if (bot.welcomeMessage) botData.welcomeMessage = bot.welcomeMessage;
       if (bot.confirmationMessage) botData.confirmationMessage = bot.confirmationMessage;
-      if (bot.workingDays) botData.workingDays = bot.workingDays;
+      if (bot.workingDays) botData.workingDays = JSON.stringify(bot.workingDays);
       if (bot.workingHours?.opening) botData.workingHoursOpening = bot.workingHours.opening;
       if (bot.workingHours?.closing) botData.workingHoursClosing = bot.workingHours.closing;
     }

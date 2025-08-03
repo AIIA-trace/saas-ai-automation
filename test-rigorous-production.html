@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 Test Riguroso del Sistema - PRODUCCIÓN</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            background: #001100;
+        }
+        .test-section {
+            margin: 20px 0;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .section-header {
+            background: #1a1a1a;
+            padding: 15px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-content {
+            padding: 15px;
+            background: #0f0f0f;
+        }
+        .log-area {
+            background: #000;
+            border: 1px solid #333;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+        .button {
+            background: #003300;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 5px;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #004400;
+        }
+        .button.danger {
+            background: #330000;
+            color: #ff0000;
+            border-color: #ff0000;
+        }
+        .button.danger:hover {
+            background: #440000;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .stat-pass { color: #00ff00; }
+        .stat-fail { color: #ff0000; }
+        .stat-warn { color: #ffaa00; }
+        .log-pass { color: #00ff00; }
+        .log-fail { color: #ff0000; }
+        .log-warn { color: #ffaa00; }
+        .log-info { color: #00aaff; }
+        .url-input {
+            background: #1a1a1a;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px;
+            width: 400px;
+            font-family: inherit;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 TEST RIGUROSO DEL SISTEMA - PRODUCCIÓN</h1>
+            <p>Pruebas exhaustivas en entorno de producción - SIN COMPLACENCIA</p>
+            <div>
+                <label>URL de Producción:</label>
+                <input type="text" id="productionUrl" class="url-input" 
+                       placeholder="https://tu-app.onrender.com" 
+                       value="https://saas-ai-automation.onrender.com">
+            </div>
+            <div class="stats">
+                <span class="stat-pass">✅ Pasaron: <span id="passCount">0</span></span>
+                <span class="stat-fail">❌ Fallaron: <span id="failCount">0</span></span>
+                <span class="stat-warn">⚠️ Advertencias: <span id="warnCount">0</span></span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="section-header">
+                <span>🚀 EJECUTAR TODOS LOS TESTS</span>
+            </div>
+            <div class="section-content">
+                <button class="button danger" onclick="runFullBattery()">🔥 EJECUTAR BATERÍA COMPLETA EN PRODUCCIÓN</button>
+                <div class="log-area" id="mainLog"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="section-header">
+                <span>🔗 CONECTIVIDAD</span>
+            </div>
+            <div class="section-content">
+                <button class="button" onclick="testConnectivity()">Test Endpoints</button>
+                <div class="log-area" id="connectivityLog"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="section-header">
+                <span>🔐 AUTENTICACIÓN</span>
+            </div>
+            <div class="section-content">
+                <button class="button" onclick="testAuthentication()">Test Auth</button>
+                <div class="log-area" id="authLog"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="section-header">
+                <span>🤖 CONFIGURACIÓN BOT</span>
+            </div>
+            <div class="section-content">
+                <button class="button" onclick="testBotConfig()">Test Config</button>
+                <div class="log-area" id="configLog"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="section-header">
+                <span>💾 PERSISTENCIA</span>
+            </div>
+            <div class="section-content">
+                <button class="button" onclick="testPersistence()">Test Persistencia</button>
+                <div class="log-area" id="persistenceLog"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="section-header">
+                <span>🔄 CONSISTENCIA</span>
+            </div>
+            <div class="section-content">
+                <button class="button" onclick="testConsistency()">Test Consistencia</button>
+                <div class="log-area" id="consistencyLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let passCount = 0;
+        let failCount = 0;
+        let warnCount = 0;
+        let authToken = localStorage.getItem('authToken') || '';
+
+        function getBaseUrl() {
+            return document.getElementById('productionUrl').value.replace(/\/$/, '');
+        }
+
+        function updateStats() {
+            document.getElementById('passCount').textContent = passCount;
+            document.getElementById('failCount').textContent = failCount;
+            document.getElementById('warnCount').textContent = warnCount;
+        }
+
+        function log(message, type = 'info', logId = 'mainLog') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById(logId);
+            const className = `log-${type}`;
+            logElement.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            if (type === 'pass') passCount++;
+            else if (type === 'fail') failCount++;
+            else if (type === 'warn') warnCount++;
+            
+            updateStats();
+        }
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+                        ...options.headers
+                    }
+                });
+                
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    data: response.ok ? await response.json() : null,
+                    error: !response.ok ? await response.text() : null
+                };
+            } catch (error) {
+                return {
+                    ok: false,
+                    status: 0,
+                    data: null,
+                    error: error.message
+                };
+            }
+        }
+
+        async function testConnectivity() {
+            log('🔗 TESTING CONECTIVIDAD...', 'info', 'connectivityLog');
+            const baseUrl = getBaseUrl();
+            
+            const endpoints = [
+                { method: 'POST', path: '/api/auth/login', expectedStatus: 400 },
+                { method: 'GET', path: '/api/client', expectedStatus: 401 },
+                { method: 'PUT', path: '/api/client', expectedStatus: 401 }
+            ];
+
+            for (const endpoint of endpoints) {
+                const url = `${baseUrl}${endpoint.path}`;
+                const options = endpoint.method === 'POST' ? { method: 'POST', body: '{}' } : { method: endpoint.method };
+                
+                const result = await makeRequest(url, options);
+                
+                if (result.status === endpoint.expectedStatus) {
+                    log(`✅ ${endpoint.method} ${endpoint.path} → ${result.status}`, 'pass', 'connectivityLog');
+                } else {
+                    log(`❌ ${endpoint.method} ${endpoint.path} → ${result.status} (esperado: ${endpoint.expectedStatus})`, 'fail', 'connectivityLog');
+                }
+            }
+        }
+
+        async function testAuthentication() {
+            log('🔐 TESTING AUTENTICACIÓN...', 'info', 'authLog');
+            const baseUrl = getBaseUrl();
+            
+            // Verificar si ya tenemos token válido
+            if (authToken) {
+                log('🔍 Verificando token existente...', 'info', 'authLog');
+                const result = await makeRequest(`${baseUrl}/api/client`);
+                
+                if (result.ok) {
+                    log('✅ Token existente válido - usando sesión actual', 'pass', 'authLog');
+                    return;
+                } else {
+                    log('⚠️ Token existente inválido - necesita nuevo login', 'warn', 'authLog');
+                    authToken = '';
+                    localStorage.removeItem('authToken');
+                }
+            }
+
+            // Solicitar credenciales al usuario
+            const email = prompt('Ingresa tu email de producción:');
+            const password = prompt('Ingresa tu contraseña:');
+            
+            if (!email || !password) {
+                log('❌ Credenciales no proporcionadas', 'fail', 'authLog');
+                return;
+            }
+
+            const result = await makeRequest(`${baseUrl}/api/auth/login`, {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+
+            if (result.ok && result.data.token) {
+                authToken = result.data.token;
+                localStorage.setItem('authToken', authToken);
+                log('✅ Login exitoso - token guardado', 'pass', 'authLog');
+            } else {
+                log(`❌ Login fallido: ${result.error}`, 'fail', 'authLog');
+            }
+        }
+
+        async function testBotConfig() {
+            log('🤖 TESTING CONFIGURACIÓN BOT...', 'info', 'configLog');
+            
+            if (!authToken) {
+                log('❌ No hay token de autenticación', 'fail', 'configLog');
+                return;
+            }
+
+            const baseUrl = getBaseUrl();
+            
+            // Test GET config
+            log('📥 Probando carga de configuración...', 'info', 'configLog');
+            const getResult = await makeRequest(`${baseUrl}/api/client`);
+            
+            if (!getResult.ok) {
+                log(`❌ Error cargando config: ${getResult.error}`, 'fail', 'configLog');
+                return;
+            }
+
+            log('✅ Configuración cargada exitosamente', 'pass', 'configLog');
+            
+            // Verificar campos críticos
+            const config = getResult.data.data;
+            const criticalFields = ['botName', 'botPersonality', 'welcomeMessage'];
+            
+            for (const field of criticalFields) {
+                if (config[field] !== undefined) {
+                    log(`✅ Campo crítico '${field}' presente: ${JSON.stringify(config[field]).substring(0, 50)}...`, 'pass', 'configLog');
+                } else {
+                    log(`⚠️ Campo crítico '${field}' ausente`, 'warn', 'configLog');
+                }
+            }
+
+            // Test PUT config (actualización)
+            log('📤 Probando guardado de configuración...', 'info', 'configLog');
+            const testData = {
+                ...config,
+                botName: `TestBot_${Date.now()}`,
+                botPersonality: 'Test personality for rigorous testing'
+            };
+
+            const putResult = await makeRequest(`${baseUrl}/api/client`, {
+                method: 'PUT',
+                body: JSON.stringify(testData)
+            });
+
+            if (putResult.ok) {
+                log('✅ Configuración guardada exitosamente', 'pass', 'configLog');
+            } else {
+                log(`❌ Error guardando config: ${putResult.error}`, 'fail', 'configLog');
+            }
+        }
+
+        async function testPersistence() {
+            log('💾 TESTING PERSISTENCIA...', 'info', 'persistenceLog');
+            
+            if (!authToken) {
+                log('❌ No hay token de autenticación', 'fail', 'persistenceLog');
+                return;
+            }
+
+            const baseUrl = getBaseUrl();
+            const randomValue = `PersistenceTest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Guardar valor único
+            log(`💾 Guardando valor único: ${randomValue}`, 'info', 'persistenceLog');
+            
+            const saveResult = await makeRequest(`${baseUrl}/api/client`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    botName: randomValue,
+                    botPersonality: 'Testing persistence functionality'
+                })
+            });
+
+            if (!saveResult.ok) {
+                log(`❌ Error guardando para test de persistencia: ${saveResult.error}`, 'fail', 'persistenceLog');
+                return;
+            }
+
+            log('✅ Valor guardado exitosamente', 'pass', 'persistenceLog');
+
+            // Esperar un momento y recargar
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            log('🔄 Recargando configuración...', 'info', 'persistenceLog');
+            const loadResult = await makeRequest(`${baseUrl}/api/client`);
+
+            if (!loadResult.ok) {
+                log(`❌ Error recargando configuración: ${loadResult.error}`, 'fail', 'persistenceLog');
+                return;
+            }
+
+            const reloadedConfig = loadResult.data.data;
+            
+            if (reloadedConfig.botName === randomValue) {
+                log('✅ PERSISTENCIA CONFIRMADA - Datos se mantienen tras recarga', 'pass', 'persistenceLog');
+            } else {
+                log(`❌ PERSISTENCIA FALLIDA - Esperado: ${randomValue}, Obtenido: ${reloadedConfig.botName}`, 'fail', 'persistenceLog');
+            }
+        }
+
+        async function testConsistency() {
+            log('🔄 TESTING CONSISTENCIA...', 'info', 'consistencyLog');
+            
+            if (!authToken) {
+                log('❌ No hay token de autenticación', 'fail', 'consistencyLog');
+                return;
+            }
+
+            const baseUrl = getBaseUrl();
+            
+            // Cargar configuración actual
+            const getResult = await makeRequest(`${baseUrl}/api/client`);
+            
+            if (!getResult.ok) {
+                log(`❌ Error cargando configuración: ${getResult.error}`, 'fail', 'consistencyLog');
+                return;
+            }
+
+            const config = getResult.data.data;
+            
+            // Verificar estructura de datos
+            const expectedStructure = {
+                botName: 'string',
+                botPersonality: 'string',
+                welcomeMessage: 'string',
+                callConfig: 'object',
+                emailConfig: 'object',
+                transferConfig: 'object',
+                scriptConfig: 'object',
+                aiConfig: 'object'
+            };
+
+            let structureValid = true;
+            
+            for (const [field, expectedType] of Object.entries(expectedStructure)) {
+                const actualType = typeof config[field];
+                
+                if (actualType === expectedType || (expectedType === 'object' && config[field] === null)) {
+                    log(`✅ Campo '${field}' tiene tipo correcto: ${actualType}`, 'pass', 'consistencyLog');
+                } else {
+                    log(`❌ Campo '${field}' tipo incorrecto - Esperado: ${expectedType}, Actual: ${actualType}`, 'fail', 'consistencyLog');
+                    structureValid = false;
+                }
+            }
+
+            if (structureValid) {
+                log('✅ CONSISTENCIA DE ESTRUCTURA CONFIRMADA', 'pass', 'consistencyLog');
+            } else {
+                log('❌ INCONSISTENCIAS EN ESTRUCTURA DETECTADAS', 'fail', 'consistencyLog');
+            }
+        }
+
+        async function runFullBattery() {
+            log('🚀 INICIANDO BATERÍA COMPLETA DE TESTS RIGUROSOS...', 'info');
+            
+            // Reset stats
+            passCount = 0;
+            failCount = 0;
+            warnCount = 0;
+            updateStats();
+
+            const baseUrl = getBaseUrl();
+            log(`🌐 Probando contra: ${baseUrl}`, 'info');
+
+            try {
+                await testConnectivity();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testAuthentication();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testBotConfig();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testPersistence();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testConsistency();
+
+                // Resumen final
+                const total = passCount + failCount + warnCount;
+                const successRate = total > 0 ? ((passCount / total) * 100).toFixed(1) : 0;
+                
+                log(`\n🏁 BATERÍA COMPLETA FINALIZADA`, 'info');
+                log(`📊 Estadísticas finales:`, 'info');
+                log(`   ✅ Tests pasados: ${passCount}`, 'pass');
+                log(`   ❌ Tests fallados: ${failCount}`, 'fail');
+                log(`   ⚠️ Advertencias: ${warnCount}`, 'warn');
+                log(`   📈 Tasa de éxito: ${successRate}% (${passCount}/${total})`, 'info');
+                
+                if (failCount === 0) {
+                    log(`🎉 SISTEMA COMPLETAMENTE FUNCIONAL - Sin fallos detectados`, 'pass');
+                } else {
+                    log(`🚨 ${failCount} TESTS FALLARON - ${successRate}% éxito (${passCount}/${total})`, 'fail');
+                }
+                
+            } catch (error) {
+                log(`💥 Error crítico durante batería: ${error.message}`, 'fail');
+            }
+        }
+
+        // Auto-load token on page load
+        window.addEventListener('load', () => {
+            if (authToken) {
+                log('🔑 Token de autenticación cargado desde localStorage', 'info');
+            }
+        });
+    </script>
+</body>
+</html>
