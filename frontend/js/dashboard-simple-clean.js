@@ -41,16 +41,13 @@ function adaptOtherContextSimple(config) {
         // Configurar selector de horario comercial
         setupBusinessHoursSelector();
         
-        // Inicializar gestor de preguntas frecuentes
-        setupFaqManager();
+        // Configurar botones de FAQs (sin cargar datos)
+        setupFaqButtons();
         
         // Configurar carga de archivos
         setupFileUploadHandlers();
         
-        // Cargar archivos de contexto existentes
-        setTimeout(() => {
-            loadContextFiles();
-        }, 800);
+        // NOTA: FAQs y context files se cargan desde loadExistingData() para evitar race conditions
         
         // Inicializar sistema de seguimiento de uso para el usuario actual
         if (window.UsageTracker) {
@@ -3516,8 +3513,9 @@ function loadExistingData() {
         console.log('👤 Iniciando carga de datos de perfil...');
         loadProfileData();
         
-        // La configuración del bot ha sido completamente eliminada como parte de la refactorización
-        console.log('🤖 La configuración del bot ha sido eliminada del sistema');
+        // Cargar configuración del bot (FAQs y archivos de contexto)
+        console.log('🤖 Iniciando carga de configuración del bot...');
+        loadBotConfiguration();
         
         // Cargar configuración de emails
         console.log('📧 Iniciando carga de configuración de emails...');
@@ -3525,6 +3523,65 @@ function loadExistingData() {
         
         console.log('✅ Todas las funciones de carga iniciadas');
     }, 500); // Aumentar a 500ms para asegurar renderizado completo
+}
+
+/**
+ * Cargar configuración del bot (FAQs, archivos de contexto y configuración de llamadas)
+ */
+function loadBotConfiguration() {
+    console.log('🤖 ===== CARGANDO CONFIGURACIÓN DEL BOT =====');
+    
+    // Usar el endpoint unificado /api/client para obtener toda la configuración
+    window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
+    .then(clientData => {
+        console.log('📊 Datos del cliente recibidos:', clientData);
+        
+        // 1. Cargar configuración de llamadas
+        const callConfig = clientData.callConfig || {};
+        console.log('📞 Configuración de llamadas:', callConfig);
+        
+        if (callConfig.language) {
+            const languageSelect = document.getElementById('call_language');
+            if (languageSelect) {
+                languageSelect.value = callConfig.language;
+                console.log('🌍 Idioma de llamadas cargado:', callConfig.language);
+            }
+        }
+        
+        if (callConfig.voiceId) {
+            const voiceSelect = document.getElementById('voice_type');
+            if (voiceSelect) {
+                voiceSelect.value = callConfig.voiceId;
+                console.log('🎤 Tipo de voz cargado:', callConfig.voiceId);
+            }
+        }
+        
+        if (callConfig.greeting) {
+            const greetingTextarea = document.getElementById('call_greeting');
+            if (greetingTextarea) {
+                greetingTextarea.value = callConfig.greeting;
+                console.log('👋 Saludo de llamadas cargado');
+            }
+        }
+        
+        // 2. Cargar FAQs
+        console.log('📋 Cargando preguntas frecuentes...');
+        loadSampleFaqs();
+        
+        // 3. Cargar archivos de contexto
+        console.log('📁 Cargando archivos de contexto...');
+        loadContextFiles();
+        
+        console.log('✅ Configuración del bot cargada completamente');
+    })
+    .catch(error => {
+        console.error('❌ Error al cargar configuración del bot:', error);
+        
+        // Cargar FAQs y archivos como fallback
+        console.log('🔄 Cargando FAQs y archivos como fallback...');
+        loadSampleFaqs();
+        loadContextFiles();
+    });
 }
 
 /**
@@ -3688,7 +3745,7 @@ function loadProfileData() {
     });
 }
 
-// La función loadBotConfiguration() ha sido completamente eliminada como parte de la refactorización
+// NOTA: loadBotConfiguration() restaurada y mejorada para cargar todos los campos del bot
 
 // Función deleteContextFile() eliminada como parte de la refactorización del sistema de configuración del bot
 
@@ -7338,8 +7395,9 @@ function saveUnifiedConfig() {
                     saveButton.disabled = false;
                 }
                 
-                // Recargar datos - loadBotConfiguration() eliminada como parte de la refactorización
-                console.log('✅ UI restaurada - configuración del bot eliminada');
+                // Recargar datos de configuración del bot
+                loadBotConfiguration();
+                console.log('✅ UI restaurada - configuración del bot recargada');
             }, 2000); // Exactamente 2 segundos como solicitó el usuario
             
             resolve();
@@ -7371,11 +7429,13 @@ function testBotConfiguration() {
 // La función showBotTestModal ha sido eliminada porque ahora usamos la API real
 // y mostramos los resultados en un modal generado dinámicamente en la función testBotConfiguration
 
+// FUNCIÓN ELIMINADA: setupFaqManager() - Reemplazada por setupFaqButtons() + loadBotConfiguration()
+
 /**
- * Inicializar el gestor de preguntas frecuentes
+ * Configurar solo los botones de FAQs (sin cargar datos)
  */
-function setupFaqManager() {
-    console.log('💬 Inicializando gestor de preguntas frecuentes...');
+function setupFaqButtons() {
+    console.log('📝 Configurando botones de FAQs...');
     
     // Botón para añadir nueva pregunta - Implementación mejorada y más robusta
     function initFaqButton() {
@@ -7392,7 +7452,7 @@ function setupFaqManager() {
             newAddFaqBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🖱️ Botón FAQ clickeado, ejecutando addNewFaqItem()...');
+                console.log('🖘️ Botón FAQ clickeado, ejecutando addNewFaqItem()...');
                 addNewFaqItem();
             });
             
@@ -7425,9 +7485,6 @@ function setupFaqManager() {
     // Y también con retraso para asegurarnos de que el DOM esté listo
     setTimeout(initFaqButton, 500);
     setTimeout(initFaqButton, 1000); // Intentar una vez más después de 1 segundo
-    
-    // Cargar preguntas de ejemplo
-    loadSampleFaqs();
     
     // Añadir llamada a documento cargado para asegurar la inicialización
     if (document.readyState === 'complete') {
