@@ -5863,33 +5863,70 @@ function loadBusinessHoursFromData(businessHoursText) {
             selectedDays = daysText.split(', ').map(day => day.trim());
         }
         
-        // Marcar los días seleccionados
+        // Primero desmarcar todos los checkboxes
+        businessDays.forEach(checkbox => {
+            checkbox.checked = false;
+            console.log('🔄 Desmarcando:', checkbox.id);
+        });
+        
+        // Marcar los días seleccionados con múltiples métodos
         selectedDays.forEach(day => {
             const dayId = dayMapping[day];
             if (dayId) {
                 const checkbox = document.getElementById(dayId);
                 if (checkbox) {
+                    // Método 1: Propiedad checked
                     checkbox.checked = true;
-                    console.log('✅ Día marcado:', day, dayId);
+                    
+                    // Método 2: Atributo checked (para compatibilidad)
+                    checkbox.setAttribute('checked', 'checked');
+                    
+                    // Método 3: Disparar evento change para actualizar UI
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    
+                    console.log('✅ Día marcado (múltiples métodos):', day, dayId, 'checked:', checkbox.checked);
+                } else {
+                    console.log('❌ Checkbox no encontrado:', dayId);
                 }
+            } else {
+                console.log('❌ Mapeo no encontrado para día:', day);
             }
         });
         
-        // Establecer horas
+        // Establecer horas con verificación
         if (startHourSelect && startHour) {
             startHourSelect.value = startHour;
-            console.log('✅ Hora inicio establecida:', startHour);
+            // Disparar evento change para actualizar UI
+            startHourSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log('✅ Hora inicio establecida:', startHour, 'valor actual:', startHourSelect.value);
+        } else {
+            console.log('❌ No se pudo establecer hora inicio:', { startHourSelect: !!startHourSelect, startHour });
         }
         
         if (endHourSelect && endHour) {
             endHourSelect.value = endHour;
-            console.log('✅ Hora fin establecida:', endHour);
+            // Disparar evento change para actualizar UI
+            endHourSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log('✅ Hora fin establecida:', endHour, 'valor actual:', endHourSelect.value);
+        } else {
+            console.log('❌ No se pudo establecer hora fin:', { endHourSelect: !!endHourSelect, endHour });
         }
         
         // Actualizar la visualización
         if (typeof updateBusinessHours === 'function') {
             updateBusinessHours();
         }
+        
+        // Verificación final del estado
+        setTimeout(() => {
+            console.log('🔍 VERIFICACIÓN FINAL DEL HORARIO:');
+            const finalBusinessDays = document.querySelectorAll('.business-day');
+            finalBusinessDays.forEach(checkbox => {
+                console.log(`  - ${checkbox.id}: checked=${checkbox.checked}, hasAttribute=${checkbox.hasAttribute('checked')}`);
+            });
+            console.log(`  - Hora inicio: ${startHourSelect ? startHourSelect.value : 'N/A'}`);
+            console.log(`  - Hora fin: ${endHourSelect ? endHourSelect.value : 'N/A'}`);
+        }, 100);
         
         console.log('✅ Horario comercial cargado correctamente');
         
