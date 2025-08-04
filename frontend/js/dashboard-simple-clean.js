@@ -3658,10 +3658,13 @@ function loadProfileData() {
             }
         }
         
-        // Cargar horario comercial
+        // Cargar horario comercial con delay para asegurar que DOM esté listo
         if (profileData.businessHours) {
-            loadBusinessHoursFromData(profileData.businessHours);
-            console.log('✅ Horario comercial cargado:', profileData.businessHours);
+            console.log('🕐 Preparando carga de horario comercial:', profileData.businessHours);
+            setTimeout(() => {
+                console.log('🕐 Ejecutando carga de horario comercial con delay...');
+                loadBusinessHoursFromData(profileData.businessHours);
+            }, 500); // Delay de 500ms para asegurar que DOM esté completamente renderizado
         } else {
             console.log('⚠️ No hay horario comercial guardado, usando valores por defecto');
         }
@@ -5792,6 +5795,22 @@ function setupBusinessHoursSelector() {
 function loadBusinessHoursFromData(businessHoursText) {
     console.log('🕐 Cargando horario comercial desde datos:', businessHoursText);
     
+    // Verificar que los elementos DOM existan
+    const businessDays = document.querySelectorAll('.business-day');
+    const startHourSelect = document.getElementById('business-hours-start');
+    const endHourSelect = document.getElementById('business-hours-end');
+    
+    console.log('🔍 Verificando elementos DOM:');
+    console.log('  - businessDays encontrados:', businessDays.length);
+    console.log('  - startHourSelect:', !!startHourSelect);
+    console.log('  - endHourSelect:', !!endHourSelect);
+    
+    if (businessDays.length === 0 || !startHourSelect || !endHourSelect) {
+        console.log('❌ Elementos DOM no encontrados, reintentando en 1 segundo...');
+        setTimeout(() => loadBusinessHoursFromData(businessHoursText), 1000);
+        return;
+    }
+    
     if (!businessHoursText || businessHoursText === 'Sin horario definido') {
         console.log('⚠️ No hay horario definido, manteniendo valores por defecto');
         return;
@@ -5857,9 +5876,6 @@ function loadBusinessHoursFromData(businessHoursText) {
         });
         
         // Establecer horas
-        const startHourSelect = document.getElementById('business-hours-start');
-        const endHourSelect = document.getElementById('business-hours-end');
-        
         if (startHourSelect && startHour) {
             startHourSelect.value = startHour;
             console.log('✅ Hora inicio establecida:', startHour);
