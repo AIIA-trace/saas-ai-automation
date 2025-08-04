@@ -5838,12 +5838,6 @@ function loadBusinessHoursFromData(businessHoursText) {
             'Dom': 'day-sun'
         };
         
-        // Primero desmarcar todos los días
-        Object.values(dayMapping).forEach(dayId => {
-            const checkbox = document.getElementById(dayId);
-            if (checkbox) checkbox.checked = false;
-        });
-        
         // Parsear días seleccionados
         let selectedDays = [];
         if (daysText.includes('-')) {
@@ -5863,43 +5857,31 @@ function loadBusinessHoursFromData(businessHoursText) {
             selectedDays = daysText.split(', ').map(day => day.trim());
         }
         
-        // SOLUCIÓN ROBUSTA: Remover temporalmente event listeners para evitar interferencias
         console.log('🔄 Preparando carga de checkboxes...');
         
-        // Primero desmarcar todos los checkboxes SIN disparar eventos
+        // PASO 1: Desmarcar TODOS los checkboxes
         businessDays.forEach(checkbox => {
-            // Remover atributo checked del DOM
-            checkbox.removeAttribute('checked');
-            // Establecer propiedad checked a false
             checkbox.checked = false;
+            checkbox.removeAttribute('checked');
             console.log('🔄 Desmarcado:', checkbox.id);
         });
         
-        // Marcar los días seleccionados
+        // PASO 2: Marcar los días seleccionados (SOLUCIÓN DEFINITIVA)
         selectedDays.forEach(day => {
             const dayId = dayMapping[day];
             if (dayId) {
                 const checkbox = document.getElementById(dayId);
                 if (checkbox) {
-                    // Método robusto: establecer tanto propiedad como atributo
-                    checkbox.checked = true;
-                    checkbox.setAttribute('checked', 'checked');
-                    
-                    console.log('✅ Día marcado:', day, dayId, 'checked:', checkbox.checked, 'hasAttribute:', checkbox.hasAttribute('checked'));
+                    // SOLUCIÓN DE STACKOVERFLOW: Usar click() para forzar actualización visual
+                    if (!checkbox.checked) {
+                        checkbox.click(); // Esto actualiza tanto el estado como la UI
+                        console.log('✅ Día marcado con click():', day, dayId);
+                    }
                 } else {
                     console.log('❌ Checkbox no encontrado:', dayId);
                 }
-            } else {
-                console.log('❌ Mapeo no encontrado para día:', day);
             }
         });
-        
-        // IMPORTANTE: Disparar UN SOLO evento change al final para actualizar el preview
-        console.log('🔄 Disparando evento change para actualizar preview...');
-        if (businessDays.length > 0) {
-            // Disparar evento en el primer checkbox para activar updateBusinessHours
-            businessDays[0].dispatchEvent(new Event('change', { bubbles: true }));
-        }
         
         // Establecer horas usando selectedIndex (como el sector que funciona)
         if (startHourSelect && startHour) {
@@ -5937,22 +5919,6 @@ function loadBusinessHoursFromData(businessHoursText) {
         } else {
             console.log('❌ No se pudo establecer hora fin:', { endHourSelect: !!endHourSelect, endHour });
         }
-        
-        // Actualizar la visualización
-        if (typeof updateBusinessHours === 'function') {
-            updateBusinessHours();
-        }
-        
-        // Verificación final del estado
-        setTimeout(() => {
-            console.log('🔍 VERIFICACIÓN FINAL DEL HORARIO:');
-            const finalBusinessDays = document.querySelectorAll('.business-day');
-            finalBusinessDays.forEach(checkbox => {
-                console.log(`  - ${checkbox.id}: checked=${checkbox.checked}, hasAttribute=${checkbox.hasAttribute('checked')}`);
-            });
-            console.log(`  - Hora inicio: ${startHourSelect ? startHourSelect.value : 'N/A'}`);
-            console.log(`  - Hora fin: ${endHourSelect ? endHourSelect.value : 'N/A'}`);
-        }, 100);
         
         console.log('✅ Horario comercial cargado correctamente');
         
