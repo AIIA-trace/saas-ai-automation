@@ -5863,28 +5863,29 @@ function loadBusinessHoursFromData(businessHoursText) {
             selectedDays = daysText.split(', ').map(day => day.trim());
         }
         
-        // Primero desmarcar todos los checkboxes
+        // SOLUCIÓN ROBUSTA: Remover temporalmente event listeners para evitar interferencias
+        console.log('🔄 Preparando carga de checkboxes...');
+        
+        // Primero desmarcar todos los checkboxes SIN disparar eventos
         businessDays.forEach(checkbox => {
+            // Remover atributo checked del DOM
+            checkbox.removeAttribute('checked');
+            // Establecer propiedad checked a false
             checkbox.checked = false;
-            console.log('🔄 Desmarcando:', checkbox.id);
+            console.log('🔄 Desmarcado:', checkbox.id);
         });
         
-        // Marcar los días seleccionados con múltiples métodos
+        // Marcar los días seleccionados
         selectedDays.forEach(day => {
             const dayId = dayMapping[day];
             if (dayId) {
                 const checkbox = document.getElementById(dayId);
                 if (checkbox) {
-                    // Método 1: Propiedad checked
+                    // Método robusto: establecer tanto propiedad como atributo
                     checkbox.checked = true;
-                    
-                    // Método 2: Atributo checked (para compatibilidad)
                     checkbox.setAttribute('checked', 'checked');
                     
-                    // Método 3: Disparar evento change para actualizar UI
-                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                    
-                    console.log('✅ Día marcado (múltiples métodos):', day, dayId, 'checked:', checkbox.checked);
+                    console.log('✅ Día marcado:', day, dayId, 'checked:', checkbox.checked, 'hasAttribute:', checkbox.hasAttribute('checked'));
                 } else {
                     console.log('❌ Checkbox no encontrado:', dayId);
                 }
@@ -5893,21 +5894,46 @@ function loadBusinessHoursFromData(businessHoursText) {
             }
         });
         
-        // Establecer horas con verificación
+        // IMPORTANTE: Disparar UN SOLO evento change al final para actualizar el preview
+        console.log('🔄 Disparando evento change para actualizar preview...');
+        if (businessDays.length > 0) {
+            // Disparar evento en el primer checkbox para activar updateBusinessHours
+            businessDays[0].dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        // Establecer horas usando selectedIndex (como el sector que funciona)
         if (startHourSelect && startHour) {
-            startHourSelect.value = startHour;
-            // Disparar evento change para actualizar UI
-            startHourSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log('✅ Hora inicio establecida:', startHour, 'valor actual:', startHourSelect.value);
+            // Método 1: Buscar por value y usar selectedIndex
+            for (let i = 0; i < startHourSelect.options.length; i++) {
+                if (startHourSelect.options[i].value === startHour) {
+                    startHourSelect.selectedIndex = i;
+                    console.log('✅ Hora inicio establecida (selectedIndex):', startHour, 'index:', i);
+                    break;
+                }
+            }
+            // Método 2: Fallback con value
+            if (startHourSelect.value !== startHour) {
+                startHourSelect.value = startHour;
+                console.log('✅ Hora inicio establecida (fallback value):', startHour);
+            }
         } else {
             console.log('❌ No se pudo establecer hora inicio:', { startHourSelect: !!startHourSelect, startHour });
         }
         
         if (endHourSelect && endHour) {
-            endHourSelect.value = endHour;
-            // Disparar evento change para actualizar UI
-            endHourSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log('✅ Hora fin establecida:', endHour, 'valor actual:', endHourSelect.value);
+            // Método 1: Buscar por value y usar selectedIndex
+            for (let i = 0; i < endHourSelect.options.length; i++) {
+                if (endHourSelect.options[i].value === endHour) {
+                    endHourSelect.selectedIndex = i;
+                    console.log('✅ Hora fin establecida (selectedIndex):', endHour, 'index:', i);
+                    break;
+                }
+            }
+            // Método 2: Fallback con value
+            if (endHourSelect.value !== endHour) {
+                endHourSelect.value = endHour;
+                console.log('✅ Hora fin establecida (fallback value):', endHour);
+            }
         } else {
             console.log('❌ No se pudo establecer hora fin:', { endHourSelect: !!endHourSelect, endHour });
         }
