@@ -3501,6 +3501,8 @@ function loadExistingData() {
         console.log('   - companyName:', !!document.getElementById('companyName'));
         console.log('   - description:', !!document.getElementById('description'));
         console.log('   - address:', !!document.getElementById('address'));
+        console.log('   - industry:', !!document.getElementById('industry'));
+        console.log('   - website:', !!document.getElementById('website'));
         console.log('   - call_bot_active:', !!document.getElementById('call_bot_active'));
         console.log('   - email_signature:', !!document.getElementById('email_signature'));
         console.log('   - faq-items:', !!document.getElementById('faq-items'));
@@ -3654,6 +3656,14 @@ function loadProfileData() {
             } else {
                 console.log('⚠️ Campo industry no encontrado');
             }
+        }
+        
+        // Cargar horario comercial
+        if (profileData.businessHours) {
+            loadBusinessHoursFromData(profileData.businessHours);
+            console.log('✅ Horario comercial cargado:', profileData.businessHours);
+        } else {
+            console.log('⚠️ No hay horario comercial guardado, usando valores por defecto');
         }
         
         console.log('✅ Datos de perfil cargados correctamente');
@@ -5776,6 +5786,104 @@ function setupBusinessHoursSelector() {
 }
 
 /**
+ * Cargar horario comercial desde datos guardados
+ * @param {string} businessHoursText - Texto del horario (ej: "Lun-Vie: 9:00-18:00")
+ */
+function loadBusinessHoursFromData(businessHoursText) {
+    console.log('🕐 Cargando horario comercial desde datos:', businessHoursText);
+    
+    if (!businessHoursText || businessHoursText === 'Sin horario definido') {
+        console.log('⚠️ No hay horario definido, manteniendo valores por defecto');
+        return;
+    }
+    
+    try {
+        // Parsear el formato "Lun-Vie: 9:00-18:00" o "Lun, Mar, Mié: 10:00-17:00"
+        const parts = businessHoursText.split(': ');
+        if (parts.length !== 2) {
+            console.log('⚠️ Formato de horario no válido:', businessHoursText);
+            return;
+        }
+        
+        const [daysText, hoursText] = parts;
+        const [startHour, endHour] = hoursText.split('-');
+        
+        // Mapeo de días abreviados a IDs de checkboxes
+        const dayMapping = {
+            'Lun': 'day-mon',
+            'Mar': 'day-tue', 
+            'Mié': 'day-wed',
+            'Jue': 'day-thu',
+            'Vie': 'day-fri',
+            'Sáb': 'day-sat',
+            'Dom': 'day-sun'
+        };
+        
+        // Primero desmarcar todos los días
+        Object.values(dayMapping).forEach(dayId => {
+            const checkbox = document.getElementById(dayId);
+            if (checkbox) checkbox.checked = false;
+        });
+        
+        // Parsear días seleccionados
+        let selectedDays = [];
+        if (daysText.includes('-')) {
+            // Formato "Lun-Vie"
+            const [startDay, endDay] = daysText.split('-');
+            const dayOrder = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            const startIndex = dayOrder.indexOf(startDay);
+            const endIndex = dayOrder.indexOf(endDay);
+            
+            if (startIndex !== -1 && endIndex !== -1) {
+                for (let i = startIndex; i <= endIndex; i++) {
+                    selectedDays.push(dayOrder[i]);
+                }
+            }
+        } else {
+            // Formato "Lun, Mar, Mié" o día individual
+            selectedDays = daysText.split(', ').map(day => day.trim());
+        }
+        
+        // Marcar los días seleccionados
+        selectedDays.forEach(day => {
+            const dayId = dayMapping[day];
+            if (dayId) {
+                const checkbox = document.getElementById(dayId);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    console.log('✅ Día marcado:', day, dayId);
+                }
+            }
+        });
+        
+        // Establecer horas
+        const startHourSelect = document.getElementById('business-hours-start');
+        const endHourSelect = document.getElementById('business-hours-end');
+        
+        if (startHourSelect && startHour) {
+            startHourSelect.value = startHour;
+            console.log('✅ Hora inicio establecida:', startHour);
+        }
+        
+        if (endHourSelect && endHour) {
+            endHourSelect.value = endHour;
+            console.log('✅ Hora fin establecida:', endHour);
+        }
+        
+        // Actualizar la visualización
+        if (typeof updateBusinessHours === 'function') {
+            updateBusinessHours();
+        }
+        
+        console.log('✅ Horario comercial cargado correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error al cargar horario comercial:', error);
+        console.log('⚠️ Manteniendo valores por defecto');
+    }
+}
+
+/**
  * Actualizar la interfaz de usuario con los datos de uso del plan
  */
 function updatePlanUsageUI() {
@@ -7179,6 +7287,7 @@ function saveUnifiedConfig() {
                 companyPhone: config.companyPhone !== undefined ? config.companyPhone : '',
                 companyEmail: config.companyEmail !== undefined ? config.companyEmail : '',
                 companyWebsite: config.companyWebsite !== undefined ? config.companyWebsite : '',
+                businessHours: config.businessHours !== undefined ? config.businessHours : 'Lun-Vie: 9:00-18:00',
                 
                 // DUPLICAR en structure profile para compatibilidad con versiones
                 // Aseguramos que los campos se envíen explícitamente, incluso si están vacíos
@@ -7189,7 +7298,8 @@ function saveUnifiedConfig() {
                     address: config.companyAddress !== undefined ? config.companyAddress : '',
                     phone: config.companyPhone !== undefined ? config.companyPhone : '',
                     email: config.companyEmail !== undefined ? config.companyEmail : '',
-                    website: config.companyWebsite !== undefined ? config.companyWebsite : ''
+                    website: config.companyWebsite !== undefined ? config.companyWebsite : '',
+                    businessHours: config.businessHours !== undefined ? config.businessHours : 'Lun-Vie: 9:00-18:00'
                 },
                 
                 // Configuración del bot
@@ -7231,6 +7341,7 @@ function saveUnifiedConfig() {
             console.log(' Valor de companyPhone:', config.companyPhone);
             console.log(' Valor de companyEmail:', config.companyEmail);
             console.log(' Valor de companyWebsite:', config.companyWebsite);
+            console.log(' Valor de businessHours:', config.businessHours);
             
             console.log(' IDs de formulario encontrados para campos de empresa:');
             console.log('- companyName:', document.getElementById('companyName') ? 'companyName' : document.getElementById('company_name') ? 'company_name' : 'no encontrado');
