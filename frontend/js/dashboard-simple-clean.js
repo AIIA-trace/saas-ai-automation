@@ -3505,12 +3505,8 @@ function loadExistingData() {
         console.log('   - faq-items:', !!document.getElementById('faq-items'));
         // context-files-list eliminado como parte de la limpieza del sistema legacy
         
-        // PRIMERO: Cargar datos del registro desde localStorage
-        console.log('📝 Cargando datos del registro desde localStorage...');
-        loadRegistrationData();
-        
-        // Cargar datos de perfil desde backend
-        console.log('👤 Iniciando carga de datos de perfil...');
+        // Cargar datos de perfil desde backend (fuente única de verdad)
+        console.log('👤 Iniciando carga de datos de perfil desde backend...');
         loadProfileData();
         
         // Cargar configuración del bot (FAQs y archivos de contexto)
@@ -3585,91 +3581,7 @@ function loadBotConfiguration() {
     });
 }
 
-/**
- * Cargar datos del registro desde localStorage
- * Estos son los datos que el usuario ingresó durante el proceso de registro
- */
-function loadRegistrationData() {
-    console.log('📝 ===== CARGANDO DATOS DEL REGISTRO =====');
-    
-    try {
-        // Buscar datos del usuario en localStorage
-        const userData = localStorage.getItem('user_data');
-        const companyData = localStorage.getItem('companyData');
-        
-        console.log('📊 Datos disponibles en localStorage:');
-        console.log('   - user_data:', !!userData);
-        console.log('   - companyData:', !!companyData);
-        console.log('🔍 Todas las claves en localStorage:', Object.keys(localStorage));
-        
-        let registrationData = {};
-        
-        // Parsear datos del usuario
-        if (userData) {
-            try {
-                const parsedUserData = JSON.parse(userData);
-                console.log('👤 Datos del usuario parseados:', parsedUserData);
-                registrationData = { ...registrationData, ...parsedUserData };
-            } catch (e) {
-                console.error('❌ Error parseando user_data:', e);
-            }
-        }
-        
-        // Parsear datos de la empresa
-        if (companyData) {
-            try {
-                const parsedCompanyData = JSON.parse(companyData);
-                console.log('🏢 Datos de la empresa parseados:', parsedCompanyData);
-                registrationData = { ...registrationData, ...parsedCompanyData };
-            } catch (e) {
-                console.error('❌ Error parseando companyData:', e);
-            }
-        }
-        
-        console.log('📋 Datos de registro combinados:', registrationData);
-        
-        // Cargar datos en los campos del formulario
-        if (Object.keys(registrationData).length > 0) {
-            console.log('📝 Cargando datos en el formulario...');
-            
-            // Función auxiliar para establecer valores de forma segura
-            const safeSetValue = (id, value, label) => {
-                const element = document.getElementById(id);
-                if (element && value) {
-                    element.value = value;
-                    console.log(`✅ ${label} cargado: ${value}`);
-                } else if (!element) {
-                    console.warn(`⚠️ Elemento ${id} no encontrado`);
-                } else {
-                    console.warn(`⚠️ Valor vacío para ${label}`);
-                }
-            };
-            
-            // Cargar datos de la empresa usando los IDs unificados
-            safeSetValue('companyName', registrationData.companyName || registrationData.company_name || registrationData.name, 'Nombre de empresa');
-            safeSetValue('description', registrationData.description || registrationData.company_description, 'Descripción de empresa');
-            safeSetValue('industry', registrationData.industry || registrationData.sector, 'Sector de empresa');
-            safeSetValue('phone', registrationData.phone || registrationData.company_phone, 'Teléfono de empresa');
-            safeSetValue('email', registrationData.email || registrationData.company_email, 'Email de empresa');
-            safeSetValue('website', registrationData.website || registrationData.company_website, 'Website de empresa');
-            
-            // Cargar datos del contacto usando los IDs unificados
-            safeSetValue('contactEmail', registrationData.email || registrationData.contactEmail, 'Email de contacto');
-            safeSetValue('contactName', registrationData.contactName || registrationData.name, 'Nombre de contacto');
-            
-            // Compatibilidad: intentar también con los IDs antiguos para asegurar que no hay errores
-            // durante la transición a los nuevos IDs unificados
-            console.log('✅ Usando IDs unificados para cargar datos del registro');
-            
-            console.log('✅ Datos del registro cargados en el formulario');
-        } else {
-            console.warn('⚠️ No se encontraron datos de registro para cargar');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error cargando datos del registro:', error);
-    }
-}
+
 
 /**
  * Cargar datos de perfil desde el backend
@@ -3712,12 +3624,12 @@ function loadProfileData() {
             console.log('✅ Campo address cargado:', profileData.address);
         }
         
-        const descriptionField = document.getElementById('description');
+        const descriptionField = document.getElementById('companyDescription');
         if (descriptionField) {
             descriptionField.value = profileData.companyDescription || '';
-            console.log('✅ Campo description cargado:', profileData.companyDescription);
+            console.log('✅ Campo companyDescription cargado:', profileData.companyDescription);
         } else {
-            console.log('⚠️ Campo description no encontrado');
+            console.log('⚠️ Campo companyDescription no encontrado');
         }
         
         const websiteField = document.getElementById('website');
