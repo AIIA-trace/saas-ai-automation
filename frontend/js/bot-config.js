@@ -107,8 +107,12 @@ class BotConfigManager {
                 throw new Error(`Error al cargar configuración: ${response.status}`);
             }
 
-            const clientData = await response.json();
-            console.log('✅ Configuración cargada:', clientData);
+            const responseData = await response.json();
+            console.log('✅ Respuesta completa del cliente:', responseData);
+        
+            // Extraer datos del cliente - el endpoint /api/client devuelve {success: true, data: {...}}
+            const clientData = responseData.data || responseData;
+            console.log('✅ Datos del cliente extraídos:', clientData);
 
             // Rellenar formulario con datos actuales
             this.populateForm(clientData);
@@ -202,7 +206,18 @@ class BotConfigManager {
             }
         }
 
-        console.log('📋 Formulario rellenado con configuración actual');
+        // Campo companyDescription que faltaba
+        if (data.companyDescription) {
+            const companyDescriptionField = document.getElementById('companyDescription');
+            if (companyDescriptionField) {
+                companyDescriptionField.value = data.companyDescription;
+                console.log('✅ Campo companyDescription cargado:', data.companyDescription);
+            } else {
+                console.log('⚠️ Campo companyDescription no encontrado en DOM');
+            }
+        }
+    
+    console.log('📋 Formulario rellenado con configuración actual y datos de empresa');
     }
 
     async saveConfig() {

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Profile API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .result { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test Profile API - Company Description Debug</h1>
+        
+        <div>
+            <h3>Tokens disponibles:</h3>
+            <div id="tokens"></div>
+        </div>
+        
+        <div>
+            <button onclick="testProfileAPI()">🧪 Test /api/profile</button>
+            <button onclick="testWithDifferentToken()">🔑 Test con token alternativo</button>
+            <button onclick="clearResults()">🧹 Limpiar resultados</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Mostrar tokens disponibles
+        function showTokens() {
+            const tokens = {
+                'sessionStorage.authToken': sessionStorage.getItem('authToken'),
+                'localStorage.authToken': localStorage.getItem('authToken'),
+                'localStorage.auth_token': localStorage.getItem('auth_token'),
+                'localStorage.user_data': localStorage.getItem('user_data')
+            };
+            
+            let html = '<div class="result">';
+            for (const [key, value] of Object.entries(tokens)) {
+                const hasValue = !!value;
+                const preview = value ? value.substring(0, 30) + '...' : 'NULL';
+                html += `<div><strong>${key}:</strong> ${hasValue ? '✅' : '❌'} ${preview}</div>`;
+            }
+            html += '</div>';
+            
+            document.getElementById('tokens').innerHTML = html;
+        }
+        
+        // Test del endpoint /api/profile
+        async function testProfileAPI() {
+            const resultsDiv = document.getElementById('results');
+            
+            // Obtener token
+            const token = sessionStorage.getItem('authToken') || 
+                         localStorage.getItem('authToken') || 
+                         localStorage.getItem('auth_token');
+            
+            if (!token) {
+                resultsDiv.innerHTML += `
+                    <div class="result error">
+                        <h4>❌ Error: No se encontró token de autenticación</h4>
+                        <p>Necesitas estar logueado para probar la API</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            resultsDiv.innerHTML += `
+                <div class="result">
+                    <h4>🚀 Iniciando test de /api/profile...</h4>
+                    <p><strong>Token usado:</strong> ${token.substring(0, 20)}...</p>
+                    <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const responseText = await response.text();
+                let data;
+                
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    data = responseText;
+                }
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML += `
+                        <div class="result success">
+                            <h4>✅ Respuesta exitosa (${response.status})</h4>
+                            <h5>📋 Datos recibidos:</h5>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                            
+                            <h5>🔍 Verificación específica de companyDescription:</h5>
+                            <div>
+                                <strong>data.companyDescription:</strong> ${data.data?.companyDescription || 'NULL'}
+                            </div>
+                            <div>
+                                <strong>data.data.companyDescription:</strong> ${data.data?.companyDescription || 'NULL'}
+                            </div>
+                            
+                            <h5>📊 Todos los campos de empresa:</h5>
+                            <div><strong>companyName:</strong> ${data.data?.companyName || 'NULL'}</div>
+                            <div><strong>companyDescription:</strong> ${data.data?.companyDescription || 'NULL'}</div>
+                            <div><strong>industry:</strong> ${data.data?.industry || 'NULL'}</div>
+                            <div><strong>phone:</strong> ${data.data?.phone || 'NULL'}</div>
+                            <div><strong>email:</strong> ${data.data?.email || 'NULL'}</div>
+                            <div><strong>address:</strong> ${data.data?.address || 'NULL'}</div>
+                            <div><strong>website:</strong> ${data.data?.website || 'NULL'}</div>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `
+                        <div class="result error">
+                            <h4>❌ Error en la respuesta (${response.status})</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `
+                    <div class="result error">
+                        <h4>❌ Error de red o JavaScript</h4>
+                        <pre>${error.message}</pre>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        // Test con token alternativo
+        async function testWithDifferentToken() {
+            const altToken = localStorage.getItem('auth_token') || sessionStorage.getItem('authToken');
+            if (!altToken) {
+                document.getElementById('results').innerHTML += `
+                    <div class="result error">
+                        <h4>❌ No hay token alternativo disponible</h4>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Temporalmente cambiar el token
+            const originalToken = localStorage.getItem('authToken');
+            localStorage.setItem('authToken', altToken);
+            
+            await testProfileAPI();
+            
+            // Restaurar token original
+            if (originalToken) {
+                localStorage.setItem('authToken', originalToken);
+            }
+        }
+        
+        // Limpiar resultados
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        // Simular la función loadProfileData del dashboard
+        async function simulateLoadProfileData() {
+            const resultsDiv = document.getElementById('results');
+            
+            resultsDiv.innerHTML += `
+                <div class="result">
+                    <h4>🎭 Simulando loadProfileData() del dashboard...</h4>
+                </div>
+            `;
+            
+            try {
+                const token = sessionStorage.getItem('authToken') || 
+                             localStorage.getItem('authToken') || 
+                             localStorage.getItem('auth_token');
+                
+                const response = await fetch('/api/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const profileData = data.data || data;
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="result success">
+                            <h4>✅ Simulación de carga de campos:</h4>
+                            <div><strong>profileData.companyDescription:</strong> ${profileData.companyDescription || 'NULL'}</div>
+                            
+                            <h5>🎯 Simulación de asignación a DOM:</h5>
+                            <div>document.getElementById('companyDescription').value = '${profileData.companyDescription || ''}'</div>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `
+                        <div class="result error">
+                            <h4>❌ Error en simulación: ${response.status}</h4>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `
+                    <div class="result error">
+                        <h4>❌ Error en simulación: ${error.message}</h4>
+                    </div>
+                `;
+            }
+        }
+        
+        // Inicializar
+        showTokens();
+        
+        // Agregar botón de simulación
+        document.addEventListener('DOMContentLoaded', () => {
+            const buttonContainer = document.querySelector('div:has(button)');
+            const simulateButton = document.createElement('button');
+            simulateButton.textContent = '🎭 Simular loadProfileData()';
+            simulateButton.onclick = simulateLoadProfileData;
+            buttonContainer.appendChild(simulateButton);
+        });
+    </script>
+</body>
+</html>
