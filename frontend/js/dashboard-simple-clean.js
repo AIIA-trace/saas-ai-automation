@@ -3594,8 +3594,9 @@ function loadProfileData() {
         console.log('📥 Respuesta completa del perfil:', response);
         
         // Extraer datos del cliente de la respuesta
-        const profileData = response.client || response;
+        const profileData = response.data || response;
         console.log('👤 Datos del perfil extraídos:', profileData);
+        console.log('🔍 Campo companyDescription en datos:', profileData.companyDescription);
         
         // Rellenar campos del formulario con los datos del perfil
         // Mapeo: BD → Formulario Bot Config
