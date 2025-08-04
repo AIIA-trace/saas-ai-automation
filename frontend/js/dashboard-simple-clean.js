@@ -3699,6 +3699,7 @@ function loadProfileData() {
             console.log('✅ Campo email (contacto) cargado:', profileData.email);
         }
         
+        // Usar IDs exactos del formulario del dashboard
         const phoneField = document.getElementById('phone');
         if (phoneField) {
             phoneField.value = profileData.phone || '';
@@ -3711,30 +3712,33 @@ function loadProfileData() {
             console.log('✅ Campo address cargado:', profileData.address);
         }
         
-        const descriptionField = document.getElementById('companyDescription');
+        const descriptionField = document.getElementById('description');
         if (descriptionField) {
             descriptionField.value = profileData.companyDescription || '';
             console.log('✅ Campo description cargado:', profileData.companyDescription);
+        } else {
+            console.log('⚠️ Campo description no encontrado');
         }
         
-        // Mapear campo website si existe
         const websiteField = document.getElementById('website');
         if (websiteField) {
             websiteField.value = profileData.website || '';
             console.log('✅ Campo website cargado:', profileData.website);
         }
         
-        // Seleccionar la industria si está definida
+        // Seleccionar la industria
         if (profileData.industry) {
             const industrySelect = document.getElementById('industry');
             if (industrySelect) {
                 for (let i = 0; i < industrySelect.options.length; i++) {
                     if (industrySelect.options[i].value === profileData.industry) {
                         industrySelect.selectedIndex = i;
-                        console.log('✅ Industria seleccionada:', profileData.industry);
+                        console.log('✅ Campo industry seleccionado:', profileData.industry);
                         break;
                     }
                 }
+            } else {
+                console.log('⚠️ Campo industry no encontrado');
             }
         }
         
