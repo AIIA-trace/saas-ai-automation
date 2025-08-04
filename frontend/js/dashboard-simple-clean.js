@@ -3499,6 +3499,7 @@ function loadExistingData() {
         console.log('🎯 Elementos en DOM después del delay:', document.querySelectorAll('input, select, textarea').length);
         console.log('📋 Elementos específicos del bot:');
         console.log('   - companyName:', !!document.getElementById('companyName'));
+        console.log('   - description:', !!document.getElementById('description'));
         console.log('   - address:', !!document.getElementById('address'));
         console.log('   - call_bot_active:', !!document.getElementById('call_bot_active'));
         console.log('   - email_signature:', !!document.getElementById('email_signature'));
@@ -3625,12 +3626,12 @@ function loadProfileData() {
             console.log('✅ Campo address cargado:', profileData.address);
         }
         
-        const descriptionField = document.getElementById('companyDescription');
+        const descriptionField = document.getElementById('description');
         if (descriptionField) {
             descriptionField.value = profileData.companyDescription || '';
-            console.log('✅ Campo companyDescription cargado:', profileData.companyDescription);
+            console.log('✅ Campo description (companyDescription) cargado:', profileData.companyDescription);
         } else {
-            console.log('⚠️ Campo companyDescription no encontrado');
+            console.log('⚠️ Campo description no encontrado');
         }
         
         const websiteField = document.getElementById('website');
