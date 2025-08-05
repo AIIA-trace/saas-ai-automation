@@ -3213,54 +3213,68 @@ function setupEventListeners() {
     });
     
     // Configurar botones de guardar configuración del bot (arriba y abajo del formulario)
+    // Verificar si ya se configuraron los event listeners para evitar duplicados
     const saveBotConfigBtn = document.getElementById('save-bot-config-btn');
     const saveBotConfigBtnBottom = document.getElementById('save-bot-config-btn-bottom');
     
-    // Función compartida para guardar la configuración
-    const handleSaveConfig = function(event) {
-        console.log('🔄 Iniciando guardado de configuración del bot...');
+    // Verificar si ya tienen event listeners configurados
+    const alreadyConfigured = saveBotConfigBtn && saveBotConfigBtn.hasAttribute('data-listener-configured');
+    
+    if (!alreadyConfigured) {
+        console.log('🔧 Configurando event listeners para botones de guardar configuración...');
         
-        // Prevenir comportamiento por defecto del botón
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
+        // Función compartida para guardar la configuración
+        const handleSaveConfig = function(event) {
+            console.log('🔄 Iniciando guardado de configuración del bot...');
+            
+            // Prevenir comportamiento por defecto del botón
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // Deshabilitar botones temporalmente para evitar clics múltiples
+            const saveButtons = [document.getElementById('save-bot-config-btn'), document.getElementById('save-bot-config-btn-bottom')];
+            saveButtons.forEach(btn => {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+                }
+            });
+            
+            // Llamar a la función saveUnifiedConfig que tiene todos los campos correctos
+            saveUnifiedConfig()
+                .then(() => {
+                    console.log('✅ Configuración guardada exitosamente desde handleSaveConfig');
+                })
+                .catch((error) => {
+                    console.error('❌ Error guardando configuración desde handleSaveConfig:', error);
+                })
+                .finally(() => {
+                    // Rehabilitar botones
+                    saveButtons.forEach(btn => {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-save"></i> Guardar Configuración';
+                        }
+                    });
+                });
+        };
+        
+        // Añadir listeners a ambos botones
+        if (saveBotConfigBtn) {
+            saveBotConfigBtn.addEventListener('click', handleSaveConfig);
+            saveBotConfigBtn.setAttribute('data-listener-configured', 'true');
+            console.log('✅ Event listener configurado para save-bot-config-btn');
         }
         
-        // Deshabilitar botones temporalmente para evitar clics múltiples
-        const saveButtons = [document.getElementById('save-bot-config-btn'), document.getElementById('save-bot-config-btn-bottom')];
-        saveButtons.forEach(btn => {
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-            }
-        });
-        
-        // Llamar a la función saveUnifiedConfig que tiene todos los campos correctos
-        saveUnifiedConfig()
-            .then(() => {
-                console.log('✅ Configuración guardada exitosamente desde handleSaveConfig');
-            })
-            .catch((error) => {
-                console.error('❌ Error guardando configuración desde handleSaveConfig:', error);
-            })
-            .finally(() => {
-                // Rehabilitar botones
-                saveButtons.forEach(btn => {
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-save"></i> Guardar Configuración';
-                    }
-                });
-            });
-    };
-    
-    // Añadir listeners a ambos botones
-    if (saveBotConfigBtn) {
-        saveBotConfigBtn.addEventListener('click', handleSaveConfig);
-    }
-    
-    if (saveBotConfigBtnBottom) {
-        saveBotConfigBtnBottom.addEventListener('click', handleSaveConfig);
+        if (saveBotConfigBtnBottom) {
+            saveBotConfigBtnBottom.addEventListener('click', handleSaveConfig);
+            saveBotConfigBtnBottom.setAttribute('data-listener-configured', 'true');
+            console.log('✅ Event listener configurado para save-bot-config-btn-bottom');
+        }
+    } else {
+        console.log('⚠️ Event listeners para botones de guardar ya configurados, omitiendo duplicados');
     }
     
     // Configurar botón de probar bot
@@ -3577,9 +3591,16 @@ function loadProfileData() {
             }
         }
         
+        // 🕐 DIAGNÓSTICO CRÍTICO: Business Hours desde Backend
+        console.log('🕐 BUSINESS HOURS DESDE BACKEND:');
+        console.log('- profileData.businessHours:', profileData.businessHours);
+        console.log('- Tipo:', typeof profileData.businessHours);
+        console.log('- Existe campo:', 'businessHours' in profileData);
+        console.log('- Valor completo profileData:', profileData);
+        
         // Cargar horario comercial (se configurará desde setupBusinessHoursSelector)
         if (profileData.businessHours) {
-            console.log('🕐 Horario comercial disponible:', profileData.businessHours);
+            console.log('✅ Horario comercial disponible:', profileData.businessHours);
             // El horario se cargará automáticamente cuando setupBusinessHoursSelector se ejecute
         } else {
             console.log('⚠️ No hay horario comercial guardado, usando valores por defecto');
@@ -5623,268 +5644,241 @@ function toggleEmailFavorite(emailId, starIcon) {
 /**
  * Configurar el selector de horario comercial
  */
+/**
+ * 🕐 BUSINESS HOURS MANAGER - FUNCIÓN CENTRALIZADA
+ * Maneja toda la lógica de horarios comerciales desde un solo lugar
+ */
 function setupBusinessHoursSelector() {
-    console.log('🔧 Iniciando configuración del selector de horario comercial...');
+    console.log('🔧 Iniciando Business Hours Manager centralizado...');
     
-    // Obtener referencias a los elementos REALES del HTML
-    const businessDays = document.querySelectorAll('input[name="workingDays"]');
-    const startHourInput = document.getElementById('workingHoursOpening');
-    const endHourInput = document.getElementById('workingHoursClosing');
-    const schedulePreview = document.getElementById('scheduleText');
+    // ===== ELEMENTOS DOM CENTRALIZADOS =====
+    const elements = {
+        businessDays: document.querySelectorAll('input[name="workingDays"]'),
+        startHourInput: document.getElementById('workingHoursOpening'),
+        endHourInput: document.getElementById('workingHoursClosing'),
+        schedulePreview: document.getElementById('scheduleText')
+    };
     
-    // Verificar que todos los elementos existan
-    if (businessDays.length === 0) {
-        console.error('❌ setupBusinessHoursSelector: No se encontraron checkboxes de días (input[name="workingDays"])');
-        return;
-    }
-    
-    if (!startHourInput) {
-        console.error('❌ setupBusinessHoursSelector: No se encontró input de hora inicio (#workingHoursOpening)');
-        return;
-    }
-    
-    if (!endHourInput) {
-        console.error('❌ setupBusinessHoursSelector: No se encontró input de hora fin (#workingHoursClosing)');
-        return;
-    }
-    
-    if (!schedulePreview) {
-        console.error('❌ setupBusinessHoursSelector: No se encontró preview (#scheduleText)');
-        return;
-    }
-    
-    console.log(`✅ Elementos encontrados: ${businessDays.length} checkboxes, inputs de hora y preview OK`);
-    
-    // Función para actualizar el horario comercial
-    function updateBusinessHours() {
-        console.log('🔄 updateBusinessHours ejecutándose...');
+    // ===== VALIDACIÓN CENTRALIZADA =====
+    function validateElements() {
+        const validations = [
+            { element: elements.businessDays, name: 'checkboxes de días', condition: elements.businessDays.length > 0 },
+            { element: elements.startHourInput, name: 'input hora inicio (#workingHoursOpening)' },
+            { element: elements.endHourInput, name: 'input hora fin (#workingHoursClosing)' },
+            { element: elements.schedulePreview, name: 'preview (#scheduleText)' }
+        ];
         
-        // Recopilar días seleccionados
-        const selectedDays = [];
+        for (const validation of validations) {
+            const isValid = validation.condition !== undefined ? validation.condition : !!validation.element;
+            if (!isValid) {
+                console.error(`❌ BusinessHours: No se encontró ${validation.name}`);
+                return false;
+            }
+        }
+        
+        console.log(`✅ Todos los elementos validados: ${elements.businessDays.length} checkboxes + inputs + preview`);
+        return true;
+    }
+    
+    if (!validateElements()) {
+        console.error('❌ BusinessHours: Validación fallida, abortando configuración');
+        return;
+    }
+    
+    // ===== FUNCIÓN CENTRALIZADA DE ACTUALIZACIÓN =====
+    function updateBusinessHours() {
+        console.log('🔄 BusinessHours: Actualizando...');
+        
         const dayNames = {
             'monday': 'Lun', 'tuesday': 'Mar', 'wednesday': 'Mié',
             'thursday': 'Jue', 'friday': 'Vie', 'saturday': 'Sáb', 'sunday': 'Dom'
         };
         
-        businessDays.forEach(checkbox => {
+        // Recopilar días seleccionados
+        const selectedDays = [];
+        elements.businessDays.forEach(checkbox => {
             if (checkbox.checked) {
-                const dayValue = checkbox.value;
-                const dayName = dayNames[dayValue] || dayValue;
+                const dayName = dayNames[checkbox.value] || checkbox.value;
                 selectedDays.push(dayName);
-                console.log(`✅ Día seleccionado: ${dayValue} (${dayName})`);
             }
         });
         
-        console.log(`📅 Días seleccionados: [${selectedDays.join(', ')}]`);
-        console.log(`⏰ Hora inicio: ${startHourInput.value}, Hora fin: ${endHourInput.value}`);
+        // Obtener horas
+        const startHour = elements.startHourInput.value || '09:00';
+        const endHour = elements.endHourInput.value || '18:00';
         
-        // Formatear el rango de días
-        let daysText = '';
+        // Formatear texto
+        let businessHoursText;
         if (selectedDays.length === 0) {
-            daysText = 'Sin días seleccionados';
-        } else if (selectedDays.length === 7) {
-            daysText = 'Todos los días';
+            businessHoursText = 'Sin horario definido';
+        } else if (selectedDays.length === 5 && 
+                   ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'].every(day => selectedDays.includes(day))) {
+            businessHoursText = `Lun-Vie: ${startHour}-${endHour}`;
         } else {
-            // Agrupar días consecutivos con guiones
-            const dayOrder = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-            const orderedDays = selectedDays.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
-            
-            let currentGroup = [orderedDays[0]];
-            const groups = [];
-            
-            for (let i = 1; i < orderedDays.length; i++) {
-                const currentDayIndex = dayOrder.indexOf(orderedDays[i]);
-                const prevDayIndex = dayOrder.indexOf(orderedDays[i-1]);
-                
-                if (currentDayIndex - prevDayIndex === 1) {
-                    // Día consecutivo, añadir al grupo actual
-                    currentGroup.push(orderedDays[i]);
-                } else {
-                    // No consecutivo, cerrar grupo actual y empezar uno nuevo
-                    groups.push(currentGroup);
-                    currentGroup = [orderedDays[i]];
-                }
-            }
-            groups.push(currentGroup);
-            
-            // Formatear grupos
-            daysText = groups.map(group => {
-                if (group.length === 1) {
-                    return group[0];
-                } else {
-                    return `${group[0]}-${group[group.length - 1]}`;
-                }
-            }).join(', ');
+            businessHoursText = `${selectedDays.join(', ')}: ${startHour}-${endHour}`;
         }
         
-        // Obtener horas seleccionadas
-        const startHour = startHourInput.value;
-        const endHour = endHourInput.value;
-        
-        // Crear texto completo del horario
-        const businessHoursText = selectedDays.length === 0 ? 
-            'Sin horario definido' : 
-            `${daysText}: ${startHour}-${endHour}`;
-        
-        // Actualizar el preview (no hay input hidden en este HTML)
-        schedulePreview.textContent = businessHoursText;
-        
-        console.log(`🕰️ Preview actualizado: "${businessHoursText}"`);
-        
-        // El schedulePreview ya tiene estilos CSS, no necesitamos cambiar clases
-        console.log('✅ Horario comercial actualizado correctamente');
-        
-        console.log('✅ updateBusinessHours completado');
+        // Actualizar preview
+        elements.schedulePreview.textContent = businessHoursText;
+        console.log(`✅ BusinessHours: Preview actualizado → "${businessHoursText}"`);
     }
     
-    // Añadir event listeners
-    businessDays.forEach(checkbox => {
-        checkbox.addEventListener('change', updateBusinessHours);
-    });
-    
-    startHourInput.addEventListener('change', updateBusinessHours);
-    endHourInput.addEventListener('change', updateBusinessHours);
-    
-    console.log(`🔗 Event listeners configurados: ${businessDays.length} checkboxes + 2 inputs de hora`);
-    
-    // Inicializar con los valores actuales
-    updateBusinessHours();
-    
-    // Cargar datos de horario comercial si están disponibles
-    const profileData = JSON.parse(localStorage.getItem('profileData') || '{}');
-    if (profileData.businessHours) {
-        console.log('🕐 Cargando horario comercial guardado:', profileData.businessHours);
-        setTimeout(() => {
-            loadBusinessHoursFromData(profileData.businessHours);
-        }, 50); // Pequeño delay para asegurar que updateBusinessHours haya terminado
-    } else {
-        console.log('⚠️ No hay horario comercial guardado en profileData');
-    }
-    
-    console.log('✅ setupBusinessHoursSelector completado exitosamente');
-}
-
-/**
- * Cargar horario comercial desde datos guardados
- * @param {string} businessHoursText - Texto del horario (ej: "Lun-Vie: 9:00-18:00")
- */
-function loadBusinessHoursFromData(businessHoursText) {
-    if (!businessHoursText) {
-        console.log('⚠️ loadBusinessHoursFromData: No se proporcionó texto de horario');
-        return;
-    }
-    
-    console.log('🕐 Cargando horario comercial desde texto:', businessHoursText);
-    
-    // VERIFICACIÓN DE ELEMENTOS DOM REALES
-    const businessDays = document.querySelectorAll('input[name="workingDays"]');
-    const startHourInput = document.getElementById('workingHoursOpening');
-    const endHourInput = document.getElementById('workingHoursClosing');
-    
-    if (businessDays.length === 0) {
-        console.error('❌ No se encontraron checkboxes de días (input[name="workingDays"])');
-        return;
-    }
-    
-    if (!startHourInput || !endHourInput) {
-        console.error('❌ No se encontraron inputs de horas:', {
-            startHourInput: !!startHourInput,
-            endHourInput: !!endHourInput
-        });
-        return;
-    }
-    
-    console.log('✅ Todos los elementos DOM verificados, procediendo con la carga...');
-    
-    if (!businessHoursText || businessHoursText === 'Sin horario definido') {
-        console.log('⚠️ No hay horario definido, manteniendo valores por defecto');
-        return;
-    }
-    
-    try {
-        // Parsear el formato "Lun-Vie: 9:00-18:00" o "Lun, Mar, Mié: 10:00-17:00"
-        const parts = businessHoursText.split(': ');
-        if (parts.length !== 2) {
-            console.log('⚠️ Formato de horario no válido:', businessHoursText);
+    // ===== FUNCIÓN CENTRALIZADA DE CARGA =====
+    function loadBusinessHoursFromData(businessHoursText) {
+        if (!businessHoursText || businessHoursText === 'Sin horario definido') {
+            console.log('⚠️ BusinessHours: Sin datos válidos para cargar');
             return;
         }
         
-        const [daysText, hoursText] = parts;
-        const [startHour, endHour] = hoursText.split('-');
+        console.log('🕐 BusinessHours: Cargando desde datos:', businessHoursText);
         
-        // Mapeo de días abreviados a valores de checkboxes
-        const dayMapping = {
-            'Lun': 'monday',
-            'Mar': 'tuesday', 
-            'Mié': 'wednesday',
-            'Jue': 'thursday',
-            'Vie': 'friday',
-            'Sáb': 'saturday',
-            'Dom': 'sunday'
-        };
-        
-        // Parsear días seleccionados
-        let selectedDays = [];
-        if (daysText.includes('-')) {
-            // Formato "Lun-Vie"
-            const [startDay, endDay] = daysText.split('-');
-            const dayOrder = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-            const startIndex = dayOrder.indexOf(startDay);
-            const endIndex = dayOrder.indexOf(endDay);
+        try {
+            // Parsear formato "Lun-Vie: 9:00-18:00" o "Lun, Mar: 10:00-17:00"
+            const parts = businessHoursText.split(': ');
+            if (parts.length !== 2) {
+                console.log('⚠️ BusinessHours: Formato inválido');
+                return;
+            }
             
-            if (startIndex !== -1 && endIndex !== -1) {
-                for (let i = startIndex; i <= endIndex; i++) {
-                    selectedDays.push(dayOrder[i]);
+            const [daysText, hoursText] = parts;
+            const [startHour, endHour] = hoursText.split('-');
+            
+            // Mapeo de días
+            const dayMapping = {
+                'Lun': 'monday', 'Mar': 'tuesday', 'Mié': 'wednesday',
+                'Jue': 'thursday', 'Vie': 'friday', 'Sáb': 'saturday', 'Dom': 'sunday'
+            };
+            
+            // Parsear días
+            let selectedDays = [];
+            if (daysText.includes('-')) {
+                // Formato "Lun-Vie"
+                const [startDay, endDay] = daysText.split('-');
+                const dayOrder = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                const startIndex = dayOrder.indexOf(startDay);
+                const endIndex = dayOrder.indexOf(endDay);
+                
+                if (startIndex !== -1 && endIndex !== -1) {
+                    for (let i = startIndex; i <= endIndex; i++) {
+                        selectedDays.push(dayOrder[i]);
+                    }
                 }
+            } else {
+                // Formato "Lun, Mar, Mié"
+                selectedDays = daysText.split(', ').map(day => day.trim());
             }
-        } else {
-            // Formato "Lun, Mar, Mié" o día individual
-            selectedDays = daysText.split(', ').map(day => day.trim());
-        }
-        
-        console.log('🔄 Preparando carga de checkboxes...');
-        
-        // PASO 1: Desmarcar TODOS los checkboxes
-        businessDays.forEach(checkbox => {
-            checkbox.checked = false;
-            console.log('🔄 Desmarcado:', checkbox.value);
-        });
-        
-        // PASO 2: Marcar los días seleccionados
-        selectedDays.forEach(day => {
-            const dayValue = dayMapping[day];
-            if (dayValue) {
-                const checkbox = document.querySelector(`input[name="workingDays"][value="${dayValue}"]`);
-                if (checkbox) {
-                    checkbox.checked = true;
-                    console.log('✅ Día marcado:', day, dayValue);
-                } else {
-                    console.log('❌ Checkbox no encontrado para:', dayValue);
+            
+            // Aplicar cambios
+            // 1. Desmarcar todos
+            elements.businessDays.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // 2. Marcar seleccionados
+            selectedDays.forEach(day => {
+                const dayValue = dayMapping[day];
+                if (dayValue) {
+                    const checkbox = document.querySelector(`input[name="workingDays"][value="${dayValue}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
                 }
-            }
-        });
-        
-        // Establecer horas usando los inputs de tiempo
-        if (startHourInput && startHour) {
-            startHourInput.value = startHour;
-            console.log('✅ Hora inicio establecida:', startHour);
-        } else {
-            console.log('❌ No se pudo establecer hora inicio:', { startHourInput: !!startHourInput, startHour });
+            });
+            
+            // 3. Establecer horas
+            if (startHour) elements.startHourInput.value = startHour;
+            if (endHour) elements.endHourInput.value = endHour;
+            
+            // 4. Actualizar preview
+            updateBusinessHours();
+            
+            console.log('✅ BusinessHours: Datos cargados correctamente');
+            
+        } catch (error) {
+            console.error('❌ BusinessHours: Error al cargar datos:', error);
         }
-        
-        if (endHourInput && endHour) {
-            endHourInput.value = endHour;
-            console.log('✅ Hora fin establecida:', endHour);
-        } else {
-            console.log('❌ No se pudo establecer hora fin:', { endHourInput: !!endHourInput, endHour });
-        }
-        
-        console.log('✅ Horario comercial cargado correctamente');
-        
-    } catch (error) {
-        console.error('❌ Error al cargar horario comercial:', error);
-        console.log('⚠️ Manteniendo valores por defecto');
     }
+    
+    // ===== CONFIGURACIÓN DE EVENTOS =====
+    elements.businessDays.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBusinessHours);
+    });
+    
+    elements.startHourInput.addEventListener('change', updateBusinessHours);
+    elements.endHourInput.addEventListener('change', updateBusinessHours);
+    
+    console.log('✅ BusinessHours: Event listeners configurados');
+    
+    // ===== INICIALIZACIÓN Y CARGA DE DATOS GUARDADOS =====
+    // Cargar datos guardados desde localStorage
+    const savedProfileData = localStorage.getItem('profileData');
+    if (savedProfileData) {
+        try {
+            const profileData = JSON.parse(savedProfileData);
+            console.log('🔄 BusinessHours: Cargando desde localStorage...');
+            console.log('- workingDays:', profileData.workingDays);
+            console.log('- workingHoursOpening:', profileData.workingHoursOpening);
+            console.log('- workingHoursClosing:', profileData.workingHoursClosing);
+            console.log('- businessHours (legacy):', profileData.businessHours);
+            
+            // 🆕 PRIORIDAD: Usar campos estructurados si están disponibles
+            if (profileData.workingDays || profileData.workingHoursOpening || profileData.workingHoursClosing) {
+                console.log('✅ Cargando desde campos estructurados...');
+                
+                // 1. Cargar días de trabajo
+                if (profileData.workingDays) {
+                    const workingDays = Array.isArray(profileData.workingDays) ? profileData.workingDays : [];
+                    
+                    // Desmarcar todos
+                    elements.businessDays.forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    
+                    // Marcar días seleccionados
+                    workingDays.forEach(day => {
+                        const checkbox = document.querySelector(`input[name="workingDays"][value="${day}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                            console.log(`✅ Día marcado: ${day}`);
+                        }
+                    });
+                }
+                
+                // 2. Cargar horas
+                if (profileData.workingHoursOpening) {
+                    elements.startHourInput.value = profileData.workingHoursOpening;
+                    console.log(`✅ Hora apertura: ${profileData.workingHoursOpening}`);
+                }
+                if (profileData.workingHoursClosing) {
+                    elements.endHourInput.value = profileData.workingHoursClosing;
+                    console.log(`✅ Hora cierre: ${profileData.workingHoursClosing}`);
+                }
+                
+                // 3. Actualizar preview
+                updateBusinessHours();
+                
+            } else if (profileData.businessHours) {
+                // Fallback: usar businessHours legacy
+                console.log('⚠️ Usando businessHours legacy:', profileData.businessHours);
+                loadBusinessHoursFromData(profileData.businessHours);
+            }
+        } catch (error) {
+            console.error('❌ BusinessHours: Error al cargar desde localStorage:', error);
+        }
+    } else {
+        // Sin datos guardados, inicializar con valores por defecto
+        console.log('🔄 BusinessHours: Sin datos guardados, inicializando valores por defecto...');
+        updateBusinessHours();
+    }
+    
+    console.log('✅ BusinessHours Manager: Configuración completa');
+    
+    // ===== EXPONER FUNCIONES PARA USO EXTERNO =====
+    window.BusinessHoursManager = {
+        update: updateBusinessHours,
+        load: loadBusinessHoursFromData,
+        getElements: () => elements
+    };
 }
 
 /**
@@ -7010,6 +7004,44 @@ function saveUnifiedConfig() {
             companyEmail: document.getElementById('companyEmail')?.value || document.getElementById('company_email')?.value || document.getElementById('email')?.value || '',
             companyWebsite: document.getElementById('companyWebsite')?.value || document.getElementById('company_website')?.value || document.getElementById('website')?.value || '',
             
+            // Horario comercial - Recopilar datos estructurados completos
+            businessHours: (() => {
+                // Obtener el texto del preview para compatibilidad
+                const schedulePreview = document.getElementById('scheduleText');
+                const previewText = schedulePreview?.textContent || 'Sin horario definido';
+                
+                // Forzar actualización si BusinessHoursManager está disponible
+                if (window.BusinessHoursManager && typeof window.BusinessHoursManager.update === 'function') {
+                    window.BusinessHoursManager.update();
+                }
+                
+                console.log('📋 BusinessHours: Preview text:', previewText);
+                return previewText;
+            })(),
+            
+            // 🆕 NUEVOS CAMPOS: Datos estructurados de horarios comerciales
+            workingDays: (() => {
+                const selectedDays = [];
+                const checkboxes = document.querySelectorAll('input[name="workingDays"]:checked');
+                checkboxes.forEach(checkbox => {
+                    selectedDays.push(checkbox.value);
+                });
+                console.log('📅 WorkingDays seleccionados:', selectedDays);
+                return JSON.stringify(selectedDays);
+            })(),
+            
+            workingHoursOpening: (() => {
+                const openingHour = document.getElementById('workingHoursOpening')?.value || '09:00';
+                console.log('🕘 Hora de apertura:', openingHour);
+                return openingHour;
+            })(),
+            
+            workingHoursClosing: (() => {
+                const closingHour = document.getElementById('workingHoursClosing')?.value || '18:00';
+                console.log('🕕 Hora de cierre:', closingHour);
+                return closingHour;
+            })(),
+            
             // Configuración general - IDs corregidos
             botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',
             botPersonality: document.getElementById('bot_personality')?.value || 'professional',
@@ -7333,6 +7365,13 @@ function saveUnifiedConfig() {
             console.log(' Enviando companyName como:', unifiedClientData.companyName);
             console.log(' Enviando companyDescription como:', unifiedClientData.companyDescription);
             console.log(' Enviando companySector como:', unifiedClientData.companySector);
+            
+            // 🕐 DIAGNÓSTICO CRÍTICO: Business Hours
+            console.log('🕐 BUSINESS HOURS DIAGNÓSTICO:');
+            console.log('- businessHours enviado:', unifiedClientData.businessHours);
+            console.log('- Tipo:', typeof unifiedClientData.businessHours);
+            console.log('- scheduleText DOM:', document.getElementById('scheduleText')?.textContent);
+            console.log('- BusinessHoursManager disponible:', !!window.BusinessHoursManager);
             
             console.log(' Datos unificados preparados para el backend:', unifiedClientData);
             
