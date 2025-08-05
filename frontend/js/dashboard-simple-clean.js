@@ -1287,61 +1287,7 @@ function createBotConfigTabContent() {
                                             <textarea class="form-control" id="description" name="description" rows="5" style="min-height: 155px;" placeholder="Describe brevemente a qué se dedica tu empresa..."></textarea>
                                             <small class="text-muted">Esta descripción ayuda al bot a entender mejor el contexto de tu negocio.</small>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Horario Comercial</label>
-                                            
-                                            <!-- Días Laborables -->
-                                            <div class="mb-3">
-                                                <label class="form-label small">Días Laborables</label>
-                                                <div class="d-flex flex-wrap gap-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="monday" name="workingDays" value="monday" checked>
-                                                        <label class="form-check-label small" for="monday">Lun</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="tuesday" name="workingDays" value="tuesday" checked>
-                                                        <label class="form-check-label small" for="tuesday">Mar</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="wednesday" name="workingDays" value="wednesday" checked>
-                                                        <label class="form-check-label small" for="wednesday">Mié</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="thursday" name="workingDays" value="thursday" checked>
-                                                        <label class="form-check-label small" for="thursday">Jue</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="friday" name="workingDays" value="friday" checked>
-                                                        <label class="form-check-label small" for="friday">Vie</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="saturday" name="workingDays" value="saturday">
-                                                        <label class="form-check-label small" for="saturday">Sáb</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="sunday" name="workingDays" value="sunday">
-                                                        <label class="form-check-label small" for="sunday">Dom</label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Horarios -->
-                                            <div class="row g-2">
-                                                <div class="col-6">
-                                                    <label for="workingHoursOpening" class="form-label small">Apertura</label>
-                                                    <input type="time" class="form-control" id="workingHoursOpening" value="09:00">
-                                                </div>
-                                                <div class="col-6">
-                                                    <label for="workingHoursClosing" class="form-label small">Cierre</label>
-                                                    <input type="time" class="form-control" id="workingHoursClosing" value="18:00">
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Preview -->
-                                            <div class="mt-2">
-                                                <small class="text-muted">Vista previa: <span id="scheduleText" class="fw-bold">Lun-Vie: 9:00-18:00</span></small>
-                                            </div>
-                                        </div>
+
                                         
                                         <div class="col-md-6 mt-4">
                                             <label for="industry" class="form-label">Sector empresarial</label>
@@ -1360,6 +1306,96 @@ function createBotConfigTabContent() {
                                         <div class="col-md-6 mt-4">
                                             <label for="website" class="form-label">Sitio Web</label>
                                             <input type="url" class="form-control" id="website" name="website" placeholder="https://www.tuempresa.com">
+                                        </div>
+                                        
+                                        <!-- Horarios Comerciales -->
+                                        <div class="col-12 mt-4">
+                                            <div class="card border-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-subtitle mb-3 text-muted"><i class="fas fa-clock me-2"></i>Horarios Comerciales</h6>
+                                                    
+                                                    <!-- Activar horarios comerciales -->
+                                                    <div class="form-check form-switch mb-3">
+                                                        <input class="form-check-input" type="checkbox" id="business_hours_enabled" name="business_hours_enabled">
+                                                        <label class="form-check-label" for="business_hours_enabled">
+                                                            <strong>Activar horarios comerciales</strong>
+                                                        </label>
+                                                        <div class="form-text">El bot informará a los clientes sobre los horarios de atención.</div>
+                                                    </div>
+                                                    
+                                                    <!-- Configuración de horarios (solo visible cuando está activado) -->
+                                                    <div id="business-hours-config" style="display: none;">
+                                                        <!-- Días laborables -->
+                                                        <div class="mb-3">
+                                                            <label class="form-label small mb-2"><strong>Días laborables</strong></label>
+                                                            <div class="row g-2">
+                                                                <div class="col-md-3 col-6">
+                                                                    <div class="form-check form-check-sm">
+                                                                        <input class="form-check-input" type="checkbox" id="monday" name="working_days" value="monday">
+                                                                        <label class="form-check-label small" for="monday">Lunes</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3 col-6">
+                                                                    <div class="form-check form-check-sm">
+                                                                        <input class="form-check-input" type="checkbox" id="tuesday" name="working_days" value="tuesday">
+                                                                        <label class="form-check-label small" for="tuesday">Martes</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3 col-6">
+                                                                    <div class="form-check form-check-sm">
+                                                                        <input class="form-check-input" type="checkbox" id="wednesday" name="working_days" value="wednesday">
+                                                                        <label class="form-check-label small" for="wednesday">Miércoles</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3 col-6">
+                                                                    <div class="form-check form-check-sm">
+                                                                        <input class="form-check-input" type="checkbox" id="thursday" name="working_days" value="thursday">
+                                                                        <label class="form-check-label small" for="thursday">Jueves</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3 col-6">
+                                                                    <div class="form-check form-check-sm">
+                                                                        <input class="form-check-input" type="checkbox" id="friday" name="working_days" value="friday">
+                                                                        <label class="form-check-label small" for="friday">Viernes</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3 col-6">
+                                                                    <div class="form-check form-check-sm">
+                                                                        <input class="form-check-input" type="checkbox" id="saturday" name="working_days" value="saturday">
+                                                                        <label class="form-check-label small" for="saturday">Sábado</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3 col-6">
+                                                                    <div class="form-check form-check-sm">
+                                                                        <input class="form-check-input" type="checkbox" id="sunday" name="working_days" value="sunday">
+                                                                        <label class="form-check-label small" for="sunday">Domingo</label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Horarios de apertura y cierre -->
+                                                        <div class="row g-3">
+                                                            <div class="col-md-6">
+                                                                <label for="opening_time" class="form-label small"><strong>Hora de apertura</strong></label>
+                                                                <input type="time" class="form-control form-control-sm" id="opening_time" name="opening_time" value="09:00">
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label for="closing_time" class="form-label small"><strong>Hora de cierre</strong></label>
+                                                                <input type="time" class="form-control form-control-sm" id="closing_time" name="closing_time" value="18:00">
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Información adicional -->
+                                                        <div class="alert alert-info mt-3 py-2">
+                                                            <small>
+                                                                <i class="fas fa-info-circle me-1"></i>
+                                                                <strong>Información:</strong> El bot utilizará esta configuración para informar a los clientes sobre los horarios de atención.
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -3331,6 +3367,28 @@ function setupEventListeners() {
         });
     }
     
+    // Configurar checkbox de horarios comerciales
+    const businessHoursEnabled = document.getElementById('business_hours_enabled');
+    const businessHoursConfig = document.getElementById('business-hours-config');
+    
+    if (businessHoursEnabled && businessHoursConfig) {
+        businessHoursEnabled.addEventListener('change', function() {
+            if (this.checked) {
+                businessHoursConfig.style.display = 'block';
+                // Marcar días laborables por defecto (lunes a viernes)
+                const defaultDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+                defaultDays.forEach(day => {
+                    const checkbox = document.getElementById(day);
+                    if (checkbox && !checkbox.checked) {
+                        checkbox.checked = true;
+                    }
+                });
+            } else {
+                businessHoursConfig.style.display = 'none';
+            }
+        });
+    }
+    
     // El filtro de año ahora es estático (2025)
     // Ya no necesitamos un event listener para cambiar el año
     // Las facturas siempre se muestran para el año actual (2025)
@@ -3495,7 +3553,7 @@ function loadExistingData() {
         loadEmailConfiguration();
         
         // Cargar datos de perfil desde backend (fuente única de verdad)
-        // IMPORTANTE: loadProfileData ahora configurará el horario comercial automáticamente
+
         console.log('👤 Iniciando carga de datos de perfil desde backend...');
         loadProfileData();
         
@@ -3637,33 +3695,59 @@ function loadProfileData() {
             }
         }
         
-        // 🕐 DIAGNÓSTICO CRÍTICO: Business Hours desde Backend
-        console.log('🕐 BUSINESS HOURS DESDE BACKEND:');
-        console.log('- profileData.businessHours:', profileData.businessHours);
-        console.log('- Tipo:', typeof profileData.businessHours);
-        console.log('- Existe campo:', 'businessHours' in profileData);
-        console.log('- Valor completo profileData:', profileData);
-        
-        // Cargar horario comercial (se configurará desde setupBusinessHoursSelector)
-        if (profileData.businessHours) {
-            console.log('✅ Horario comercial disponible:', profileData.businessHours);
-            // El horario se cargará automáticamente cuando setupBusinessHoursSelector se ejecute
+        // Cargar configuración de horarios comerciales
+        if (profileData.businessHoursConfig) {
+            console.log('🕰️ Cargando configuración de horarios comerciales:', profileData.businessHoursConfig);
+            
+            const businessHoursEnabled = document.getElementById('business_hours_enabled');
+            if (businessHoursEnabled) {
+                businessHoursEnabled.checked = profileData.businessHoursConfig.enabled || false;
+                console.log('✅ Horarios comerciales activados:', businessHoursEnabled.checked);
+                
+                // Mostrar/ocultar configuración según el estado
+                const businessHoursConfig = document.getElementById('business-hours-config');
+                if (businessHoursConfig) {
+                    businessHoursConfig.style.display = businessHoursEnabled.checked ? 'block' : 'none';
+                }
+            }
+            
+            // Cargar días laborables
+            if (profileData.businessHoursConfig.workingDays) {
+                profileData.businessHoursConfig.workingDays.forEach(day => {
+                    const dayCheckbox = document.getElementById(day);
+                    if (dayCheckbox) {
+                        dayCheckbox.checked = true;
+                        console.log('✅ Día laborable marcado:', day);
+                    }
+                });
+            }
+            
+            // Cargar horarios de apertura y cierre
+            const openingTimeField = document.getElementById('opening_time');
+            if (openingTimeField && profileData.businessHoursConfig.openingTime) {
+                openingTimeField.value = profileData.businessHoursConfig.openingTime;
+                console.log('✅ Hora de apertura cargada:', profileData.businessHoursConfig.openingTime);
+            }
+            
+            const closingTimeField = document.getElementById('closing_time');
+            if (closingTimeField && profileData.businessHoursConfig.closingTime) {
+                closingTimeField.value = profileData.businessHoursConfig.closingTime;
+                console.log('✅ Hora de cierre cargada:', profileData.businessHoursConfig.closingTime);
+            }
         } else {
-            console.log('⚠️ No hay horario comercial guardado, usando valores por defecto');
+            console.log('🕰️ No hay configuración de horarios comerciales guardada');
         }
         
-        // 🔧 CRÍTICO: Guardar datos en localStorage para que setupBusinessHoursSelector pueda acceder
+        // Cargar datos de bot config
+        if (profileData.botConfig) {
+            console.log('🤖 Bot config disponible:', Object.keys(profileData.botConfig));
+        }
+        
+        // Guardar datos en localStorage para uso posterior
         localStorage.setItem('profileData', JSON.stringify(profileData));
         console.log('💾 Datos de perfil guardados en localStorage para uso posterior');
         
         console.log('✅ Datos de perfil cargados correctamente');
-        
-        // 🕐 CONFIGURAR HORARIO COMERCIAL DESPUÉS DE CARGAR DATOS
-        // Ahora que los datos están en localStorage, configurar el selector
-        console.log('⏰ Configurando selector de horario comercial después de cargar perfil...');
-        setTimeout(() => {
-            setupBusinessHoursSelector();
-        }, 200); // Delay para asegurar que localStorage esté actualizado
     })
     .catch(error => {
         console.error('❌ Error al cargar datos de perfil:', error);
@@ -3776,8 +3860,7 @@ function loadEmailConfiguration() {
         primary_language: 'es',
         bot_personality: 'professional',
         timezone: 'Europe/Madrid',
-        opening_time: '09:00',
-        closing_time: '18:00',
+
         twilio_phone_number: '+34 900 123 456',
         welcome_message: 'Hola, gracias por llamar a TechSolutions. ¿En qué puedo ayudarte hoy?',
         incoming_email: 'soporte@techsolutions.com',
@@ -3786,15 +3869,7 @@ function loadEmailConfiguration() {
         confidence_level: '0.8',
         response_tone: 'professional',
         email_signature: `Saludos cordiales,\nEquipo de TechSolutions\nTel: +34 912 345 678\nWeb: www.techsolutions.com`,
-        working_days: {
-            monday: true,
-            tuesday: true,
-            wednesday: true,
-            thursday: true,
-            friday: true,
-            saturday: false,
-            sunday: false
-        },
+
         auto_priority: true,
         include_context: true,
         auto_classify: true,
@@ -3805,14 +3880,7 @@ function loadEmailConfiguration() {
     
     // Llenar campos del formulario
     Object.keys(existingData).forEach(key => {
-        if (key === 'working_days') {
-            Object.keys(existingData.working_days).forEach(day => {
-                const checkbox = document.getElementById(day);
-                if (checkbox) {
-                    checkbox.checked = existingData.working_days[day];
-                }
-            });
-        } else {
+        {
             const element = document.getElementById(key);
             if (element) {
                 if (element.type === 'checkbox') {
@@ -5688,246 +5756,6 @@ function toggleEmailFavorite(emailId, starIcon) {
 }
 
 /**
- * Configurar el selector de horario comercial
- */
-/**
- * 🕐 BUSINESS HOURS MANAGER - FUNCIÓN CENTRALIZADA
- * Maneja toda la lógica de horarios comerciales desde un solo lugar
- */
-function setupBusinessHoursSelector() {
-    console.log('🔧 Iniciando Business Hours Manager centralizado...');
-    
-    // ===== ELEMENTOS DOM CENTRALIZADOS =====
-    const elements = {
-        businessDays: document.querySelectorAll('input[name="workingDays"]'),
-        startHourInput: document.getElementById('workingHoursOpening'),
-        endHourInput: document.getElementById('workingHoursClosing'),
-        schedulePreview: document.getElementById('scheduleText')
-    };
-    
-    // ===== VALIDACIÓN CENTRALIZADA =====
-    function validateElements() {
-        const validations = [
-            { element: elements.businessDays, name: 'checkboxes de días', condition: elements.businessDays.length > 0 },
-            { element: elements.startHourInput, name: 'input hora inicio (#workingHoursOpening)' },
-            { element: elements.endHourInput, name: 'input hora fin (#workingHoursClosing)' },
-            { element: elements.schedulePreview, name: 'preview (#scheduleText)' }
-        ];
-        
-        for (const validation of validations) {
-            const isValid = validation.condition !== undefined ? validation.condition : !!validation.element;
-            if (!isValid) {
-                console.error(`❌ BusinessHours: No se encontró ${validation.name}`);
-                return false;
-            }
-        }
-        
-        console.log(`✅ Todos los elementos validados: ${elements.businessDays.length} checkboxes + inputs + preview`);
-        return true;
-    }
-    
-    if (!validateElements()) {
-        console.error('❌ BusinessHours: Validación fallida, abortando configuración');
-        return;
-    }
-    
-    // ===== FUNCIÓN CENTRALIZADA DE ACTUALIZACIÓN =====
-    function updateBusinessHours() {
-        console.log('🔄 BusinessHours: Actualizando...');
-        
-        const dayNames = {
-            'monday': 'Lun', 'tuesday': 'Mar', 'wednesday': 'Mié',
-            'thursday': 'Jue', 'friday': 'Vie', 'saturday': 'Sáb', 'sunday': 'Dom'
-        };
-        
-        // Recopilar días seleccionados
-        const selectedDays = [];
-        elements.businessDays.forEach(checkbox => {
-            if (checkbox.checked) {
-                const dayName = dayNames[checkbox.value] || checkbox.value;
-                selectedDays.push(dayName);
-            }
-        });
-        
-        // Obtener horas
-        const startHour = elements.startHourInput.value || '09:00';
-        const endHour = elements.endHourInput.value || '18:00';
-        
-        // Formatear texto
-        let businessHoursText;
-        if (selectedDays.length === 0) {
-            businessHoursText = 'Sin horario definido';
-        } else if (selectedDays.length === 5 && 
-                   ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'].every(day => selectedDays.includes(day))) {
-            businessHoursText = `Lun-Vie: ${startHour}-${endHour}`;
-        } else {
-            businessHoursText = `${selectedDays.join(', ')}: ${startHour}-${endHour}`;
-        }
-        
-        // Actualizar preview
-        elements.schedulePreview.textContent = businessHoursText;
-        console.log(`✅ BusinessHours: Preview actualizado → "${businessHoursText}"`);
-    }
-    
-    // ===== FUNCIÓN CENTRALIZADA DE CARGA =====
-    function loadBusinessHoursFromData(businessHoursText) {
-        if (!businessHoursText || businessHoursText === 'Sin horario definido') {
-            console.log('⚠️ BusinessHours: Sin datos válidos para cargar');
-            return;
-        }
-        
-        console.log('🕐 BusinessHours: Cargando desde datos:', businessHoursText);
-        
-        try {
-            // Parsear formato "Lun-Vie: 9:00-18:00" o "Lun, Mar: 10:00-17:00"
-            const parts = businessHoursText.split(': ');
-            if (parts.length !== 2) {
-                console.log('⚠️ BusinessHours: Formato inválido');
-                return;
-            }
-            
-            const [daysText, hoursText] = parts;
-            const [startHour, endHour] = hoursText.split('-');
-            
-            // Mapeo de días
-            const dayMapping = {
-                'Lun': 'monday', 'Mar': 'tuesday', 'Mié': 'wednesday',
-                'Jue': 'thursday', 'Vie': 'friday', 'Sáb': 'saturday', 'Dom': 'sunday'
-            };
-            
-            // Parsear días
-            let selectedDays = [];
-            if (daysText.includes('-')) {
-                // Formato "Lun-Vie"
-                const [startDay, endDay] = daysText.split('-');
-                const dayOrder = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-                const startIndex = dayOrder.indexOf(startDay);
-                const endIndex = dayOrder.indexOf(endDay);
-                
-                if (startIndex !== -1 && endIndex !== -1) {
-                    for (let i = startIndex; i <= endIndex; i++) {
-                        selectedDays.push(dayOrder[i]);
-                    }
-                }
-            } else {
-                // Formato "Lun, Mar, Mié"
-                selectedDays = daysText.split(', ').map(day => day.trim());
-            }
-            
-            // Aplicar cambios
-            // 1. Desmarcar todos
-            elements.businessDays.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            
-            // 2. Marcar seleccionados
-            selectedDays.forEach(day => {
-                const dayValue = dayMapping[day];
-                if (dayValue) {
-                    const checkbox = document.querySelector(`input[name="workingDays"][value="${dayValue}"]`);
-                    if (checkbox) {
-                        checkbox.checked = true;
-                    }
-                }
-            });
-            
-            // 3. Establecer horas
-            if (startHour) elements.startHourInput.value = startHour;
-            if (endHour) elements.endHourInput.value = endHour;
-            
-            // 4. Actualizar preview
-            updateBusinessHours();
-            
-            console.log('✅ BusinessHours: Datos cargados correctamente');
-            
-        } catch (error) {
-            console.error('❌ BusinessHours: Error al cargar datos:', error);
-        }
-    }
-    
-    // ===== CONFIGURACIÓN DE EVENTOS =====
-    elements.businessDays.forEach(checkbox => {
-        checkbox.addEventListener('change', updateBusinessHours);
-    });
-    
-    elements.startHourInput.addEventListener('change', updateBusinessHours);
-    elements.endHourInput.addEventListener('change', updateBusinessHours);
-    
-    console.log('✅ BusinessHours: Event listeners configurados');
-    
-    // ===== INICIALIZACIÓN Y CARGA DE DATOS GUARDADOS =====
-    // Cargar datos guardados desde localStorage
-    const savedProfileData = localStorage.getItem('profileData');
-    if (savedProfileData) {
-        try {
-            const profileData = JSON.parse(savedProfileData);
-            console.log('🔄 BusinessHours: Cargando desde localStorage...');
-            console.log('- workingDays:', profileData.workingDays);
-            console.log('- workingHoursOpening:', profileData.workingHoursOpening);
-            console.log('- workingHoursClosing:', profileData.workingHoursClosing);
-            console.log('- businessHours (legacy):', profileData.businessHours);
-            
-            // 🆕 PRIORIDAD: Usar campos estructurados si están disponibles
-            if (profileData.workingDays || profileData.workingHoursOpening || profileData.workingHoursClosing) {
-                console.log('✅ Cargando desde campos estructurados...');
-                
-                // 1. Cargar días de trabajo
-                if (profileData.workingDays) {
-                    const workingDays = Array.isArray(profileData.workingDays) ? profileData.workingDays : [];
-                    
-                    // Desmarcar todos
-                    elements.businessDays.forEach(checkbox => {
-                        checkbox.checked = false;
-                    });
-                    
-                    // Marcar días seleccionados
-                    workingDays.forEach(day => {
-                        const checkbox = document.querySelector(`input[name="workingDays"][value="${day}"]`);
-                        if (checkbox) {
-                            checkbox.checked = true;
-                            console.log(`✅ Día marcado: ${day}`);
-                        }
-                    });
-                }
-                
-                // 2. Cargar horas
-                if (profileData.workingHoursOpening) {
-                    elements.startHourInput.value = profileData.workingHoursOpening;
-                    console.log(`✅ Hora apertura: ${profileData.workingHoursOpening}`);
-                }
-                if (profileData.workingHoursClosing) {
-                    elements.endHourInput.value = profileData.workingHoursClosing;
-                    console.log(`✅ Hora cierre: ${profileData.workingHoursClosing}`);
-                }
-                
-                // 3. Actualizar preview
-                updateBusinessHours();
-                
-            } else if (profileData.businessHours) {
-                // Fallback: usar businessHours legacy
-                console.log('⚠️ Usando businessHours legacy:', profileData.businessHours);
-                loadBusinessHoursFromData(profileData.businessHours);
-            }
-        } catch (error) {
-            console.error('❌ BusinessHours: Error al cargar desde localStorage:', error);
-        }
-    } else {
-        // Sin datos guardados, inicializar con valores por defecto
-        console.log('🔄 BusinessHours: Sin datos guardados, inicializando valores por defecto...');
-        updateBusinessHours();
-    }
-    
-    console.log('✅ BusinessHours Manager: Configuración completa');
-    
-    // ===== EXPONER FUNCIONES PARA USO EXTERNO =====
-    window.BusinessHoursManager = {
-        update: updateBusinessHours,
-        load: loadBusinessHoursFromData,
-        getElements: () => elements
-    };
-}
-
-/**
  * Actualizar la interfaz de usuario con los datos de uso del plan
  */
 function updatePlanUsageUI() {
@@ -7050,43 +6878,7 @@ function saveUnifiedConfig() {
             companyEmail: document.getElementById('companyEmail')?.value || document.getElementById('company_email')?.value || document.getElementById('email')?.value || '',
             companyWebsite: document.getElementById('companyWebsite')?.value || document.getElementById('company_website')?.value || document.getElementById('website')?.value || '',
             
-            // Horario comercial - Recopilar datos estructurados completos
-            businessHours: (() => {
-                // Obtener el texto del preview para compatibilidad
-                const schedulePreview = document.getElementById('scheduleText');
-                const previewText = schedulePreview?.textContent || 'Sin horario definido';
-                
-                // Forzar actualización si BusinessHoursManager está disponible
-                if (window.BusinessHoursManager && typeof window.BusinessHoursManager.update === 'function') {
-                    window.BusinessHoursManager.update();
-                }
-                
-                console.log('📋 BusinessHours: Preview text:', previewText);
-                return previewText;
-            })(),
-            
-            // 🆕 NUEVOS CAMPOS: Datos estructurados de horarios comerciales
-            workingDays: (() => {
-                const selectedDays = [];
-                const checkboxes = document.querySelectorAll('input[name="workingDays"]:checked');
-                checkboxes.forEach(checkbox => {
-                    selectedDays.push(checkbox.value);
-                });
-                console.log('📅 WorkingDays seleccionados:', selectedDays);
-                return JSON.stringify(selectedDays);
-            })(),
-            
-            workingHoursOpening: (() => {
-                const openingHour = document.getElementById('workingHoursOpening')?.value || '09:00';
-                console.log('🕘 Hora de apertura:', openingHour);
-                return openingHour;
-            })(),
-            
-            workingHoursClosing: (() => {
-                const closingHour = document.getElementById('workingHoursClosing')?.value || '18:00';
-                console.log('🕕 Hora de cierre:', closingHour);
-                return closingHour;
-            })(),
+
             
             // Configuración general - IDs corregidos
             botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',
@@ -7168,6 +6960,14 @@ function saveUnifiedConfig() {
                 top_p: parseFloat(document.getElementById('ai_top_p')?.value || document.getElementById('ai-top-p')?.value || document.getElementById('top_p')?.value || '0.9'),
                 frequency_penalty: parseFloat(document.getElementById('ai_frequency_penalty')?.value || document.getElementById('ai-frequency-penalty')?.value || document.getElementById('frequency_penalty')?.value || '0.0'),
                 presence_penalty: parseFloat(document.getElementById('ai_presence_penalty')?.value || document.getElementById('ai-presence-penalty')?.value || document.getElementById('presence_penalty')?.value || '0.0')
+            },
+            
+            // Configuración de horarios comerciales
+            businessHoursConfig: {
+                enabled: document.getElementById('business_hours_enabled')?.checked || false,
+                workingDays: Array.from(document.querySelectorAll('input[name="working_days"]:checked')).map(cb => cb.value),
+                openingTime: document.getElementById('opening_time')?.value || '09:00',
+                closingTime: document.getElementById('closing_time')?.value || '18:00'
             },
             
             // Preguntas frecuentes
@@ -7349,7 +7149,6 @@ function saveUnifiedConfig() {
                 companyPhone: config.companyPhone !== undefined ? config.companyPhone : '',
                 companyEmail: config.companyEmail !== undefined ? config.companyEmail : '',
                 companyWebsite: config.companyWebsite !== undefined ? config.companyWebsite : '',
-                businessHours: config.businessHours !== undefined ? config.businessHours : 'Lun-Vie: 9:00-18:00',
                 
                 // DUPLICAR en structure profile para compatibilidad con versiones
                 // Aseguramos que los campos se envíen explícitamente, incluso si están vacíos
@@ -7412,12 +7211,7 @@ function saveUnifiedConfig() {
             console.log(' Enviando companyDescription como:', unifiedClientData.companyDescription);
             console.log(' Enviando companySector como:', unifiedClientData.companySector);
             
-            // 🕐 DIAGNÓSTICO CRÍTICO: Business Hours
-            console.log('🕐 BUSINESS HOURS DIAGNÓSTICO:');
-            console.log('- businessHours enviado:', unifiedClientData.businessHours);
-            console.log('- Tipo:', typeof unifiedClientData.businessHours);
-            console.log('- scheduleText DOM:', document.getElementById('scheduleText')?.textContent);
-            console.log('- BusinessHoursManager disponible:', !!window.BusinessHoursManager);
+
             
             console.log(' Datos unificados preparados para el backend:', unifiedClientData);
             
@@ -7646,7 +7440,7 @@ function loadSampleFaqs() {
  */
 function loadDemoFaqs() {
     const demoFaqs = [
-        { id: 1001, question: '¿Cuál es su horario de atención?', answer: 'Nuestro horario es de lunes a viernes de 9:00 a 18:00.' },
+
         { id: 1002, question: '¿Cómo puedo realizar un pedido?', answer: 'Puede realizar su pedido a través de nuestra página web o llamando a nuestro número de atención al cliente.' },
         { id: 1003, question: '¿Cuáles son las formas de pago aceptadas?', answer: 'Aceptamos tarjetas de crédito/débito, PayPal y transferencia bancaria.' }
     ];

@@ -25,10 +25,10 @@ const EXPECTED_FIELDS = {
     
     // Campos en botConfig JSON
     botConfig: {
-        basic: ['name', 'personality', 'welcomeMessage', 'businessHours'],
+        basic: ['name', 'personality', 'welcomeMessage'],
         callConfig: ['enabled', 'language', 'voiceId', 'greeting', 'recordCalls'],
         aiConfig: ['temperature', 'maxTokens', 'topP', 'frequencyPenalty', 'presencePenalty'],
-        other: ['faqs', 'contextFiles', 'workingHours', 'workingDays']
+        other: ['faqs', 'contextFiles']
     },
     
     // Campos en companyInfo JSON

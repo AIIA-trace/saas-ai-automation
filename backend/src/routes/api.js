@@ -160,9 +160,9 @@ router.get('/api/client', authenticate, async (req, res) => {
         botLanguage: true,
         welcomeMessage: true,
         confirmationMessage: true,
-        workingDays: true,
-        workingHoursOpening: true,
-        workingHoursClosing: true,
+
+
+
         botPersonality: true,
         
         // Configuraciones JSON complejas (nuevos campos)
@@ -170,7 +170,7 @@ router.get('/api/client', authenticate, async (req, res) => {
         transferConfig: true,
         scriptConfig: true,
         aiConfig: true,
-        workingHours: true,
+
         
         // Configuraciones existentes
         companyInfo: true,
@@ -204,11 +204,17 @@ router.get('/api/client', authenticate, async (req, res) => {
         transferConfig: client.transferConfig || {},
         scriptConfig: client.scriptConfig || {},
         aiConfig: client.aiConfig || {},
-        workingHours: client.workingHours || {},
+
         
         // Configuraciones existentes
         emailConfig: client.emailConfig || {},
         notificationConfig: client.notificationConfig || {},
+        businessHoursConfig: client.businessHoursConfig || {
+          enabled: false,
+          workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+          openingTime: '09:00',
+          closingTime: '18:00'
+        },
         
         // Configuración del bot (campos directos - nuevo sistema)
         bot: {
@@ -216,9 +222,7 @@ router.get('/api/client', authenticate, async (req, res) => {
           language: client.botLanguage || 'es',
           welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
           confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
-          workingDays: client.workingDays ? (typeof client.workingDays === 'string' ? JSON.parse(client.workingDays) : client.workingDays) : ["monday", "tuesday", "wednesday", "thursday", "friday"],
-          workingHoursOpening: client.workingHoursOpening || '09:00',
-          workingHoursClosing: client.workingHoursClosing || '18:00',
+
           personality: client.botPersonality || 'profesional y amigable'
         },
         
@@ -227,41 +231,10 @@ router.get('/api/client', authenticate, async (req, res) => {
         botLanguage: client.botLanguage || 'es',
         welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
         confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
-        workingDays: client.workingDays ? (typeof client.workingDays === 'string' ? JSON.parse(client.workingDays) : client.workingDays) : ["monday", "tuesday", "wednesday", "thursday", "friday"],
-        workingHoursOpening: client.workingHoursOpening || '09:00',
-        workingHoursClosing: client.workingHoursClosing || '18:00',
+
         botPersonality: client.botPersonality || 'profesional y amigable',
         
-        // 🕐 CAMPO BUSINESSHOURS: Generar desde datos estructurados para compatibilidad
-        businessHours: (() => {
-          try {
-            const days = client.workingDays ? (typeof client.workingDays === 'string' ? JSON.parse(client.workingDays) : client.workingDays) : ["monday", "tuesday", "wednesday", "thursday", "friday"];
-            const opening = client.workingHoursOpening || '09:00';
-            const closing = client.workingHoursClosing || '18:00';
-            
-            // Mapeo de días a abreviaciones españolas
-            const dayMapping = {
-              'monday': 'Lun', 'tuesday': 'Mar', 'wednesday': 'Mié',
-              'thursday': 'Jue', 'friday': 'Vie', 'saturday': 'Sáb', 'sunday': 'Dom'
-            };
-            
-            if (Array.isArray(days) && days.length > 0) {
-              const dayNames = days.map(day => dayMapping[day] || day);
-              
-              // Formato especial para Lun-Vie
-              if (days.length === 5 && ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].every(day => days.includes(day))) {
-                return `Lun-Vie: ${opening}-${closing}`;
-              } else {
-                return `${dayNames.join(', ')}: ${opening}-${closing}`;
-              }
-            } else {
-              return 'Sin horario definido';
-            }
-          } catch (error) {
-            logger.warn('Error generando businessHours:', error.message);
-            return 'Lun-Vie: 09:00-18:00';
-          }
-        })(),
+
         
         // Preguntas frecuentes
         faqs: client.faqs || [],
@@ -306,20 +279,16 @@ router.put('/api/client', authenticate, async (req, res) => {
       botName,
       botPersonality,
       welcomeMessage,
-      businessHours,
-      
-      // 🆕 NUEVOS CAMPOS: Horarios comerciales estructurados
-      workingDays,
-      workingHoursOpening,
-      workingHoursClosing,
+
       
       // Configuraciones complejas - campos JSON
       callConfig,
       emailConfig,
+      businessHoursConfig,
       transferConfig,
       scriptConfig,
       aiConfig,
-      workingHours,
+
       
       // Datos específicos del bot unificado
       bot,
@@ -356,36 +325,7 @@ router.put('/api/client', authenticate, async (req, res) => {
     if (botPersonality) updateData.botPersonality = botPersonality;
     if (welcomeMessage) updateData.welcomeMessage = welcomeMessage;
     
-    // 🕐 HORARIOS COMERCIALES ESTRUCTURADOS - Prioridad a campos individuales
-    logger.info('🕐 Procesando horarios comerciales:');
-    logger.info(`- workingDays: ${workingDays}`);
-    logger.info(`- workingHoursOpening: ${workingHoursOpening}`);
-    logger.info(`- workingHoursClosing: ${workingHoursClosing}`);
-    logger.info(`- businessHours (legacy): ${businessHours}`);
-    
-    // Usar campos estructurados si están disponibles
-    if (workingDays !== undefined) {
-      updateData.workingDays = workingDays;
-      logger.info('✅ Usando workingDays estructurado:', workingDays);
-    }
-    if (workingHoursOpening !== undefined) {
-      updateData.workingHoursOpening = workingHoursOpening;
-      logger.info('✅ Usando workingHoursOpening:', workingHoursOpening);
-    }
-    if (workingHoursClosing !== undefined) {
-      updateData.workingHoursClosing = workingHoursClosing;
-      logger.info('✅ Usando workingHoursClosing:', workingHoursClosing);
-    }
-    
-    // Fallback: parsear businessHours legacy si no hay campos estructurados
-    if (!workingDays && !workingHoursOpening && !workingHoursClosing && businessHours) {
-      logger.info('⚠️ Usando businessHours legacy, parseando:', businessHours);
-      // Aquí se podría agregar lógica de parseo si es necesario
-      // Por ahora, solo guardamos el texto en workingDays para compatibilidad
-      if (typeof businessHours === 'string') {
-        updateData.workingDays = businessHours;
-      }
-    }
+
     
     // Actualizar configuraciones de objetos JSON
     const currentClient = await prisma.client.findUnique({
@@ -402,9 +342,7 @@ router.put('/api/client', authenticate, async (req, res) => {
       if (bot.language) updateData.botLanguage = bot.language;
       if (bot.welcomeMessage) updateData.welcomeMessage = bot.welcomeMessage;
       if (bot.confirmationMessage) updateData.confirmationMessage = bot.confirmationMessage;
-      if (bot.workingDays) updateData.workingDays = bot.workingDays;
-      if (bot.workingHoursOpening) updateData.workingHoursOpening = bot.workingHoursOpening;
-      if (bot.workingHoursClosing) updateData.workingHoursClosing = bot.workingHoursClosing;
+
       if (bot.personality) updateData.botPersonality = bot.personality;
     }
     
@@ -440,10 +378,7 @@ router.put('/api/client', authenticate, async (req, res) => {
       logger.info(`🤖 Actualizando configuración de IA para cliente ${req.client.id}`);
     }
     
-    if (workingHours) {
-      updateData.workingHours = workingHours;
-      logger.info(`⏰ Actualizando horarios de trabajo para cliente ${req.client.id}`);
-    }
+
     
     // Configuración de Email (mantener sistema actual)
     if (emailConfig) {
@@ -452,6 +387,15 @@ router.put('/api/client', authenticate, async (req, res) => {
         ...emailConfig
       };
       logger.info(`📧 Actualizando configuración de email para cliente ${req.client.id}`);
+    }
+    
+    // Configuración de horarios comerciales
+    if (businessHoursConfig) {
+      updateData.businessHoursConfig = {
+        ...(currentClient.businessHoursConfig || {}),
+        ...businessHoursConfig
+      };
+      logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
     }
     
     // Preguntas frecuentes (FAQs)
@@ -494,9 +438,7 @@ router.put('/api/client', authenticate, async (req, res) => {
           language: updatedClient.botLanguage || 'es',
           welcomeMessage: updatedClient.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
           confirmationMessage: updatedClient.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
-          workingDays: updatedClient.workingDays || 'Lunes a Viernes',
-          workingHoursOpening: updatedClient.workingHoursOpening || '09:00',
-          workingHoursClosing: updatedClient.workingHoursClosing || '18:00',
+
           personality: updatedClient.botPersonality || 'profesional y amigable'
         },
         
@@ -556,9 +498,9 @@ router.get('/client', authenticate, async (req, res) => {
         botLanguage: true,
         welcomeMessage: true,
         confirmationMessage: true,
-        workingDays: true,
-        workingHoursOpening: true,
-        workingHoursClosing: true,
+
+
+
         botPersonality: true,
         companyInfo: true,
         emailConfig: true,
@@ -599,11 +541,7 @@ router.get('/client', authenticate, async (req, res) => {
       bot: {
         name: client.botName || 'Asistente Virtual',
         personality: client.botPersonality || 'profesional y amigable',
-        workingHours: {
-          opening: client.workingHoursOpening || '09:00',
-          closing: client.workingHoursClosing || '18:00'
-        },
-        workingDays: client.workingDays || 'Lunes a Viernes',
+
         welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
         confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
         language: client.botLanguage || 'es'
@@ -762,9 +700,9 @@ router.put('/client', authenticate, async (req, res) => {
         botLanguage: true,
         welcomeMessage: true,
         confirmationMessage: true,
-        workingDays: true,
-        workingHoursOpening: true,
-        workingHoursClosing: true,
+
+
+
         botPersonality: true,
         companyInfo: true,
         emailConfig: true
@@ -802,9 +740,7 @@ router.put('/client', authenticate, async (req, res) => {
       if (bot.language) botData.botLanguage = bot.language;
       if (bot.welcomeMessage) botData.welcomeMessage = bot.welcomeMessage;
       if (bot.confirmationMessage) botData.confirmationMessage = bot.confirmationMessage;
-      if (bot.workingDays) botData.workingDays = JSON.stringify(bot.workingDays);
-      if (bot.workingHours?.opening) botData.workingHoursOpening = bot.workingHours.opening;
-      if (bot.workingHours?.closing) botData.workingHoursClosing = bot.workingHours.closing;
+
     }
     
     // CONFIGURACIONES LEGACY ELIMINADAS:

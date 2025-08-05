@@ -70,7 +70,7 @@ const demoCallsData = [
         classification: 'consulta',
         urgency: 'baja',
         confidence: 88,
-        summary: 'Información sobre horarios de atención en festivos',
+        summary: 'Información sobre disponibilidad del servicio en festivos',
         details: 'Pregunta por disponibilidad del servicio durante el próximo puente festivo',
         duration: '1:50',
         managed: true

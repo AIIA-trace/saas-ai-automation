@@ -44,22 +44,7 @@ async function testBotConfigPersistence() {
             botName: 'Asistente Virtual Pro',
             botPersonality: 'friendly',
             welcomeMessage: 'Bienvenido a nuestro servicio',
-            businessHours: 'Lun-Vie: 9:00-18:00',
-            
-            // Configuración de horarios
-            workingHours: {
-                opening: '09:00',
-                closing: '18:00'
-            },
-            workingDays: {
-                monday: true,
-                tuesday: true,
-                wednesday: true,
-                thursday: true,
-                friday: true,
-                saturday: false,
-                sunday: false
-            },
+
             
             // Configuración de llamadas
             callConfig: {
@@ -97,10 +82,7 @@ async function testBotConfigPersistence() {
             
             // Preguntas frecuentes
             faqs: [
-                {
-                    question: '¿Cuál es el horario de atención?',
-                    answer: 'Nuestro horario es de lunes a viernes de 9:00 a 18:00'
-                }
+
             ],
             
             // Archivos de contexto
@@ -122,9 +104,7 @@ async function testBotConfigPersistence() {
             name: testBotConfigData.botName || currentBotConfig.name || 'Asistente Virtual',
             personality: testBotConfigData.botPersonality || currentBotConfig.personality || 'professional',
             welcomeMessage: testBotConfigData.welcomeMessage || currentBotConfig.welcomeMessage || '',
-            businessHours: testBotConfigData.businessHours || currentBotConfig.businessHours || '',
-            workingHours: testBotConfigData.workingHours || currentBotConfig.workingHours || {},
-            workingDays: testBotConfigData.workingDays || currentBotConfig.workingDays || {},
+
             callConfig: testBotConfigData.callConfig ? {
                 ...currentBotConfig.callConfig,
                 ...testBotConfigData.callConfig
@@ -192,7 +172,7 @@ async function testBotConfigPersistence() {
         if (verificationClient.botConfig) {
             console.log('├── Bot Name:', verificationClient.botConfig.name);
             console.log('├── Bot Personality:', verificationClient.botConfig.personality);
-            console.log('├── Working Hours:', JSON.stringify(verificationClient.botConfig.workingHours));
+
             console.log('├── Call Config:', JSON.stringify(verificationClient.botConfig.callConfig));
             console.log('├── FAQs count:', verificationClient.botConfig.faqs?.length || 0);
         }

@@ -226,33 +226,7 @@ class CompanySetup {
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Horario de Atención</label>
-                            <select class="form-select" id="businessHours">
-                                <option value="9-18">9:00 - 18:00</option>
-                                <option value="8-20">8:00 - 20:00</option>
-                                <option value="10-22">10:00 - 22:00</option>
-                                <option value="24h">24 Horas</option>
-                                <option value="custom">Personalizado</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Días Laborables</label>
-                            <div class="form-check-group">
-                                ${['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day, index) => `
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="checkbox" id="day${index}" value="${index}" ${index < 5 ? 'checked' : ''}>
-                                        <label class="form-check-label" for="day${index}">${day}</label>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
             </div>
         `;
     }

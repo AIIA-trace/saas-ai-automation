@@ -71,20 +71,7 @@
             max-width: 150px;
         }
         
-        .working-days {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .day-checkbox {
-            flex: 1;
-            min-width: 120px;
-        }
-        
-        .day-checkbox input[type="checkbox"] {
-            margin-right: 8px;
-        }
+
         
         .loading-spinner {
             display: none;
@@ -204,77 +191,7 @@
                         </div>
                     </div>
                     
-                    <!-- Sección: Horario Comercial -->
-                    <div class="mb-4">
-                        <h4 class="section-header">
-                            <i class="fas fa-clock me-2"></i>
-                            Horario Comercial
-                        </h4>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-calendar-days me-1"></i>
-                                Días Laborables
-                            </label>
-                            <div class="working-days">
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="monday" name="workingDays" value="monday">
-                                    <label for="monday">Lun</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="tuesday" name="workingDays" value="tuesday">
-                                    <label for="tuesday">Mar</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="wednesday" name="workingDays" value="wednesday">
-                                    <label for="wednesday">Mié</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="thursday" name="workingDays" value="thursday">
-                                    <label for="thursday">Jue</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="friday" name="workingDays" value="friday">
-                                    <label for="friday">Vie</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="saturday" name="workingDays" value="saturday">
-                                    <label for="saturday">Sáb</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="sunday" name="workingDays" value="sunday">
-                                    <label for="sunday">Dom</label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="workingHoursOpening" class="form-label">
-                                    <i class="fas fa-sun me-1"></i>
-                                    Hora inicio
-                                </label>
-                                <input type="time" class="form-control time-input" 
-                                       id="workingHoursOpening" name="workingHoursOpening" 
-                                       value="09:00">
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label for="workingHoursClosing" class="form-label">
-                                    <i class="fas fa-moon me-1"></i>
-                                    Hora fin
-                                </label>
-                                <input type="time" class="form-control time-input" 
-                                       id="workingHoursClosing" name="workingHoursClosing" 
-                                       value="18:00">
-                            </div>
-                        </div>
-                        
-                        <div class="alert alert-info" id="schedulePreview">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <span id="scheduleText">Lun-Vie: 9:00-18:00</span>
-                        </div>
-                    </div>
+
                     
                     <!-- Sección: Mensajes del Bot -->
                     <div class="mb-4">
@@ -306,72 +223,8 @@
                         </div>
                     </div>
                     
-                    <!-- Sección: Horarios de Atención -->
-                    <div class="mb-4">
-                        <h4 class="section-header">
-                            <i class="fas fa-clock me-2"></i>
-                            Horarios de Atención
-                        </h4>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-calendar-days me-1"></i>
-                                Días Laborables
-                            </label>
-                            <div class="working-days">
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="monday" name="workingDays" value="monday">
-                                    <label for="monday">Lunes</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="tuesday" name="workingDays" value="tuesday">
-                                    <label for="tuesday">Martes</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="wednesday" name="workingDays" value="wednesday">
-                                    <label for="wednesday">Miércoles</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="thursday" name="workingDays" value="thursday">
-                                    <label for="thursday">Jueves</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="friday" name="workingDays" value="friday">
-                                    <label for="friday">Viernes</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="saturday" name="workingDays" value="saturday">
-                                    <label for="saturday">Sábado</label>
-                                </div>
-                                <div class="day-checkbox">
-                                    <input type="checkbox" id="sunday" name="workingDays" value="sunday">
-                                    <label for="sunday">Domingo</label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="workingHoursOpening" class="form-label">
-                                    <i class="fas fa-sun me-1"></i>
-                                    Hora de Apertura
-                                </label>
-                                <input type="time" class="form-control time-input" 
-                                       id="workingHoursOpening" name="workingHoursOpening" 
-                                       value="09:00">
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label for="workingHoursClosing" class="form-label">
-                                    <i class="fas fa-moon me-1"></i>
-                                    Hora de Cierre
-                                </label>
-                                <input type="time" class="form-control time-input" 
-                                       id="workingHoursClosing" name="workingHoursClosing" 
-                                       value="18:00">
-                            </div>
-                        </div>
-                    </div>
+
+
                     
                     <!-- Botones de Acción -->
                     <div class="d-flex justify-content-between align-items-center mt-4">

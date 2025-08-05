@@ -151,60 +151,7 @@ class BotConfigManager {
             document.getElementById('confirmationMessage').value = botData.confirmationMessage || data.confirmationMessage;
         }
 
-        // Horarios - pueden venir en workingHours.opening/closing o directamente
-        const openingTime = botData.workingHours?.opening || botData.workingHoursOpening || data.workingHoursOpening;
-        const closingTime = botData.workingHours?.closing || botData.workingHoursClosing || data.workingHoursClosing;
-        
-        if (openingTime) {
-            document.getElementById('workingHoursOpening').value = openingTime;
-        }
-        
-        if (closingTime) {
-            document.getElementById('workingHoursClosing').value = closingTime;
-        }
 
-        // Días laborables
-        const workingDaysData = botData.workingDays || data.workingDays;
-        if (workingDaysData) {
-            try {
-                let workingDays;
-                
-                if (typeof workingDaysData === 'string') {
-                    // Si es JSON string, parsearlo
-                    workingDays = JSON.parse(workingDaysData);
-                } else if (Array.isArray(workingDaysData)) {
-                    // Si ya es array, usarlo directamente
-                    workingDays = workingDaysData;
-                } else {
-                    // Si es string simple como "Lunes a Viernes", usar días por defecto
-                    workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-                }
-                
-                // Limpiar checkboxes
-                document.querySelectorAll('input[name="workingDays"]').forEach(checkbox => {
-                    checkbox.checked = false;
-                });
-
-                // Marcar días activos
-                if (Array.isArray(workingDays)) {
-                    workingDays.forEach(day => {
-                        const checkbox = document.getElementById(day);
-                        if (checkbox) {
-                            checkbox.checked = true;
-                        }
-                    });
-                }
-            } catch (error) {
-                console.warn('Error parseando workingDays:', error);
-                // Usar días por defecto en caso de error
-                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
-                    const checkbox = document.getElementById(day);
-                    if (checkbox) {
-                        checkbox.checked = true;
-                    }
-                });
-            }
-        }
 
         // Campo companyDescription que faltaba
         if (data.companyDescription) {
@@ -273,10 +220,6 @@ class BotConfigManager {
     }
 
     collectFormData() {
-        // Recopilar días laborables
-        const workingDaysCheckboxes = document.querySelectorAll('input[name="workingDays"]:checked');
-        const workingDays = Array.from(workingDaysCheckboxes).map(cb => cb.value);
-
         return {
             // Configuración del bot en formato que espera el backend
             bot: {
@@ -284,10 +227,7 @@ class BotConfigManager {
                 language: document.getElementById('botLanguage').value || null,
                 personality: document.getElementById('botPersonality').value || null,
                 welcomeMessage: document.getElementById('welcomeMessage').value.trim() || null,
-                confirmationMessage: document.getElementById('confirmationMessage').value.trim() || null,
-                workingDays: workingDays.length > 0 ? JSON.stringify(workingDays) : null,
-                workingHoursOpening: document.getElementById('workingHoursOpening').value || null,
-                workingHoursClosing: document.getElementById('workingHoursClosing').value || null
+                confirmationMessage: document.getElementById('confirmationMessage').value.trim() || null
             }
         };
     }
@@ -311,13 +251,7 @@ class BotConfigManager {
             return false;
         }
 
-        // Validar horarios
-        if (botData.workingHoursOpening && botData.workingHoursClosing) {
-            if (botData.workingHoursOpening >= botData.workingHoursClosing) {
-                toastr.error('La hora de apertura debe ser anterior a la hora de cierre');
-                return false;
-            }
-        }
+
 
         return true;
     }

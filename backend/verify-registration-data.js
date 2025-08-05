@@ -205,8 +205,7 @@ async function testBotConfigPersistence() {
       botName: 'Asistente Pro',
       botPersonality: 'friendly',
       welcomeMessage: 'Bienvenido a nuestro servicio',
-      workingHours: { opening: '09:00', closing: '18:00' },
-      workingDays: { monday: true, tuesday: true, friday: true },
+
       callConfig: {
         enabled: true,
         voiceId: 'female-spanish',
@@ -220,7 +219,7 @@ async function testBotConfigPersistence() {
         imapServer: 'imap.gmail.com',
         smtpServer: 'smtp.gmail.com'
       },
-      faqs: [{ question: '¿Horario?', answer: 'Lun-Vie 9-18h' }]
+      faqs: []
     };
     
     // 3. Simular exactamente lo que hace el endpoint PUT /config/bot
@@ -234,8 +233,7 @@ async function testBotConfigPersistence() {
       name: testBotConfigData.botName || 'Asistente Virtual',
       personality: testBotConfigData.botPersonality || 'professional',
       welcomeMessage: testBotConfigData.welcomeMessage || '',
-      workingHours: testBotConfigData.workingHours || {},
-      workingDays: testBotConfigData.workingDays || {},
+
       callConfig: testBotConfigData.callConfig ? {
         ...currentBotConfig.callConfig,
         ...testBotConfigData.callConfig
@@ -299,7 +297,7 @@ async function testBotConfigPersistence() {
     if (verificationClient.botConfig) {
       console.log('├── Bot Name:', verificationClient.botConfig.name);
       console.log('├── Bot Personality:', verificationClient.botConfig.personality);
-      console.log('├── Working Hours:', JSON.stringify(verificationClient.botConfig.workingHours));
+
       console.log('├── Call Config:', JSON.stringify(verificationClient.botConfig.callConfig));
       console.log('├── FAQs count:', verificationClient.botConfig.faqs?.length || 0);
     }

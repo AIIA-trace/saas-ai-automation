@@ -36,7 +36,7 @@ async function testConnection() {
       SELECT column_name, data_type 
       FROM information_schema.columns 
       WHERE table_name = 'Client' 
-      AND column_name IN ('callConfig', 'transferConfig', 'scriptConfig', 'aiConfig', 'workingHours', 'faqs', 'contextFiles')
+      AND column_name IN ('callConfig', 'transferConfig', 'scriptConfig', 'aiConfig', 'faqs', 'contextFiles')
       ORDER BY column_name;
     `;
     console.log('✅ Campos JSON encontrados:', tableInfo);

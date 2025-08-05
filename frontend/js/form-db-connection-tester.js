@@ -257,19 +257,7 @@ async function testBotConfigForm() {
             language: 'es-ES',
             confirmationMessage: 'Mensaje de confirmación de prueba',
             personality: 'friendly',
-            workingHours: {
-                opening: '09:00',
-                closing: '18:00'
-            },
-            workingDays: {
-                monday: true,
-                tuesday: true,
-                wednesday: true,
-                thursday: true,
-                friday: true,
-                saturday: false,
-                sunday: false
-            },
+
             emailConfig: {
                 provider: 'gmail',
                 outgoingEmail: 'test@gmail.com',

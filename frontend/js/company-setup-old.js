@@ -131,54 +131,7 @@ function loadBasicInfoStep(container) {
                 <textarea class="form-control" id="address" rows="2"></textarea>
             </div>
             
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Horario de Atención *</label>
-                    <div class="row">
-                        <div class="col-6">
-                            <input type="time" class="form-control" id="openTime" required>
-                            <div class="form-text">Apertura</div>
-                        </div>
-                        <div class="col-6">
-                            <input type="time" class="form-control" id="closeTime" required>
-                            <div class="form-text">Cierre</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Días de Operación *</label>
-                    <div class="form-check-group">
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" id="monday" value="1">
-                            <label class="form-check-label" for="monday">L</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" id="tuesday" value="2">
-                            <label class="form-check-label" for="tuesday">M</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" id="wednesday" value="3">
-                            <label class="form-check-label" for="wednesday">X</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" id="thursday" value="4">
-                            <label class="form-check-label" for="thursday">J</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" id="friday" value="5">
-                            <label class="form-check-label" for="friday">V</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" id="saturday" value="6">
-                            <label class="form-check-label" for="saturday">S</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" id="sunday" value="0">
-                            <label class="form-check-label" for="sunday">D</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
             
             <div class="mb-4">
                 <label class="form-label">Números de Teléfono Adicionales</label>
@@ -448,7 +401,7 @@ function removeFAQField(button) {
 
 // Validation functions
 function validateBasicInfo() {
-    const requiredFields = ['companyName', 'mainPhone', 'contactEmail', 'openTime', 'closeTime'];
+    const requiredFields = ['companyName', 'mainPhone', 'contactEmail'];
     let isValid = true;
     
     requiredFields.forEach(fieldId => {

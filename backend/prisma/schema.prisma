@@ -39,9 +39,7 @@ model Client {
   botPersonality       String?        // Personalidad del bot
   welcomeMessage       String?        // Mensaje de bienvenida
   confirmationMessage  String?        // Mensaje de confirmación
-  workingDays          String?        // Días laborables JSON
-  workingHoursOpening  String?        // Hora de apertura
-  workingHoursClosing  String?        // Hora de cierre
+
   subscriptionStatus   String?        // Estado de la suscripción
   personality          String?        // Campo personalidad adicional
   
@@ -61,6 +59,7 @@ model Client {
   billingInfo          Json?          // Información de facturación
   paymentMethods       Json?          // Métodos de pago
   notificationConfig   Json?          // Configuración de notificaciones
+  businessHoursConfig  Json?          // Configuración de horarios comerciales y días laborables
   faqs                 Json?          // Preguntas frecuentes del bot
   contextFiles         Json?          // Archivos de contexto del bot
   createdAt            DateTime        @default(now())
