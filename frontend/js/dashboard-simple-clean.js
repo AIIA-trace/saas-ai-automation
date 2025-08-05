@@ -17,6 +17,13 @@ function adaptOtherContextSimple(config) {
         // Crear el contenido de las pestañas
         createTabsContent();
         
+        // Configurar selector de horario comercial después de crear el DOM
+        // Usar setTimeout para asegurar que los elementos estén renderizados
+        setTimeout(() => {
+            console.log('⏰ Configurando selector de horario comercial...');
+            setupBusinessHoursSelector();
+        }, 100);
+        
         // Cargar datos iniciales
         loadSimpleData(config);
         
@@ -37,9 +44,6 @@ function adaptOtherContextSimple(config) {
         
         // Cargar estado del bot
         loadBotStatus();
-        
-        // Configurar selector de horario comercial
-        setupBusinessHoursSelector();
         
         // Configurar botones de FAQs (sin cargar datos)
         setupFaqButtons();
@@ -5725,6 +5729,8 @@ function toggleEmailFavorite(emailId, starIcon) {
  * Configurar el selector de horario comercial
  */
 function setupBusinessHoursSelector() {
+    console.log('🔧 Iniciando configuración del selector de horario comercial...');
+    
     // Obtener referencias a los elementos
     const businessDays = document.querySelectorAll('.business-day');
     const startHourSelect = document.getElementById('business-hours-start');
@@ -5732,15 +5738,49 @@ function setupBusinessHoursSelector() {
     const businessHoursInput = document.getElementById('business_hours');
     const businessHoursPreview = document.getElementById('business-hours-preview');
     
+    // Verificar que todos los elementos existan
+    if (businessDays.length === 0) {
+        console.error('❌ setupBusinessHoursSelector: No se encontraron checkboxes de días (.business-day)');
+        return;
+    }
+    
+    if (!startHourSelect) {
+        console.error('❌ setupBusinessHoursSelector: No se encontró select de hora inicio (#business-hours-start)');
+        return;
+    }
+    
+    if (!endHourSelect) {
+        console.error('❌ setupBusinessHoursSelector: No se encontró select de hora fin (#business-hours-end)');
+        return;
+    }
+    
+    if (!businessHoursInput) {
+        console.error('❌ setupBusinessHoursSelector: No se encontró input hidden (#business_hours)');
+        return;
+    }
+    
+    if (!businessHoursPreview) {
+        console.error('❌ setupBusinessHoursSelector: No se encontró preview (#business-hours-preview)');
+        return;
+    }
+    
+    console.log(`✅ Elementos encontrados: ${businessDays.length} checkboxes, selects y preview OK`);
+    
     // Función para actualizar el horario comercial
     function updateBusinessHours() {
+        console.log('🔄 updateBusinessHours ejecutándose...');
+        
         // Recopilar días seleccionados
         const selectedDays = [];
         businessDays.forEach(checkbox => {
             if (checkbox.checked) {
                 selectedDays.push(checkbox.dataset.day);
+                console.log(`✅ Día seleccionado: ${checkbox.dataset.day}`);
             }
         });
+        
+        console.log(`📅 Días seleccionados: [${selectedDays.join(', ')}]`);
+        console.log(`⏰ Hora inicio: ${startHourSelect.value}, Hora fin: ${endHourSelect.value}`);
         
         // Formatear el rango de días
         let daysText = '';
@@ -5794,14 +5834,21 @@ function setupBusinessHoursSelector() {
         businessHoursInput.value = businessHoursText;
         businessHoursPreview.textContent = businessHoursText;
         
+        console.log(`💾 Input hidden actualizado: "${businessHoursText}"`);
+        console.log(`🕰️ Preview actualizado: "${businessHoursText}"`);
+        
         // Cambiar el color del badge según si hay días seleccionados
         if (selectedDays.length === 0) {
             businessHoursPreview.classList.remove('bg-primary');
             businessHoursPreview.classList.add('bg-danger');
+            console.log('🔴 Badge color: rojo (sin días)');
         } else {
             businessHoursPreview.classList.remove('bg-danger');
             businessHoursPreview.classList.add('bg-primary');
+            console.log('🔵 Badge color: azul (con días)');
         }
+        
+        console.log('✅ updateBusinessHours completado');
     }
     
     // Añadir event listeners
@@ -5812,8 +5859,12 @@ function setupBusinessHoursSelector() {
     startHourSelect.addEventListener('change', updateBusinessHours);
     endHourSelect.addEventListener('change', updateBusinessHours);
     
+    console.log(`🔗 Event listeners configurados: ${businessDays.length} checkboxes + 2 selects`);
+    
     // Inicializar con los valores actuales
     updateBusinessHours();
+    
+    console.log('✅ setupBusinessHoursSelector completado exitosamente');
 }
 
 /**
