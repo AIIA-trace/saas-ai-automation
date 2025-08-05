@@ -6979,6 +6979,13 @@ function saveUnifiedConfig() {
     
     console.log('📝 Configuración recopilada:', config);
     
+    // DEBUG: Logs específicos para businessHoursConfig
+    console.log('🕐 DEBUG businessHoursConfig en config:', config.businessHoursConfig);
+    console.log('🕐 DEBUG business_hours_enabled checkbox:', document.getElementById('business_hours_enabled')?.checked);
+    console.log('🕐 DEBUG working_days checkboxes:', Array.from(document.querySelectorAll('input[name="working_days"]:checked')).map(cb => cb.value));
+    console.log('🕐 DEBUG opening_time:', document.getElementById('opening_time')?.value);
+    console.log('🕐 DEBUG closing_time:', document.getElementById('closing_time')?.value);
+    
     // Validar campos requeridos
     const requiredFields = [
         { id: 'companyName', label: 'Nombre de empresa' },
@@ -7187,6 +7194,9 @@ function saveUnifiedConfig() {
                 
                 // Configuración de IA
                 aiConfig: config.aiConfig,
+                
+                // Configuración de horarios comerciales
+                businessHoursConfig: config.businessHoursConfig,
                 
                 // FAQs
                 faqs: config.faqs,
