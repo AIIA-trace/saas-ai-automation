@@ -5705,40 +5705,34 @@ function toggleEmailFavorite(emailId, starIcon) {
 function setupBusinessHoursSelector() {
     console.log('🔧 Iniciando configuración del selector de horario comercial...');
     
-    // Obtener referencias a los elementos
-    const businessDays = document.querySelectorAll('.business-day');
-    const startHourSelect = document.getElementById('business-hours-start');
-    const endHourSelect = document.getElementById('business-hours-end');
-    const businessHoursInput = document.getElementById('business_hours');
-    const businessHoursPreview = document.getElementById('business-hours-preview');
+    // Obtener referencias a los elementos REALES del HTML
+    const businessDays = document.querySelectorAll('input[name="workingDays"]');
+    const startHourInput = document.getElementById('workingHoursOpening');
+    const endHourInput = document.getElementById('workingHoursClosing');
+    const schedulePreview = document.getElementById('scheduleText');
     
     // Verificar que todos los elementos existan
     if (businessDays.length === 0) {
-        console.error('❌ setupBusinessHoursSelector: No se encontraron checkboxes de días (.business-day)');
+        console.error('❌ setupBusinessHoursSelector: No se encontraron checkboxes de días (input[name="workingDays"])');
         return;
     }
     
-    if (!startHourSelect) {
-        console.error('❌ setupBusinessHoursSelector: No se encontró select de hora inicio (#business-hours-start)');
+    if (!startHourInput) {
+        console.error('❌ setupBusinessHoursSelector: No se encontró input de hora inicio (#workingHoursOpening)');
         return;
     }
     
-    if (!endHourSelect) {
-        console.error('❌ setupBusinessHoursSelector: No se encontró select de hora fin (#business-hours-end)');
+    if (!endHourInput) {
+        console.error('❌ setupBusinessHoursSelector: No se encontró input de hora fin (#workingHoursClosing)');
         return;
     }
     
-    if (!businessHoursInput) {
-        console.error('❌ setupBusinessHoursSelector: No se encontró input hidden (#business_hours)');
+    if (!schedulePreview) {
+        console.error('❌ setupBusinessHoursSelector: No se encontró preview (#scheduleText)');
         return;
     }
     
-    if (!businessHoursPreview) {
-        console.error('❌ setupBusinessHoursSelector: No se encontró preview (#business-hours-preview)');
-        return;
-    }
-    
-    console.log(`✅ Elementos encontrados: ${businessDays.length} checkboxes, selects y preview OK`);
+    console.log(`✅ Elementos encontrados: ${businessDays.length} checkboxes, inputs de hora y preview OK`);
     
     // Función para actualizar el horario comercial
     function updateBusinessHours() {
@@ -5746,15 +5740,22 @@ function setupBusinessHoursSelector() {
         
         // Recopilar días seleccionados
         const selectedDays = [];
+        const dayNames = {
+            'monday': 'Lun', 'tuesday': 'Mar', 'wednesday': 'Mié',
+            'thursday': 'Jue', 'friday': 'Vie', 'saturday': 'Sáb', 'sunday': 'Dom'
+        };
+        
         businessDays.forEach(checkbox => {
             if (checkbox.checked) {
-                selectedDays.push(checkbox.dataset.day);
-                console.log(`✅ Día seleccionado: ${checkbox.dataset.day}`);
+                const dayValue = checkbox.value;
+                const dayName = dayNames[dayValue] || dayValue;
+                selectedDays.push(dayName);
+                console.log(`✅ Día seleccionado: ${dayValue} (${dayName})`);
             }
         });
         
         console.log(`📅 Días seleccionados: [${selectedDays.join(', ')}]`);
-        console.log(`⏰ Hora inicio: ${startHourSelect.value}, Hora fin: ${endHourSelect.value}`);
+        console.log(`⏰ Hora inicio: ${startHourInput.value}, Hora fin: ${endHourInput.value}`);
         
         // Formatear el rango de días
         let daysText = '';
@@ -5796,31 +5797,21 @@ function setupBusinessHoursSelector() {
         }
         
         // Obtener horas seleccionadas
-        const startHour = startHourSelect.value;
-        const endHour = endHourSelect.value;
+        const startHour = startHourInput.value;
+        const endHour = endHourInput.value;
         
         // Crear texto completo del horario
         const businessHoursText = selectedDays.length === 0 ? 
             'Sin horario definido' : 
             `${daysText}: ${startHour}-${endHour}`;
         
-        // Actualizar el campo oculto y el preview
-        businessHoursInput.value = businessHoursText;
-        businessHoursPreview.textContent = businessHoursText;
+        // Actualizar el preview (no hay input hidden en este HTML)
+        schedulePreview.textContent = businessHoursText;
         
-        console.log(`💾 Input hidden actualizado: "${businessHoursText}"`);
         console.log(`🕰️ Preview actualizado: "${businessHoursText}"`);
         
-        // Cambiar el color del badge según si hay días seleccionados
-        if (selectedDays.length === 0) {
-            businessHoursPreview.classList.remove('bg-primary');
-            businessHoursPreview.classList.add('bg-danger');
-            console.log('🔴 Badge color: rojo (sin días)');
-        } else {
-            businessHoursPreview.classList.remove('bg-danger');
-            businessHoursPreview.classList.add('bg-primary');
-            console.log('🔵 Badge color: azul (con días)');
-        }
+        // El schedulePreview ya tiene estilos CSS, no necesitamos cambiar clases
+        console.log('✅ Horario comercial actualizado correctamente');
         
         console.log('✅ updateBusinessHours completado');
     }
@@ -5830,10 +5821,10 @@ function setupBusinessHoursSelector() {
         checkbox.addEventListener('change', updateBusinessHours);
     });
     
-    startHourSelect.addEventListener('change', updateBusinessHours);
-    endHourSelect.addEventListener('change', updateBusinessHours);
+    startHourInput.addEventListener('change', updateBusinessHours);
+    endHourInput.addEventListener('change', updateBusinessHours);
     
-    console.log(`🔗 Event listeners configurados: ${businessDays.length} checkboxes + 2 selects`);
+    console.log(`🔗 Event listeners configurados: ${businessDays.length} checkboxes + 2 inputs de hora`);
     
     // Inicializar con los valores actuales
     updateBusinessHours();
@@ -5858,34 +5849,31 @@ function setupBusinessHoursSelector() {
  */
 function loadBusinessHoursFromData(businessHoursText) {
     if (!businessHoursText) {
-        console.log('⚠️ No hay texto de horario comercial para cargar');
+        console.log('⚠️ loadBusinessHoursFromData: No se proporcionó texto de horario');
         return;
     }
     
     console.log('🕐 Cargando horario comercial desde texto:', businessHoursText);
     
-    // VERIFICACIÓN FINAL DE ELEMENTOS DOM
-    const businessDays = document.querySelectorAll('.business-day');
-    const startHourSelect = document.getElementById('business-hours-start');
-    const endHourSelect = document.getElementById('business-hours-end');
+    // VERIFICACIÓN DE ELEMENTOS DOM REALES
+    const businessDays = document.querySelectorAll('input[name="workingDays"]');
+    const startHourInput = document.getElementById('workingHoursOpening');
+    const endHourInput = document.getElementById('workingHoursClosing');
     
     if (businessDays.length === 0) {
-        console.error('❌ No se encontraron checkboxes de días (.business-day)');
+        console.error('❌ No se encontraron checkboxes de días (input[name="workingDays"])');
         return;
     }
     
-    if (!startHourSelect || !endHourSelect) {
-        console.error('❌ No se encontraron selects de horas:', {
-            startHourSelect: !!startHourSelect,
-            endHourSelect: !!endHourSelect
+    if (!startHourInput || !endHourInput) {
+        console.error('❌ No se encontraron inputs de horas:', {
+            startHourInput: !!startHourInput,
+            endHourInput: !!endHourInput
         });
         return;
     }
     
     console.log('✅ Todos los elementos DOM verificados, procediendo con la carga...');
-    
-    // Los elementos ya fueron verificados arriba, no necesitamos redeclararlos
-    console.log('🔍 Elementos DOM ya verificados, continuando con el parseo...');
     
     if (!businessHoursText || businessHoursText === 'Sin horario definido') {
         console.log('⚠️ No hay horario definido, manteniendo valores por defecto');
@@ -5903,15 +5891,15 @@ function loadBusinessHoursFromData(businessHoursText) {
         const [daysText, hoursText] = parts;
         const [startHour, endHour] = hoursText.split('-');
         
-        // Mapeo de días abreviados a IDs de checkboxes
+        // Mapeo de días abreviados a valores de checkboxes
         const dayMapping = {
-            'Lun': 'day-mon',
-            'Mar': 'day-tue', 
-            'Mié': 'day-wed',
-            'Jue': 'day-thu',
-            'Vie': 'day-fri',
-            'Sáb': 'day-sat',
-            'Dom': 'day-sun'
+            'Lun': 'monday',
+            'Mar': 'tuesday', 
+            'Mié': 'wednesday',
+            'Jue': 'thursday',
+            'Vie': 'friday',
+            'Sáb': 'saturday',
+            'Dom': 'sunday'
         };
         
         // Parsear días seleccionados
@@ -5938,62 +5926,36 @@ function loadBusinessHoursFromData(businessHoursText) {
         // PASO 1: Desmarcar TODOS los checkboxes
         businessDays.forEach(checkbox => {
             checkbox.checked = false;
-            checkbox.removeAttribute('checked');
-            console.log('🔄 Desmarcado:', checkbox.id);
+            console.log('🔄 Desmarcado:', checkbox.value);
         });
         
-        // PASO 2: Marcar los días seleccionados (SOLUCIÓN DEFINITIVA)
+        // PASO 2: Marcar los días seleccionados
         selectedDays.forEach(day => {
-            const dayId = dayMapping[day];
-            if (dayId) {
-                const checkbox = document.getElementById(dayId);
+            const dayValue = dayMapping[day];
+            if (dayValue) {
+                const checkbox = document.querySelector(`input[name="workingDays"][value="${dayValue}"]`);
                 if (checkbox) {
-                    // SOLUCIÓN DE STACKOVERFLOW: Usar click() para forzar actualización visual
-                    if (!checkbox.checked) {
-                        checkbox.click(); // Esto actualiza tanto el estado como la UI
-                        console.log('✅ Día marcado con click():', day, dayId);
-                    }
+                    checkbox.checked = true;
+                    console.log('✅ Día marcado:', day, dayValue);
                 } else {
-                    console.log('❌ Checkbox no encontrado:', dayId);
+                    console.log('❌ Checkbox no encontrado para:', dayValue);
                 }
             }
         });
         
-        // Establecer horas usando selectedIndex (como el sector que funciona)
-        if (startHourSelect && startHour) {
-            // Método 1: Buscar por value y usar selectedIndex
-            for (let i = 0; i < startHourSelect.options.length; i++) {
-                if (startHourSelect.options[i].value === startHour) {
-                    startHourSelect.selectedIndex = i;
-                    console.log('✅ Hora inicio establecida (selectedIndex):', startHour, 'index:', i);
-                    break;
-                }
-            }
-            // Método 2: Fallback con value
-            if (startHourSelect.value !== startHour) {
-                startHourSelect.value = startHour;
-                console.log('✅ Hora inicio establecida (fallback value):', startHour);
-            }
+        // Establecer horas usando los inputs de tiempo
+        if (startHourInput && startHour) {
+            startHourInput.value = startHour;
+            console.log('✅ Hora inicio establecida:', startHour);
         } else {
-            console.log('❌ No se pudo establecer hora inicio:', { startHourSelect: !!startHourSelect, startHour });
+            console.log('❌ No se pudo establecer hora inicio:', { startHourInput: !!startHourInput, startHour });
         }
         
-        if (endHourSelect && endHour) {
-            // Método 1: Buscar por value y usar selectedIndex
-            for (let i = 0; i < endHourSelect.options.length; i++) {
-                if (endHourSelect.options[i].value === endHour) {
-                    endHourSelect.selectedIndex = i;
-                    console.log('✅ Hora fin establecida (selectedIndex):', endHour, 'index:', i);
-                    break;
-                }
-            }
-            // Método 2: Fallback con value
-            if (endHourSelect.value !== endHour) {
-                endHourSelect.value = endHour;
-                console.log('✅ Hora fin establecida (fallback value):', endHour);
-            }
+        if (endHourInput && endHour) {
+            endHourInput.value = endHour;
+            console.log('✅ Hora fin establecida:', endHour);
         } else {
-            console.log('❌ No se pudo establecer hora fin:', { endHourSelect: !!endHourSelect, endHour });
+            console.log('❌ No se pudo establecer hora fin:', { endHourInput: !!endHourInput, endHour });
         }
         
         console.log('✅ Horario comercial cargado correctamente');
