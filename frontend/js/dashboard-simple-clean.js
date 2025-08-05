@@ -3658,13 +3658,41 @@ function loadProfileData() {
             }
         }
         
-        // Cargar horario comercial con delay para asegurar que DOM esté listo
+        // Cargar horario comercial con verificación robusta y retry automático
         if (profileData.businessHours) {
             console.log('🕐 Preparando carga de horario comercial:', profileData.businessHours);
-            setTimeout(() => {
-                console.log('🕐 Ejecutando carga de horario comercial con delay...');
-                loadBusinessHoursFromData(profileData.businessHours);
-            }, 500); // Delay de 500ms para asegurar que DOM esté completamente renderizado
+            
+            // FUNCIÓN DE RETRY CON VERIFICACIÓN DE ELEMENTOS DOM
+            function attemptLoadBusinessHours(attempt = 1, maxAttempts = 10) {
+                console.log(`🔄 Intento ${attempt}/${maxAttempts} de cargar horario comercial...`);
+                
+                // Verificar que los elementos críticos existan
+                const businessDays = document.querySelectorAll('.business-day');
+                const startHourSelect = document.getElementById('business-hours-start');
+                const endHourSelect = document.getElementById('business-hours-end');
+                
+                if (businessDays.length > 0 && startHourSelect && endHourSelect) {
+                    console.log('✅ Elementos DOM encontrados, cargando horario comercial...');
+                    loadBusinessHoursFromData(profileData.businessHours);
+                } else {
+                    console.log(`⚠️ Elementos DOM no encontrados (intento ${attempt}):`, {
+                        businessDays: businessDays.length,
+                        startHourSelect: !!startHourSelect,
+                        endHourSelect: !!endHourSelect
+                    });
+                    
+                    if (attempt < maxAttempts) {
+                        // Retry con delay exponencial: 200ms, 400ms, 800ms, etc.
+                        const delay = 200 * Math.pow(2, attempt - 1);
+                        setTimeout(() => attemptLoadBusinessHours(attempt + 1, maxAttempts), delay);
+                    } else {
+                        console.error('❌ No se pudieron encontrar los elementos DOM después de', maxAttempts, 'intentos');
+                    }
+                }
+            }
+            
+            // Iniciar el proceso de retry
+            setTimeout(() => attemptLoadBusinessHours(), 100);
         } else {
             console.log('⚠️ No hay horario comercial guardado, usando valores por defecto');
         }
@@ -5793,23 +5821,35 @@ function setupBusinessHoursSelector() {
  * @param {string} businessHoursText - Texto del horario (ej: "Lun-Vie: 9:00-18:00")
  */
 function loadBusinessHoursFromData(businessHoursText) {
-    console.log('🕐 Cargando horario comercial desde datos:', businessHoursText);
+    if (!businessHoursText) {
+        console.log('⚠️ No hay texto de horario comercial para cargar');
+        return;
+    }
     
-    // Verificar que los elementos DOM existan
+    console.log('🕐 Cargando horario comercial desde texto:', businessHoursText);
+    
+    // VERIFICACIÓN FINAL DE ELEMENTOS DOM
     const businessDays = document.querySelectorAll('.business-day');
     const startHourSelect = document.getElementById('business-hours-start');
     const endHourSelect = document.getElementById('business-hours-end');
     
-    console.log('🔍 Verificando elementos DOM:');
-    console.log('  - businessDays encontrados:', businessDays.length);
-    console.log('  - startHourSelect:', !!startHourSelect);
-    console.log('  - endHourSelect:', !!endHourSelect);
-    
-    if (businessDays.length === 0 || !startHourSelect || !endHourSelect) {
-        console.log('❌ Elementos DOM no encontrados, reintentando en 1 segundo...');
-        setTimeout(() => loadBusinessHoursFromData(businessHoursText), 1000);
+    if (businessDays.length === 0) {
+        console.error('❌ No se encontraron checkboxes de días (.business-day)');
         return;
     }
+    
+    if (!startHourSelect || !endHourSelect) {
+        console.error('❌ No se encontraron selects de horas:', {
+            startHourSelect: !!startHourSelect,
+            endHourSelect: !!endHourSelect
+        });
+        return;
+    }
+    
+    console.log('✅ Todos los elementos DOM verificados, procediendo con la carga...');
+    
+    // Los elementos ya fueron verificados arriba, no necesitamos redeclararlos
+    console.log('🔍 Elementos DOM ya verificados, continuando con el parseo...');
     
     if (!businessHoursText || businessHoursText === 'Sin horario definido') {
         console.log('⚠️ No hay horario definido, manteniendo valores por defecto');
