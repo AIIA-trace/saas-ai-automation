@@ -390,12 +390,20 @@ router.put('/api/client', authenticate, async (req, res) => {
     }
     
     // Configuración de horarios comerciales
+    logger.info(`🔍 DEBUG businessHoursConfig recibido:`, JSON.stringify(businessHoursConfig, null, 2));
+    logger.info(`🔍 DEBUG businessHoursConfig existe:`, !!businessHoursConfig);
+    logger.info(`🔍 DEBUG businessHoursConfig tipo:`, typeof businessHoursConfig);
+    
     if (businessHoursConfig) {
-      updateData.businessHoursConfig = {
+      const mergedConfig = {
         ...(currentClient.businessHoursConfig || {}),
         ...businessHoursConfig
       };
+      updateData.businessHoursConfig = mergedConfig;
       logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
+      logger.info(`🕐 Configuración merged:`, JSON.stringify(mergedConfig, null, 2));
+    } else {
+      logger.warn(`⚠️ businessHoursConfig no recibido o es falsy`);
     }
     
     // Preguntas frecuentes (FAQs)
