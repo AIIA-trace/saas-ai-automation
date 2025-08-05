@@ -7093,6 +7093,9 @@ function saveUnifiedConfig() {
         // Configuración avanzada de IA
         aiConfig: config.aiConfig,
         
+        // Configuración de horarios comerciales
+        businessHoursConfig: config.businessHoursConfig,
+        
         // Preguntas frecuentes (FAQs)
         faqs: collectFaqItems(),
         
