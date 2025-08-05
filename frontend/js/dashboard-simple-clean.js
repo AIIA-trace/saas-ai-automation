@@ -1289,11 +1289,57 @@ function createBotConfigTabContent() {
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Horario Comercial</label>
-                                            <div class="alert alert-info">
-                                                <i class="fas fa-info-circle me-2"></i>
-                                                <strong>Configurar en Bot:</strong> 
-                                                <a href="bot-config.html" class="alert-link">Ir a configuración del bot</a>
-                                                para establecer horarios comerciales.
+                                            
+                                            <!-- Días Laborables -->
+                                            <div class="mb-3">
+                                                <label class="form-label small">Días Laborables</label>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="monday" name="workingDays" value="monday" checked>
+                                                        <label class="form-check-label small" for="monday">Lun</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="tuesday" name="workingDays" value="tuesday" checked>
+                                                        <label class="form-check-label small" for="tuesday">Mar</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="wednesday" name="workingDays" value="wednesday" checked>
+                                                        <label class="form-check-label small" for="wednesday">Mié</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="thursday" name="workingDays" value="thursday" checked>
+                                                        <label class="form-check-label small" for="thursday">Jue</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="friday" name="workingDays" value="friday" checked>
+                                                        <label class="form-check-label small" for="friday">Vie</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="saturday" name="workingDays" value="saturday">
+                                                        <label class="form-check-label small" for="saturday">Sáb</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="sunday" name="workingDays" value="sunday">
+                                                        <label class="form-check-label small" for="sunday">Dom</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Horarios -->
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <label for="workingHoursOpening" class="form-label small">Apertura</label>
+                                                    <input type="time" class="form-control" id="workingHoursOpening" value="09:00">
+                                                </div>
+                                                <div class="col-6">
+                                                    <label for="workingHoursClosing" class="form-label small">Cierre</label>
+                                                    <input type="time" class="form-control" id="workingHoursClosing" value="18:00">
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Preview -->
+                                            <div class="mt-2">
+                                                <small class="text-muted">Vista previa: <span id="scheduleText" class="fw-bold">Lun-Vie: 9:00-18:00</span></small>
                                             </div>
                                         </div>
                                         
