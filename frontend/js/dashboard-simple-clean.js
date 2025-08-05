@@ -682,23 +682,6 @@ function addDashboardStyles() {
             font-size: 0.7rem;
         }
         
-        /* Checkboxes de horario comercial */
-        .business-hours-checkboxes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-        }
-        
-        .business-hours-checkboxes .form-check {
-            margin-right: 0;
-            margin-bottom: 0;
-        }
-        
-        .business-hours-checkboxes .form-check-label {
-            font-size: 0.7rem;
-            padding-left: 0.25rem;
-        }
-        
         /* Sistema de tablas profesional */
         .dashboard-table {
             width: 100%;
@@ -1306,73 +1289,11 @@ function createBotConfigTabContent() {
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Horario Comercial</label>
-                                            <input type="hidden" id="business_hours" name="business_hours" value="Lun-Vie: 9:00-18:00">
-                                            <div class="card border-light mb-2">
-                                                <div class="card-body p-3">
-                                                    <div class="business-hours-checkboxes mb-3">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input business-day" type="checkbox" id="day-mon" data-day="Lun" checked>
-                                                            <label class="form-check-label" for="day-mon">Lun</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input business-day" type="checkbox" id="day-tue" data-day="Mar" checked>
-                                                            <label class="form-check-label" for="day-tue">Mar</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input business-day" type="checkbox" id="day-wed" data-day="Mié" checked>
-                                                            <label class="form-check-label" for="day-wed">Mié</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input business-day" type="checkbox" id="day-thu" data-day="Jue" checked>
-                                                            <label class="form-check-label" for="day-thu">Jue</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input business-day" type="checkbox" id="day-fri" data-day="Vie" checked>
-                                                            <label class="form-check-label" for="day-fri">Vie</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input business-day" type="checkbox" id="day-sat" data-day="Sáb">
-                                                            <label class="form-check-label" for="day-sat">Sáb</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input business-day" type="checkbox" id="day-sun" data-day="Dom">
-                                                            <label class="form-check-label" for="day-sun">Dom</label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row g-2">
-                                                        <div class="col-6">
-                                                            <label class="form-label small">Hora inicio</label>
-                                                            <select class="form-select form-select-sm" id="business-hours-start">
-                                                                <option value="7:00">7:00</option>
-                                                                <option value="7:30">7:30</option>
-                                                                <option value="8:00">8:00</option>
-                                                                <option value="8:30">8:30</option>
-                                                                <option value="9:00" selected>9:00</option>
-                                                                <option value="9:30">9:30</option>
-                                                                <option value="10:00">10:00</option>
-                                                                <option value="10:30">10:30</option>
-                                                                <option value="11:00">11:00</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-6">
-                                                            <label class="form-label small">Hora fin</label>
-                                                            <select class="form-select form-select-sm" id="business-hours-end">
-                                                                <option value="16:00">16:00</option>
-                                                                <option value="16:30">16:30</option>
-                                                                <option value="17:00">17:00</option>
-                                                                <option value="17:30">17:30</option>
-                                                                <option value="18:00" selected>18:00</option>
-                                                                <option value="18:30">18:30</option>
-                                                                <option value="19:00">19:00</option>
-                                                                <option value="19:30">19:30</option>
-                                                                <option value="20:00">20:00</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mt-3">
-                                                        <span class="badge bg-secondary text-light" id="business-hours-preview">Lun-Vie: 9:00-18:00</span>
-                                                    </div>
-                                                </div>
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                <strong>Configurar en Bot:</strong> 
+                                                <a href="bot-config.html" class="alert-link">Ir a configuración del bot</a>
+                                                para establecer horarios comerciales.
                                             </div>
                                         </div>
                                         
@@ -7093,22 +7014,7 @@ function saveUnifiedConfig() {
             botName: document.getElementById('bot_name')?.value || 'Asistente Virtual',
             botPersonality: document.getElementById('bot_personality')?.value || 'professional',
             welcomeMessage: document.getElementById('call_greeting')?.value || 'Bienvenido a nuestro asistente virtual',
-            businessHours: document.getElementById('business_hours')?.value || 'Lun-Vie: 9:00-18:00',
-            
-            // Configuración de horarios - IDs corregidos
-            workingHours: {
-                opening: document.getElementById('business-hours-start')?.value || '09:00',
-                closing: document.getElementById('business-hours-end')?.value || '18:00'
-            },
-            workingDays: {
-                monday: document.getElementById('day-mon')?.checked || false,
-                tuesday: document.getElementById('day-tue')?.checked || false,
-                wednesday: document.getElementById('day-wed')?.checked || false,
-                thursday: document.getElementById('day-thu')?.checked || false,
-                friday: document.getElementById('day-fri')?.checked || false,
-                saturday: document.getElementById('day-sat')?.checked || false,
-                sunday: document.getElementById('day-sun')?.checked || false
-            },
+
             
             // Configuración de llamadas - IDs corregidos y campos completos
             callConfig: {
@@ -7275,11 +7181,6 @@ function saveUnifiedConfig() {
         botName: config.botName,
         botPersonality: config.botPersonality,
         welcomeMessage: config.welcomeMessage,
-        businessHours: config.businessHours,
-        
-        // Configuración de horarios
-        workingHours: config.workingHours,
-        workingDays: config.workingDays,
         
         // Configuración de llamadas - Estructura corregida
         callConfig: {
@@ -7382,15 +7283,13 @@ function saveUnifiedConfig() {
                     phone: config.companyPhone !== undefined ? config.companyPhone : '',
                     email: config.companyEmail !== undefined ? config.companyEmail : '',
                     website: config.companyWebsite !== undefined ? config.companyWebsite : '',
-                    businessHours: config.businessHours !== undefined ? config.businessHours : 'Lun-Vie: 9:00-18:00'
+
                 },
                 
                 // Configuración del bot
                 botConfig: {
                     name: config.botName,
                     personality: config.botPersonality,
-                    workingHours: config.workingHours,
-                    workingDays: config.workingDays,
                     callConfig: config.callConfig
                 },
                 
@@ -7424,7 +7323,7 @@ function saveUnifiedConfig() {
             console.log(' Valor de companyPhone:', config.companyPhone);
             console.log(' Valor de companyEmail:', config.companyEmail);
             console.log(' Valor de companyWebsite:', config.companyWebsite);
-            console.log(' Valor de businessHours:', config.businessHours);
+
             
             console.log(' IDs de formulario encontrados para campos de empresa:');
             console.log('- companyName:', document.getElementById('companyName') ? 'companyName' : document.getElementById('company_name') ? 'company_name' : 'no encontrado');
