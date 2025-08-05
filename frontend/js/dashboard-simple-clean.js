@@ -17,13 +17,6 @@ function adaptOtherContextSimple(config) {
         // Crear el contenido de las pestañas
         createTabsContent();
         
-        // Configurar selector de horario comercial después de crear el DOM
-        // Usar setTimeout para asegurar que los elementos estén renderizados
-        setTimeout(() => {
-            console.log('⏰ Configurando selector de horario comercial...');
-            setupBusinessHoursSelector();
-        }, 100);
-        
         // Cargar datos iniciales
         loadSimpleData(config);
         
@@ -3524,6 +3517,12 @@ function loadExistingData() {
         console.log('📧 Iniciando carga de configuración de emails...');
         loadEmailConfiguration();
         
+        // Configurar selector de horario comercial después de que el DOM esté listo
+        console.log('⏰ Configurando selector de horario comercial desde loadExistingData...');
+        setTimeout(() => {
+            setupBusinessHoursSelector();
+        }, 100);
+        
         console.log('✅ Todas las funciones de carga iniciadas');
     }, 500); // Aumentar a 500ms para asegurar renderizado completo
 }
@@ -3662,41 +3661,10 @@ function loadProfileData() {
             }
         }
         
-        // Cargar horario comercial con verificación robusta y retry automático
+        // Cargar horario comercial (se configurará desde setupBusinessHoursSelector)
         if (profileData.businessHours) {
-            console.log('🕐 Preparando carga de horario comercial:', profileData.businessHours);
-            
-            // FUNCIÓN DE RETRY CON VERIFICACIÓN DE ELEMENTOS DOM
-            function attemptLoadBusinessHours(attempt = 1, maxAttempts = 10) {
-                console.log(`🔄 Intento ${attempt}/${maxAttempts} de cargar horario comercial...`);
-                
-                // Verificar que los elementos críticos existan
-                const businessDays = document.querySelectorAll('.business-day');
-                const startHourSelect = document.getElementById('business-hours-start');
-                const endHourSelect = document.getElementById('business-hours-end');
-                
-                if (businessDays.length > 0 && startHourSelect && endHourSelect) {
-                    console.log('✅ Elementos DOM encontrados, cargando horario comercial...');
-                    loadBusinessHoursFromData(profileData.businessHours);
-                } else {
-                    console.log(`⚠️ Elementos DOM no encontrados (intento ${attempt}):`, {
-                        businessDays: businessDays.length,
-                        startHourSelect: !!startHourSelect,
-                        endHourSelect: !!endHourSelect
-                    });
-                    
-                    if (attempt < maxAttempts) {
-                        // Retry con delay exponencial: 200ms, 400ms, 800ms, etc.
-                        const delay = 200 * Math.pow(2, attempt - 1);
-                        setTimeout(() => attemptLoadBusinessHours(attempt + 1, maxAttempts), delay);
-                    } else {
-                        console.error('❌ No se pudieron encontrar los elementos DOM después de', maxAttempts, 'intentos');
-                    }
-                }
-            }
-            
-            // Iniciar el proceso de retry
-            setTimeout(() => attemptLoadBusinessHours(), 100);
+            console.log('🕐 Horario comercial disponible:', profileData.businessHours);
+            // El horario se cargará automáticamente cuando setupBusinessHoursSelector se ejecute
         } else {
             console.log('⚠️ No hay horario comercial guardado, usando valores por defecto');
         }
@@ -5863,6 +5831,17 @@ function setupBusinessHoursSelector() {
     
     // Inicializar con los valores actuales
     updateBusinessHours();
+    
+    // Cargar datos de horario comercial si están disponibles
+    const profileData = JSON.parse(localStorage.getItem('profileData') || '{}');
+    if (profileData.businessHours) {
+        console.log('🕐 Cargando horario comercial guardado:', profileData.businessHours);
+        setTimeout(() => {
+            loadBusinessHoursFromData(profileData.businessHours);
+        }, 50); // Pequeño delay para asegurar que updateBusinessHours haya terminado
+    } else {
+        console.log('⚠️ No hay horario comercial guardado en profileData');
+    }
     
     console.log('✅ setupBusinessHoursSelector completado exitosamente');
 }
