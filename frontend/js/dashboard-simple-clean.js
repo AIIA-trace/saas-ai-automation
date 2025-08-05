@@ -7227,6 +7227,8 @@ function saveUnifiedConfig() {
 
             
             console.log(' Datos unificados preparados para el backend:', unifiedClientData);
+            console.log('🕐 DEBUG businessHoursConfig en unifiedClientData:', unifiedClientData.businessHoursConfig);
+            console.log('🕐 DEBUG Verificando si businessHoursConfig se incluye en el envío:', !!unifiedClientData.businessHoursConfig);
             
             // USAR ENDPOINT UNIFICADO
             console.log(' Usando endpoint unificado /api/client');
