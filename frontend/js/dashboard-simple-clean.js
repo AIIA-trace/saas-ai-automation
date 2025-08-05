@@ -3505,10 +3505,6 @@ function loadExistingData() {
         console.log('   - faq-items:', !!document.getElementById('faq-items'));
         // context-files-list eliminado como parte de la limpieza del sistema legacy
         
-        // Cargar datos de perfil desde backend (fuente única de verdad)
-        console.log('👤 Iniciando carga de datos de perfil desde backend...');
-        loadProfileData();
-        
         // Cargar configuración del bot (FAQs y archivos de contexto)
         console.log('🤖 Iniciando carga de configuración del bot...');
         loadBotConfiguration();
@@ -3517,11 +3513,10 @@ function loadExistingData() {
         console.log('📧 Iniciando carga de configuración de emails...');
         loadEmailConfiguration();
         
-        // Configurar selector de horario comercial después de que el DOM esté listo
-        console.log('⏰ Configurando selector de horario comercial desde loadExistingData...');
-        setTimeout(() => {
-            setupBusinessHoursSelector();
-        }, 100);
+        // Cargar datos de perfil desde backend (fuente única de verdad)
+        // IMPORTANTE: loadProfileData ahora configurará el horario comercial automáticamente
+        console.log('👤 Iniciando carga de datos de perfil desde backend...');
+        loadProfileData();
         
         console.log('✅ Todas las funciones de carga iniciadas');
     }, 500); // Aumentar a 500ms para asegurar renderizado completo
@@ -3669,7 +3664,18 @@ function loadProfileData() {
             console.log('⚠️ No hay horario comercial guardado, usando valores por defecto');
         }
         
+        // 🔧 CRÍTICO: Guardar datos en localStorage para que setupBusinessHoursSelector pueda acceder
+        localStorage.setItem('profileData', JSON.stringify(profileData));
+        console.log('💾 Datos de perfil guardados en localStorage para uso posterior');
+        
         console.log('✅ Datos de perfil cargados correctamente');
+        
+        // 🕐 CONFIGURAR HORARIO COMERCIAL DESPUÉS DE CARGAR DATOS
+        // Ahora que los datos están en localStorage, configurar el selector
+        console.log('⏰ Configurando selector de horario comercial después de cargar perfil...');
+        setTimeout(() => {
+            setupBusinessHoursSelector();
+        }, 200); // Delay para asegurar que localStorage esté actualizado
     })
     .catch(error => {
         console.error('❌ Error al cargar datos de perfil:', error);
