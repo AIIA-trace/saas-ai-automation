@@ -7018,10 +7018,23 @@ function saveUnifiedConfig() {
                     return defaultConfig;
                 }
                 
-                // Recopilar días seleccionados con debug
+                // Mapeo de días de español a inglés
+                const dayMapping = {
+                    'lunes': 'monday',
+                    'martes': 'tuesday',
+                    'miércoles': 'wednesday',
+                    'jueves': 'thursday',
+                    'viernes': 'friday',
+                    'sábado': 'saturday',
+                    'domingo': 'sunday'
+                };
+                
+                // Recopilar días seleccionados con debug y mapeo correcto
                 const selectedDays = Array.from(workingDaysFields).map(cb => {
-                    console.log('- Día seleccionado:', cb.value, 'checked:', cb.checked);
-                    return cb.value;
+                    const spanishDay = cb.value;
+                    const englishDay = dayMapping[spanishDay] || spanishDay;
+                    console.log('- Día seleccionado:', spanishDay, '→', englishDay, 'checked:', cb.checked);
+                    return englishDay;
                 });
                 
                 // Si no hay días seleccionados, usar días laborables por defecto
