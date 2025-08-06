@@ -391,14 +391,22 @@ router.put('/api/client', authenticate, async (req, res) => {
       logger.info(`📧 Actualizando configuración de email para cliente ${req.client.id}`);
     }
     
-    // Configuración de horarios comerciales
+    // Configuración de horarios comerciales - CON DEBUG DETALLADO
+    logger.info(`🕐 TEMP DEBUG - businessHoursConfig recibido:`, businessHoursConfig ? 'SÍ' : 'NO');
     if (businessHoursConfig) {
+      logger.info(`🕐 TEMP DEBUG - businessHoursConfig contenido:`, JSON.stringify(businessHoursConfig, null, 2));
+      
       const mergedConfig = {
         ...(currentClient.businessHoursConfig || {}),
         ...businessHoursConfig
       };
       updateData.businessHoursConfig = mergedConfig;
+      
+      logger.info(`🕐 TEMP DEBUG - mergedConfig:`, JSON.stringify(mergedConfig, null, 2));
+      logger.info(`🕐 TEMP DEBUG - updateData.businessHoursConfig:`, JSON.stringify(updateData.businessHoursConfig, null, 2));
       logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
+    } else {
+      logger.warn(`🕐 TEMP DEBUG - businessHoursConfig NO recibido o es falsy`);
     }
     
     // Preguntas frecuentes (FAQs)
@@ -1465,11 +1473,15 @@ router.put('/billing/info', authenticate, async (req, res) => {
       country: country || 'España'
     };
     
+    logger.info(`🕐 TEMP DEBUG - billingInfo completo antes de Prisma:`, JSON.stringify(billingInfo, null, 2));
+    
     // Actualizar en la base de datos
     const updatedClient = await prisma.client.update({
       where: { id: req.client.id },
       data: { billingInfo }
     });
+    
+    logger.info(`🕐 TEMP DEBUG - Cliente actualizado, billingInfo guardado:`, JSON.stringify(updatedClient.billingInfo, null, 2));
     
     logger.info(`Información de facturación actualizada para cliente ${req.client.id}`);
     
