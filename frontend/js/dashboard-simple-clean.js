@@ -1314,17 +1314,11 @@ function createBotConfigTabContent() {
                                                 <div class="card-body p-3">
                                                     <h6 class="card-subtitle mb-3 text-muted"><i class="fas fa-clock me-2"></i>Horarios Comerciales</h6>
                                                     
-                                                    <!-- Activar horarios comerciales -->
-                                                    <div class="form-check form-switch mb-3">
-                                                        <input class="form-check-input" type="checkbox" id="business_hours_enabled" name="business_hours_enabled">
-                                                        <label class="form-check-label" for="business_hours_enabled">
-                                                            <strong>Activar horarios comerciales</strong>
-                                                        </label>
-                                                        <div class="form-text">El bot informará a los clientes sobre los horarios de atención.</div>
-                                                    </div>
+                                                    <!-- Horarios comerciales siempre activos -->
+                                                    <input type="hidden" id="business_hours_enabled" name="business_hours_enabled" value="true">
                                                     
-                                                    <!-- Configuración de horarios (solo visible cuando está activado) -->
-                                                    <div id="business-hours-config" style="display: none;">
+                                                    <!-- Configuración de horarios (siempre visible) -->
+                                                    <div id="business-hours-config">
                                                         <!-- Días laborables -->
                                                         <div class="mb-3">
                                                             <label class="form-label small mb-2"><strong>Días laborables</strong></label>
