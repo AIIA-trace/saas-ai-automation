@@ -6958,19 +6958,65 @@ function saveUnifiedConfig() {
             
             // Configuración de horarios comerciales - CON DEBUG DETALLADO
             businessHoursConfig: (() => {
-                console.log('🔥 FRONTEND ACTUALIZADO - VERSIÓN 24cdf5f - HORARIOS SIEMPRE ACTIVOS');
+                console.log('🔥 FRONTEND ACTUALIZADO - VERSIÓN 346719b - HORARIOS SIEMPRE ACTIVOS - TIMING FIX');
                 
-                // DEBUG: Verificar cada campo individualmente
+                // ESPERAR A QUE EL DOM ESTÉ COMPLETAMENTE LISTO
+                const maxWaitTime = 2000; // 2 segundos máximo
+                const startTime = Date.now();
+                
+                // Función para verificar si todos los elementos existen
+                const checkElementsExist = () => {
+                    const enabledField = document.getElementById('business_hours_enabled');
+                    const workingDaysContainer = document.querySelector('input[name="working_days"]');
+                    const openingTimeField = document.getElementById('opening_time');
+                    const closingTimeField = document.getElementById('closing_time');
+                    
+                    return enabledField && workingDaysContainer && openingTimeField && closingTimeField;
+                };
+                
+                // Si los elementos no existen, esperar un poco más
+                if (!checkElementsExist()) {
+                    console.log('⏰ Elementos de horarios comerciales no encontrados, esperando...');
+                    
+                    // Intentar esperar hasta que los elementos estén disponibles
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    
+                    while (!checkElementsExist() && attempts < maxAttempts && (Date.now() - startTime) < maxWaitTime) {
+                        attempts++;
+                        console.log(`⏰ Intento ${attempts}/${maxAttempts} - Esperando elementos...`);
+                        // Pequeña pausa síncrona (no ideal pero necesaria para este caso)
+                        const pauseStart = Date.now();
+                        while (Date.now() - pauseStart < 100) { /* pausa de 100ms */ }
+                    }
+                }
+                
+                // DEBUG: Verificar cada campo individualmente DESPUÉS de esperar
                 const enabledField = document.getElementById('business_hours_enabled');
                 const workingDaysFields = document.querySelectorAll('input[name="working_days"]:checked');
+                const allWorkingDaysFields = document.querySelectorAll('input[name="working_days"]');
                 const openingTimeField = document.getElementById('opening_time');
                 const closingTimeField = document.getElementById('closing_time');
                 
-                console.log('🕐 DEBUG HORARIOS COMERCIALES:');
+                console.log('🕐 DEBUG HORARIOS COMERCIALES (POST-WAIT):');
                 console.log('- Campo enabled encontrado:', !!enabledField, 'valor:', enabledField?.value || enabledField?.checked);
-                console.log('- Campos working_days encontrados:', workingDaysFields.length);
+                console.log('- Campos working_days totales:', allWorkingDaysFields.length);
+                console.log('- Campos working_days seleccionados:', workingDaysFields.length);
                 console.log('- Campo opening_time encontrado:', !!openingTimeField, 'valor:', openingTimeField?.value);
                 console.log('- Campo closing_time encontrado:', !!closingTimeField, 'valor:', closingTimeField?.value);
+                
+                // Si aún no hay elementos, devolver configuración por defecto
+                if (!enabledField || !openingTimeField || !closingTimeField) {
+                    console.warn('⚠️ ELEMENTOS DE HORARIOS COMERCIALES NO ENCONTRADOS - Usando valores por defecto');
+                    const defaultConfig = {
+                        enabled: true,
+                        workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+                        openingTime: '09:00',
+                        closingTime: '18:00'
+                    };
+                    console.log('🕐 businessHoursConfig por defecto:', defaultConfig);
+                    return defaultConfig;
+                }
                 
                 // Recopilar días seleccionados con debug
                 const selectedDays = Array.from(workingDaysFields).map(cb => {
@@ -6978,14 +7024,17 @@ function saveUnifiedConfig() {
                     return cb.value;
                 });
                 
+                // Si no hay días seleccionados, usar días laborables por defecto
+                const finalWorkingDays = selectedDays.length > 0 ? selectedDays : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+                
                 const config = {
-                    enabled: enabledField?.checked || false,
-                    workingDays: selectedDays,
+                    enabled: enabledField?.checked || enabledField?.value === 'true' || true,
+                    workingDays: finalWorkingDays,
                     openingTime: openingTimeField?.value || '09:00',
                     closingTime: closingTimeField?.value || '18:00'
                 };
                 
-                console.log('🕐 businessHoursConfig final:', config);
+                console.log('🕐 businessHoursConfig final (con timing fix):', config);
                 return config;
             })(),
             
