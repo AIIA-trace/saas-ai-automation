@@ -6962,13 +6962,36 @@ function saveUnifiedConfig() {
                 presence_penalty: parseFloat(document.getElementById('ai_presence_penalty')?.value || document.getElementById('ai-presence-penalty')?.value || document.getElementById('presence_penalty')?.value || '0.0')
             },
             
-            // Configuración de horarios comerciales
-            businessHoursConfig: {
-                enabled: document.getElementById('business_hours_enabled')?.checked || false,
-                workingDays: Array.from(document.querySelectorAll('input[name="working_days"]:checked')).map(cb => cb.value),
-                openingTime: document.getElementById('opening_time')?.value || '09:00',
-                closingTime: document.getElementById('closing_time')?.value || '18:00'
-            },
+            // Configuración de horarios comerciales - CON DEBUG DETALLADO
+            businessHoursConfig: (() => {
+                // DEBUG: Verificar cada campo individualmente
+                const enabledField = document.getElementById('business_hours_enabled');
+                const workingDaysFields = document.querySelectorAll('input[name="working_days"]:checked');
+                const openingTimeField = document.getElementById('opening_time');
+                const closingTimeField = document.getElementById('closing_time');
+                
+                console.log('🕐 DEBUG HORARIOS COMERCIALES:');
+                console.log('- Campo enabled encontrado:', !!enabledField, 'valor:', enabledField?.checked);
+                console.log('- Campos working_days encontrados:', workingDaysFields.length);
+                console.log('- Campo opening_time encontrado:', !!openingTimeField, 'valor:', openingTimeField?.value);
+                console.log('- Campo closing_time encontrado:', !!closingTimeField, 'valor:', closingTimeField?.value);
+                
+                // Recopilar días seleccionados con debug
+                const selectedDays = Array.from(workingDaysFields).map(cb => {
+                    console.log('- Día seleccionado:', cb.value, 'checked:', cb.checked);
+                    return cb.value;
+                });
+                
+                const config = {
+                    enabled: enabledField?.checked || false,
+                    workingDays: selectedDays,
+                    openingTime: openingTimeField?.value || '09:00',
+                    closingTime: closingTimeField?.value || '18:00'
+                };
+                
+                console.log('🕐 businessHoursConfig final:', config);
+                return config;
+            })(),
             
             // Preguntas frecuentes
             faqs: collectFaqItems(),
