@@ -710,7 +710,18 @@ router.put('/client', authenticate, async (req, res) => {
     }
     
     // Extraer datos de la petición con validación
-    const { profile, bot, email } = req.body;
+    const { profile, bot, email, businessHoursConfig } = req.body;
+    
+    // FORCE DEBUG - Verificar businessHoursConfig en el endpoint QUE SÍ SE EJECUTA
+    logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - Verificando businessHoursConfig en req.body`);
+    logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - businessHoursConfig encontrado:`, !!businessHoursConfig);
+    if (businessHoursConfig) {
+      logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - businessHoursConfig contenido:`, JSON.stringify(businessHoursConfig, null, 2));
+    } else {
+      logger.warn(`🕐 FORCE DEBUG ENDPOINT REAL - NO se encontró businessHoursConfig en req.body`);
+      logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - req.body keys disponibles:`, Object.keys(req.body));
+      logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - req.body completo (primeros 1000 chars):`, JSON.stringify(req.body).substring(0, 1000));
+    }
     // calls - Era parte del sistema legacy
     // faqs - Era parte del sistema legacy
     // aiConfig - Era parte del sistema legacy
@@ -799,6 +810,16 @@ router.put('/client', authenticate, async (req, res) => {
     // 4. Configuración de email (objeto JSON emailConfig)
     const newEmailConfig = email || currentClient.emailConfig || {};
     
+    // 5. Configuración de horarios comerciales (objeto JSON businessHoursConfig)
+    let newBusinessHoursConfig = currentClient.businessHoursConfig || {};
+    if (businessHoursConfig) {
+      newBusinessHoursConfig = {
+        ...newBusinessHoursConfig,
+        ...businessHoursConfig
+      };
+      logger.info(`🕐 ACTUALIZANDO businessHoursConfig para cliente ${req.client.id}:`, JSON.stringify(newBusinessHoursConfig, null, 2));
+    }
+    
     // EJECUTAR ACTUALIZACIÓN
     const updateData = {
       // Campos directos de perfil
@@ -811,6 +832,7 @@ router.put('/client', authenticate, async (req, res) => {
       // botConfig ELIMINADO - Sistema legacy removido
       companyInfo: newCompanyInfo,
       emailConfig: newEmailConfig,
+      businessHoursConfig: newBusinessHoursConfig,
       
       // Timestamp de actualización
       updatedAt: new Date()
