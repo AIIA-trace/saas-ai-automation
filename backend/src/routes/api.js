@@ -198,73 +198,141 @@ router.get('/api/client', authenticate, async (req, res) => {
         phone: client.phone,
         industry: client.industry,
         address: client.address,
-        website: client.website,
-        companyDescription: client.companyDescription,
         
-        // Configuraciones JSON complejas (nuevos campos)
-        callConfig: client.callConfig || {},
-        transferConfig: client.transferConfig || {},
-        scriptConfig: client.scriptConfig || {},
-        aiConfig: client.aiConfig || {},
-
-        
-        // Configuraciones existentes
-        emailConfig: client.emailConfig || {},
-        notificationConfig: client.notificationConfig || {},
-        businessHoursConfig: client.businessHoursConfig || {
-          enabled: false,
-          workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-          openingTime: '09:00',
-          closingTime: '18:00'
-        },
-        
-        // Configuración del bot (campos directos - nuevo sistema)
-        bot: {
-          name: client.botName || 'Asistente Virtual',
-          language: client.botLanguage || 'es',
-          welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
-          confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
-
-          personality: client.botPersonality || 'profesional y amigable'
-        },
-        
-        // Campos individuales de configuración del bot (para compatibilidad)
-        botName: client.botName || 'Asistente Virtual',
-        botLanguage: client.botLanguage || 'es',
-        welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
-        confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
-
-        botPersonality: client.botPersonality || 'profesional y amigable',
-        
-
-        
-        // Preguntas frecuentes
-        faqs: client.faqs || [],
-        
-        // Archivos de contexto
-        files: client.contextFiles || [],
-        
-        // Información de suscripción
-        subscriptionStatus: client.subscriptionStatus,
-        subscriptionExpiresAt: client.subscriptionExpiresAt,
-        trialEndDate: client.trialEndDate
+        // FAQs y archivos de contexto
+        faqs: true,
+        contextFiles: true
       }
     });
+    
+    if (!client) {
+      logger.error(`Cliente no encontrado: ${req.client.id}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Cliente no encontrado'
+      });
+    }
+    
+    // NORMALIZAR estructura de datos para frontend
+    const responseData = {
+      // Datos de perfil
+      profile: {
+        id: client.id,
+        email: client.email || '',
+        companyName: client.companyName || '',
+        contactName: client.contactName || '',
+        phone: client.phone || '',
+        industry: client.industry || 
+                (client.companyInfo?.sector) || '',
+        address: client.address || 
+                (client.companyInfo?.address) || '',
+        website: client.website || 
+                (client.companyInfo?.website) || ''
+      },
+      
+      // Datos del bot (campos directos - nuevo sistema)
+      bot: {
+        name: client.botName || 'Asistente Virtual',
+        personality: client.botPersonality || 'profesional y amigable',
+
+        welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
+        confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
+        language: client.botLanguage || 'es'
+      },
+      
+      // Configuración de llamadas (mapeada desde campos individuales)
+      callConfig: {
+        language: client.botLanguage || 'es',
+        greeting: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
+        voiceId: 'default' // Campo no existe en schema, valor por defecto
+      },
+      
+      // Configuración de email
+      email: client.emailConfig || {
+        emailProvider: '',
+        imapHost: '',
+        imapPort: '',
+        imapUser: '',
+        smtpHost: '',
+        smtpPort: '',
+        smtpUser: '',
+        emailSignature: '',
+        useSSL: false
+      },
+      
+      // FAQs y archivos de contexto
+      faqs: client.faqs || [],
+      files: client.contextFiles || [],
+      
+      // Datos de suscripción
+      subscription: {
+        status: client.subscriptionStatus || 'inactive',
+        expiresAt: client.subscriptionExpiresAt || null
+      }
+    };
+    
+    // Enviar respuesta exitosa
+    const successResponse = {
+      success: true,
+      data: responseData
+    };
+    
+    const jsonString = JSON.stringify(successResponse);
+    logger.info(`📤 Enviando respuesta unificada exitosa (${jsonString.length} bytes)`);
+    logger.info('🏁 FINALIZANDO GET /client exitosamente');
+    
+    return res.json(successResponse);
   } catch (error) {
-    logger.error(`Error en GET /api/client: ${error.message}`);
-    logger.error(error.stack);
-    return res.status(500).json({ 
-      error: 'Error interno del servidor', 
+    logger.error(`❌ ERROR en GET /client: ${error.message}`);
+    logger.error(`📋 Stack trace: ${error.stack}`);
+    
+    return res.status(500).json({
       success: false,
-      details: error.message 
+      error: 'Error obteniendo datos del cliente',
+      details: error.message
     });
   }
 });
 
-router.put('/api/client', authenticate, async (req, res) => {
+/**
+ * ENDPOINT UNIFICADO para actualizar TODOS los datos del cliente
+ * - Esta es la ÚNICA forma de actualizar datos del cliente
+ * - Reemplaza múltiples endpoints fragmentados
+ * - Garantiza consistencia de datos
+ */
+router.put('/client', authenticate, async (req, res) => {
   try {
-    logger.info('🔄 Redirigiendo PUT /api/client a PUT /client para compatibilidad');
-    logger.info('📝 Body recibido:', JSON.stringify(req.body, null, 2));
+    logger.info('🚀 INICIANDO PUT /client - ENDPOINT UNIFICADO');
+    logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
+    logger.info(`📧 Cliente email: ${req.client?.email}`);
+    
+    // Validar que req.body es un objeto válido
+    if (!req.body) {
+      logger.error(`❌ ERROR: req.body es ${req.body}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Formato de request inválido: req.body es null o undefined',
+        debug: {
+          receivedBody: String(req.body),
+          receivedType: typeof req.body,
+          contentType: req.headers['content-type']
+        }
+      });
+    }
+    
+    if (typeof req.body !== 'object') {
+      logger.error(`❌ ERROR: req.body no es un objeto, es ${typeof req.body}`);
+      logger.error(`❌ Contenido de req.body: ${String(req.body).substring(0, 200)}...`);
+      return res.status(400).json({
+        success: false,
+        error: 'Formato de request inválido: req.body no es un objeto',
+        debug: {
+          receivedType: typeof req.body,
+          contentType: req.headers['content-type'],
+          receivedBody: String(req.body)
+        }
+      });
+    }
     
     // Extraer datos del cuerpo de la petición
     const {
@@ -709,8 +777,37 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`🕐 FORCE DEBUG - req.body keys disponibles:`, Object.keys(req.body));
     }
     
-    // Extraer datos de la petición con validación
-    const { profile, bot, email, businessHoursConfig } = req.body;
+    // Extraer datos de la petición con el formato correcto que envía el frontend
+    const {
+      // Información de empresa - campos individuales (como en registro)
+      companyName,
+      companyDescription,
+      companySector, // Se mapea a industry
+      companyAddress, // Se mapea a address
+      companyPhone, // Se mapea a phone
+      companyEmail, // Se mapea a email (solo si se permite cambiar)
+      companyWebsite, // Se mapea a website
+      
+      // Configuración general - campos individuales
+      botName,
+      botPersonality,
+      welcomeMessage,
+      
+      // Configuraciones complejas - campos JSON
+      callConfig,
+      emailConfig,
+      businessHoursConfig,
+      transferConfig,
+      scriptConfig,
+      aiConfig,
+      
+      // Datos específicos del bot unificado (formato legacy)
+      profile,
+      bot,
+      email,
+      faqs,
+      files
+    } = req.body;
     
     // FORCE DEBUG - Verificar businessHoursConfig en el endpoint QUE SÍ SE EJECUTA
     logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - Verificando businessHoursConfig en req.body`);
@@ -722,36 +819,87 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - req.body keys disponibles:`, Object.keys(req.body));
       logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - req.body completo (primeros 1000 chars):`, JSON.stringify(req.body).substring(0, 1000));
     }
-    // calls - Era parte del sistema legacy
-    // faqs - Era parte del sistema legacy
-    // aiConfig - Era parte del sistema legacy
-    // contextFiles - Funcionalidad eliminada
     
-    // Validar que hay datos para actualizar
-    if (!profile && !bot && !email) {
-      return res.status(400).json({
-        success: false,
-        error: 'No hay datos para actualizar'
-      });
+    // Preparar objeto de actualización con campos directos
+    const updateData = {};
+    
+    // Actualizar campos directos si están presentes (mapeo correcto)
+    logger.info('🔍 Verificando campos de empresa:');
+    logger.info(`- companyName: ${companyName !== undefined ? `"${companyName}"` : 'undefined'}`);
+    logger.info(`- companyDescription: ${companyDescription !== undefined ? `"${companyDescription}"` : 'undefined'}`);
+    logger.info(`- companySector: ${companySector !== undefined ? `"${companySector}"` : 'undefined'}`);
+    logger.info(`- companyAddress: ${companyAddress !== undefined ? `"${companyAddress}"` : 'undefined'}`);
+    logger.info(`- companyPhone: ${companyPhone !== undefined ? `"${companyPhone}"` : 'undefined'}`);
+    logger.info(`- companyWebsite: ${companyWebsite !== undefined ? `"${companyWebsite}"` : 'undefined'}`);
+    
+    if (companyName !== undefined) {
+      updateData.companyName = companyName;
+      logger.info(`✅ Actualizando companyName: "${companyName}"`);
     }
     
-    // Obtener cliente actual para preservar datos existentes
+    if (companyDescription !== undefined) {
+      updateData.companyDescription = companyDescription;
+      logger.info(`✅ Actualizando companyDescription: "${companyDescription}"`);
+    }
+    
+    if (companySector !== undefined) {
+      updateData.industry = companySector; // Mapeo correcto
+      logger.info(`✅ Actualizando industry (desde companySector): "${companySector}"`);
+    }
+    
+    if (companyAddress !== undefined) {
+      updateData.address = companyAddress; // Mapeo correcto
+      logger.info(`✅ Actualizando address (desde companyAddress): "${companyAddress}"`);
+    }
+    
+    if (companyPhone !== undefined) {
+      updateData.phone = companyPhone; // Mapeo correcto
+      logger.info(`✅ Actualizando phone (desde companyPhone): "${companyPhone}"`);
+    }
+    
+    if (companyWebsite !== undefined) {
+      updateData.website = companyWebsite; // Mapeo correcto
+      logger.info(`✅ Actualizando website (desde companyWebsite): "${companyWebsite}"`);
+    }
+    
+    // Actualizar campos de configuración del bot
+    if (botName !== undefined) {
+      updateData.botName = botName;
+      logger.info(`✅ Actualizando botName: "${botName}"`);
+    }
+    
+    if (botPersonality !== undefined) {
+      updateData.botPersonality = botPersonality;
+      logger.info(`✅ Actualizando botPersonality: "${botPersonality}"`);
+    }
+    
+    if (welcomeMessage !== undefined) {
+      updateData.welcomeMessage = welcomeMessage;
+      logger.info(`✅ Actualizando welcomeMessage: "${welcomeMessage}"`);
+    }
+    
+    // Obtener cliente actual para preservar datos existentes y hacer merge de configuraciones JSON
     const currentClient = await prisma.client.findUnique({
       where: { id: req.client.id },
       select: {
-        // botConfig ELIMINADO - Sistema legacy removido
-        
-        // Campos directos de configuración del bot (nuevo sistema)
+        // Campos directos
         botName: true,
         botLanguage: true,
         welcomeMessage: true,
         confirmationMessage: true,
-
-
-
         botPersonality: true,
-        companyInfo: true,
-        emailConfig: true
+        
+        // Configuraciones JSON
+        callConfig: true,
+        emailConfig: true,
+        businessHoursConfig: true,
+        transferConfig: true,
+        scriptConfig: true,
+        aiConfig: true,
+        
+        // Otros datos
+        faqs: true,
+        contextFiles: true
       }
     });
     
@@ -763,204 +911,186 @@ router.put('/client', authenticate, async (req, res) => {
       });
     }
     
-    // PREPARAR DATOS PARA ACTUALIZACIÓN
+    // Procesar configuraciones JSON con merge inteligente
+    logger.info('🔧 Procesando configuraciones JSON:');
     
-    // 1. Datos de perfil (campos directos en la tabla client)
-    const profileData = profile ? {
-      companyName: profile.companyName,
-      contactName: profile.contactName,
-      email: profile.email,
-      phone: profile.phone,
-      industry: profile.industry,
-      address: profile.address,
-      website: profile.website
-    } : {};
-    
-    // 2. Configuración del bot (campos directos - nuevo sistema)
-    const botData = {};
-    
-    // Actualizar configuración del bot con campos directos
-    if (bot) {
-      if (bot.name) botData.botName = bot.name;
-      if (bot.personality) botData.botPersonality = bot.personality;
-      if (bot.language) botData.botLanguage = bot.language;
-      if (bot.welcomeMessage) botData.welcomeMessage = bot.welcomeMessage;
-      if (bot.confirmationMessage) botData.confirmationMessage = bot.confirmationMessage;
-
-    }
-    
-    // CONFIGURACIONES LEGACY ELIMINADAS:
-    // - calls: Era parte del sistema botConfig legacy
-    // - aiConfig: Era parte del sistema botConfig legacy  
-    // - faqs: Ahora se manejan a través del sistema unificado
-    // - contextFiles: Funcionalidad completamente removida
-    
-    // 3. Información de la empresa (objeto JSON companyInfo)
-    const currentCompanyInfo = currentClient.companyInfo || {};
-    const newCompanyInfo = profile ? {
-      ...currentCompanyInfo,
-      name: profile.companyName || currentCompanyInfo.name || '',
-      sector: profile.industry || currentCompanyInfo.sector || '',
-      phone: profile.phone || currentCompanyInfo.phone || '',
-      email: profile.email || currentCompanyInfo.email || '',
-      address: profile.address || currentCompanyInfo.address || '',
-      website: profile.website || currentCompanyInfo.website || ''
-    } : currentCompanyInfo;
-    
-    // 4. Configuración de email (objeto JSON emailConfig)
-    const newEmailConfig = email || currentClient.emailConfig || {};
-    
-    // 5. Configuración de horarios comerciales (objeto JSON businessHoursConfig)
-    let newBusinessHoursConfig = currentClient.businessHoursConfig || {};
+    // Configuración de horarios comerciales - CRÍTICO
     if (businessHoursConfig) {
-      newBusinessHoursConfig = {
-        ...newBusinessHoursConfig,
+      const mergedConfig = {
+        ...(currentClient.businessHoursConfig || {}),
         ...businessHoursConfig
       };
-      logger.info(`🕐 ACTUALIZANDO businessHoursConfig para cliente ${req.client.id}:`, JSON.stringify(newBusinessHoursConfig, null, 2));
+      updateData.businessHoursConfig = mergedConfig;
+      logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
+      logger.info(`🕐 businessHoursConfig merged:`, JSON.stringify(mergedConfig, null, 2));
     }
     
-    // EJECUTAR ACTUALIZACIÓN
-    const updateData = {
-      // Campos directos de perfil
-      ...profileData,
-      
-      // Campos directos de configuración del bot (nuevo sistema)
-      ...botData,
-      
-      // Objetos JSON
-      // botConfig ELIMINADO - Sistema legacy removido
-      companyInfo: newCompanyInfo,
-      emailConfig: newEmailConfig,
-      businessHoursConfig: newBusinessHoursConfig,
-      
-      // Timestamp de actualización
-      updatedAt: new Date()
-    };
-    
-    // Log de los datos que se van a actualizar (sin datos sensibles)
-    const sanitizedUpdateData = { ...updateData };
-    if (sanitizedUpdateData.emailConfig) {
-      sanitizedUpdateData.emailConfig = { 
-        ...sanitizedUpdateData.emailConfig,
-        imapPassword: '[REDACTED]',
-        smtpPassword: '[REDACTED]'
+    // Otras configuraciones JSON
+    if (callConfig) {
+      const mergedConfig = {
+        ...(currentClient.callConfig || {}),
+        ...callConfig
       };
+      updateData.callConfig = mergedConfig;
+      logger.info(`✅ Actualizando callConfig`);
     }
     
-    // Verificar la integridad del objeto antes de enviarlo a la base de datos
-    try {
-      const jsonUpdateData = JSON.stringify(sanitizedUpdateData);
-      logger.info(`📝 Datos a actualizar (primeros 200 chars): ${jsonUpdateData.substring(0, 200)}...`);
-      logger.info(`📎 Longitud total del JSON: ${jsonUpdateData.length} caracteres`);
-      
-      // VERIFICACIONES LEGACY ELIMINADAS:
-      // - botConfig.faqs: Era parte del sistema legacy
-      // - botConfig.contextFiles: Era parte del sistema legacy
-      
+    if (emailConfig || email) {
+      const mergedConfig = {
+        ...(currentClient.emailConfig || {}),
+        ...(emailConfig || {}),
+        ...(email || {})
+      };
+      updateData.emailConfig = mergedConfig;
+      logger.info(`✅ Actualizando emailConfig`);
+    }
+    
+    if (transferConfig) {
+      const mergedConfig = {
+        ...(currentClient.transferConfig || {}),
+        ...transferConfig
+      };
+      updateData.transferConfig = mergedConfig;
+      logger.info(`✅ Actualizando transferConfig`);
+    }
+    
+    if (scriptConfig) {
+      const mergedConfig = {
+        ...(currentClient.scriptConfig || {}),
+        ...scriptConfig
+      };
+      updateData.scriptConfig = mergedConfig;
+      logger.info(`✅ Actualizando scriptConfig`);
+    }
+    
+    if (aiConfig) {
+      const mergedConfig = {
+        ...(currentClient.aiConfig || {}),
+        ...aiConfig
+      };
+      updateData.aiConfig = mergedConfig;
+      logger.info(`✅ Actualizando aiConfig`);
+    }
+    
+    // Procesar FAQs si están presentes
+    if (faqs && Array.isArray(faqs)) {
+      updateData.faqs = faqs;
+      logger.info(`✅ Actualizando FAQs (${faqs.length} elementos)`);
+    }
+    
+    // Procesar archivos de contexto si están presentes
+    if (files && Array.isArray(files)) {
+      updateData.contextFiles = files;
+      logger.info(`✅ Actualizando archivos de contexto (${files.length} elementos)`);
+    }
+    
+    // Procesar datos legacy (profile, bot, email) si están presentes
+    if (profile) {
+      if (profile.companyName !== undefined) updateData.companyName = profile.companyName;
+      if (profile.contactName !== undefined) updateData.contactName = profile.contactName;
+      if (profile.email !== undefined) updateData.email = profile.email;
+      if (profile.phone !== undefined) updateData.phone = profile.phone;
+      if (profile.industry !== undefined) updateData.industry = profile.industry;
+      if (profile.address !== undefined) updateData.address = profile.address;
+      if (profile.website !== undefined) updateData.website = profile.website;
+      logger.info(`✅ Procesando datos de profile legacy`);
+    }
+    
+    if (bot) {
+      if (bot.name !== undefined) updateData.botName = bot.name;
+      if (bot.personality !== undefined) updateData.botPersonality = bot.personality;
+      if (bot.welcomeMessage !== undefined) updateData.welcomeMessage = bot.welcomeMessage;
+      if (bot.confirmationMessage !== undefined) updateData.confirmationMessage = bot.confirmationMessage;
+      if (bot.language !== undefined) updateData.botLanguage = bot.language;
+      logger.info(`✅ Procesando datos de bot legacy`);
+    }
+    
+    // Validar que hay datos para actualizar
+    if (Object.keys(updateData).length === 0) {
+      logger.warn('⚠️ No se encontraron datos válidos para actualizar');
+      return res.status(400).json({
+        success: false,
+        error: 'No se proporcionaron datos válidos para actualizar'
+      });
+    }
+    logger.info(`🔄 Actualizando cliente ${req.client.id} con datos:`, Object.keys(updateData));
+    
+    // Actualizar cliente en la base de datos
+    const updatedClient = await prisma.client.update({
+      where: { id: req.client.id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        companyName: true,
+        contactName: true,
+        phone: true,
+        industry: true,
+        address: true,
+        website: true,
+        companyDescription: true,
+        botName: true,
+        botPersonality: true,
+        welcomeMessage: true,
+        confirmationMessage: true,
+        botLanguage: true,
+        callConfig: true,
+        emailConfig: true,
+        businessHoursConfig: true,
+        transferConfig: true,
+        scriptConfig: true,
+        aiConfig: true,
+        faqs: true,
+        contextFiles: true
+      }
+    });
 
-    } catch (jsonError) {
-      logger.error(`❌ ERROR CRÍTICO: No se puede serializar el objeto updateData: ${jsonError.message}`);
-      logger.error(`📊 Claves del objeto: ${Object.keys(updateData).join(', ')}`);
-      return res.status(500).json({
-        success: false,
-        error: 'Error de serialización de datos',
-        details: jsonError.message
-      });
-    }
+    logger.info(`✅ Cliente ${req.client.id} actualizado exitosamente`);
     
-    // Actualizar en la base de datos
-    try {
-      logger.info('📦 Iniciando actualización en la base de datos...');
-      const updatedClient = await prisma.client.update({
-        where: { id: req.client.id },
-        data: updateData
-      });
-      logger.info(`✅ Cliente actualizado en BD correctamente: ID ${updatedClient.id}`);
-      
-      // Verificar si la actualización fue correcta
-      try {
-        const updatedJson = JSON.stringify(updatedClient);
-        logger.info(`✅ Cliente actualizado serializable: ${updatedJson.length} chars`);
-      } catch (serError) {
-        logger.warn(`⚠️ Cliente actualizado pero hay problemas de serialización: ${serError.message}`);
-      }
-    } catch (dbError) {
-      logger.error(`❌ ERROR en base de datos: ${dbError.message}`);
-      logger.error(`💥 Stack: ${dbError.stack}`);
-      return res.status(500).json({
-        success: false,
-        error: 'Error al actualizar en base de datos',
-        details: dbError.message
-      });
-    }
-    
-    logger.info('✅ Cliente actualizado exitosamente');
-    logger.info('🏁 FINALIZANDO PUT /client exitosamente');
-    
-    // Crear una respuesta JSON válida y verificarla
-    const successResponse = {
+    // Respuesta exitosa con datos actualizados
+    res.json({
       success: true,
-      message: 'Cliente actualizado exitosamente',
-      timestamp: new Date().toISOString(),
-      clientId: req.client.id
-    };
-    
-    // Validar que la respuesta puede convertirse a JSON sin errores
-    try {
-      const responseJson = JSON.stringify(successResponse);
-      logger.info(`✅ Respuesta JSON válida generada: ${responseJson}`);
-      
-      // Agregar encabezados específicos para evitar problemas de parsing
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      
-      logger.info('🌟 FINALIZANDO PUT /client - RESPUESTA EXITOSA ENVIADA');
-      return res.json(successResponse);
-    } catch (jsonError) {
-      logger.error(`❌ Error al generar respuesta JSON: ${jsonError.message}`);
-      logger.error(`💣 Respuesta problemática: ${JSON.stringify(successResponse)}`);
-      
-      // Respuesta alternativa como texto plano en caso de error
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      return res.status(500).send('Error interno del servidor al generar respuesta');
-    }
-  } catch (error) {
-    logger.error(`❌ ERROR en PUT /client: ${error.message}`);
-    logger.error(`📋 Stack trace: ${error.stack}`);
-    
-    // Asegurar que la respuesta de error es un JSON válido
-    try {
-      // Crear un objeto de error con información de diagnóstico
-      const errorResponse = {
-        success: false,
-        error: 'Error actualizando datos del cliente',
-        details: error.message,
-        timestamp: new Date().toISOString(),
-        errorType: error.constructor.name,
-        errorCode: error.code || 'UNKNOWN'
-      };
-      
-      // Verificar que es serializable
-      const errorJson = JSON.stringify(errorResponse);
-      logger.info(`ℹ️ Error serializado correctamente: ${errorJson.substring(0, 200)}`);
-      
-      // Establecer encabezados explícitos
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      
-      // Si es un error relacionado con JSON, agregar diagnóstico especial
-      if (error instanceof SyntaxError && error.message.includes('JSON')) {
-        logger.error('📢 ERROR DE SINTAXIS JSON DETECTADO');
-        logger.error(`🔍 Posición del error: ${error.position || 'desconocida'}`);
+      message: 'Configuración actualizada exitosamente',
+      data: {
+        // Información de perfil
+        id: updatedClient.id,
+        email: updatedClient.email,
+        companyName: updatedClient.companyName,
+        contactName: updatedClient.contactName,
+        phone: updatedClient.phone,
+        industry: updatedClient.industry,
+        address: updatedClient.address,
+        website: updatedClient.website,
+        companyDescription: updatedClient.companyDescription,
+        
+        // Configuración del bot
+        botName: updatedClient.botName,
+        botPersonality: updatedClient.botPersonality,
+        welcomeMessage: updatedClient.welcomeMessage,
+        confirmationMessage: updatedClient.confirmationMessage,
+        botLanguage: updatedClient.botLanguage,
+        
+        // Configuraciones JSON
+        callConfig: updatedClient.callConfig || {},
+        emailConfig: updatedClient.emailConfig || {},
+        businessHoursConfig: updatedClient.businessHoursConfig || {},
+        transferConfig: updatedClient.transferConfig || {},
+        scriptConfig: updatedClient.scriptConfig || {},
+        aiConfig: updatedClient.aiConfig || {},
+        
+        // Datos específicos
+        faqs: updatedClient.faqs || [],
+        contextFiles: updatedClient.contextFiles || []
       }
-      
-      logger.info('💬 FINALIZANDO PUT /client - ENVIANDO RESPUESTA DE ERROR');
-      return res.status(500).json(errorResponse);
-    } catch (jsonError) {
-      // Si aún hay error al serializar, enviar texto plano
-      logger.error(`❌ ERROR CRÍTICO: No se puede serializar ni el mensaje de error: ${jsonError.message}`);
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      return res.status(500).send(`Error interno del servidor. Detalles: ${error.message}`);
-    }
+    });
+    
+  } catch (error) {
+    logger.error(`❌ Error en PUT /client: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor',
+      details: error.message
+    });
   }
 });
 
