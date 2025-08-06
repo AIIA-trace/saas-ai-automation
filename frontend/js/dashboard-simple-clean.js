@@ -6958,6 +6958,8 @@ function saveUnifiedConfig() {
             
             // Configuración de horarios comerciales - CON DEBUG DETALLADO
             businessHoursConfig: (() => {
+                console.log('🔥 FRONTEND ACTUALIZADO - VERSIÓN 24cdf5f - HORARIOS SIEMPRE ACTIVOS');
+                
                 // DEBUG: Verificar cada campo individualmente
                 const enabledField = document.getElementById('business_hours_enabled');
                 const workingDaysFields = document.querySelectorAll('input[name="working_days"]:checked');
@@ -6965,7 +6967,7 @@ function saveUnifiedConfig() {
                 const closingTimeField = document.getElementById('closing_time');
                 
                 console.log('🕐 DEBUG HORARIOS COMERCIALES:');
-                console.log('- Campo enabled encontrado:', !!enabledField, 'valor:', enabledField?.checked);
+                console.log('- Campo enabled encontrado:', !!enabledField, 'valor:', enabledField?.value || enabledField?.checked);
                 console.log('- Campos working_days encontrados:', workingDaysFields.length);
                 console.log('- Campo opening_time encontrado:', !!openingTimeField, 'valor:', openingTimeField?.value);
                 console.log('- Campo closing_time encontrado:', !!closingTimeField, 'valor:', closingTimeField?.value);
