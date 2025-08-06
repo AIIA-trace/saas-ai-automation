@@ -84,8 +84,12 @@ const authenticate = async (req, res, next) => {
   const token = authHeader.substring(7);
   
   try {
+    // DEBUG TEMPORAL: Verificar autenticación
+    logger.info('🔑 TEMP DEBUG - Token recibido:', token.substring(0, 20) + '...');
+    
     // Verificar JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    logger.info('🔑 TEMP DEBUG - Token decodificado exitosamente, clientId:', decoded.clientId || decoded.id);
     
     // Buscar el cliente por ID del token
     const clientId = decoded.clientId || decoded.id;
@@ -95,6 +99,8 @@ const authenticate = async (req, res, next) => {
         id: clientId
       }
     });
+    
+    logger.info('🔑 TEMP DEBUG - Cliente encontrado:', client ? `${client.email} (ID: ${client.id})` : 'NO ENCONTRADO');
     
     if (!client) {
       return res.status(401).json({ error: 'Usuario no encontrado' });
@@ -630,6 +636,14 @@ router.put('/client', authenticate, async (req, res) => {
   try {
     logger.info('🚀 INICIANDO PUT /client - ENDPOINT UNIFICADO');
     logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
+    logger.info(`📧 Cliente email: ${req.client?.email}`);
+    
+    // DEBUG TEMPORAL: Verificar si businessHoursConfig llega
+    const { businessHoursConfig } = req.body;
+    logger.info(`🕐 TEMP DEBUG - businessHoursConfig recibido:`, businessHoursConfig ? 'SÍ' : 'NO');
+    if (businessHoursConfig) {
+      logger.info(`🕐 TEMP DEBUG - businessHoursConfig contenido:`, JSON.stringify(businessHoursConfig, null, 2));
+    }
     
     // Validar que req.body es un objeto válido
     if (!req.body) {
