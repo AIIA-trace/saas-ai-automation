@@ -425,35 +425,26 @@ router.put('/client', authenticate, async (req, res) => {
     }
     
     // Configuración de llamadas (mapear a campos individuales según schema)
-    if (callConfig) {
-      if (callConfig.language) updateData.botLanguage = callConfig.language;
-      if (callConfig.greeting) updateData.confirmationMessage = callConfig.greeting;
+    if (req.body.callConfig) {
+      if (req.body.callConfig.language) updateData.botLanguage = req.body.callConfig.language;
+      if (req.body.callConfig.greeting) updateData.confirmationMessage = req.body.callConfig.greeting;
       // voiceId no existe en schema - se ignora por ahora
       logger.info(`📞 Actualizando configuración de llamadas para cliente ${req.client.id}`);
     }
     
-    if (transferConfig) {
-      updateData.transferConfig = {
-        ...(currentClient.transferConfig || {}),
-        ...transferConfig
-      };
-      logger.info(`🔄 Actualizando configuración de transferencias para cliente ${req.client.id}`);
+    if (req.body.transferConfig) {
+      // transferConfig NO existe en Prisma - solo log
+      logger.info(`🔄 transferConfig recibido pero no se guardará (campo no existe en Prisma)`);
     }
     
-    if (scriptConfig) {
-      updateData.scriptConfig = {
-        ...(currentClient.scriptConfig || {}),
-        ...scriptConfig
-      };
-      logger.info(`📝 Actualizando configuración de script para cliente ${req.client.id}`);
+    if (req.body.scriptConfig) {
+      // scriptConfig NO existe en Prisma - solo log
+      logger.info(`📝 scriptConfig recibido pero no se guardará (campo no existe en Prisma)`);
     }
     
-    if (aiConfig) {
-      updateData.aiConfig = {
-        ...(currentClient.aiConfig || {}),
-        ...aiConfig
-      };
-      logger.info(`🤖 Actualizando configuración de IA para cliente ${req.client.id}`);
+    if (req.body.aiConfig) {
+      // aiConfig NO existe en Prisma - solo log
+      logger.info(`🤖 aiConfig recibido pero no se guardará (campo no existe en Prisma)`);
     }
     
 
