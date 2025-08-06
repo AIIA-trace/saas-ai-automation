@@ -7289,6 +7289,19 @@ function saveUnifiedConfig() {
             
             console.log(' Datos unificados preparados para el backend:', unifiedClientData);
             
+            // DEBUG CRÍTICO: Verificar businessHoursConfig antes del envío
+            console.log('🔥 DEBUG CRÍTICO - VERIFICANDO DATOS ANTES DEL ENVÍO:');
+            console.log('- businessHoursConfig en unifiedClientData:', unifiedClientData.businessHoursConfig);
+            console.log('- businessHoursConfig existe:', !!unifiedClientData.businessHoursConfig);
+            console.log('- businessHoursConfig contenido:', JSON.stringify(unifiedClientData.businessHoursConfig, null, 2));
+            
+            // Verificar el JSON que se va a enviar
+            const jsonToSend = JSON.stringify(unifiedClientData);
+            console.log('🔥 DEBUG CRÍTICO - JSON A ENVIAR:');
+            console.log('- Longitud del JSON:', jsonToSend.length);
+            console.log('- Contiene "businessHoursConfig":', jsonToSend.includes('businessHoursConfig'));
+            console.log('- JSON completo (primeros 1000 chars):', jsonToSend.substring(0, 1000));
+            
             // USAR ENDPOINT UNIFICADO
             console.log(' Usando endpoint unificado /api/client');
             console.log('🔄 Usando endpoint unificado /api/client');
