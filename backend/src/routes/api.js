@@ -925,16 +925,7 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`🕐 businessHoursConfig merged:`, JSON.stringify(mergedConfig, null, 2));
     }
     
-    // Otras configuraciones JSON
-    if (callConfig) {
-      const mergedConfig = {
-        ...(currentClient.callConfig || {}),
-        ...callConfig
-      };
-      updateData.callConfig = mergedConfig;
-      logger.info(`✅ Actualizando callConfig`);
-    }
-    
+    // Configuración de email (campo que SÍ existe en Prisma)
     if (emailConfig || email) {
       const mergedConfig = {
         ...(currentClient.emailConfig || {}),
@@ -945,31 +936,24 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`✅ Actualizando emailConfig`);
     }
     
+    // NOTA: Los siguientes campos NO existen en el modelo Prisma actual:
+    // - callConfig, transferConfig, scriptConfig, aiConfig
+    // Se omiten para evitar errores de Prisma
+    
+    if (callConfig) {
+      logger.info(`⚠️ callConfig recibido pero no se puede guardar (campo no existe en modelo Prisma)`);
+    }
+    
     if (transferConfig) {
-      const mergedConfig = {
-        ...(currentClient.transferConfig || {}),
-        ...transferConfig
-      };
-      updateData.transferConfig = mergedConfig;
-      logger.info(`✅ Actualizando transferConfig`);
+      logger.info(`⚠️ transferConfig recibido pero no se puede guardar (campo no existe en modelo Prisma)`);
     }
     
     if (scriptConfig) {
-      const mergedConfig = {
-        ...(currentClient.scriptConfig || {}),
-        ...scriptConfig
-      };
-      updateData.scriptConfig = mergedConfig;
-      logger.info(`✅ Actualizando scriptConfig`);
+      logger.info(`⚠️ scriptConfig recibido pero no se puede guardar (campo no existe en modelo Prisma)`);
     }
     
     if (aiConfig) {
-      const mergedConfig = {
-        ...(currentClient.aiConfig || {}),
-        ...aiConfig
-      };
-      updateData.aiConfig = mergedConfig;
-      logger.info(`✅ Actualizando aiConfig`);
+      logger.info(`⚠️ aiConfig recibido pero no se puede guardar (campo no existe en modelo Prisma)`);
     }
     
     // Procesar FAQs si están presentes
