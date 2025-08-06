@@ -88,9 +88,11 @@ const authenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
     // Buscar el cliente por ID del token
+    const clientId = decoded.clientId || decoded.id;
+    
     const client = await prisma.client.findUnique({
       where: {
-        id: decoded.id
+        id: clientId
       }
     });
     
@@ -390,10 +392,6 @@ router.put('/api/client', authenticate, async (req, res) => {
     }
     
     // Configuración de horarios comerciales
-    logger.info(`🔍 DEBUG businessHoursConfig recibido:`, JSON.stringify(businessHoursConfig, null, 2));
-    logger.info(`🔍 DEBUG businessHoursConfig existe:`, !!businessHoursConfig);
-    logger.info(`🔍 DEBUG businessHoursConfig tipo:`, typeof businessHoursConfig);
-    
     if (businessHoursConfig) {
       const mergedConfig = {
         ...(currentClient.businessHoursConfig || {}),
@@ -401,9 +399,6 @@ router.put('/api/client', authenticate, async (req, res) => {
       };
       updateData.businessHoursConfig = mergedConfig;
       logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
-      logger.info(`🕐 Configuración merged:`, JSON.stringify(mergedConfig, null, 2));
-    } else {
-      logger.warn(`⚠️ businessHoursConfig no recibido o es falsy`);
     }
     
     // Preguntas frecuentes (FAQs)
@@ -426,6 +421,14 @@ router.put('/api/client', authenticate, async (req, res) => {
     });
     logger.info('✅ Cliente actualizado correctamente');
     
+    // DEBUG: Verificar que businessHoursConfig se guardó correctamente
+    if (businessHoursConfig) {
+      logger.info(`🕐 DEBUG businessHoursConfig guardado en BD:`, JSON.stringify(updatedClient.businessHoursConfig, null, 2));
+      logger.info(`🕐 DEBUG Comparación - Enviado vs Guardado:`);
+      logger.info(`   Enviado:`, JSON.stringify(businessHoursConfig, null, 2));
+      logger.info(`   Guardado:`, JSON.stringify(updatedClient.businessHoursConfig, null, 2));
+    }
+    
     return res.json({
       success: true,
       message: 'Datos del cliente actualizados correctamente',
@@ -439,6 +442,14 @@ router.put('/api/client', authenticate, async (req, res) => {
         companyDescription: updatedClient.companyDescription,
         // botConfig ELIMINADO - Sistema legacy removido
         emailConfig: updatedClient.emailConfig,
+        
+        // Configuración de horarios comerciales
+        businessHoursConfig: updatedClient.businessHoursConfig || {
+          enabled: false,
+          workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+          openingTime: '09:00',
+          closingTime: '18:00'
+        },
         
         // Configuración del bot (campos directos - nuevo sistema)
         bot: {
@@ -3106,5 +3117,6 @@ router.post('/email/templates', authenticate, async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;
