@@ -299,10 +299,7 @@ router.put('/api/client', authenticate, async (req, res) => {
       files
     } = req.body;
     
-    // TEMP DEBUG - Verificar qué llega exactamente
-    logger.info(`🔍 TEMP DEBUG - businessHoursConfig recibido:`, businessHoursConfig);
-    logger.info(`🔍 TEMP DEBUG - req.body keys:`, Object.keys(req.body));
-    
+
     // Preparar objeto de actualización con campos directos
     const updateData = {};
     
@@ -395,24 +392,7 @@ router.put('/api/client', authenticate, async (req, res) => {
       logger.info(`📧 Actualizando configuración de email para cliente ${req.client.id}`);
     }
     
-    // Configuración de horarios comerciales - FORZADO PARA RENDER
-    logger.info(`🕐 FORCE DEBUG - Verificando businessHoursConfig en req.body`);
-    const businessHours = req.body.businessHoursConfig || req.body.business_hours_config;
-    logger.info(`🕐 FORCE DEBUG - businessHours encontrado:`, !!businessHours);
-    
-    if (businessHours) {
-      logger.info(`🕐 FORCE DEBUG - businessHours contenido:`, JSON.stringify(businessHours, null, 2));
-      const mergedConfig = {
-        ...(currentClient.businessHoursConfig || {}),
-        ...businessHours
-      };
-      updateData.businessHoursConfig = mergedConfig;
-      logger.info(`🕐 FORCE DEBUG - updateData.businessHoursConfig asignado:`, JSON.stringify(updateData.businessHoursConfig, null, 2));
-      logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
-    } else {
-      logger.warn(`🕐 FORCE DEBUG - NO se encontró businessHoursConfig en req.body`);
-      logger.info(`🕐 FORCE DEBUG - req.body keys disponibles:`, Object.keys(req.body));
-    }
+
     
     // Preguntas frecuentes (FAQs)
     if (faqs) {
