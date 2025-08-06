@@ -352,12 +352,8 @@ router.put('/client', authenticate, async (req, res) => {
 
       
       // Configuraciones complejas - campos JSON
-      callConfig,
       emailConfig,
       businessHoursConfig,
-      transferConfig,
-      scriptConfig,
-      aiConfig,
 
       
       // Datos específicos del bot unificado
@@ -485,11 +481,32 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`📁 Actualizando ${files.length} archivos de contexto para cliente ${req.client.id}`);
     }
     
-    // Actualizar cliente en la base de datos
-    logger.info(`🔄 Actualizando cliente ${req.client.id} con datos:`, JSON.stringify(updateData, null, 2));
+    // 🚨 FILTRAR CAMPOS QUE NO EXISTEN EN PRISMA ANTES DE LA ACTUALIZACIÓN
+    // Eliminar campos problemáticos del updateData si existen
+    const fieldsToRemove = ['transferConfig', 'scriptConfig', 'aiConfig', 'callConfig'];
+    const validUpdateData = { ...updateData };
+    
+    fieldsToRemove.forEach(field => {
+      if (validUpdateData[field]) {
+        delete validUpdateData[field];
+        logger.info(`⚠️ ${field} filtrado del updateData (no existe en modelo Prisma)`);
+      }
+    });
+    
+    // Log adicional para verificar campos recibidos pero no procesados
+    fieldsToRemove.forEach(field => {
+      if (req.body[field]) {
+        logger.info(`📥 ${field} recibido en req.body pero no se guardará`);
+      }
+    });
+    
+    logger.info(`🔄 Actualizando cliente ${req.client.id} con datos válidos:`);
+    logger.info(`📊 Campos válidos a actualizar:`, Object.keys(validUpdateData));
+    
+    // Actualizar cliente en la base de datos SOLO con campos válidos
     const updatedClient = await prisma.client.update({
       where: { id: req.client.id },
-      data: updateData
+      data: validUpdateData
     });
     logger.info('✅ Cliente actualizado correctamente');
     
@@ -940,19 +957,19 @@ router.put('/client', authenticate, async (req, res) => {
     // - callConfig, transferConfig, scriptConfig, aiConfig
     // Se omiten para evitar errores de Prisma
     
-    if (callConfig) {
+    if (req.body.callConfig) {
       logger.info(`⚠️ callConfig recibido pero no se puede guardar (campo no existe en modelo Prisma)`);
     }
     
-    if (transferConfig) {
+    if (req.body.transferConfig) {
       logger.info(`⚠️ transferConfig recibido pero no se puede guardar (campo no existe en modelo Prisma)`);
     }
     
-    if (scriptConfig) {
+    if (req.body.scriptConfig) {
       logger.info(`⚠️ scriptConfig recibido pero no se puede guardar (campo no existe en modelo Prisma)`);
     }
     
-    if (aiConfig) {
+    if (req.body.aiConfig) {
       logger.info(`⚠️ aiConfig recibido pero no se puede guardar (campo no existe en modelo Prisma)`);
     }
     
