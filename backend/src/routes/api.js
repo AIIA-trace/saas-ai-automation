@@ -298,7 +298,18 @@ router.put('/api/client', authenticate, async (req, res) => {
       faqs,
       files
     } = req.body;
-    
+
+    // FORCE DEBUG - Verificar businessHoursConfig en el endpoint CORRECTO
+    logger.info(`🕐 FORCE DEBUG CORRECTO - Verificando businessHoursConfig en req.body`);
+    const businessHoursFromBody = req.body.businessHoursConfig || req.body.business_hours_config;
+    logger.info(`🕐 FORCE DEBUG CORRECTO - businessHoursConfig encontrado:`, !!businessHoursFromBody);
+    if (businessHoursFromBody) {
+      logger.info(`🕐 FORCE DEBUG CORRECTO - businessHoursConfig contenido:`, JSON.stringify(businessHoursFromBody, null, 2));
+    } else {
+      logger.warn(`🕐 FORCE DEBUG CORRECTO - NO se encontró businessHoursConfig en req.body`);
+      logger.info(`🕐 FORCE DEBUG CORRECTO - req.body keys disponibles:`, Object.keys(req.body));
+      logger.info(`🕐 FORCE DEBUG CORRECTO - req.body completo (primeros 500 chars):`, JSON.stringify(req.body).substring(0, 500));
+    }
 
     // Preparar objeto de actualización con campos directos
     const updateData = {};
