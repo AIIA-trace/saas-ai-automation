@@ -16,6 +16,12 @@
         'presencePenalty': 'presence_penalty',
         'frequencyPenalty': 'frequency_penalty',
         
+        // Business Hours Config - MANTENER COMO ESTÁ
+        'businessHoursConfig': 'businessHoursConfig',
+        'workingDays': 'workingDays',
+        'openingTime': 'openingTime',
+        'closingTime': 'closingTime',
+        
         // DTMF Options
         'message': 'description',
         'key': 'digit',
