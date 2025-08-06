@@ -299,6 +299,10 @@ router.put('/api/client', authenticate, async (req, res) => {
       files
     } = req.body;
     
+    // TEMP DEBUG - Verificar qué llega exactamente
+    logger.info(`🔍 TEMP DEBUG - businessHoursConfig recibido:`, businessHoursConfig);
+    logger.info(`🔍 TEMP DEBUG - req.body keys:`, Object.keys(req.body));
+    
     // Preparar objeto de actualización con campos directos
     const updateData = {};
     
@@ -391,22 +395,14 @@ router.put('/api/client', authenticate, async (req, res) => {
       logger.info(`📧 Actualizando configuración de email para cliente ${req.client.id}`);
     }
     
-    // Configuración de horarios comerciales - CON DEBUG DETALLADO
-    logger.info(`🕐 TEMP DEBUG - businessHoursConfig recibido:`, businessHoursConfig ? 'SÍ' : 'NO');
+    // Configuración de horarios comerciales
     if (businessHoursConfig) {
-      logger.info(`🕐 TEMP DEBUG - businessHoursConfig contenido:`, JSON.stringify(businessHoursConfig, null, 2));
-      
       const mergedConfig = {
         ...(currentClient.businessHoursConfig || {}),
         ...businessHoursConfig
       };
       updateData.businessHoursConfig = mergedConfig;
-      
-      logger.info(`🕐 TEMP DEBUG - mergedConfig:`, JSON.stringify(mergedConfig, null, 2));
-      logger.info(`🕐 TEMP DEBUG - updateData.businessHoursConfig:`, JSON.stringify(updateData.businessHoursConfig, null, 2));
       logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
-    } else {
-      logger.warn(`🕐 TEMP DEBUG - businessHoursConfig NO recibido o es falsy`);
     }
     
     // Preguntas frecuentes (FAQs)
