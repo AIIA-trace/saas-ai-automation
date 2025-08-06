@@ -707,6 +707,17 @@ router.put('/client', authenticate, async (req, res) => {
     // Log completo del body para debug
     logger.debug(`Body recibido: ${JSON.stringify(req.body).substring(0, 500)}...`);
     
+    // FORCE DEBUG - Verificar businessHoursConfig en el endpoint correcto
+    logger.info(`🕐 FORCE DEBUG - Verificando businessHoursConfig en req.body`);
+    const businessHoursFromBody = req.body.businessHoursConfig || req.body.business_hours_config;
+    logger.info(`🕐 FORCE DEBUG - businessHoursConfig encontrado:`, !!businessHoursFromBody);
+    if (businessHoursFromBody) {
+      logger.info(`🕐 FORCE DEBUG - businessHoursConfig contenido:`, JSON.stringify(businessHoursFromBody, null, 2));
+    } else {
+      logger.warn(`🕐 FORCE DEBUG - NO se encontró businessHoursConfig en req.body`);
+      logger.info(`🕐 FORCE DEBUG - req.body keys disponibles:`, Object.keys(req.body));
+    }
+    
     // Extraer datos de la petición con validación
     const { profile, bot, email } = req.body;
     // calls - Era parte del sistema legacy
