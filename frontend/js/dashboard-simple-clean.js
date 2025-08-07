@@ -7019,8 +7019,9 @@ function saveUnifiedConfig() {
             console.log(`  - ${cb.value}: ${cb.checked ? 'SELECCIONADO' : 'no seleccionado'}`);
         });
         
-        // Si no hay días seleccionados, usar días laborables por defecto
-        const finalWorkingDays = selectedDays.length > 0 ? selectedDays : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+        // 🚨 FIX CRÍTICO: Usar exactamente los días seleccionados, con fallback mínimo
+        // Si el usuario no selecciona ningún día, usar al menos lunes como valor por defecto
+        const finalWorkingDays = selectedDays.length > 0 ? selectedDays : ['monday']; // Fallback mínimo: lunes
         
         const businessConfig = {
             enabled: enabledField?.checked || enabledField?.value === 'true' || true,
