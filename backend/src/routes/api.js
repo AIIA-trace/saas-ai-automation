@@ -395,7 +395,14 @@ router.put('/client', authenticate, async (req, res) => {
     if (companyPhone !== undefined) updateData.phone = companyPhone; // Mapeo correcto
     if (companyWebsite !== undefined) updateData.website = companyWebsite; // Mapeo correcto
     // email no se actualiza aquí por seguridad
-    
+    // CRÍTICO: Añadir businessHoursConfig al updateData
+    if (businessHoursFromBody) {
+    updateData.businessHoursConfig = businessHoursFromBody;
+    logger.info(`🕐 AÑADIENDO businessHoursConfig al updateData para cliente ${req.client.id}`);
+    logger.info(`🕐 businessHoursConfig que se guardará:`, JSON.stringify(businessHoursFromBody, null, 2));
+    } else {
+    logger.warn(`🕐 businessHoursConfig NO se añadirá porque no se encontró en req.body`);
+    }
     // CRÍTICO: Añadir businessHoursConfig al updateData
     if (businessHoursFromBody) {
       updateData.businessHoursConfig = businessHoursFromBody;
