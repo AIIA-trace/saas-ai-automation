@@ -923,14 +923,13 @@ router.put('/client', authenticate, async (req, res) => {
     logger.info('🔧 Procesando configuraciones JSON:');
     
     // Configuración de horarios comerciales - CRÍTICO
+    // REEMPLAZAR COMPLETAMENTE (no merge) para evitar problemas de actualización
     if (businessHoursConfig) {
-      const mergedConfig = {
-        ...(currentClient.businessHoursConfig || {}),
-        ...businessHoursConfig
-      };
-      updateData.businessHoursConfig = mergedConfig;
+      // REEMPLAZO COMPLETO: no hacer merge, usar directamente los nuevos valores
+      updateData.businessHoursConfig = businessHoursConfig;
       logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
-      logger.info(`🕐 businessHoursConfig merged:`, JSON.stringify(mergedConfig, null, 2));
+      logger.info(`🕐 businessHoursConfig REEMPLAZADO (no merged):`, JSON.stringify(businessHoursConfig, null, 2));
+      logger.info(`🕐 Valor anterior:`, JSON.stringify(currentClient.businessHoursConfig, null, 2));
     }
     
     // Configuración de email (campo que SÍ existe en Prisma)
