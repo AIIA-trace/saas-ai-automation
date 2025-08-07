@@ -1,0 +1,3 @@
+DEPLOY TRIGGER - 2025-08-07 22:29
+Fix businessHoursConfig aplicado y listo para producción
+Commit: 64fba65
