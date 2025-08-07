@@ -458,7 +458,12 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`📧 Actualizando configuración de email para cliente ${req.client.id}`);
     }
     
-
+    // Configuración de Horarios Comerciales (businessHoursConfig)
+    if (businessHoursConfig) {
+      updateData.businessHoursConfig = businessHoursConfig;
+      logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
+      logger.info(`🕐 businessHoursConfig guardado:`, JSON.stringify(businessHoursConfig, null, 2));
+    }
     
     // Preguntas frecuentes (FAQs)
     if (faqs) {
