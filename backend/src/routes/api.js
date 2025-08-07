@@ -824,6 +824,9 @@ router.put('/client', authenticate, async (req, res) => {
     
     // FORCE DEBUG - Verificar businessHoursConfig en el endpoint QUE SÍ SE EJECUTA
     logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - Verificando businessHoursConfig en req.body`);
+    logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - Claves disponibles en req.body:`, Object.keys(req.body));
+    logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - req.body.businessHoursConfig:`, req.body.businessHoursConfig);
+    logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - businessHoursConfig extraído:`, businessHoursConfig);
     logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - businessHoursConfig encontrado:`, !!businessHoursConfig);
     if (businessHoursConfig) {
       logger.info(`🕐 FORCE DEBUG ENDPOINT REAL - businessHoursConfig contenido:`, JSON.stringify(businessHoursConfig, null, 2));
