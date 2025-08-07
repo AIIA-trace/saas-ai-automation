@@ -3705,15 +3705,31 @@ function loadProfileData() {
                 }
             }
             
-            // Cargar días laborables
+            // Cargar días laborables - OPCIÓN B: Manejar tanto formato array (legacy) como objeto (nuevo)
             if (profileData.businessHoursConfig.workingDays) {
-                profileData.businessHoursConfig.workingDays.forEach(day => {
-                    const dayCheckbox = document.getElementById(day);
-                    if (dayCheckbox) {
-                        dayCheckbox.checked = true;
-                        console.log('✅ Día laborable marcado:', day);
-                    }
-                });
+                const workingDays = profileData.businessHoursConfig.workingDays;
+                
+                if (Array.isArray(workingDays)) {
+                    // Formato legacy: array de strings
+                    console.log('🔄 Cargando días laborables (formato array legacy):', workingDays);
+                    workingDays.forEach(day => {
+                        const dayCheckbox = document.querySelector(`input[name="working_days"][value="${day}"]`);
+                        if (dayCheckbox) {
+                            dayCheckbox.checked = true;
+                            console.log('✅ Día laborable marcado (legacy):', day);
+                        }
+                    });
+                } else if (typeof workingDays === 'object') {
+                    // Formato nuevo: objeto con días true/false
+                    console.log('🆕 Cargando días laborables (formato objeto nuevo):', workingDays);
+                    Object.entries(workingDays).forEach(([day, isWorking]) => {
+                        const dayCheckbox = document.querySelector(`input[name="working_days"][value="${day}"]`);
+                        if (dayCheckbox) {
+                            dayCheckbox.checked = isWorking;
+                            console.log(`✅ Día ${day}: ${isWorking ? 'LABORABLE' : 'no laborable'}`);
+                        }
+                    });
+                }
             }
             
             // Cargar horarios de apertura y cierre
@@ -7004,24 +7020,30 @@ function saveUnifiedConfig() {
             };
         }
         
-        // Recopilar días seleccionados (los valores ya están en inglés)
-        const selectedDays = Array.from(allDayCheckboxes)
-            .filter(cb => cb.checked)
-            .map(cb => {
-                const dayValue = cb.value; // Ya está en inglés (monday, tuesday, etc.)
-                console.log('- Día seleccionado:', dayValue, 'checked:', cb.checked);
-                return dayValue;
-            });
+        // 🚨 OPCIÓN B: Crear objeto completo con todos los días de la semana
+        const allDaysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
         
-        // DEBUG adicional para verificar todos los checkboxes
-        console.log('🔍 DEBUG COMPLETO DE DÍAS:');
-        Array.from(allDayCheckboxes).forEach(cb => {
-            console.log(`  - ${cb.value}: ${cb.checked ? 'SELECCIONADO' : 'no seleccionado'}`);
+        // Crear objeto con todos los días clasificados como true/false
+        const workingDaysObject = {};
+        
+        allDaysOfWeek.forEach(day => {
+            // Buscar si existe un checkbox para este día
+            const dayCheckbox = Array.from(allDayCheckboxes).find(cb => cb.value === day);
+            workingDaysObject[day] = dayCheckbox ? dayCheckbox.checked : false;
+            console.log(`- ${day}: ${workingDaysObject[day] ? 'LABORABLE' : 'no laborable'}`);
         });
         
-        // 🚨 FIX CRÍTICO: Usar exactamente los días seleccionados, con fallback mínimo
-        // Si el usuario no selecciona ningún día, usar al menos lunes como valor por defecto
-        const finalWorkingDays = selectedDays.length > 0 ? selectedDays : ['monday']; // Fallback mínimo: lunes
+        // DEBUG completo del objeto de días
+        console.log('🔍 DEBUG OBJETO COMPLETO DE DÍAS:', workingDaysObject);
+        
+        // Si no hay ningún día seleccionado, activar al menos lunes como fallback
+        const hasAnyDaySelected = Object.values(workingDaysObject).some(isSelected => isSelected);
+        if (!hasAnyDaySelected) {
+            workingDaysObject.monday = true;
+            console.log('⚠️ Fallback aplicado: lunes activado automáticamente');
+        }
+        
+        const finalWorkingDays = workingDaysObject;
         
         const businessConfig = {
             enabled: enabledField?.checked || enabledField?.value === 'true' || true,
