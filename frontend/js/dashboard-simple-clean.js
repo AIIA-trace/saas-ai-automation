@@ -6971,17 +6971,6 @@ function saveUnifiedConfig() {
     
     // Función para recopilar businessHoursConfig cuando los elementos estén disponibles
     const collectBusinessHoursConfig = () => {
-        // Mapeo de días de español a inglés
-        const dayMapping = {
-            'lunes': 'monday',
-            'martes': 'tuesday',
-            'miércoles': 'wednesday',
-            'jueves': 'thursday',
-            'viernes': 'friday',
-            'sábado': 'saturday',
-            'domingo': 'sunday'
-        };
-        
         // Verificar elementos
         const enabledField = document.getElementById('business_hours_enabled');
         const allDayCheckboxes = document.querySelectorAll('input[name="working_days"]');
@@ -7005,14 +6994,13 @@ function saveUnifiedConfig() {
             };
         }
         
-        // Recopilar días seleccionados
+        // Recopilar días seleccionados (los valores ya están en inglés)
         const selectedDays = Array.from(allDayCheckboxes)
             .filter(cb => cb.checked)
             .map(cb => {
-                const spanishDay = cb.value;
-                const englishDay = dayMapping[spanishDay] || spanishDay;
-                console.log('- Día seleccionado:', spanishDay, '→', englishDay, 'checked:', cb.checked);
-                return englishDay;
+                const dayValue = cb.value; // Ya está en inglés (monday, tuesday, etc.)
+                console.log('- Día seleccionado:', dayValue, 'checked:', cb.checked);
+                return dayValue;
             });
         
         // DEBUG adicional para verificar todos los checkboxes
