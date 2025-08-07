@@ -7030,11 +7030,21 @@ function saveUnifiedConfig() {
                 };
                 
                 // Recopilar días seleccionados con debug y mapeo correcto
-                const selectedDays = Array.from(workingDaysFields).map(cb => {
-                    const spanishDay = cb.value;
-                    const englishDay = dayMapping[spanishDay] || spanishDay;
-                    console.log('- Día seleccionado:', spanishDay, '→', englishDay, 'checked:', cb.checked);
-                    return englishDay;
+                // OBTENER TODOS los checkboxes y FILTRAR solo los checked
+                const allDayCheckboxes = document.querySelectorAll('input[name="working_days"]');
+                const selectedDays = Array.from(allDayCheckboxes)
+                    .filter(cb => cb.checked) // ← FILTRAR solo los marcados
+                    .map(cb => {
+                        const spanishDay = cb.value;
+                        const englishDay = dayMapping[spanishDay] || spanishDay;
+                        console.log('- Día seleccionado:', spanishDay, '→', englishDay, 'checked:', cb.checked);
+                        return englishDay;
+                    });
+                
+                // DEBUG adicional para verificar todos los checkboxes
+                console.log('🔍 DEBUG COMPLETO DE DÍAS:');
+                Array.from(allDayCheckboxes).forEach(cb => {
+                    console.log(`  - ${cb.value}: ${cb.checked ? 'SELECCIONADO' : 'no seleccionado'}`);
                 });
                 
                 // Si no hay días seleccionados, usar días laborables por defecto
