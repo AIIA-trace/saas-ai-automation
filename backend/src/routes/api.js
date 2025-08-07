@@ -396,13 +396,13 @@ router.put('/client', authenticate, async (req, res) => {
     if (companyWebsite !== undefined) updateData.website = companyWebsite; // Mapeo correcto
     // email no se actualiza aquí por seguridad
     
-    // CRÍTICO: Añadir businessHoursConfig al updateData
+    // CRÍTICO: Añadir businessHoursConfig al updateData (PRIMERA ASIGNACIÓN)
     if (businessHoursFromBody) {
       updateData.businessHoursConfig = businessHoursFromBody;
-      logger.info(`🕐 AÑADIENDO businessHoursConfig al updateData para cliente ${req.client.id}`);
+      logger.info(`🕐 PRIMERA ASIGNACIÓN - businessHoursConfig añadido al updateData para cliente ${req.client.id}`);
       logger.info(`🕐 businessHoursConfig que se guardará:`, JSON.stringify(businessHoursFromBody, null, 2));
     } else {
-      logger.warn(`🕐 businessHoursConfig NO se añadirá porque no se encontró en req.body`);
+      logger.warn(`🕐 businessHoursConfig NO se encontró en req.body (primera verificación)`);
     }
     
     logger.info('✅ Datos de actualización preparados:', JSON.stringify(updateData, null, 2));
@@ -467,11 +467,12 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`📧 Actualizando configuración de email para cliente ${req.client.id}`);
     }
     
-    // Configuración de Horarios Comerciales (businessHoursConfig)
+    // ELIMINADO: Configuración de Horarios Comerciales (businessHoursConfig)
+    // Esta sección se eliminó para evitar duplicación con la línea 400-406
+    // businessHoursConfig ya se procesa arriba usando businessHoursFromBody
     if (businessHoursConfig) {
-      updateData.businessHoursConfig = businessHoursConfig;
-      logger.info(`🕐 Actualizando configuración de horarios comerciales para cliente ${req.client.id}`);
-      logger.info(`🕐 businessHoursConfig guardado:`, JSON.stringify(businessHoursConfig, null, 2));
+      logger.warn(`🚨 DUPLICACIÓN DETECTADA - businessHoursConfig procesado dos veces, ignorando segunda asignación`);
+      logger.info(`🕐 businessHoursConfig ya asignado anteriormente, valor actual en updateData:`, JSON.stringify(updateData.businessHoursConfig, null, 2));
     }
     
     // Preguntas frecuentes (FAQs)
