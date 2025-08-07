@@ -6967,10 +6967,12 @@ function saveUnifiedConfig() {
         };
     
     // RECOPILAR businessHoursConfig DE FORMA ASÍNCRONA
-    console.log('🔥 FRONTEND ACTUALIZADO - VERSIÓN TIMING-FIX-ASYNC - Recopilando horarios comerciales...');
+    console.log('🔥 FRONTEND ACTUALIZADO - VERSIÓN TIMING-FIX-ASYNC-DEBUG - Recopilando horarios comerciales...');
     
     // Función para recopilar businessHoursConfig cuando los elementos estén disponibles
     const collectBusinessHoursConfig = () => {
+        console.log('🔍 INICIANDO collectBusinessHoursConfig...');
+        
         // Verificar elementos
         const enabledField = document.getElementById('business_hours_enabled');
         const allDayCheckboxes = document.querySelectorAll('input[name="working_days"]');
@@ -6982,6 +6984,14 @@ function saveUnifiedConfig() {
         console.log('- Campos working_days totales:', allDayCheckboxes.length);
         console.log('- Campo opening_time encontrado:', !!openingTimeField, 'valor:', openingTimeField?.value);
         console.log('- Campo closing_time encontrado:', !!closingTimeField, 'valor:', closingTimeField?.value);
+        
+        // DEBUG ADICIONAL: Verificar TODO el DOM
+        console.log('🔍 DEBUG COMPLETO DEL DOM:');
+        console.log('- document.readyState:', document.readyState);
+        console.log('- Todos los elementos con ID business_hours_enabled:', document.querySelectorAll('#business_hours_enabled').length);
+        console.log('- Todos los elementos con name working_days:', document.querySelectorAll('[name="working_days"]').length);
+        console.log('- Todos los elementos con ID opening_time:', document.querySelectorAll('#opening_time').length);
+        console.log('- Todos los elementos con ID closing_time:', document.querySelectorAll('#closing_time').length);
         
         // Si no hay elementos, devolver configuración por defecto
         if (!enabledField || allDayCheckboxes.length === 0 || !openingTimeField || !closingTimeField) {
@@ -7020,13 +7030,17 @@ function saveUnifiedConfig() {
         };
         
         console.log('🕐 businessHoursConfig recopilado:', businessConfig);
+        console.log('🔍 RETORNANDO businessConfig desde collectBusinessHoursConfig');
         return businessConfig;
     };
     
     // Recopilar businessHoursConfig ahora que los elementos deberían estar disponibles
+    console.log('🔍 LLAMANDO a collectBusinessHoursConfig()...');
     config.businessHoursConfig = collectBusinessHoursConfig();
+    console.log('🔍 businessHoursConfig ASIGNADO a config:', config.businessHoursConfig);
     
     console.log('📝 Configuración recopilada (con businessHoursConfig):', config);
+    console.log('🔍 VERIFICACIÓN FINAL - config.businessHoursConfig antes del envío:', JSON.stringify(config.businessHoursConfig, null, 2));
     
     // Validar campos requeridos
     const requiredFields = [
