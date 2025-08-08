@@ -832,6 +832,7 @@ router.get('/profile', authenticate, async (req, res) => {
           timezone: true,
           language: true,
           companyDescription: true, // Agregar campo nuevo
+          businessHoursConfig: true, // CRÍTICO: Agregar para que el frontend pueda cargar horarios comerciales
           createdAt: true,
           updatedAt: true
           // Excluir password y apiKey por seguridad
