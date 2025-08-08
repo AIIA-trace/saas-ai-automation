@@ -619,6 +619,7 @@ router.get('/client', authenticate, async (req, res) => {
         companyInfo: true,
         emailConfig: true,
         notificationConfig: true,
+        businessHoursConfig: true,
         
         // FAQs y archivos de contexto
         faqs: true,
@@ -684,6 +685,9 @@ router.get('/client', authenticate, async (req, res) => {
       // FAQs y archivos de contexto
       faqs: client.faqs || [],
       files: client.contextFiles || [],
+
+      // Configuración de horarios comerciales
+      businessHoursConfig: client.businessHoursConfig || null,
       
       // Datos de suscripción
       subscription: {
