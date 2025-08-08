@@ -3691,7 +3691,14 @@ function loadProfileData() {
         
         // Cargar configuración de horarios comerciales
         // FIX: businessHoursConfig está en response.data.businessHoursConfig, no en profileData
+        console.log('🔍 DEBUG CRÍTICO - Estructura completa de response.data:', response.data);
+        console.log('🔍 DEBUG CRÍTICO - response.data.businessHoursConfig:', response.data?.businessHoursConfig);
+        console.log('🔍 DEBUG CRÍTICO - profileData.businessHoursConfig:', profileData.businessHoursConfig);
+        console.log('🔍 DEBUG CRÍTICO - Claves disponibles en response.data:', Object.keys(response.data || {}));
+        
         const businessHoursData = response.data?.businessHoursConfig || profileData.businessHoursConfig;
+        console.log('🔍 DEBUG CRÍTICO - businessHoursData final:', businessHoursData);
+        
         if (businessHoursData) {
             console.log('🕰️ Cargando configuración de horarios comerciales:', businessHoursData);
             
