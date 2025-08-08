@@ -3690,12 +3690,14 @@ function loadProfileData() {
         }
         
         // Cargar configuración de horarios comerciales
-        if (profileData.businessHoursConfig) {
-            console.log('🕰️ Cargando configuración de horarios comerciales:', profileData.businessHoursConfig);
+        // FIX: businessHoursConfig está en response.data.businessHoursConfig, no en profileData
+        const businessHoursData = response.data?.businessHoursConfig || profileData.businessHoursConfig;
+        if (businessHoursData) {
+            console.log('🕰️ Cargando configuración de horarios comerciales:', businessHoursData);
             
             const businessHoursEnabled = document.getElementById('business_hours_enabled');
             if (businessHoursEnabled) {
-                businessHoursEnabled.checked = profileData.businessHoursConfig.enabled || false;
+                businessHoursEnabled.checked = businessHoursData.enabled || false;
                 console.log('✅ Horarios comerciales activados:', businessHoursEnabled.checked);
                 
                 // Mostrar/ocultar configuración según el estado
@@ -3706,8 +3708,8 @@ function loadProfileData() {
             }
             
             // Cargar días laborables - OPCIÓN B: Manejar tanto formato array (legacy) como objeto (nuevo)
-            if (profileData.businessHoursConfig.workingDays) {
-                const workingDays = profileData.businessHoursConfig.workingDays;
+            if (businessHoursData.workingDays) {
+                const workingDays = businessHoursData.workingDays;
                 
                 if (Array.isArray(workingDays)) {
                     // Formato legacy: array de strings
@@ -3734,15 +3736,15 @@ function loadProfileData() {
             
             // Cargar horarios de apertura y cierre
             const openingTimeField = document.getElementById('opening_time');
-            if (openingTimeField && profileData.businessHoursConfig.openingTime) {
-                openingTimeField.value = profileData.businessHoursConfig.openingTime;
-                console.log('✅ Hora de apertura cargada:', profileData.businessHoursConfig.openingTime);
+            if (openingTimeField && businessHoursData.openingTime) {
+                openingTimeField.value = businessHoursData.openingTime;
+                console.log('✅ Hora de apertura cargada:', businessHoursData.openingTime);
             }
             
             const closingTimeField = document.getElementById('closing_time');
-            if (closingTimeField && profileData.businessHoursConfig.closingTime) {
-                closingTimeField.value = profileData.businessHoursConfig.closingTime;
-                console.log('✅ Hora de cierre cargada:', profileData.businessHoursConfig.closingTime);
+            if (closingTimeField && businessHoursData.closingTime) {
+                closingTimeField.value = businessHoursData.closingTime;
+                console.log('✅ Hora de cierre cargada:', businessHoursData.closingTime);
             }
         } else {
             console.log('🕰️ No hay configuración de horarios comerciales guardada');
