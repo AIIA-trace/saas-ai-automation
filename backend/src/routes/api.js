@@ -240,11 +240,19 @@ router.get('/api/client', authenticate, async (req, res) => {
         language: client.botLanguage || 'es'
       },
       
-      // Configuración de llamadas (mapeada desde campos individuales)
-      callConfig: {
-        language: client.botLanguage || 'es',
-        greeting: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
-        voiceId: 'default' // Campo no existe en schema, valor por defecto
+      // Configuración de llamadas (objeto JSON completo de la base de datos)
+      callConfig: client.callConfig || {
+        enabled: false,
+        recordCalls: false,
+        transcribeCalls: false,
+        voiceId: 'female',
+        language: 'es-ES',
+        greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
+        volume: '1.0',
+        speed: '1.0',
+        pitch: '1.0',
+        useCustomVoice: false,
+        customVoiceId: ''
       },
       
       // Configuración de email
@@ -489,7 +497,8 @@ router.put('/client', authenticate, async (req, res) => {
     
     // 🚨 FILTRAR CAMPOS QUE NO EXISTEN EN PRISMA ANTES DE LA ACTUALIZACIÓN
     // Eliminar campos problemáticos del updateData si existen
-    const fieldsToRemove = ['transferConfig', 'scriptConfig', 'aiConfig', 'callConfig'];
+    const fieldsToRemove = ['transferConfig', 'scriptConfig', 'aiConfig'];
+    // NOTA: callConfig removido de la lista porque ahora SÍ existe en el modelo Prisma
     const validUpdateData = { ...updateData };
     
     fieldsToRemove.forEach(field => {
@@ -618,6 +627,7 @@ router.get('/client', authenticate, async (req, res) => {
         botPersonality: true,
         companyInfo: true,
         emailConfig: true,
+        callConfig: true,
         notificationConfig: true,
         businessHoursConfig: true,
         
@@ -662,11 +672,19 @@ router.get('/client', authenticate, async (req, res) => {
         language: client.botLanguage || 'es'
       },
       
-      // Configuración de llamadas (mapeada desde campos individuales)
-      callConfig: {
-        language: client.botLanguage || 'es',
-        greeting: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
-        voiceId: 'default' // Campo no existe en schema, valor por defecto
+      // Configuración de llamadas (objeto JSON completo de la base de datos)
+      callConfig: client.callConfig || {
+        enabled: false,
+        recordCalls: false,
+        transcribeCalls: false,
+        voiceId: 'female',
+        language: 'es-ES',
+        greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
+        volume: '1.0',
+        speed: '1.0',
+        pitch: '1.0',
+        useCustomVoice: false,
+        customVoiceId: ''
       },
       
       // Configuración de email

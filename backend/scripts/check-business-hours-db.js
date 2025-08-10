@@ -12,7 +12,7 @@ async function checkBusinessHours() {
     
     try {
         // Buscar el cliente por email
-        const email = 'javier.sanhez@javier.com';
+        const email = 'javisanher99@gmail.com';
         console.log(`📧 Buscando cliente con email: ${email}`);
         
         const client = await prisma.client.findUnique({
@@ -78,7 +78,7 @@ async function checkBusinessHours() {
         const clientsWithBusinessHours = await prisma.client.findMany({
             where: {
                 businessHoursConfig: {
-                    not: null
+                    not: undefined
                 }
             },
             select: {

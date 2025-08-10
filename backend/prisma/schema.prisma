@@ -55,6 +55,7 @@ model Client {
   // JSON configs
   // botConfig ELIMINADO - Era parte del sistema legacy
   emailConfig          Json?          // Configuración del manejo de emails
+  callConfig           Json?          // Configuración de llamadas (activación, grabación, transcripción, voz, idioma, mensaje)
   companyInfo          Json?          // Información de la empresa
   billingInfo          Json?          // Información de facturación
   paymentMethods       Json?          // Métodos de pago
