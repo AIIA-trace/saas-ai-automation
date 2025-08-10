@@ -285,6 +285,12 @@ router.get('/api/client', authenticate, async (req, res) => {
       data: responseData
     };
     
+    // DEBUG: Verificar emailConfig antes de enviar
+    logger.info('📧 ===== DEBUG EMAILCONFIG BACKEND =====');
+    logger.info('📧 emailConfig raw desde BD:', JSON.stringify(client.emailConfig, null, 2));
+    logger.info('📧 emailConfig en responseData:', JSON.stringify(responseData.emailConfig, null, 2));
+    logger.info('📧 ===== FIN DEBUG EMAILCONFIG =====');
+    
     const jsonString = JSON.stringify(successResponse);
     logger.info(`📤 Enviando respuesta unificada exitosa (${jsonString.length} bytes)`);
     logger.info('🏁 FINALIZANDO GET /client exitosamente');
@@ -723,6 +729,12 @@ router.get('/client', authenticate, async (req, res) => {
       data: responseData
     };
     
+    // DEBUG: Verificar emailConfig antes de enviar
+    logger.info('📧 ===== DEBUG EMAILCONFIG BACKEND =====');
+    logger.info('📧 emailConfig raw desde BD:', JSON.stringify(client.emailConfig, null, 2));
+    logger.info('📧 emailConfig en responseData:', JSON.stringify(responseData.emailConfig, null, 2));
+    logger.info('📧 ===== FIN DEBUG EMAILCONFIG =====');
+    
     const jsonString = JSON.stringify(successResponse);
     logger.info(`📤 Enviando respuesta unificada exitosa (${jsonString.length} bytes)`);
     logger.info('🏁 FINALIZANDO GET /client exitosamente');
@@ -903,7 +915,13 @@ router.get('/profile', authenticate, async (req, res) => {
       };
       
       // Verificar que la respuesta sea un JSON válido
-      const jsonString = JSON.stringify(successResponse);
+      // DEBUG: Verificar emailConfig antes de enviar
+    logger.info('📧 ===== DEBUG EMAILCONFIG BACKEND =====');
+    logger.info('📧 emailConfig raw desde BD:', JSON.stringify(client.emailConfig, null, 2));
+    logger.info('📧 emailConfig en responseData:', JSON.stringify(responseData.emailConfig, null, 2));
+    logger.info('📧 ===== FIN DEBUG EMAILCONFIG =====');
+    
+    const jsonString = JSON.stringify(successResponse);
       if (!jsonString) {
         throw new Error('No se pudo convertir la respuesta a JSON string');
       }
@@ -1045,7 +1063,13 @@ router.get('/auth/me', authenticate, async (req, res) => {
       };
       
       // Validar que la respuesta sea JSON válido
-      const jsonString = JSON.stringify(successResponse);
+      // DEBUG: Verificar emailConfig antes de enviar
+    logger.info('📧 ===== DEBUG EMAILCONFIG BACKEND =====');
+    logger.info('📧 emailConfig raw desde BD:', JSON.stringify(client.emailConfig, null, 2));
+    logger.info('📧 emailConfig en responseData:', JSON.stringify(responseData.emailConfig, null, 2));
+    logger.info('📧 ===== FIN DEBUG EMAILCONFIG =====');
+    
+    const jsonString = JSON.stringify(successResponse);
       JSON.parse(jsonString); // Verificar que se puede parsear sin errores
       
       logger.info(`📊 Cliente encontrado en BD: ${!!client}`);
