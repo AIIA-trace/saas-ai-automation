@@ -255,17 +255,14 @@ router.get('/api/client', authenticate, async (req, res) => {
         customVoiceId: ''
       },
       
-      // Configuración de email
+      // Configuración de email (estructura unificada frontend-backend)
       emailConfig: client.emailConfig || {
-        emailProvider: '',
-        imapHost: '',
-        imapPort: '',
-        imapUser: '',
-        smtpHost: '',
-        smtpPort: '',
-        smtpUser: '',
+        enabled: false,
+        provider: '',
+        outgoingEmail: '',
+        consentGiven: false,
         emailSignature: '',
-        useSSL: false
+        forwardingRules: ''
       },
       
       // FAQs y archivos de contexto
@@ -696,17 +693,14 @@ router.get('/client', authenticate, async (req, res) => {
         customVoiceId: ''
       },
       
-      // Configuración de email
+      // Configuración de email (estructura unificada frontend-backend)
       emailConfig: client.emailConfig || {
-        emailProvider: '',
-        imapHost: '',
-        imapPort: '',
-        imapUser: '',
-        smtpHost: '',
-        smtpPort: '',
-        smtpUser: '',
+        enabled: false,
+        provider: '',
+        outgoingEmail: '',
+        consentGiven: false,
         emailSignature: '',
-        useSSL: false
+        forwardingRules: ''
       },
       
       // FAQs y archivos de contexto
