@@ -8088,8 +8088,8 @@ function loadContextFiles() {
     
     window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
     .then(clientData => {
-        // En el endpoint unificado, los archivos están directamente en clientData.files
-        const files = clientData?.files || [];
+        // En el endpoint unificado, los archivos están directamente en clientData.contextFiles
+        const files = clientData?.contextFiles || [];
         console.log('💾 Archivos de contexto recibidos del endpoint unificado:', files.length);
         
         // Limpiar la lista actual
