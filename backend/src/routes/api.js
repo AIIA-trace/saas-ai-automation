@@ -285,7 +285,7 @@ router.get('/api/client', authenticate, async (req, res) => {
     // DEBUG: Verificar emailConfig antes de enviar
     logger.info('📧 ===== DEBUG EMAILCONFIG BACKEND =====');
     logger.info('📧 emailConfig raw desde BD:', JSON.stringify(client.emailConfig, null, 2));
-    logger.info('📧 emailConfig en responseData:', JSON.stringify(responseData.emailConfig, null, 2));
+    logger.info('📧 emailConfig preparado correctamente');
     logger.info('📧 ===== FIN DEBUG EMAILCONFIG =====');
     
     const jsonString = JSON.stringify(successResponse);
@@ -726,7 +726,7 @@ router.get('/client', authenticate, async (req, res) => {
     // DEBUG: Verificar emailConfig antes de enviar
     logger.info('📧 ===== DEBUG EMAILCONFIG BACKEND =====');
     logger.info('📧 emailConfig raw desde BD:', JSON.stringify(client.emailConfig, null, 2));
-    logger.info('📧 emailConfig en responseData:', JSON.stringify(responseData.emailConfig, null, 2));
+    logger.info('📧 emailConfig preparado correctamente');
     logger.info('📧 ===== FIN DEBUG EMAILCONFIG =====');
     
     const jsonString = JSON.stringify(successResponse);
@@ -912,7 +912,7 @@ router.get('/profile', authenticate, async (req, res) => {
       // DEBUG: Verificar emailConfig antes de enviar
     logger.info('📧 ===== DEBUG EMAILCONFIG BACKEND =====');
     logger.info('📧 emailConfig raw desde BD:', JSON.stringify(client.emailConfig, null, 2));
-    logger.info('📧 emailConfig en responseData:', JSON.stringify(responseData.emailConfig, null, 2));
+    logger.info('📧 emailConfig preparado correctamente');
     logger.info('📧 ===== FIN DEBUG EMAILCONFIG =====');
     
     const jsonString = JSON.stringify(successResponse);
@@ -1060,7 +1060,7 @@ router.get('/auth/me', authenticate, async (req, res) => {
       // DEBUG: Verificar emailConfig antes de enviar
     logger.info('📧 ===== DEBUG EMAILCONFIG BACKEND =====');
     logger.info('📧 emailConfig raw desde BD:', JSON.stringify(client.emailConfig, null, 2));
-    logger.info('📧 emailConfig en responseData:', JSON.stringify(responseData.emailConfig, null, 2));
+    logger.info('📧 emailConfig preparado correctamente');
     logger.info('📧 ===== FIN DEBUG EMAILCONFIG =====');
     
     const jsonString = JSON.stringify(successResponse);
