@@ -3571,6 +3571,26 @@ function loadBotConfiguration() {
         const callConfig = clientData.callConfig || {};
         console.log('📞 Configuración de llamadas:', callConfig);
         
+        // Cargar checkboxes de configuración de llamadas
+        const callBotActiveCheckbox = document.getElementById('call_bot_active');
+        if (callBotActiveCheckbox) {
+            callBotActiveCheckbox.checked = callConfig.enabled || false;
+            console.log('🤖 Bot de llamadas activo:', callConfig.enabled);
+        }
+        
+        const callRecordingCheckbox = document.getElementById('call_recording');
+        if (callRecordingCheckbox) {
+            callRecordingCheckbox.checked = callConfig.recordCalls || false;
+            console.log('🎥 Grabación de llamadas:', callConfig.recordCalls);
+        }
+        
+        const callTranscriptionCheckbox = document.getElementById('call_transcription');
+        if (callTranscriptionCheckbox) {
+            callTranscriptionCheckbox.checked = callConfig.transcribeCalls || false;
+            console.log('📝 Transcripción de llamadas:', callConfig.transcribeCalls);
+        }
+        
+        // Cargar selectores de configuración de llamadas
         if (callConfig.language) {
             const languageSelect = document.getElementById('call_language');
             if (languageSelect) {
