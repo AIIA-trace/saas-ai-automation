@@ -3841,55 +3841,6 @@ function loadEmailConfiguration() {
             }
         }
         
-
-        
-        if (emailConfig.autoReplyMessage) {
-            document.getElementById('auto_reply_message').value = emailConfig.autoReplyMessage;
-        }
-        
-        if (emailConfig.outgoingEmail) {
-            document.getElementById('outgoing_email').value = emailConfig.outgoingEmail;
-        }
-        
-        if (emailConfig.website) {
-            document.getElementById('website').value = emailConfig.website;
-        }
-        
-
-        
-        if (emailConfig.emailSignature) {
-            document.getElementById('email_signature').value = emailConfig.emailSignature;
-        }
-        
-        // Cargar configuración de proveedor de correo
-        if (emailConfig.provider) {
-            const emailProviderSelect = document.getElementById('email_provider');
-            if (emailProviderSelect) {
-                emailProviderSelect.value = emailConfig.provider;
-                
-                // Disparar el evento change para actualizar la UI
-                const event = new Event('change');
-                emailProviderSelect.dispatchEvent(event);
-            }
-        }
-        
-        // Cargar configuración manual de IMAP/SMTP si existe
-        if (emailConfig.provider === 'other') {
-            if (emailConfig.imapServer) document.getElementById('imap_server').value = emailConfig.imapServer;
-            if (emailConfig.imapPort) document.getElementById('imap_port').value = emailConfig.imapPort;
-            if (emailConfig.smtpServer) document.getElementById('smtp_server').value = emailConfig.smtpServer;
-            if (emailConfig.smtpPort) document.getElementById('smtp_port').value = emailConfig.smtpPort;
-            if (emailConfig.useSSL !== undefined) document.getElementById('use_ssl').checked = emailConfig.useSSL;
-        }
-        
-        // Cargar estado de consentimiento
-        if (emailConfig.emailConsent !== undefined) {
-            const emailConsentCheckbox = document.getElementById('email_consent');
-            if (emailConsentCheckbox) {
-                emailConsentCheckbox.checked = emailConfig.emailConsent;
-            }
-        }
-        
         // Cargar estado de conexión con el proveedor de correo
         if (emailConfig.connected) {
             // Actualizar UI para mostrar que está conectado
