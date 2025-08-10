@@ -8091,6 +8091,7 @@ function loadContextFiles() {
         // En el endpoint unificado, los archivos están en clientData.data.contextFiles
         const files = clientData?.data?.contextFiles || [];
         console.log('💾 Archivos de contexto recibidos del endpoint unificado:', files.length);
+        console.log('🔍 DEBUG - Archivos recibidos:', JSON.stringify(files, null, 2));
         
         // Limpiar la lista actual
         clearUploadedFiles();
@@ -8101,12 +8102,13 @@ function loadContextFiles() {
                 // Agregar archivo al estado local con flag de uploaded
                 const fileData = {
                     id: file.id || generateFileId(),
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
+                    name: file.filename || file.name, // Usar filename de la BD
+                    size: file.file_size || file.size, // Usar file_size de la BD
+                    type: file.file_type || file.type, // Usar file_type de la BD
                     uploaded: true // Marcar como ya subido
                 };
                 
+                console.log('🔍 DEBUG - Archivo mapeado:', JSON.stringify(fileData, null, 2));
                 addUploadedFile(fileData);
             });
             
