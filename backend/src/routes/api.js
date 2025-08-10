@@ -256,7 +256,7 @@ router.get('/api/client', authenticate, async (req, res) => {
       },
       
       // Configuración de email
-      email: client.emailConfig || {
+      emailConfig: client.emailConfig || {
         emailProvider: '',
         imapHost: '',
         imapPort: '',
@@ -691,7 +691,7 @@ router.get('/client', authenticate, async (req, res) => {
       },
       
       // Configuración de email
-      email: client.emailConfig || {
+      emailConfig: client.emailConfig || {
         emailProvider: '',
         imapHost: '',
         imapPort: '',
