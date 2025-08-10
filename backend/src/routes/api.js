@@ -468,13 +468,14 @@ router.put('/client', authenticate, async (req, res) => {
     
 
     
-    // Configuración de Email (mantener sistema actual)
-    if (emailConfig) {
-      updateData.emailConfig = {
-        ...(currentClient.emailConfig || {}),
-        ...emailConfig
-      };
-      logger.info(`📧 Actualizando configuración de email para cliente ${req.client.id}`);
+    // Configuración de Email (guardar como objeto JSON completo)
+    if (req.body.emailConfig) {
+      updateData.emailConfig = req.body.emailConfig;
+      logger.info(`📧 FORCE DEBUG EMAILCONFIG - Recibido en req.body:`);
+      logger.info(`📧 FORCE DEBUG EMAILCONFIG - Contenido:`, JSON.stringify(req.body.emailConfig, null, 2));
+      logger.info(`📧 FORCE DEBUG EMAILCONFIG - Añadido al updateData para cliente ${req.client.id}`);
+    } else {
+      logger.info(`📧 FORCE DEBUG EMAILCONFIG - NO recibido en req.body`);
     }
     
     // ELIMINADO: Configuración de Horarios Comerciales (businessHoursConfig)

@@ -1575,28 +1575,6 @@ function createBotConfigTabContent() {
                                                         <input class="form-check-input" type="checkbox" id="email_bot_active" name="email_bot_active" checked>
                                                         <label class="form-check-label" for="email_bot_active">Bot de Emails Activo</label>
                                                     </div>
-                                                    <div class="form-check form-switch">
-                                                        <input class="form-check-input" type="checkbox" id="auto_reply" name="auto_reply" checked>
-                                                        <label class="form-check-label" for="auto_reply">Respuesta Automática</label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Columna derecha: Configuración de idioma -->
-                                        <div class="col-md-6">
-                                            <div class="card border-light h-100">
-                                                <div class="card-body p-3">
-                                                    <h6 class="card-subtitle mb-3 text-muted">Configuración de Idioma</h6>
-                                                    <div>
-                                                        <label for="email_language" class="form-label">Idioma Principal</label>
-                                                        <select class="form-select" id="email_language" name="email_language" required>
-                                                            <option value="es-ES" selected>Español (España)</option>
-                                                            <option value="en-US">Inglés (EEUU)</option>
-                                                            <option value="fr-FR">Francés</option>
-                                                            <option value="de-DE">Alemán</option>
-                                                        </select>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -3814,19 +3792,62 @@ function loadEmailConfiguration() {
         // En el endpoint unificado, la configuración de email está en clientData.emailConfig
         const emailConfig = clientData.emailConfig || {};
         console.log('💾 Configuración de email recibida:', emailConfig);
+        
+        // Cargar checkboxes principales de configuración de emails
+        const emailBotActiveCheckbox = document.getElementById('email_bot_active');
+        if (emailBotActiveCheckbox) {
+            emailBotActiveCheckbox.checked = emailConfig.enabled || false;
+            console.log('🤖 Bot de emails activo:', emailConfig.enabled);
+        }
+        
+        const emailConsentCheckbox = document.getElementById('email_consent');
+        if (emailConsentCheckbox) {
+            emailConsentCheckbox.checked = emailConfig.consentGiven || false;
+            console.log('✅ Consentimiento de email:', emailConfig.consentGiven);
+        }
+        
+        // Cargar selectores y campos de texto
+        if (emailConfig.provider) {
+            const emailProviderSelect = document.getElementById('email_provider');
+            if (emailProviderSelect) {
+                emailProviderSelect.value = emailConfig.provider;
+                console.log('🔗 Proveedor de email cargado:', emailConfig.provider);
+            }
+        }
+        
+        if (emailConfig.outgoingEmail) {
+            const outgoingEmailInput = document.getElementById('outgoing_email');
+            if (outgoingEmailInput) {
+                outgoingEmailInput.value = emailConfig.outgoingEmail;
+                console.log('📧 Email de salida cargado:', emailConfig.outgoingEmail);
+            }
+        }
+        
+        if (emailConfig.autoReplyMessage) {
+            const autoReplyTextarea = document.getElementById('auto_reply_message');
+            if (autoReplyTextarea) {
+                autoReplyTextarea.value = emailConfig.autoReplyMessage;
+                console.log('💬 Mensaje de respuesta automática cargado');
+            }
+        }
+        
+        if (emailConfig.emailSignature) {
+            const emailSignatureTextarea = document.getElementById('email_signature');
+            if (emailSignatureTextarea) {
+                emailSignatureTextarea.value = emailConfig.emailSignature;
+                console.log('✍️ Firma de email cargada');
+            }
+        }
+        
+        if (emailConfig.forwardingRules) {
+            const forwardRulesTextarea = document.getElementById('forward_rules');
+            if (forwardRulesTextarea) {
+                forwardRulesTextarea.value = emailConfig.forwardingRules;
+                console.log('📋 Reglas de reenvío cargadas');
+            }
+        }
+        
 
-        // Rellenar campos del formulario con la configuración de emails
-        if (emailConfig.forwardRules) {
-            document.getElementById('forward_rules').value = emailConfig.forwardRules;
-        }
-        
-        if (emailConfig.defaultRecipients) {
-            document.getElementById('recipient_email').value = emailConfig.defaultRecipients;
-        }
-        
-        if (emailConfig.autoReplyEnabled !== undefined) {
-            document.getElementById('auto_reply').checked = emailConfig.autoReplyEnabled;
-        }
         
         if (emailConfig.autoReplyMessage) {
             document.getElementById('auto_reply_message').value = emailConfig.autoReplyMessage;
@@ -3840,9 +3861,7 @@ function loadEmailConfiguration() {
             document.getElementById('website').value = emailConfig.website;
         }
         
-        if (emailConfig.emailLanguage) {
-            document.getElementById('email_language').value = emailConfig.emailLanguage;
-        }
+
         
         if (emailConfig.emailSignature) {
             document.getElementById('email_signature').value = emailConfig.emailSignature;
@@ -6975,27 +6994,55 @@ function saveUnifiedConfig() {
                 return config;
             })(),
             
-            // Configuración de emails - Estructura completa con IDs alternativos
-            emailConfig: {
-                enabled: document.getElementById('email_bot_active')?.checked || document.getElementById('enable-email')?.checked || false,
-                provider: document.getElementById('email_provider')?.value || document.getElementById('email-provider')?.value || 'gmail',
-                outgoingEmail: document.getElementById('outgoing_email')?.value || document.getElementById('outgoing-email')?.value || '',
-                recipientEmail: document.getElementById('recipient_email')?.value || document.getElementById('recipient-email')?.value || '',
-                forwardRules: document.getElementById('forward_rules')?.value || document.getElementById('forward-rules')?.value || '',
-                autoReply: document.getElementById('autoReplyEnabled')?.checked || document.getElementById('auto-reply-enabled')?.checked || document.getElementById('auto_reply')?.checked || false,
-                autoReplyMessage: document.getElementById('autoReplyMessage')?.value || document.getElementById('auto-reply-message')?.value || document.getElementById('auto_reply_message')?.value || '',
-                language: document.getElementById('email_language')?.value || document.getElementById('email-language')?.value || 'es-ES',
-                emailSignature: document.getElementById('email_signature')?.value || document.getElementById('email-signature')?.value || '',
-                emailConsent: document.getElementById('email_consent')?.checked || document.getElementById('email-consent')?.checked || false,
-                // Configuración de servidores con IDs alternativos
-                imapServer: document.getElementById('imap_server')?.value || document.getElementById('imap-server')?.value || '',
-                imapPort: parseInt(document.getElementById('imap_port')?.value || document.getElementById('imap-port')?.value) || 993,
-                smtpServer: document.getElementById('smtp_server')?.value || document.getElementById('smtp-server')?.value || '',
-                smtpPort: parseInt(document.getElementById('smtp_port')?.value || document.getElementById('smtp-port')?.value) || 587,
-                useSSL: document.getElementById('use_ssl')?.checked || document.getElementById('use-ssl')?.checked !== false, // Default true
-                // Campos adicionales de email-config.js
-                forwardingRules: typeof collectForwardingRules === 'function' ? collectForwardingRules() : []
-            },
+            // Configuración de emails - Optimizada para n8n/OpenAI
+            emailConfig: (() => {
+                console.log('📧 ===== DEBUG EMAILCONFIG RECOPILACIÓN =====');
+                
+                // Verificar existencia de elementos principales
+                const elements = {
+                    email_bot_active: document.getElementById('email_bot_active'),
+                    email_provider: document.getElementById('email_provider'),
+                    outgoing_email: document.getElementById('outgoing_email'),
+                    email_consent: document.getElementById('email_consent'),
+                    auto_reply_message: document.getElementById('auto_reply_message'),
+                    email_signature: document.getElementById('email_signature')
+                };
+                
+                console.log('🔍 Elementos encontrados:');
+                Object.entries(elements).forEach(([id, element]) => {
+                    console.log(`   ${id}: ${element ? '✅ EXISTE' : '❌ NO EXISTE'}`);
+                    if (element) {
+                        if (element.type === 'checkbox') {
+                            console.log(`      Valor: ${element.checked}`);
+                        } else {
+                            console.log(`      Valor: "${element.value}"`);
+                        }
+                    }
+                });
+                
+                const config = {
+                    // Control principal
+                    enabled: document.getElementById('email_bot_active')?.checked || false,
+                    
+                    // Configuración de integración (para n8n)
+                    provider: document.getElementById('email_provider')?.value || 'google',
+                    outgoingEmail: document.getElementById('outgoing_email')?.value || '',
+                    consentGiven: document.getElementById('email_consent')?.checked || false,
+                    
+                    // Contenido del bot (para OpenAI)
+                    autoReplyMessage: document.getElementById('auto_reply_message')?.value || 'Gracias por su mensaje. Nos pondremos en contacto con usted lo antes posible.',
+                    emailSignature: document.getElementById('email_signature')?.value || '',
+                    
+                    // Reglas avanzadas (para n8n workflows)
+                    forwardingRules: document.getElementById('forward_rules')?.value || ''
+                };
+                
+                console.log('📧 emailConfig recopilado:');
+                console.log(JSON.stringify(config, null, 2));
+                console.log('📧 ===== FIN DEBUG EMAILCONFIG =====');
+                
+                return config;
+            })(),
             
             // Configuración de transferencias
             transferConfig: {
