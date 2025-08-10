@@ -135,8 +135,17 @@ router.get('/me', authenticate, async (req, res) => {
     
     // Parsear JSON strings en objetos
     if (safeClient.emailConfig) {
-      safeClient.emailConfig.forwardingRules = JSON.parse(safeClient.emailConfig.forwardingRules || "[]");
-      safeClient.emailConfig.defaultRecipients = JSON.parse(safeClient.emailConfig.defaultRecipients || "[]");
+      // forwardingRules es texto plano, NO JSON - no parsear
+      // safeClient.emailConfig.forwardingRules ya es string, mantener como está
+      
+      // Solo parsear campos que realmente son JSON
+      if (safeClient.emailConfig.defaultRecipients && typeof safeClient.emailConfig.defaultRecipients === 'string') {
+        try {
+          safeClient.emailConfig.defaultRecipients = JSON.parse(safeClient.emailConfig.defaultRecipients);
+        } catch (e) {
+          safeClient.emailConfig.defaultRecipients = [];
+        }
+      }
     }
     
     if (safeClient.botConfig) {

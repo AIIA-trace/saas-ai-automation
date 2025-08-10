@@ -13,7 +13,7 @@ async function checkFaqsAndFiles() {
         companyName: true,
         email: true,
         faqs: true,
-        files: true,
+        contextFiles: true,
         emailConfig: true,
         callConfig: true,
         businessHoursConfig: true
@@ -43,14 +43,14 @@ async function checkFaqsAndFiles() {
     
     // Revisar archivos
     console.log('\n📁 ARCHIVOS DE CONTEXTO:');
-    if (client.files && client.files.length > 0) {
-      console.log('✅ Archivos encontrados:', client.files.length);
-      client.files.forEach((file, index) => {
+    if (client.contextFiles && client.contextFiles.length > 0) {
+      console.log('✅ Archivos encontrados:', client.contextFiles.length);
+      client.contextFiles.forEach((file, index) => {
         console.log(`  ${index + 1}. "${file.name}" (${file.size} bytes, tipo: ${file.type})`);
       });
     } else {
       console.log('❌ No hay archivos guardados en la base de datos');
-      console.log('🔍 Valor de files:', client.files);
+      console.log('🔍 Valor de contextFiles:', client.contextFiles);
     }
     
     // Revisar configuraciones para contexto
