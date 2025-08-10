@@ -3642,10 +3642,16 @@ function loadBotConfiguration() {
     .catch(error => {
         console.error('❌ Error al cargar configuración del bot:', error);
         
-        // Cargar FAQs y archivos como fallback
-        console.log('🔄 Cargando FAQs y archivos como fallback...');
-        loadSampleFaqs();
+        // Cargar archivos como fallback (NO cargar FAQs de ejemplo automáticamente)
+        console.log('🔄 Cargando archivos como fallback...');
         loadContextFiles();
+        
+        // Limpiar FAQs y mostrar mensaje vacío
+        const faqItems = document.getElementById('faq-items');
+        if (faqItems) {
+            faqItems.innerHTML = '';
+            updateNoFaqsMessage();
+        }
     });
 }
 
@@ -7510,8 +7516,10 @@ function loadSampleFaqs() {
         // Obtener token de autenticación
         const token = localStorage.getItem('authToken');
         if (!token) {
-            console.log('ℹ️ No hay token de autenticación, usando datos de ejemplo');
-            loadDemoFaqs();
+            console.log('ℹ️ No hay token de autenticación - mostrando mensaje vacío');
+            // LIMPIAR FAQs existentes
+            faqItems.innerHTML = '';
+            updateNoFaqsMessage();
             return;
         }
         
@@ -7521,25 +7529,32 @@ function loadSampleFaqs() {
         
         window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
         .then(clientData => {
+            // LIMPIAR FAQs existentes antes de cargar nuevas
+            faqItems.innerHTML = '';
+            console.log('🧹 FAQs existentes limpiadas del DOM');
+            
             // En el endpoint unificado, las FAQs están directamente en clientData.faqs
             const faqs = clientData?.faqs || [];
             console.log('💾 FAQs recibidas del endpoint unificado:', faqs.length);
 
-            // Añadir preguntas al DOM
+            // Añadir preguntas al DOM SOLO si existen FAQs guardadas
             if (faqs && faqs.length > 0) {
                 faqs.forEach(faq => addFaqItemToDOM(faq));
                 console.log(`✅ ${faqs.length} preguntas frecuentes cargadas correctamente`);
             } else {
-                console.log('ℹ️ No hay preguntas frecuentes configuradas en la API, cargando datos de ejemplo');
-                loadDemoFaqs();
+                console.log('ℹ️ No hay preguntas frecuentes guardadas - mostrando mensaje vacío');
+                // NO cargar FAQs de ejemplo automáticamente
             }
             
             // Actualizar la visualización del mensaje de no hay preguntas
             updateNoFaqsMessage();
         })
         .catch(error => {
-            console.log('ℹ️ No se pudieron cargar preguntas frecuentes desde la API, usando datos de ejemplo:', error.message);
-            loadDemoFaqs();
+            console.log('❌ Error al cargar preguntas frecuentes desde la API:', error.message);
+            // LIMPIAR FAQs existentes en caso de error
+            faqItems.innerHTML = '';
+            // NO cargar FAQs de ejemplo automáticamente en caso de error
+            updateNoFaqsMessage();
         });
     }, 600);
 }
