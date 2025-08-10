@@ -3510,10 +3510,6 @@ function loadExistingData() {
         console.log('🤖 Iniciando carga de configuración del bot...');
         loadBotConfiguration();
         
-        // Cargar configuración de emails
-        console.log('📧 Iniciando carga de configuración de emails...');
-        loadEmailConfiguration();
-        
         // Cargar datos de perfil desde backend (fuente única de verdad)
 
         console.log('👤 Iniciando carga de datos de perfil desde backend...');
@@ -3580,6 +3576,56 @@ function loadBotConfiguration() {
             if (greetingTextarea) {
                 greetingTextarea.value = callConfig.greeting;
                 console.log('👋 Saludo de llamadas cargado');
+            }
+        }
+        
+        // Configuración de email (patrón idéntico a callConfig)
+        const emailConfig = clientData.emailConfig || {};
+        console.log('📧 Configuración de email:', emailConfig);
+        
+        // Cargar checkboxes de configuración de emails (patrón idéntico a callConfig)
+        const emailBotActiveCheckbox = document.getElementById('email_bot_active');
+        if (emailBotActiveCheckbox) {
+            emailBotActiveCheckbox.checked = emailConfig.enabled || false;
+            console.log('🤖 Bot de emails activo:', emailConfig.enabled);
+        }
+        
+        const emailConsentCheckbox = document.getElementById('email_consent');
+        if (emailConsentCheckbox) {
+            emailConsentCheckbox.checked = emailConfig.consentGiven || false;
+            console.log('✅ Consentimiento de email:', emailConfig.consentGiven);
+        }
+        
+        // Cargar selectores de configuración de emails (patrón idéntico a callConfig)
+        if (emailConfig.provider) {
+            const emailProviderSelect = document.getElementById('email_provider');
+            if (emailProviderSelect) {
+                emailProviderSelect.value = emailConfig.provider;
+                console.log('🔗 Proveedor de email cargado:', emailConfig.provider);
+            }
+        }
+        
+        if (emailConfig.outgoingEmail) {
+            const outgoingEmailInput = document.getElementById('outgoing_email');
+            if (outgoingEmailInput) {
+                outgoingEmailInput.value = emailConfig.outgoingEmail;
+                console.log('📧 Email de salida cargado:', emailConfig.outgoingEmail);
+            }
+        }
+        
+        if (emailConfig.emailSignature) {
+            const emailSignatureTextarea = document.getElementById('email_signature');
+            if (emailSignatureTextarea) {
+                emailSignatureTextarea.value = emailConfig.emailSignature;
+                console.log('✍️ Firma de email cargada');
+            }
+        }
+        
+        if (emailConfig.forwardingRules) {
+            const forwardRulesTextarea = document.getElementById('forward_rules');
+            if (forwardRulesTextarea) {
+                forwardRulesTextarea.value = emailConfig.forwardingRules;
+                console.log('📋 Reglas de reenvío cargadas');
             }
         }
         
@@ -3767,73 +3813,7 @@ function loadProfileData() {
 
 // Función deleteContextFile() eliminada como parte de la refactorización del sistema de configuración del bot
 
-/**
- * Cargar configuración de emails desde el backend usando el endpoint unificado
- */
-function loadEmailConfiguration() {
-    console.log('🚨 ===== INICIANDO CARGA DE CONFIGURACIÓN DE EMAIL =====');
-    console.log('📧 Cargando configuración de emails...');
-    console.log('🕰️ Timestamp:', new Date().toISOString());
-    
-    // Usar el endpoint unificado /api/client en lugar del legacy /api/config/email
-    console.log('🔄 Usando endpoint unificado CLIENT_DATA: ' + window.API_CONFIG.DASHBOARD.CLIENT_DATA.url);
-    window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
-    .then(clientData => {
-        // Configuración de email (patrón idéntico a callConfig)
-        const emailConfig = clientData.emailConfig || {};
-        console.log('📧 Configuración de email:', emailConfig);
-        
-        // Cargar checkboxes de configuración de emails (patrón idéntico a callConfig)
-        const emailBotActiveCheckbox = document.getElementById('email_bot_active');
-        if (emailBotActiveCheckbox) {
-            emailBotActiveCheckbox.checked = emailConfig.enabled || false;
-            console.log('🤖 Bot de emails activo:', emailConfig.enabled);
-        }
-        
-        const emailConsentCheckbox = document.getElementById('email_consent');
-        if (emailConsentCheckbox) {
-            emailConsentCheckbox.checked = emailConfig.consentGiven || false;
-            console.log('✅ Consentimiento de email:', emailConfig.consentGiven);
-        }
-        
-        // Cargar selectores de configuración de emails (patrón idéntico a callConfig)
-        if (emailConfig.provider) {
-            const emailProviderSelect = document.getElementById('email_provider');
-            if (emailProviderSelect) {
-                emailProviderSelect.value = emailConfig.provider;
-                console.log('🔗 Proveedor de email cargado:', emailConfig.provider);
-            }
-        }
-        
-        if (emailConfig.outgoingEmail) {
-            const outgoingEmailInput = document.getElementById('outgoing_email');
-            if (outgoingEmailInput) {
-                outgoingEmailInput.value = emailConfig.outgoingEmail;
-                console.log('📧 Email de salida cargado:', emailConfig.outgoingEmail);
-            }
-        }
-        
-        if (emailConfig.emailSignature) {
-            const emailSignatureTextarea = document.getElementById('email_signature');
-            if (emailSignatureTextarea) {
-                emailSignatureTextarea.value = emailConfig.emailSignature;
-                console.log('✍️ Firma de email cargada');
-            }
-        }
-        
-        if (emailConfig.forwardingRules) {
-            const forwardRulesTextarea = document.getElementById('forward_rules');
-            if (forwardRulesTextarea) {
-                forwardRulesTextarea.value = emailConfig.forwardingRules;
-                console.log('📋 Reglas de reenvío cargadas');
-            }
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error al cargar configuración de emails:', error);
-        toastr.error('Error al cargar configuración de emails', 'Error');
-    });
-}
+
 
 /**
         description: 'Empresa líder en soluciones tecnológicas para negocios, especializada en software de gestión y automatización de procesos.',

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug EmailConfig Frontend</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Debug EmailConfig Frontend</h1>
+    
+    <div class="debug-section">
+        <h2>1. Test de Conexión API</h2>
+        <button onclick="testAPIConnection()">Probar Conexión</button>
+        <div id="api-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>2. Test de Carga EmailConfig</h2>
+        <button onclick="testEmailConfigLoad()">Cargar EmailConfig</button>
+        <div id="emailconfig-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>3. Comparación CallConfig vs EmailConfig</h2>
+        <button onclick="compareConfigs()">Comparar Configuraciones</button>
+        <div id="compare-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>4. Test de Elementos HTML</h2>
+        <div>
+            <label><input type="checkbox" id="email_bot_active"> Bot de emails activo</label><br>
+            <label><input type="checkbox" id="email_consent"> Consentimiento</label><br>
+            <select id="email_provider">
+                <option value="google">Google</option>
+                <option value="microsoft">Microsoft</option>
+            </select><br>
+            <input type="email" id="outgoing_email" placeholder="Email de salida"><br>
+            <textarea id="email_signature" placeholder="Firma de email"></textarea><br>
+            <textarea id="forward_rules" placeholder="Reglas de reenvío"></textarea><br>
+        </div>
+        <button onclick="testHTMLElements()">Probar Elementos HTML</button>
+        <div id="html-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://saas-ai-automation.onrender.com/api';
+        
+        // Obtener token del localStorage
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || localStorage.getItem('token');
+        }
+        
+        async function testAPIConnection() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '<div class="info">Probando conexión...</div>';
+            
+            try {
+                const token = getAuthToken();
+                if (!token) {
+                    resultDiv.innerHTML = '<div class="error">❌ No se encontró token de autenticación</div>';
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/client`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Conexión exitosa</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Error en la respuesta: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error de conexión: ${error.message}</div>`;
+            }
+        }
+        
+        async function testEmailConfigLoad() {
+            const resultDiv = document.getElementById('emailconfig-result');
+            resultDiv.innerHTML = '<div class="info">Cargando EmailConfig...</div>';
+            
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`${API_BASE}/client`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const emailConfig = data.data.emailConfig || {};
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ EmailConfig recibido del backend:</div>
+                        <pre>${JSON.stringify(emailConfig, null, 2)}</pre>
+                        
+                        <h4>Verificación de campos:</h4>
+                        <ul>
+                            <li>enabled: ${emailConfig.enabled} (${typeof emailConfig.enabled})</li>
+                            <li>provider: ${emailConfig.provider} (${typeof emailConfig.provider})</li>
+                            <li>consentGiven: ${emailConfig.consentGiven} (${typeof emailConfig.consentGiven})</li>
+                            <li>outgoingEmail: ${emailConfig.outgoingEmail} (${typeof emailConfig.outgoingEmail})</li>
+                            <li>emailSignature: ${emailConfig.emailSignature ? 'Presente' : 'Ausente'}</li>
+                            <li>forwardingRules: ${emailConfig.forwardingRules ? 'Presente' : 'Ausente'}</li>
+                        </ul>
+                    `;
+                    
+                    // Aplicar los valores a los elementos HTML
+                    applyEmailConfigToHTML(emailConfig);
+                    
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Error cargando EmailConfig</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function applyEmailConfigToHTML(emailConfig) {
+            console.log('🔄 Aplicando EmailConfig a elementos HTML:', emailConfig);
+            
+            // Checkboxes
+            const emailBotActive = document.getElementById('email_bot_active');
+            if (emailBotActive) {
+                emailBotActive.checked = emailConfig.enabled || false;
+                console.log('✅ Bot activo aplicado:', emailConfig.enabled);
+            }
+            
+            const emailConsent = document.getElementById('email_consent');
+            if (emailConsent) {
+                emailConsent.checked = emailConfig.consentGiven || false;
+                console.log('✅ Consentimiento aplicado:', emailConfig.consentGiven);
+            }
+            
+            // Selectores
+            const emailProvider = document.getElementById('email_provider');
+            if (emailProvider && emailConfig.provider) {
+                emailProvider.value = emailConfig.provider;
+                console.log('✅ Proveedor aplicado:', emailConfig.provider);
+            }
+            
+            // Inputs de texto
+            const outgoingEmail = document.getElementById('outgoing_email');
+            if (outgoingEmail && emailConfig.outgoingEmail) {
+                outgoingEmail.value = emailConfig.outgoingEmail;
+                console.log('✅ Email salida aplicado:', emailConfig.outgoingEmail);
+            }
+            
+            const emailSignature = document.getElementById('email_signature');
+            if (emailSignature && emailConfig.emailSignature) {
+                emailSignature.value = emailConfig.emailSignature;
+                console.log('✅ Firma aplicada');
+            }
+            
+            const forwardRules = document.getElementById('forward_rules');
+            if (forwardRules && emailConfig.forwardingRules) {
+                forwardRules.value = emailConfig.forwardingRules;
+                console.log('✅ Reglas aplicadas');
+            }
+        }
+        
+        async function compareConfigs() {
+            const resultDiv = document.getElementById('compare-result');
+            resultDiv.innerHTML = '<div class="info">Comparando configuraciones...</div>';
+            
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`${API_BASE}/client`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const callConfig = data.data.callConfig || {};
+                    const emailConfig = data.data.emailConfig || {};
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Comparación de configuraciones:</div>
+                        
+                        <h4>CallConfig (FUNCIONA):</h4>
+                        <pre>${JSON.stringify(callConfig, null, 2)}</pre>
+                        
+                        <h4>EmailConfig (PROBLEMA):</h4>
+                        <pre>${JSON.stringify(emailConfig, null, 2)}</pre>
+                        
+                        <h4>Análisis:</h4>
+                        <ul>
+                            <li>CallConfig tiene ${Object.keys(callConfig).length} campos</li>
+                            <li>EmailConfig tiene ${Object.keys(emailConfig).length} campos</li>
+                            <li>CallConfig.enabled: ${callConfig.enabled} (${typeof callConfig.enabled})</li>
+                            <li>EmailConfig.enabled: ${emailConfig.enabled} (${typeof emailConfig.enabled})</li>
+                        </ul>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error en la comparación</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function testHTMLElements() {
+            const resultDiv = document.getElementById('html-result');
+            
+            const elements = {
+                email_bot_active: document.getElementById('email_bot_active'),
+                email_consent: document.getElementById('email_consent'),
+                email_provider: document.getElementById('email_provider'),
+                outgoing_email: document.getElementById('outgoing_email'),
+                email_signature: document.getElementById('email_signature'),
+                forward_rules: document.getElementById('forward_rules')
+            };
+            
+            let html = '<div class="success">✅ Test de elementos HTML:</div><ul>';
+            
+            Object.entries(elements).forEach(([id, element]) => {
+                if (element) {
+                    let value = '';
+                    if (element.type === 'checkbox') {
+                        value = `checked: ${element.checked}`;
+                    } else {
+                        value = `value: "${element.value}"`;
+                    }
+                    html += `<li class="success">${id}: ✅ EXISTE (${value})</li>`;
+                } else {
+                    html += `<li class="error">${id}: ❌ NO EXISTE</li>`;
+                }
+            });
+            
+            html += '</ul>';
+            resultDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
