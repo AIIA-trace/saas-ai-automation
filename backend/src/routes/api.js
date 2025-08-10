@@ -871,6 +871,7 @@ router.get('/profile', authenticate, async (req, res) => {
         timezone: client.timezone || 'Europe/Madrid',
         language: client.language || 'es',
         companyDescription: client.companyDescription || '',
+        businessHoursConfig: client.businessHoursConfig || null, // CRÍTICO: Incluir en respuesta
         createdAt: client.createdAt,
         updatedAt: client.updatedAt
       };
