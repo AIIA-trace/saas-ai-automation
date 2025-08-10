@@ -3779,11 +3779,11 @@ function loadEmailConfiguration() {
     console.log('🔄 Usando endpoint unificado CLIENT_DATA: ' + window.API_CONFIG.DASHBOARD.CLIENT_DATA.url);
     window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
     .then(clientData => {
-        // En el endpoint unificado, la configuración de email está en clientData.emailConfig
+        // Configuración de email (patrón idéntico a callConfig)
         const emailConfig = clientData.emailConfig || {};
-        console.log('💾 Configuración de email recibida:', emailConfig);
+        console.log('📧 Configuración de email:', emailConfig);
         
-        // Cargar checkboxes principales de configuración de emails
+        // Cargar checkboxes de configuración de emails (patrón idéntico a callConfig)
         const emailBotActiveCheckbox = document.getElementById('email_bot_active');
         if (emailBotActiveCheckbox) {
             emailBotActiveCheckbox.checked = emailConfig.enabled || false;
@@ -3796,7 +3796,7 @@ function loadEmailConfiguration() {
             console.log('✅ Consentimiento de email:', emailConfig.consentGiven);
         }
         
-        // Cargar selectores y campos de texto
+        // Cargar selectores de configuración de emails (patrón idéntico a callConfig)
         if (emailConfig.provider) {
             const emailProviderSelect = document.getElementById('email_provider');
             if (emailProviderSelect) {
@@ -3813,8 +3813,6 @@ function loadEmailConfiguration() {
             }
         }
         
-
-        
         if (emailConfig.emailSignature) {
             const emailSignatureTextarea = document.getElementById('email_signature');
             if (emailSignatureTextarea) {
@@ -3830,18 +3828,6 @@ function loadEmailConfiguration() {
                 console.log('📋 Reglas de reenvío cargadas');
             }
         }
-        
-        // Cargar estado de conexión con el proveedor de correo
-        if (emailConfig.connected) {
-            // Actualizar UI para mostrar que está conectado
-            updateEmailConnectionStatus({
-                connected: true,
-                provider: emailConfig.provider,
-                email: emailConfig.outgoingEmail
-            });
-        }
-        
-        console.log('✅ Configuración de emails cargada correctamente');
     })
     .catch(error => {
         console.error('❌ Error al cargar configuración de emails:', error);
@@ -6933,7 +6919,7 @@ function saveUnifiedConfig() {
             emailConfig: (() => {
                 console.log('📧 ===== DEBUG EMAILCONFIG RECOPILACIÓN =====');
                 
-                // Verificar existencia de elementos principales
+                // Verificar existencia de elementos (patrón idéntico a callConfig)
                 const elements = {
                     email_bot_active: document.getElementById('email_bot_active'),
                     email_provider: document.getElementById('email_provider'),
@@ -6956,18 +6942,12 @@ function saveUnifiedConfig() {
                 });
                 
                 const config = {
-                    // Control principal
+                    // Campos que SÍ existen en el HTML (patrón idéntico a callConfig)
                     enabled: document.getElementById('email_bot_active')?.checked || false,
-                    
-                    // Configuración de integración (para n8n)
                     provider: document.getElementById('email_provider')?.value || 'google',
                     outgoingEmail: document.getElementById('outgoing_email')?.value || '',
                     consentGiven: document.getElementById('email_consent')?.checked || false,
-                    
-                    // Contenido del bot (para OpenAI)
                     emailSignature: document.getElementById('email_signature')?.value || '',
-                    
-                    // Reglas avanzadas (para n8n workflows)
                     forwardingRules: document.getElementById('forward_rules')?.value || ''
                 };
                 
