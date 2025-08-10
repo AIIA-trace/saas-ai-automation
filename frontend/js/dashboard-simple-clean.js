@@ -7533,8 +7533,8 @@ function loadSampleFaqs() {
             faqItems.innerHTML = '';
             console.log('🧹 FAQs existentes limpiadas del DOM');
             
-            // En el endpoint unificado, las FAQs están directamente en clientData.faqs
-            const faqs = clientData?.faqs || [];
+            // En el endpoint unificado, las FAQs están en clientData.data.faqs
+            const faqs = clientData?.data?.faqs || [];
             console.log('💾 FAQs recibidas del endpoint unificado:', faqs.length);
 
             // Añadir preguntas al DOM SOLO si existen FAQs guardadas
@@ -8088,8 +8088,8 @@ function loadContextFiles() {
     
     window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
     .then(clientData => {
-        // En el endpoint unificado, los archivos están directamente en clientData.contextFiles
-        const files = clientData?.contextFiles || [];
+        // En el endpoint unificado, los archivos están en clientData.data.contextFiles
+        const files = clientData?.data?.contextFiles || [];
         console.log('💾 Archivos de contexto recibidos del endpoint unificado:', files.length);
         
         // Limpiar la lista actual
