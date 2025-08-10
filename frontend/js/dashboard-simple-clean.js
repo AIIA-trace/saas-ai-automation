@@ -6907,20 +6907,53 @@ function saveUnifiedConfig() {
 
             
             // Configuración de llamadas - IDs corregidos y campos completos
-            callConfig: {
-                enabled: document.getElementById('call_bot_active')?.checked || document.getElementById('enable-calls')?.checked || false,
-                recordCalls: document.getElementById('call_recording')?.checked || document.getElementById('record-calls')?.checked || false,
-                transcribeCalls: document.getElementById('call_transcription')?.checked || document.getElementById('transcribe-calls')?.checked || false,
-                voiceId: document.getElementById('voice_type')?.value || document.getElementById('voice-selection')?.value || 'female',
-                language: document.getElementById('call_language')?.value || document.getElementById('language-selection')?.value || 'es-ES',
-                greeting: document.getElementById('call_greeting')?.value || document.getElementById('welcome-message')?.value || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
-                // Campos adicionales con IDs alternativos para mayor compatibilidad
-                volume: document.getElementById('voice_volume')?.value || document.getElementById('voice-volume')?.value || '1.0',
-                speed: document.getElementById('voice_speed')?.value || document.getElementById('voice-speed')?.value || '1.0',
-                pitch: document.getElementById('voice_pitch')?.value || document.getElementById('voice-pitch')?.value || '1.0',
-                useCustomVoice: document.getElementById('use_custom_voice')?.checked || document.getElementById('use-custom-voice')?.checked || false,
-                customVoiceId: document.getElementById('custom_voice_id')?.value || document.getElementById('custom-voice-id')?.value || ''
-            },
+            callConfig: (() => {
+                console.log('📞 ===== DEBUG CALLCONFIG RECOPILACIÓN =====');
+                
+                // Verificar existencia de elementos
+                const elements = {
+                    call_bot_active: document.getElementById('call_bot_active'),
+                    call_recording: document.getElementById('call_recording'),
+                    call_transcription: document.getElementById('call_transcription'),
+                    voice_type: document.getElementById('voice_type'),
+                    call_language: document.getElementById('call_language'),
+                    call_greeting: document.getElementById('call_greeting')
+                };
+                
+                console.log('🔍 Elementos encontrados:');
+                Object.entries(elements).forEach(([id, element]) => {
+                    console.log(`   ${id}: ${element ? '✅ EXISTE' : '❌ NO EXISTE'}`);
+                    if (element) {
+                        if (element.type === 'checkbox') {
+                            console.log(`      Valor: ${element.checked}`);
+                        } else {
+                            console.log(`      Valor: "${element.value}"`);
+                        }
+                    }
+                });
+                
+                const config = {
+                    // Campos que SÍ existen en el HTML
+                    enabled: document.getElementById('call_bot_active')?.checked || false,
+                    recordCalls: document.getElementById('call_recording')?.checked || false,
+                    transcribeCalls: document.getElementById('call_transcription')?.checked || false,
+                    voiceId: document.getElementById('voice_type')?.value || 'female',
+                    language: document.getElementById('call_language')?.value || 'es-ES',
+                    greeting: document.getElementById('call_greeting')?.value || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
+                    // Campos con valores por defecto (elementos HTML no implementados aún)
+                    volume: '1.0',
+                    speed: '1.0',
+                    pitch: '1.0',
+                    useCustomVoice: false,
+                    customVoiceId: ''
+                };
+                
+                console.log('📞 callConfig recopilado:');
+                console.log(JSON.stringify(config, null, 2));
+                console.log('📞 ===== FIN DEBUG CALLCONFIG =====');
+                
+                return config;
+            })(),
             
             // Configuración de emails - Estructura completa con IDs alternativos
             emailConfig: {

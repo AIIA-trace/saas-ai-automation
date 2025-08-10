@@ -441,12 +441,14 @@ router.put('/client', authenticate, async (req, res) => {
       if (bot.personality) updateData.botPersonality = bot.personality;
     }
     
-    // Configuración de llamadas (mapear a campos individuales según schema)
+    // Configuración de llamadas (guardar como objeto JSON completo)
     if (req.body.callConfig) {
-      if (req.body.callConfig.language) updateData.botLanguage = req.body.callConfig.language;
-      if (req.body.callConfig.greeting) updateData.confirmationMessage = req.body.callConfig.greeting;
-      // voiceId no existe en schema - se ignora por ahora
-      logger.info(`📞 Actualizando configuración de llamadas para cliente ${req.client.id}`);
+      updateData.callConfig = req.body.callConfig;
+      logger.info(`📞 FORCE DEBUG CALLCONFIG - Recibido en req.body:`);
+      logger.info(`📞 FORCE DEBUG CALLCONFIG - Contenido:`, JSON.stringify(req.body.callConfig, null, 2));
+      logger.info(`📞 FORCE DEBUG CALLCONFIG - Añadido al updateData para cliente ${req.client.id}`);
+    } else {
+      logger.info(`📞 FORCE DEBUG CALLCONFIG - NO recibido en req.body`);
     }
     
     if (req.body.transferConfig) {
