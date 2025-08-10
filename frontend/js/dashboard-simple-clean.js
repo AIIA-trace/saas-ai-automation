@@ -3823,13 +3823,7 @@ function loadEmailConfiguration() {
             }
         }
         
-        if (emailConfig.autoReplyMessage) {
-            const autoReplyTextarea = document.getElementById('auto_reply_message');
-            if (autoReplyTextarea) {
-                autoReplyTextarea.value = emailConfig.autoReplyMessage;
-                console.log('💬 Mensaje de respuesta automática cargado');
-            }
-        }
+
         
         if (emailConfig.emailSignature) {
             const emailSignatureTextarea = document.getElementById('email_signature');
@@ -7004,8 +6998,8 @@ function saveUnifiedConfig() {
                     email_provider: document.getElementById('email_provider'),
                     outgoing_email: document.getElementById('outgoing_email'),
                     email_consent: document.getElementById('email_consent'),
-                    auto_reply_message: document.getElementById('auto_reply_message'),
-                    email_signature: document.getElementById('email_signature')
+                    email_signature: document.getElementById('email_signature'),
+                    forward_rules: document.getElementById('forward_rules')
                 };
                 
                 console.log('🔍 Elementos encontrados:');
@@ -7030,7 +7024,6 @@ function saveUnifiedConfig() {
                     consentGiven: document.getElementById('email_consent')?.checked || false,
                     
                     // Contenido del bot (para OpenAI)
-                    autoReplyMessage: document.getElementById('auto_reply_message')?.value || 'Gracias por su mensaje. Nos pondremos en contacto con usted lo antes posible.',
                     emailSignature: document.getElementById('email_signature')?.value || '',
                     
                     // Reglas avanzadas (para n8n workflows)
