@@ -267,7 +267,7 @@ router.get('/api/client', authenticate, async (req, res) => {
       
       // FAQs y archivos de contexto
       faqs: client.faqs || [],
-      files: client.contextFiles || [],
+      contextFiles: client.contextFiles || [],
       
       // Datos de suscripción
       subscription: {
@@ -575,7 +575,7 @@ router.put('/client', authenticate, async (req, res) => {
         faqs: updatedClient.faqs || [],
         
         // Archivos de contexto
-        files: updatedClient.contextFiles || []
+        contextFiles: updatedClient.contextFiles || []
       }
     });
   } catch (error) {
@@ -705,7 +705,7 @@ router.get('/client', authenticate, async (req, res) => {
       
       // FAQs y archivos de contexto
       faqs: client.faqs || [],
-      files: client.contextFiles || [],
+      contextFiles: client.contextFiles || [],
 
       // Configuración de horarios comerciales
       businessHoursConfig: client.businessHoursConfig || null,
