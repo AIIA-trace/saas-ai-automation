@@ -1611,17 +1611,7 @@ Web: {WEB}</textarea>
                                                 </div>
                                             </div>
                                         </div>
-                                        
-                                        <!-- Mensaje de respuesta automática -->
-                                        <div class="col-12">
-                                            <div class="card border-light">
-                                                <div class="card-body p-3">
-                                                    <h6 class="card-subtitle mb-3 text-muted">Respuesta Automática</h6>
-                                                    <label for="auto_reply_message" class="form-label">Mensaje de respuesta automática</label>
-                                                    <textarea class="form-control" id="auto_reply_message" name="auto_reply_message" rows="3" placeholder="Gracias por su mensaje. Nos pondremos en contacto con usted lo antes posible..."></textarea>
-                                                </div>
-                                            </div>
-                                        </div>
+
                                     </div>
                                 </div>
                             </div>
