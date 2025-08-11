@@ -5953,12 +5953,6 @@ function setupAccountFeatures() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(profileData)
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
-                }
-
-            })
             .then(data => {
                 console.log('Perfil actualizado exitosamente:', data);
                 
