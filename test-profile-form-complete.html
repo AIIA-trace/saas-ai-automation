@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Completo - Formulario de Perfil</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { margin: 5px; padding: 10px; }
+        .form-field { margin: 10px 0; }
+        input, select { width: 300px; padding: 5px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test Completo - Formulario de Perfil</h1>
+    
+    <div class="test-section">
+        <h2>📋 Campos del Formulario de Perfil</h2>
+        <div class="form-field">
+            <label>Nombre:</label>
+            <input type="text" id="account_name" placeholder="Nombre">
+        </div>
+        <div class="form-field">
+            <label>Apellidos:</label>
+            <input type="text" id="account_lastname" placeholder="Apellidos">
+        </div>
+        <div class="form-field">
+            <label>Email:</label>
+            <input type="email" id="account_email" placeholder="email@ejemplo.com">
+        </div>
+        <div class="form-field">
+            <label>Teléfono:</label>
+            <input type="tel" id="account_phone" placeholder="+34 600 000 000">
+        </div>
+        <div class="form-field">
+            <label>Empresa:</label>
+            <input type="text" id="account_company" placeholder="Mi Empresa S.L.">
+        </div>
+        <div class="form-field">
+            <label>Cargo:</label>
+            <input type="text" id="account_position" placeholder="Director/a">
+        </div>
+        <div class="form-field">
+            <label>Zona horaria:</label>
+            <select id="account_timezone">
+                <option value="Europe/Madrid">Europa/Madrid (GMT+1)</option>
+                <option value="Europe/London">Europa/Londres (GMT+0)</option>
+                <option value="America/New_York">América/Nueva York (GMT-5)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Acciones de Prueba</h2>
+        <button onclick="fillTestData()">Rellenar Datos de Prueba</button>
+        <button onclick="testSaveProfile()">Probar Guardado</button>
+        <button onclick="testLoadProfile()">Probar Carga</button>
+        <button onclick="clearForm()">Limpiar Formulario</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Resultados de Prueba</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://saas-ai-automation.onrender.com';
+        
+        function log(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            resultsDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function fillTestData() {
+            document.getElementById('account_name').value = 'Juan';
+            document.getElementById('account_lastname').value = 'Pérez García';
+            document.getElementById('account_email').value = 'juan.perez@empresa.com';
+            document.getElementById('account_phone').value = '+34 666 777 888';
+            document.getElementById('account_company').value = 'Innovación Digital S.L.';
+            document.getElementById('account_position').value = 'Director de Tecnología';
+            document.getElementById('account_timezone').value = 'Europe/Madrid';
+            log('✅ Datos de prueba rellenados', 'success');
+        }
+
+        function clearForm() {
+            document.getElementById('account_name').value = '';
+            document.getElementById('account_lastname').value = '';
+            document.getElementById('account_email').value = '';
+            document.getElementById('account_phone').value = '';
+            document.getElementById('account_company').value = '';
+            document.getElementById('account_position').value = '';
+            document.getElementById('account_timezone').value = 'Europe/Madrid';
+            log('🧹 Formulario limpiado', 'info');
+        }
+
+        async function testSaveProfile() {
+            try {
+                log('🚀 Iniciando prueba de guardado de perfil...', 'info');
+                
+                // Recopilar datos del formulario (igual que en el dashboard)
+                const profileData = {
+                    contactName: document.getElementById('account_name').value + ' ' + document.getElementById('account_lastname').value,
+                    email: document.getElementById('account_email').value,
+                    phone: document.getElementById('account_phone').value,
+                    companyName: document.getElementById('account_company').value,
+                    position: document.getElementById('account_position').value,
+                    timezone: document.getElementById('account_timezone').value
+                };
+
+                log('📤 Datos a enviar: ' + JSON.stringify(profileData, null, 2), 'info');
+
+                // Obtener token del localStorage
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    log('❌ No se encontró token de autenticación. Inicia sesión primero.', 'error');
+                    return;
+                }
+
+                // Enviar datos al backend
+                const response = await fetch(`${API_BASE_URL}/api/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const result = await response.json();
+                log('✅ Perfil guardado exitosamente: ' + JSON.stringify(result, null, 2), 'success');
+
+            } catch (error) {
+                log('❌ Error al guardar perfil: ' + error.message, 'error');
+            }
+        }
+
+        async function testLoadProfile() {
+            try {
+                log('🔄 Iniciando prueba de carga de perfil...', 'info');
+
+                // Obtener token del localStorage
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    log('❌ No se encontró token de autenticación. Inicia sesión primero.', 'error');
+                    return;
+                }
+
+                // Cargar datos del backend
+                const response = await fetch(`${API_BASE_URL}/api/profile`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const result = await response.json();
+                log('📥 Datos recibidos del backend: ' + JSON.stringify(result, null, 2), 'info');
+
+                // Extraer datos del cliente
+                const profileData = result.client || result.data || result;
+                log('👤 Datos del perfil extraídos: ' + JSON.stringify(profileData, null, 2), 'info');
+
+                // Cargar datos en el formulario (igual que loadAccountFormData)
+                const contactName = profileData.contactName || '';
+                const nameParts = contactName.split(' ');
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.slice(1).join(' ') || '';
+
+                document.getElementById('account_name').value = firstName;
+                document.getElementById('account_lastname').value = lastName;
+                document.getElementById('account_email').value = profileData.email || '';
+                document.getElementById('account_phone').value = profileData.phone || '';
+                document.getElementById('account_company').value = profileData.companyName || '';
+                document.getElementById('account_position').value = profileData.position || '';
+                
+                if (profileData.timezone) {
+                    document.getElementById('account_timezone').value = profileData.timezone;
+                }
+
+                log('✅ Formulario cargado exitosamente con datos del perfil', 'success');
+
+            } catch (error) {
+                log('❌ Error al cargar perfil: ' + error.message, 'error');
+            }
+        }
+
+        // Inicializar
+        log('🎯 Test del formulario de perfil inicializado', 'info');
+        log('💡 Instrucciones:', 'info');
+        log('1. Rellena datos de prueba', 'info');
+        log('2. Prueba el guardado', 'info');
+        log('3. Limpia el formulario', 'info');
+        log('4. Prueba la carga para verificar que los datos se muestran correctamente', 'info');
+    </script>
+</body>
+</html>

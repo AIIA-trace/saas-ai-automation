@@ -18,6 +18,7 @@ model Client {
   companyDescription    String?        // Descripción de la empresa del formulario
   contactName           String
   phone                 String?
+  position              String?        // Cargo del usuario
   apiKey                String?        @unique
   role                  String         @default("client")
   isActive              Boolean        @default(true)

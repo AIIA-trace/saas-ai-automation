@@ -1270,10 +1270,7 @@ function createBotConfigTabContent() {
                                             <label for="companyName" class="form-label">Nombre de la Empresa</label>
                                             <input type="text" class="form-control" id="companyName" name="companyName" placeholder="Nombre de tu empresa" required>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label for="email" class="form-label">Registration Email</label>
-                                            <input type="email" class="form-control" id="email" name="email" placeholder="email@tuempresa.com" required>
-                                        </div>
+
                                         <div class="col-md-6">
                                             <label for="phone" class="form-label">Teléfono Principal</label>
                                             <input type="tel" class="form-control" id="phone" name="phone" placeholder="+34 XXX XXX XXX" required>
@@ -1735,27 +1732,27 @@ function createAccountTabContent() {
                                         <div class="row g-3 px-3 py-3">
                                             <div class="col-md-6">
                                                 <label for="account_name" class="form-label small mb-1">Nombre</label>
-                                                <input type="text" class="form-control form-control-sm py-2" id="account_name" value="Usuario">
+                                                <input type="text" class="form-control form-control-sm py-2" id="account_name">
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="account_lastname" class="form-label small mb-1">Apellidos</label>
-                                                <input type="text" class="form-control form-control-sm py-2" id="account_lastname" value="Ejemplo">
+                                                <input type="text" class="form-control form-control-sm py-2" id="account_lastname">
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="account_email" class="form-label small mb-1">Email</label>
-                                                <input type="email" class="form-control form-control-sm py-2" id="account_email" value="usuario@ejemplo.com">
+                                                <input type="email" class="form-control form-control-sm py-2" id="account_email">
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="account_phone" class="form-label small mb-1">Teléfono</label>
-                                                <input type="tel" class="form-control form-control-sm py-2" id="account_phone" value="+34 600 000 000">
+                                                <input type="tel" class="form-control form-control-sm py-2" id="account_phone">
                                             </div>
                                             <div class="col-md-12">
                                                 <label for="account_company" class="form-label small mb-1">Empresa</label>
-                                                <input type="text" class="form-control form-control-sm py-2" id="account_company" value="Mi Empresa, S.L.">
+                                                <input type="text" class="form-control form-control-sm py-2" id="account_company">
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="account_position" class="form-label small mb-1">Cargo</label>
-                                                <input type="text" class="form-control form-control-sm py-2" id="account_position" value="Director/a">
+                                                <input type="text" class="form-control form-control-sm py-2" id="account_position">
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="account_timezone" class="form-label small mb-1">Zona horaria</label>
@@ -3680,11 +3677,7 @@ function loadProfileData() {
             console.log('✅ Campo companyName cargado:', profileData.companyName);
         }
         
-        const emailField = document.getElementById('email');
-        if (emailField && profileData.email) {
-            emailField.value = profileData.email;
-            console.log('✅ Campo email (contacto) cargado:', profileData.email);
-        }
+
         
         // Usar IDs exactos del formulario del dashboard
         const phoneField = document.getElementById('phone');
@@ -3807,12 +3800,75 @@ function loadProfileData() {
         localStorage.setItem('profileData', JSON.stringify(profileData));
         console.log('💾 Datos de perfil guardados en localStorage para uso posterior');
         
+        // 🔧 CORRECCIÓN CRÍTICA: Cargar datos en el formulario de perfil
+        loadAccountFormData(profileData);
+        
         console.log('✅ Datos de perfil cargados correctamente');
     })
     .catch(error => {
         console.error('❌ Error al cargar datos de perfil:', error);
         toastr.error('Error al cargar datos de perfil', 'Error');
     });
+}
+
+/**
+ * Cargar datos específicamente en el formulario de perfil (account_*)
+ * Siguiendo las buenas prácticas del formulario de referencia exitoso
+ */
+function loadAccountFormData(profileData) {
+    console.log('👤 Cargando datos en formulario de perfil...');
+    console.log('📊 Datos recibidos para formulario:', profileData);
+    
+    // Separar contactName en nombre y apellidos
+    const contactName = profileData.contactName || '';
+    const nameParts = contactName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    
+    // Cargar campos del formulario de perfil
+    const accountNameField = document.getElementById('account_name');
+    if (accountNameField) {
+        accountNameField.value = firstName;
+        console.log('✅ Campo account_name cargado:', firstName);
+    }
+    
+    const accountLastnameField = document.getElementById('account_lastname');
+    if (accountLastnameField) {
+        accountLastnameField.value = lastName;
+        console.log('✅ Campo account_lastname cargado:', lastName);
+    }
+    
+    const accountEmailField = document.getElementById('account_email');
+    if (accountEmailField) {
+        accountEmailField.value = profileData.email || '';
+        console.log('✅ Campo account_email cargado:', profileData.email);
+    }
+    
+    const accountPhoneField = document.getElementById('account_phone');
+    if (accountPhoneField) {
+        accountPhoneField.value = profileData.phone || '';
+        console.log('✅ Campo account_phone cargado:', profileData.phone);
+    }
+    
+    const accountCompanyField = document.getElementById('account_company');
+    if (accountCompanyField) {
+        accountCompanyField.value = profileData.companyName || '';
+        console.log('✅ Campo account_company cargado:', profileData.companyName);
+    }
+    
+    const accountPositionField = document.getElementById('account_position');
+    if (accountPositionField) {
+        accountPositionField.value = profileData.position || '';
+        console.log('✅ Campo account_position cargado:', profileData.position);
+    }
+    
+    const accountTimezoneField = document.getElementById('account_timezone');
+    if (accountTimezoneField && profileData.timezone) {
+        accountTimezoneField.value = profileData.timezone;
+        console.log('✅ Campo account_timezone cargado:', profileData.timezone);
+    }
+    
+    console.log('✅ Formulario de perfil cargado correctamente');
 }
 
 // NOTA: loadBotConfiguration() restaurada y mejorada para cargar todos los campos del bot
@@ -6841,7 +6897,7 @@ function saveUnifiedConfig() {
             companySector: document.getElementById('companySector')?.value || document.getElementById('company_sector')?.value || document.getElementById('industry')?.value || '', 
             companyAddress: document.getElementById('companyAddress')?.value || document.getElementById('company_address')?.value || document.getElementById('address')?.value || '',
             companyPhone: document.getElementById('companyPhone')?.value || document.getElementById('company_phone')?.value || document.getElementById('phone')?.value || '',
-            companyEmail: document.getElementById('companyEmail')?.value || document.getElementById('company_email')?.value || document.getElementById('email')?.value || '',
+            companyEmail: document.getElementById('companyEmail')?.value || document.getElementById('company_email')?.value || '',
             companyWebsite: document.getElementById('companyWebsite')?.value || document.getElementById('company_website')?.value || document.getElementById('website')?.value || '',
             
 
