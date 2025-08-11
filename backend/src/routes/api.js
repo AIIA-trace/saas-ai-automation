@@ -894,6 +894,7 @@ router.get('/profile', authenticate, async (req, res) => {
         contactName: client.contactName || '',
         email: client.email || '',
         phone: client.phone || '',
+        position: client.position || '', // AÑADIDO: Campo cargo/posición
         website: client.website || '',
         industry: client.industry || '',
         address: client.address || '',
