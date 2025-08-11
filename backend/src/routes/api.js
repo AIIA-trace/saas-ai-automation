@@ -609,6 +609,7 @@ router.get('/client', authenticate, async (req, res) => {
         companyName: true,
         contactName: true,
         phone: true,
+        position: true, // AÑADIDO: Campo cargo/posición
         industry: true,
         address: true,
         website: true,
