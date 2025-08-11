@@ -3855,9 +3855,16 @@ function loadAccountFormData(profileData) {
     }
     
     const accountPositionField = document.getElementById('account_position');
+    console.log('🔍 DEBUG POSITION - Elemento encontrado:', !!accountPositionField);
+    console.log('🔍 DEBUG POSITION - Valor en profileData.position:', profileData.position);
+    console.log('🔍 DEBUG POSITION - Tipo de dato:', typeof profileData.position);
+    console.log('🔍 DEBUG POSITION - Claves disponibles en profileData:', Object.keys(profileData));
+    
     if (accountPositionField) {
-        accountPositionField.value = profileData.position || '';
-        console.log('✅ Campo account_position cargado:', profileData.position);
+        const positionValue = profileData.position || '';
+        accountPositionField.value = positionValue;
+        console.log('✅ Campo account_position cargado:', positionValue);
+        console.log('🔍 DEBUG POSITION - Valor final asignado al input:', accountPositionField.value);
     }
     
 
