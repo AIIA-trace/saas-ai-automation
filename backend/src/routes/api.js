@@ -1257,9 +1257,18 @@ router.put('/profile/password', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
     }
     
+    // Buscar el cliente completo en la base de datos (incluyendo contraseña)
+    const clientWithPassword = await prisma.client.findUnique({
+      where: { id: req.client.id }
+    });
+    
+    if (!clientWithPassword) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+    
     // Verificar contraseña actual
     const bcrypt = require('bcryptjs');
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, req.client.password);
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, clientWithPassword.password);
     if (!isCurrentPasswordValid) {
       return res.status(400).json({ error: 'La contraseña actual es incorrecta' });
     }
