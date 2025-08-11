@@ -2070,23 +2070,23 @@ function createBillingTabContent() {
                                         <div class="row g-3">
                                             <div class="col-md-6">
                                                 <label for="billing_company" class="form-label">Empresa</label>
-                                                <input type="text" class="form-control" id="billing_company" value="Mi Empresa, S.L.">
+                                                <input type="text" class="form-control" id="billing_company" placeholder="Nombre de la empresa">
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="billing_tax_id" class="form-label">CIF/NIF</label>
-                                                <input type="text" class="form-control" id="billing_tax_id" value="B12345678">
+                                                <input type="text" class="form-control" id="billing_tax_id" placeholder="CIF o NIF">
                                             </div>
                                             <div class="col-md-12">
                                                 <label for="billing_address" class="form-label">Dirección</label>
-                                                <input type="text" class="form-control" id="billing_address" value="Calle Ejemplo, 123">
+                                                <input type="text" class="form-control" id="billing_address" placeholder="Dirección completa">
                                             </div>
                                             <div class="col-md-4">
                                                 <label for="billing_postal_code" class="form-label">Código Postal</label>
-                                                <input type="text" class="form-control" id="billing_postal_code" value="28001">
+                                                <input type="text" class="form-control" id="billing_postal_code" placeholder="Código postal">
                                             </div>
                                             <div class="col-md-4">
                                                 <label for="billing_city" class="form-label">Ciudad</label>
-                                                <input type="text" class="form-control" id="billing_city" value="Madrid">
+                                                <input type="text" class="form-control" id="billing_city" placeholder="Ciudad">
                                             </div>
                                             <div class="col-md-4">
                                                 <label for="billing_country" class="form-label">País</label>
@@ -8906,49 +8906,67 @@ function disablePlanFeatures() {
  * Guardar datos de facturación
  */
 function saveBillingInfo() {
-    console.log('💳 Guardando datos de facturación...');
+    console.log('💳 ===== GUARDANDO DATOS DE FACTURACIÓN =====');
     
     // Obtener datos del formulario
-    const company = document.getElementById('billing_company').value;
-    const taxId = document.getElementById('billing_tax_id').value;
-    const address = document.getElementById('billing_address').value;
-    const postalCode = document.getElementById('billing_postal_code').value;
-    const city = document.getElementById('billing_city').value;
+    const company = document.getElementById('billing_company').value.trim();
+    const taxId = document.getElementById('billing_tax_id').value.trim();
+    const address = document.getElementById('billing_address').value.trim();
+    const postalCode = document.getElementById('billing_postal_code').value.trim();
+    const city = document.getElementById('billing_city').value.trim();
     const country = document.getElementById('billing_country').value;
+    
+    console.log('💳 Datos del formulario obtenidos:');
+    console.log('💳 - Empresa:', company);
+    console.log('💳 - CIF/NIF:', taxId);
+    console.log('💳 - Dirección:', address);
+    console.log('💳 - Código Postal:', postalCode);
+    console.log('💳 - Ciudad:', city);
+    console.log('💳 - País:', country);
     
     // Validar datos
     if (!company || !taxId || !address || !postalCode || !city) {
+        console.error('❌ Validación fallida: campos obligatorios vacíos');
         toastr.error('Por favor, completa todos los campos obligatorios', 'Error');
         return;
     }
     
-    // Obtener token del almacenamiento
-    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
-    
     // Mostrar spinner de carga
     toastr.info('Guardando datos de facturación...', 'Procesando');
+    
+    const billingData = {
+        company,
+        taxId,
+        address,
+        postalCode,
+        city,
+        country
+    };
+    
+    console.log('💳 Enviando datos al backend:', JSON.stringify(billingData, null, 2));
     
     // Enviar datos al backend
     window.ApiHelper.fetchApi(API_CONFIG.DASHBOARD.BILLING_INFO, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            company,
-            taxId,
-            address,
-            postalCode,
-            city,
-            country
-        })
+        body: JSON.stringify(billingData)
     })
-    
     .then(data => {
-        console.log('Datos de facturación guardados exitosamente:', data);
-        toastr.success('Datos de facturación guardados correctamente', 'Guardado');
+        console.log('💳 Respuesta del backend:', JSON.stringify(data, null, 2));
+        
+        if (data.success) {
+            console.log('✅ Datos de facturación guardados exitosamente');
+            toastr.success('Datos de facturación guardados correctamente', 'Guardado');
+        } else {
+            console.error('❌ Error en la respuesta del backend:', data.error);
+            toastr.error(data.error || 'Error al guardar los datos de facturación', 'Error');
+        }
+        console.log('💳 ===== FIN GUARDADO FACTURACIÓN =====');
     })
     .catch(error => {
-        console.error('Error al guardar datos de facturación:', error);
-        toastr.error(error.error || 'Error al guardar los datos de facturación', 'Error');
+        console.error('❌ Error al guardar datos de facturación:', error);
+        toastr.error(error.error || error.message || 'Error al guardar los datos de facturación', 'Error');
+        console.log('💳 ===== FIN GUARDADO FACTURACIÓN (ERROR) =====');
     });
 }
 
@@ -8966,32 +8984,49 @@ function loadBillingInfo() {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-
-    })
     .then(data => {
-        console.log('Información de facturación cargada:', data);
+        console.log('💳 ===== DEBUG BILLING INFO CARGA =====');
+        console.log('💳 Respuesta completa del backend:', JSON.stringify(data, null, 2));
         
         if (data.success && data.billingInfo) {
             const billing = data.billingInfo;
+            console.log('💳 Datos de facturación recibidos:', JSON.stringify(billing, null, 2));
             
-            // Llenar campos del formulario
-            if (billing.company) document.getElementById('billing_company').value = billing.company;
-            if (billing.taxId) document.getElementById('billing_tax_id').value = billing.taxId;
-            if (billing.address) document.getElementById('billing_address').value = billing.address;
-            if (billing.postalCode) document.getElementById('billing_postal_code').value = billing.postalCode;
-            if (billing.city) document.getElementById('billing_city').value = billing.city;
-            if (billing.country) document.getElementById('billing_country').value = billing.country;
+            // Llenar campos del formulario con logging detallado
+            if (billing.company) {
+                document.getElementById('billing_company').value = billing.company;
+                console.log('💳 Campo empresa cargado:', billing.company);
+            }
+            if (billing.taxId) {
+                document.getElementById('billing_tax_id').value = billing.taxId;
+                console.log('💳 Campo CIF/NIF cargado:', billing.taxId);
+            }
+            if (billing.address) {
+                document.getElementById('billing_address').value = billing.address;
+                console.log('💳 Campo dirección cargado:', billing.address);
+            }
+            if (billing.postalCode) {
+                document.getElementById('billing_postal_code').value = billing.postalCode;
+                console.log('💳 Campo código postal cargado:', billing.postalCode);
+            }
+            if (billing.city) {
+                document.getElementById('billing_city').value = billing.city;
+                console.log('💳 Campo ciudad cargado:', billing.city);
+            }
+            if (billing.country) {
+                document.getElementById('billing_country').value = billing.country;
+                console.log('💳 Campo país cargado:', billing.country);
+            }
             
             console.log('✅ Información de facturación cargada en el formulario');
+        } else {
+            console.log('💳 No hay datos de facturación guardados o respuesta inválida');
         }
+        console.log('💳 ===== FIN DEBUG BILLING INFO =====');
     })
     .catch(error => {
-        console.error('Error al cargar información de facturación:', error);
-        // No mostrar error si simplemente no hay datos guardados
+        console.error('❌ Error al cargar información de facturación:', error);
+        console.log('💳 No se mostrarán errores si simplemente no hay datos guardados');
     });
 }
 
