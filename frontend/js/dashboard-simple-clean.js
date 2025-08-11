@@ -1787,23 +1787,7 @@ function createAccountTabContent() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="card h-100">
-                                            <div class="card-header bg-light py-2">
-                                                <h6 class="mb-0 small">Verificación en dos pasos</h6>
-                                            </div>
-                                            <div class="card-body py-2">
-                                                <div class="form-check form-switch mb-2">
-                                                    <input class="form-check-input form-check-input-sm" type="checkbox" id="two_factor_auth">
-                                                    <label class="form-check-label small" for="two_factor_auth">Activar verificación en dos pasos</label>
-                                                </div>
-                                                <p class="text-muted small mb-2" style="font-size: 0.75rem;">La verificación en dos pasos añade una capa adicional de seguridad a tu cuenta. Cada vez que inicies sesión, necesitarás introducir un código enviado a tu teléfono.</p>
-                                                <button type="button" class="btn btn-outline-primary btn-sm" id="setup-2fa-btn" disabled>
-                                                    <i class="fas fa-mobile-alt me-1"></i>Configurar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
+
                                 </div>
                             </div>
 
