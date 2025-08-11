@@ -1754,14 +1754,7 @@ function createAccountTabContent() {
                                                 <label for="account_position" class="form-label small mb-1">Cargo</label>
                                                 <input type="text" class="form-control form-control-sm py-2" id="account_position">
                                             </div>
-                                            <div class="col-md-6">
-                                                <label for="account_timezone" class="form-label small mb-1">Zona horaria</label>
-                                                <select class="form-select form-select-sm py-2" id="account_timezone">
-                                                    <option value="Europe/Madrid" selected>Europa/Madrid (GMT+1)</option>
-                                                    <option value="Europe/London">Europa/Londres (GMT+0)</option>
-                                                    <option value="America/New_York">América/Nueva York (GMT-5)</option>
-                                                </select>
-                                            </div>
+
                                         </div>
                                     </div>
                                 </div>
@@ -3819,23 +3812,20 @@ function loadAccountFormData(profileData) {
     console.log('👤 Cargando datos en formulario de perfil...');
     console.log('📊 Datos recibidos para formulario:', profileData);
     
-    // Separar contactName en nombre y apellidos
-    const contactName = profileData.contactName || '';
-    const nameParts = contactName.split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+    // CORRECCIÓN: En el registro no se captura nombre personal, solo empresa
+    // Los campos nombre y apellidos deben estar vacíos para que el usuario los rellene
     
     // Cargar campos del formulario de perfil
     const accountNameField = document.getElementById('account_name');
     if (accountNameField) {
-        accountNameField.value = firstName;
-        console.log('✅ Campo account_name cargado:', firstName);
+        accountNameField.value = ''; // Vacío - no se captura en registro
+        console.log('✅ Campo account_name cargado: (vacío - no capturado en registro)');
     }
     
     const accountLastnameField = document.getElementById('account_lastname');
     if (accountLastnameField) {
-        accountLastnameField.value = lastName;
-        console.log('✅ Campo account_lastname cargado:', lastName);
+        accountLastnameField.value = ''; // Vacío - no se captura en registro
+        console.log('✅ Campo account_lastname cargado: (vacío - no capturado en registro)');
     }
     
     const accountEmailField = document.getElementById('account_email');
@@ -3862,12 +3852,7 @@ function loadAccountFormData(profileData) {
         console.log('✅ Campo account_position cargado:', profileData.position);
     }
     
-    const accountTimezoneField = document.getElementById('account_timezone');
-    if (accountTimezoneField && profileData.timezone) {
-        accountTimezoneField.value = profileData.timezone;
-        console.log('✅ Campo account_timezone cargado:', profileData.timezone);
-    }
-    
+
     console.log('✅ Formulario de perfil cargado correctamente');
 }
 
@@ -5956,8 +5941,7 @@ function setupAccountFeatures() {
                 email: document.getElementById('account_email').value,
                 phone: document.getElementById('account_phone').value,
                 companyName: document.getElementById('account_company').value,
-                position: document.getElementById('account_position').value,
-                timezone: document.getElementById('account_timezone').value
+                position: document.getElementById('account_position').value
             };
             
             // Obtener token del almacenamiento local
