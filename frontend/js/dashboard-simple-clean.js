@@ -3812,20 +3812,28 @@ function loadAccountFormData(profileData) {
     console.log('👤 Cargando datos en formulario de perfil...');
     console.log('📊 Datos recibidos para formulario:', profileData);
     
-    // CORRECCIÓN: En el registro no se captura nombre personal, solo empresa
-    // Los campos nombre y apellidos deben estar vacíos para que el usuario los rellene
+    // Extraer nombre y apellidos del contactName
+    let firstName = '';
+    let lastName = '';
+    
+    if (profileData.contactName) {
+        const nameParts = profileData.contactName.trim().split(' ');
+        firstName = nameParts[0] || '';
+        lastName = nameParts.slice(1).join(' ') || '';
+        console.log('🔍 Nombre completo parseado:', profileData.contactName, '→', { firstName, lastName });
+    }
     
     // Cargar campos del formulario de perfil
     const accountNameField = document.getElementById('account_name');
     if (accountNameField) {
-        accountNameField.value = ''; // Vacío - no se captura en registro
-        console.log('✅ Campo account_name cargado: (vacío - no capturado en registro)');
+        accountNameField.value = firstName;
+        console.log('✅ Campo account_name cargado:', firstName);
     }
     
     const accountLastnameField = document.getElementById('account_lastname');
     if (accountLastnameField) {
-        accountLastnameField.value = ''; // Vacío - no se captura en registro
-        console.log('✅ Campo account_lastname cargado: (vacío - no capturado en registro)');
+        accountLastnameField.value = lastName;
+        console.log('✅ Campo account_lastname cargado:', lastName);
     }
     
     const accountEmailField = document.getElementById('account_email');
