@@ -6044,12 +6044,43 @@ function setupAccountFeatures() {
             
             .then(data => {
                 console.log('Contraseña actualizada exitosamente:', data);
-                toastr.success('Contraseña actualizada correctamente', 'Éxito');
+                
+                // Mensaje de éxito prominente y temporal
+                toastr.options = {
+                    closeButton: false,
+                    positionClass: "toast-top-center",
+                    timeOut: 3000,
+                    extendedTimeOut: 0,
+                    tapToDismiss: false
+                };
+                toastr.success('🔐 Contraseña actualizada correctamente', 'Éxito');
+                
+                // Feedback visual en el botón
+                const changeBtn = document.getElementById('change-password-btn');
+                const originalText = changeBtn ? changeBtn.innerHTML : 'Cambiar Contraseña';
+                
+                if (changeBtn) {
+                    changeBtn.innerHTML = '<i class="fas fa-check-circle"></i> Actualizada';
+                    changeBtn.classList.add('btn-success');
+                    changeBtn.classList.remove('btn-primary');
+                    changeBtn.disabled = true;
+                }
                 
                 // Limpiar campos
                 document.getElementById('current_password').value = '';
                 document.getElementById('new_password').value = '';
                 document.getElementById('confirm_password').value = '';
+                
+                // Restaurar botón después de 3 segundos
+                setTimeout(() => {
+                    if (changeBtn) {
+                        changeBtn.innerHTML = originalText;
+                        changeBtn.classList.add('btn-primary');
+                        changeBtn.classList.remove('btn-success');
+                        changeBtn.disabled = false;
+                    }
+                    console.log('✅ UI de cambio de contraseña restaurada');
+                }, 3000);
             })
             .catch(error => {
                 console.error('Error al cambiar contraseña:', error);
