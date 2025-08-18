@@ -317,10 +317,32 @@ router.put('/client', authenticate, async (req, res) => {
     logger.info(`🔑 Cliente autenticado ID: ${req.client?.id}`);
     logger.info(`📧 Cliente email: ${req.client?.email}`);
     
-    // Validación básica de req.body (sin ser demasiado estricta)
-    if (!req.body || typeof req.body !== 'object') {
-      logger.warn(`⚠️ req.body inválido o vacío, usando objeto vacío como fallback`);
-      req.body = {};
+    // Validar que req.body es un objeto válido
+    if (!req.body) {
+      logger.error(`❌ ERROR: req.body es ${req.body}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Formato de request inválido: req.body es null o undefined',
+        debug: {
+          receivedBody: String(req.body),
+          receivedType: typeof req.body,
+          contentType: req.headers['content-type']
+        }
+      });
+    }
+    
+    if (typeof req.body !== 'object') {
+      logger.error(`❌ ERROR: req.body no es un objeto, es ${typeof req.body}`);
+      logger.error(`❌ Contenido de req.body: ${String(req.body).substring(0, 200)}...`);
+      return res.status(400).json({
+        success: false,
+        error: 'Formato de request inválido: req.body no es un objeto',
+        debug: {
+          receivedType: typeof req.body,
+          contentType: req.headers['content-type'],
+          receivedBody: String(req.body)
+        }
+      });
     }
     
     // Extraer datos del cuerpo de la petición
