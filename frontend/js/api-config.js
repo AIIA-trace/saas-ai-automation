@@ -35,8 +35,8 @@ if (typeof window.API_CONFIG === 'undefined') {
       UPDATE_PROFILE: { url: '/api/profile', auth: 'jwt' },
       CHANGE_PASSWORD: { url: '/api/profile/password', auth: 'jwt' },
       
-      // Configuración del bot (OBSOLETO - usar CLIENT_DATA)
-      BOT_CONFIG: { url: '/api/config/bot', auth: 'jwt', deprecated: true },
+      // Configuración del bot (ACTUALIZADO - usa endpoint unificado)
+      BOT_CONFIG: { url: '/api/client', auth: 'jwt' },
       BOT_UPLOAD_CONTEXT: { url: '/api/bot/upload-context', auth: 'jwt', deprecated: true },
       
       // Configuración de email (OBSOLETO - usar CLIENT_DATA)
