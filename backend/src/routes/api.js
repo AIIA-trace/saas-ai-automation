@@ -1283,6 +1283,7 @@ router.put('/profile/password', authenticate, async (req, res) => {
     });
     
     logger.info(`Contraseña actualizada para cliente ${req.client.id}`);
+    // Fix aplicado: buscar password en BD igual que login
     
     return res.json({
       success: true,
