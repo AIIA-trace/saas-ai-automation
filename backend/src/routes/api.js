@@ -435,6 +435,17 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`📞 FORCE DEBUG CALLCONFIG - Recibido en req.body:`);
       logger.info(`📞 FORCE DEBUG CALLCONFIG - Contenido:`, JSON.stringify(req.body.callConfig, null, 2));
       logger.info(`📞 FORCE DEBUG CALLCONFIG - Añadido al updateData para cliente ${req.client.id}`);
+      
+      // 🎯 VALIDACIÓN ESPECÍFICA SWITCH N8N "BOT DE LLAMADAS ACTIVO"
+      const isCallBotEnabled = req.body.callConfig.enabled;
+      logger.info(`🤖 N8N SWITCH VALIDATION - Bot de Llamadas: ${isCallBotEnabled ? 'ACTIVADO ✅' : 'DESACTIVADO ❌'}`);
+      
+      if (isCallBotEnabled) {
+        logger.info(`🚀 N8N INTEGRATION - Activando bot de llamadas para cliente ${req.client.id}`);
+        logger.info(`📞 N8N CONFIG - Configuración completa:`, JSON.stringify(req.body.callConfig, null, 2));
+      } else {
+        logger.info(`⏸️ N8N INTEGRATION - Desactivando bot de llamadas para cliente ${req.client.id}`);
+      }
     } else {
       logger.info(`📞 FORCE DEBUG CALLCONFIG - NO recibido en req.body`);
     }

@@ -44,6 +44,10 @@ model Client {
   subscriptionStatus   String?        // Estado de la suscripción
   personality          String?        // Campo personalidad adicional
   
+  // Campos para recuperación de contraseña
+  resetToken           String?        // Token para reset de contraseña
+  resetTokenExpiry     DateTime?      // Fecha de expiración del token
+  
   // Relaciones
   twilioNumbers         TwilioNumber[]
   callLogs              CallLog[]

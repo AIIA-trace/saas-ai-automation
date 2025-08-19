@@ -452,6 +452,121 @@ ${emailData.text}`
       logger.info(`Monitoreo de emails detenido para cliente ${clientId}`);
     }
   }
+
+  // Enviar email de recuperación de contraseña
+  async sendPasswordResetEmail(email, resetToken) {
+    try {
+      // Crear transporter con configuración por defecto
+      const transporter = nodemailer.createTransporter({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: process.env.SMTP_PORT || 587,
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER || process.env.EMAIL_FROM,
+          pass: process.env.SMTP_PASSWORD
+        }
+      });
+
+      // URL de reset (ajustar según tu dominio)
+      const resetUrl = `${process.env.FRONTEND_URL || 'https://saas-ai-automation.onrender.com'}/reset-password?token=${resetToken}`;
+
+      // Plantilla HTML del email
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Recuperar Contraseña - AIIA Trace</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #007bff; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+            .button { display: inline-block; background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+            .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Recuperar Contraseña</h1>
+            </div>
+            <div class="content">
+              <h2>Hola,</h2>
+              <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en <strong>AIIA Trace</strong>.</p>
+              
+              <p>Si fuiste tú quien solicitó este cambio, haz clic en el siguiente botón para crear una nueva contraseña:</p>
+              
+              <div style="text-align: center;">
+                <a href="${resetUrl}" class="button">Restablecer Contraseña</a>
+              </div>
+              
+              <div class="warning">
+                <strong>⚠️ Importante:</strong>
+                <ul>
+                  <li>Este enlace es válido por <strong>1 hora</strong></li>
+                  <li>Solo puedes usarlo una vez</li>
+                  <li>Si no solicitaste este cambio, ignora este email</li>
+                </ul>
+              </div>
+              
+              <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+              <p style="word-break: break-all; background: #e9ecef; padding: 10px; border-radius: 5px; font-family: monospace;">${resetUrl}</p>
+            </div>
+            <div class="footer">
+              <p>Este email fue enviado automáticamente. No respondas a este mensaje.</p>
+              <p>© 2025 AIIA Trace - Sistema de Automatización con IA</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Configuración del email
+      const mailOptions = {
+        from: `"AIIA Trace" <${process.env.EMAIL_FROM || 'noreply@aiia-trace.com'}>`,
+        to: email,
+        subject: '🔐 Recuperar contraseña - AIIA Trace',
+        html: htmlContent,
+        text: `
+Recuperar Contraseña - AIIA Trace
+
+Hola,
+
+Hemos recibido una solicitud para restablecer la contraseña de tu cuenta.
+
+Para crear una nueva contraseña, visita este enlace:
+${resetUrl}
+
+Este enlace es válido por 1 hora y solo puedes usarlo una vez.
+
+Si no solicitaste este cambio, ignora este email.
+
+© 2025 AIIA Trace
+        `
+      };
+
+      // Enviar email
+      const result = await transporter.sendMail(mailOptions);
+      
+      logger.info(`Email de recuperación enviado a ${email}: ${result.messageId}`);
+      
+      return {
+        success: true,
+        messageId: result.messageId,
+        message: 'Email de recuperación enviado correctamente'
+      };
+      
+    } catch (error) {
+      logger.error(`Error enviando email de recuperación: ${error.message}`);
+      
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 module.exports = new EmailService();

@@ -4,6 +4,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const crypto = require('crypto');
 const logger = require('../utils/logger');
+const emailService = require('./emailService');
 
 class AuthService {
   // Generar JWT para un cliente
@@ -291,12 +292,19 @@ class AuthService {
         }
       });
       
-      // En un sistema real, aquí enviaríamos un email con el token
-      // Para el MVP, solo devolvemos el token
+      // Enviar email de recuperación
+      const emailResult = await emailService.sendPasswordResetEmail(client.email, resetToken);
+      
+      if (!emailResult.success) {
+        logger.error(`Error enviando email de recuperación: ${emailResult.error}`);
+        // Aún así devolvemos éxito por seguridad
+      }
+      
       return {
         success: true,
-        resetToken,
-        message: 'Token generado correctamente'
+        resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined,
+        message: 'Si el email existe, se enviará un enlace para restablecer la contraseña',
+        emailSent: emailResult.success
       };
     } catch (error) {
       logger.error(`Error solicitando reset de contraseña: ${error.message}`);
