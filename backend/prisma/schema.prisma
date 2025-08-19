@@ -103,13 +103,22 @@ model CallLog {
   id                Int      @id @default(autoincrement())
   clientId          Int
   client            Client   @relation(fields: [clientId], references: [id])
-  twilioCallSid     String   @unique
+  
+  // Campos de N8N
+  callId            String?  // ID único de la llamada desde N8N
+  twilioCallSid     String?  // SID de Twilio (puede ser null si viene de otro proveedor)
   callerNumber      String
   callerName        String?
-  callStatus        String
-  callDuration      Int?
+  duration          Int?     // Duración en segundos
+  status            String   @default("completed") // completed, failed, in_progress
   recordingUrl      String?
   transcription     String?
+  analysis          Json?    // Análisis completo de N8N (JSON)
+  metadata          Json?    // Metadatos adicionales de N8N
+  
+  // Campos legacy mantenidos para compatibilidad
+  callStatus        String?  // Estado legacy
+  callDuration      Int?     // Duración legacy
   aiSummary         String?
   aiClassification  String?
   urgencyLevel      String?  // low, medium, high
@@ -119,25 +128,37 @@ model CallLog {
   important         Boolean  @default(false) // Si la llamada está marcada como importante
   notificationSent  Boolean  @default(false)
   notifiedTo        String?  // Lista de notificados (comma separated)
+  
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@index([clientId])
+  @@index([callId])
   @@index([twilioCallSid])
   @@index([callerNumber])
   @@index([createdAt])
-  @@index([aiClassification])
+  @@index([status])
 }
 
 model EmailLog {
   id              Int      @id @default(autoincrement())
   clientId        Int
   client          Client   @relation(fields: [clientId], references: [id])
-  messageId       String   @unique
+  
+  // Campos de N8N
+  emailId         String?  // ID único del email desde N8N
+  messageId       String?  // ID del mensaje (puede ser null)
   fromAddress     String
   fromName        String?
-  toAddress       String
-  subject         String
+  toAddress       String?
+  subject         String?
+  body            String?  // Cuerpo del email desde N8N
+  analysis        Json?    // Análisis completo de N8N (JSON)
+  response        String?  // Respuesta generada automáticamente
+  status          String   @default("processed") // processed, failed, pending
+  metadata        Json?    // Metadatos adicionales de N8N
+  
+  // Campos legacy mantenidos para compatibilidad
   bodyPlain       String?
   bodyHtml        String?
   attachments     String?  // Array de URLs o metadatos de adjuntos (JSON string)
@@ -147,6 +168,7 @@ model EmailLog {
   favorite        Boolean  @default(false) // Si el email está marcado como favorito
   isRead          Boolean  @default(false) // Si el email ha sido leído
   responseStatus  String?  // sent, failed, none
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

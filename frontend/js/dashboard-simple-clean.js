@@ -1404,17 +1404,12 @@ function createBotConfigTabContent() {
                                             <div class="card border-light h-100">
                                                 <div class="card-body p-3">
                                                     <h6 class="card-subtitle mb-3 text-muted">Opciones de Activación</h6>
-                                                    <div class="form-check form-switch mb-3">
-                                                        <input class="form-check-input" type="checkbox" id="call_bot_active" name="call_bot_active" checked>
+                                                    <div class="form-check form-switch mb-0">
+                                                        <input class="form-check-input" type="checkbox" id="call_bot_active" name="call_bot_active">
                                                         <label class="form-check-label" for="call_bot_active">Bot de Llamadas Activo</label>
                                                     </div>
-                                                    <div class="form-check form-switch mb-3">
-                                                        <input class="form-check-input" type="checkbox" id="call_recording" name="call_recording" checked>
-                                                        <label class="form-check-label" for="call_recording">Grabación de Llamadas</label>
-                                                    </div>
-                                                    <div class="form-check form-switch mb-0">
-                                                        <input class="form-check-input" type="checkbox" id="call_transcription" name="call_transcription" checked>
-                                                        <label class="form-check-label" for="call_transcription">Transcripción de Llamadas</label>
+                                                    <div class="mt-3">
+                                                        <small class="text-muted">Activa el bot de llamadas con Twilio y N8N para procesamiento automático.</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -3516,17 +3511,9 @@ function loadBotConfiguration() {
             console.log('🤖 Bot de llamadas activo:', callConfig.enabled);
         }
         
-        const callRecordingCheckbox = document.getElementById('call_recording');
-        if (callRecordingCheckbox) {
-            callRecordingCheckbox.checked = callConfig.recordCalls || false;
-            console.log('🎥 Grabación de llamadas:', callConfig.recordCalls);
-        }
-        
-        const callTranscriptionCheckbox = document.getElementById('call_transcription');
-        if (callTranscriptionCheckbox) {
-            callTranscriptionCheckbox.checked = callConfig.transcribeCalls || false;
-            console.log('📝 Transcripción de llamadas:', callConfig.transcribeCalls);
-        }
+        // Grabación y transcripción ahora son automáticas (configuradas en N8N)
+        console.log('🎥 Grabación automática habilitada para N8N');
+        console.log('📝 Transcripción automática habilitada para N8N');
         
         // Cargar selectores de configuración de llamadas
         if (callConfig.language) {
@@ -6923,8 +6910,6 @@ function saveUnifiedConfig() {
                 // Verificar existencia de elementos
                 const elements = {
                     call_bot_active: document.getElementById('call_bot_active'),
-                    call_recording: document.getElementById('call_recording'),
-                    call_transcription: document.getElementById('call_transcription'),
                     voice_type: document.getElementById('voice_type'),
                     call_language: document.getElementById('call_language'),
                     call_greeting: document.getElementById('call_greeting')
@@ -6945,11 +6930,12 @@ function saveUnifiedConfig() {
                 const config = {
                     // Campos que SÍ existen en el HTML
                     enabled: document.getElementById('call_bot_active')?.checked || false,
-                    recordCalls: document.getElementById('call_recording')?.checked || false,
-                    transcribeCalls: document.getElementById('call_transcription')?.checked || false,
                     voiceId: document.getElementById('voice_type')?.value || 'female',
                     language: document.getElementById('call_language')?.value || 'es-ES',
                     greeting: document.getElementById('call_greeting')?.value || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
+                    // Configuración automática para N8N
+                    recordCalls: true,  // Siempre grabar para análisis
+                    transcribeCalls: true,  // Siempre transcribir para procesamiento
                     // Campos con valores por defecto (elementos HTML no implementados aún)
                     volume: '1.0',
                     speed: '1.0',

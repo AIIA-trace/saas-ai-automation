@@ -12,6 +12,7 @@ const logger = require('./utils/logger');
 const { router: authRouter } = require('./routes/auth');
 const apiRouter = require('./routes/api');
 const webhooksRouter = require('./routes/webhooks');
+const n8nRouter = require('./routes/n8n');
 
 // Inicialización de Express
 const app = express();
@@ -61,6 +62,7 @@ logger.info(`Sirviendo frontend desde: ${frontendDir}`);
 // Rutas principales
 app.use('/api/auth', authRouter);
 app.use('/api', apiRouter);
+app.use('/api/n8n', n8nRouter);
 app.use('/webhooks', webhooksRouter);
 
 // Ruta principal
