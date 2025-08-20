@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const N8NValidationService = require('./n8nValidationService');
 
 // Importar fetch para Node.js (compatibilidad con versiones < 18)
 let fetch;

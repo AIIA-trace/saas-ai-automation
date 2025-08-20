@@ -34,6 +34,12 @@ model Client {
   subscriptionExpiresAt DateTime?
   trialEndDate          DateTime?
   
+  // Campos para gestión de planes y usage (extiende lógica Stripe existente)
+  subscriptionPlan      String         @default("basic") // basic, pro, enterprise
+  callsUsedThisMonth    Int            @default(0)
+  usageResetDate        DateTime?      // Fecha del último reset de usage
+  stripePriceId         String?        // ID del precio de Stripe para el plan actual
+  
   // Campos de configuración del bot (exactamente como existen en la DB)
   botLanguage          String?        // Idioma del bot
   botName              String?        // Nombre del bot
