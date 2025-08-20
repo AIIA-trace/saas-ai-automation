@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const N8NService = require('../services/n8nService');
 
 // Health check endpoint para Render
 router.get('/health', (req, res) => {
@@ -526,6 +527,49 @@ router.put('/client', authenticate, async (req, res) => {
       data: validUpdateData
     });
     logger.info('✅ Cliente actualizado correctamente');
+    
+    // 🚀 NOTIFICACIÓN PROACTIVA A N8N TRAS GUARDADO EXITOSO
+    // Notificar cambios en bot de llamadas
+    if (req.body.callConfig) {
+      const isCallBotEnabled = req.body.callConfig.enabled;
+      logger.info(`🔔 Iniciando notificación a N8N para bot de llamadas...`);
+      
+      // Notificación asíncrona a N8N (no bloquea la respuesta al frontend)
+      N8NService.notifyCallBotStatusChange(
+        req.client.id, 
+        isCallBotEnabled, 
+        req.body.callConfig
+      ).then(result => {
+        if (result.success) {
+          logger.info(`✅ N8N notificado exitosamente sobre cambio en bot de llamadas`);
+        } else {
+          logger.warn(`⚠️ Fallo en notificación N8N: ${result.error || result.reason}`);
+        }
+      }).catch(error => {
+        logger.error(`❌ Error crítico notificando a N8N: ${error.message}`);
+      });
+    }
+    
+    // Notificar cambios en bot de email
+    if (req.body.emailConfig) {
+      const isEmailBotEnabled = req.body.emailConfig.enabled;
+      logger.info(`📧 Iniciando notificación a N8N para bot de email...`);
+      
+      // Notificación asíncrona a N8N (no bloquea la respuesta al frontend)
+      N8NService.notifyEmailBotStatusChange(
+        req.client.id, 
+        isEmailBotEnabled, 
+        req.body.emailConfig
+      ).then(result => {
+        if (result.success) {
+          logger.info(`✅ N8N notificado exitosamente sobre cambio en bot de email`);
+        } else {
+          logger.warn(`⚠️ Fallo en notificación N8N: ${result.error || result.reason}`);
+        }
+      }).catch(error => {
+        logger.error(`❌ Error crítico notificando a N8N: ${error.message}`);
+      });
+    }
     
     // DEBUG: Verificar que businessHoursConfig se guardó correctamente
     if (businessHoursConfig) {
