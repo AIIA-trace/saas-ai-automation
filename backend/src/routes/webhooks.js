@@ -37,13 +37,14 @@ const validateStripeWebhook = async (req, res, next) => {
 
 // === WEBHOOKS DE TWILIO ===
 
-// Webhook para llamadas entrantes
+// Rutas que coinciden con la configuración de Twilio
+router.post('/twilio/voice', validateTwilioWebhook, webhookController.handleIncomingCall);
+router.post('/twilio/status', validateTwilioWebhook, webhookController.handleCallStatus);
+router.post('/twilio/sms', validateTwilioWebhook, webhookController.handleIncomingSMS);
+
+// Rutas legacy (mantener por compatibilidad)
 router.post('/voice/incoming', validateTwilioWebhook, webhookController.handleIncomingCall);
-
-// Webhook para grabaciones completadas
 router.post('/voice/recording', validateTwilioWebhook, webhookController.handleRecording);
-
-// Webhook para entrada DTMF (tonos del teclado)
 router.post('/voice/dtmf', validateTwilioWebhook, webhookController.handleGatherInput);
 
 // Webhook para procesamiento de IA
