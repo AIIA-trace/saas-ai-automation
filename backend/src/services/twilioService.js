@@ -1,6 +1,6 @@
 const twilio = require('twilio');
 const logger = require('../utils/logger');
-const elevenLabsService = require('./elevenLabsService');
+const elevenLabsService = require('./elevenLabsService_new');
 
 class TwilioService {
   constructor() {
