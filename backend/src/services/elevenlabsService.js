@@ -52,7 +52,7 @@ class ElevenLabsService {
       
       const response = await axios({
         method: 'post',
-        url: `${this.baseUrl}/text-to-speech/${selectedVoiceId}/stream`,
+        url: `${this.baseUrl}/text-to-speech/${selectedVoiceId}`,
         data: {
           text,
           model_id: "eleven_multilingual_v2",
