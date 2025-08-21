@@ -52,6 +52,12 @@ class TwilioService {
       const welcomeMessage = botConfig?.greeting || botConfig?.welcomeMessage || 
         'Gracias por llamar. Por favor, indique su nombre y el motivo de su llamada.';
       
+      // Configurar voiceSettings para Polly (siempre disponible como fallback)
+      const voiceSettings = {
+        voice: botConfig?.voice || 'Polly.Conchita',
+        language: botConfig?.language || 'es-ES'
+      };
+      
       // Intentar generar audio premium primero
       const premiumAudioUrl = await this.generatePremiumAudio(welcomeMessage, botConfig);
       
@@ -61,10 +67,6 @@ class TwilioService {
         logger.info('🎤 Usando voz premium de ElevenLabs para bienvenida');
       } else {
         // Fallback a Polly
-        const voiceSettings = {
-          voice: botConfig?.voice || 'Polly.Conchita',
-          language: botConfig?.language || 'es-ES'
-        };
         twiml.say(voiceSettings, welcomeMessage);
         logger.info('🔊 Usando Polly como fallback para bienvenida');
       }
