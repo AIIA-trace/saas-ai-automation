@@ -1,5 +1,6 @@
 const twilio = require('twilio');
 const logger = require('../utils/logger');
+const elevenLabsService = require('./elevenLabsService');
 
 class TwilioService {
   constructor() {
@@ -15,6 +16,32 @@ class TwilioService {
     }
   }
 
+  // Generar audio premium con ElevenLabs si está disponible
+  async generatePremiumAudio(text, botConfig) {
+    try {
+      // Verificar si ElevenLabs está configurado
+      if (!process.env.ELEVENLABS_API_KEY) {
+        logger.info('ElevenLabs no configurado, usando Polly por defecto');
+        return null;
+      }
+
+      // Generar audio con ElevenLabs
+      const voiceId = botConfig?.elevenLabsVoiceId || process.env.ELEVENLABS_VOICE_ID;
+      const result = await elevenLabsService.generateBotResponse(text, voiceId);
+      
+      if (result.success) {
+        logger.info(`🎤 Audio premium generado: ${result.audioUrl}`);
+        return result.audioUrl;
+      } else {
+        logger.error(`Error generando audio premium: ${result.error}`);
+        return null;
+      }
+    } catch (error) {
+      logger.error(`Error en generatePremiumAudio: ${error.message}`);
+      return null;
+    }
+  }
+
   // Generar TwiML para dar la bienvenida al llamante
   async generateWelcomeTwiml(botConfig) {
     try {
@@ -22,17 +49,25 @@ class TwilioService {
       const twiml = new VoiceResponse();
       
       // Obtener mensaje de bienvenida de la configuración o usar uno predeterminado
-      const welcomeMessage = botConfig?.welcomeMessage || 
+      const welcomeMessage = botConfig?.greeting || botConfig?.welcomeMessage || 
         'Gracias por llamar. Por favor, indique su nombre y el motivo de su llamada.';
       
-      // Configurar la voz y el idioma
-      const voiceSettings = {
-        voice: botConfig?.voice || 'Polly.Conchita',
-        language: botConfig?.language || 'es-ES'
-      };
-
-      // Flujo de bienvenida
-      twiml.say(voiceSettings, welcomeMessage);
+      // Intentar generar audio premium primero
+      const premiumAudioUrl = await this.generatePremiumAudio(welcomeMessage, botConfig);
+      
+      if (premiumAudioUrl) {
+        // Usar audio premium de ElevenLabs
+        twiml.play(premiumAudioUrl);
+        logger.info('🎤 Usando voz premium de ElevenLabs para bienvenida');
+      } else {
+        // Fallback a Polly
+        const voiceSettings = {
+          voice: botConfig?.voice || 'Polly.Conchita',
+          language: botConfig?.language || 'es-ES'
+        };
+        twiml.say(voiceSettings, welcomeMessage);
+        logger.info('🔊 Usando Polly como fallback para bienvenida');
+      }
       
       // Recopilar la entrada del usuario (usando reconocimiento de voz)
       const gather = twiml.gather({
