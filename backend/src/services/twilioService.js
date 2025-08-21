@@ -19,9 +19,14 @@ class TwilioService {
   // Generar audio premium con ElevenLabs si está disponible
   async generatePremiumAudio(text, botConfig) {
     try {
+      // DEBUG: Verificar variables de entorno
+      logger.info(`🔍 DEBUG - ELEVENLABS_API_KEY exists: ${!!process.env.ELEVENLABS_API_KEY}`);
+      logger.info(`🔍 DEBUG - ELEVENLABS_API_KEY length: ${process.env.ELEVENLABS_API_KEY?.length || 0}`);
+      logger.info(`🔍 DEBUG - ELEVENLABS_VOICE_ID: ${process.env.ELEVENLABS_VOICE_ID}`);
+      
       // Verificar si ElevenLabs está configurado
       if (!process.env.ELEVENLABS_API_KEY) {
-        logger.info('ElevenLabs no configurado, usando Polly por defecto');
+        logger.info('❌ ElevenLabs no configurado, usando Polly por defecto');
         return null;
       }
 
