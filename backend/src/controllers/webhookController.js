@@ -12,40 +12,70 @@ class WebhookController {
   async handleIncomingCall(req, res) {
     try {
       const { CallSid, From, To } = req.body;
-      logger.info(`Llamada entrante desde ${From} a ${To}, SID: ${CallSid}`);
       
-      // Buscar el número en nuestra base de datos
-      const twilioNumber = await prisma.twilioNumber.findUnique({
-        where: { phoneNumber: To },
-        include: { client: true }
+      // Normalizar formato de números (asegurar que tengan +)
+      const fromNumber = From.startsWith('+') ? From : `+${From.trim()}`;
+      const toNumber = To.startsWith('+') ? To : `+${To.trim()}`;
+      
+      logger.info(`📞 Llamada entrante desde ${fromNumber} a ${toNumber}, SID: ${CallSid}`);
+      
+      // Para número Twilio genérico, necesitamos identificar el cliente
+      // Por ahora, usar el primer cliente con bot activo (para testing)
+      // TODO: Implementar lógica de identificación por número de origen o configuración
+      
+      let targetClient = null;
+      
+      // Buscar cliente con bot de llamadas activo
+      const activeClients = await prisma.client.findMany({
+        where: {
+          callConfig: {
+            path: ['enabled'],
+            equals: true
+          }
+        },
+        include: {
+          twilioNumbers: true
+        }
       });
       
-      if (!twilioNumber) {
-        logger.error(`Número Twilio no encontrado en la base de datos: ${To}`);
-        return res.status(404).send(twilioService.generateErrorTwiml("Servicio no configurado"));
+      if (activeClients.length === 0) {
+        logger.error(`❌ No hay clientes con bot de llamadas activo`);
+        const errorTwiml = twilioService.generateErrorTwiml("Servicio no disponible");
+        res.type('text/xml');
+        return res.status(404).send(errorTwiml.toString());
       }
+      
+      // Para testing, usar el primer cliente activo
+      targetClient = activeClients[0];
+      
+      logger.info(`✅ Llamada asignada a cliente: ${targetClient.email} (${targetClient.companyName || 'Sin nombre'})`);
+      logger.info(`🔍 Clientes activos encontrados: ${activeClients.length}`);
       
       // Registrar la llamada en la BD
       const callLog = await prisma.callLog.create({
         data: {
-          clientId: twilioNumber.clientId,
+          clientId: targetClient.id,
           twilioCallSid: CallSid,
-          callerNumber: From,
+          callerNumber: fromNumber,
           callStatus: 'in-progress'
         }
       });
       
+      logger.info(`📝 Llamada registrada con ID: ${callLog.id}`);
+      
       // Generar TwiML para contestar la llamada
-      const botConfig = twilioNumber.client.botConfig;
+      const botConfig = targetClient.callConfig || {};
       const twiml = await twilioService.generateWelcomeTwiml(botConfig);
       
       res.type('text/xml');
       return res.send(twiml.toString());
     } catch (error) {
-      logger.error(`Error en handleIncomingCall: ${error.message}`);
-      const twiml = twilioService.generateErrorTwiml("Se produjo un error. Inténtelo más tarde.");
+      logger.error(`❌ Error en handleIncomingCall: ${error.message}`);
+      logger.error(`Stack trace: ${error.stack}`);
+      
+      const errorTwiml = twilioService.generateErrorTwiml("Se produjo un error. Inténtelo más tarde.");
       res.type('text/xml');
-      return res.send(twiml.toString());
+      return res.send(errorTwiml.toString());
     }
   }
   
