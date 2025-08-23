@@ -10,7 +10,8 @@ class ElevenLabsService {
     this.defaultVoiceId = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'; // Rachel (voz por defecto)
     this.headers = {
       'xi-api-key': this.apiKey,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'User-Agent': 'AIIA-Trace-Bot/1.0'
     };
   }
 
