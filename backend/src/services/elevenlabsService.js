@@ -60,7 +60,7 @@ class ElevenLabsService {
         url: `${this.baseUrl}/text-to-speech/${selectedVoiceId}`,
         data: {
           text,
-          model_id: "eleven_monolingual_v1"
+          model_id: "eleven_monolingual_v1",
           // Removemos voice_settings temporalmente
         },
         headers: this.headers,
