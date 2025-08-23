@@ -101,14 +101,21 @@ class ElevenLabsService {
   // Generar audio para una respuesta del bot de llamadas
   async generateBotResponse(responseText, voiceId = null) {
     try {
+      logger.info(`🔍 DEBUG - generateBotResponse iniciado con texto: "${responseText.substring(0, 50)}..."`);  
+      logger.info(`🔍 DEBUG - voiceId recibido: ${voiceId}`);
+      
       // Crear nombre de archivo único
       const timestamp = Date.now();
       const fileName = `bot_response_${timestamp}.mp3`;
       const outputDir = path.join(__dirname, '../../public/audio');
       const outputPath = path.join(outputDir, fileName);
       
+      logger.info(`🔍 DEBUG - Llamando a generateSpeech con outputPath: ${outputPath}`);
+      
       // Generar el audio
       const result = await this.generateSpeech(responseText, voiceId, outputPath);
+      
+      logger.info(`🔍 DEBUG - generateSpeech completado, result.success: ${result?.success}`);
       
       if (!result.success) {
         throw new Error(result.error);
