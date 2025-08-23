@@ -44,9 +44,6 @@ class ElevenLabsService {
     try {
       const selectedVoiceId = voiceId || this.defaultVoiceId;
       
-      // Rate limiting: esperar un poco para evitar 429
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 segundo
-      
       // Parámetros para una voz natural y clara
       const voiceSettings = {
         stability: 0.75, // Balance entre estabilidad y variedad
@@ -59,39 +56,21 @@ class ElevenLabsService {
       logger.info(`🔍 DEBUG - URL: ${this.baseUrl}/text-to-speech/${selectedVoiceId}`);
       logger.info(`🔍 DEBUG - Headers: ${JSON.stringify(this.headers)}`);
       
-      let response;
-      let retries = 3;
+      // Intentar una sola vez - si falla, usar fallback inmediatamente
+      const response = await axios({
+        method: 'post',
+        url: `${this.baseUrl}/text-to-speech/${selectedVoiceId}`,
+        data: {
+          text,
+          model_id: "eleven_monolingual_v1",
+          // Removemos voice_settings temporalmente
+        },
+        headers: this.headers,
+        responseType: 'arraybuffer',
+        timeout: 5000 // 5 segundos timeout más rápido
+      });
       
-      for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-          logger.info(`🔍 DEBUG - Intento ${attempt}/${retries}`);
-          
-          response = await axios({
-            method: 'post',
-            url: `${this.baseUrl}/text-to-speech/${selectedVoiceId}`,
-            data: {
-              text,
-              model_id: "eleven_monolingual_v1",
-              // Removemos voice_settings temporalmente
-            },
-            headers: this.headers,
-            responseType: 'arraybuffer',
-            timeout: 10000 // 10 segundos timeout
-          });
-          
-          logger.info(`🔍 DEBUG - Petición exitosa en intento ${attempt}`);
-          break; // Salir del loop si es exitoso
-          
-        } catch (error) {
-          if (error.response?.status === 429 && attempt < retries) {
-            const waitTime = attempt * 2000; // 2s, 4s, 6s
-            logger.info(`🔍 DEBUG - Error 429, esperando ${waitTime}ms antes del siguiente intento`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            continue;
-          }
-          throw error; // Re-lanzar si no es 429 o es el último intento
-        }
-      }
+      logger.info(`🔍 DEBUG - Petición exitosa a ElevenLabs`);
       
       // Si se especificó un path de salida, guardar el archivo
       if (outputPath) {
