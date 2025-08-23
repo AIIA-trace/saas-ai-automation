@@ -50,13 +50,18 @@ class ElevenLabsService {
         use_speaker_boost: true // Mejora la claridad
       };
       
+      // DEBUG: Log de la petición
+      logger.info(`🔍 DEBUG - Intentando generar audio con voz: ${selectedVoiceId}`);
+      logger.info(`🔍 DEBUG - URL: ${this.baseUrl}/text-to-speech/${selectedVoiceId}`);
+      logger.info(`🔍 DEBUG - Headers: ${JSON.stringify(this.headers)}`);
+      
       const response = await axios({
         method: 'post',
         url: `${this.baseUrl}/text-to-speech/${selectedVoiceId}`,
         data: {
           text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: voiceSettings
+          model_id: "eleven_monolingual_v1"
+          // Removemos voice_settings temporalmente
         },
         headers: this.headers,
         responseType: 'arraybuffer'
