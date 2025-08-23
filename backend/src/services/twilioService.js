@@ -1,6 +1,7 @@
 const twilio = require('twilio');
 const logger = require('../utils/logger');
 const elevenLabsService = require('./elevenlabsService');
+const openaiTTSService = require('./openaiTTSService');
 
 class TwilioService {
   constructor() {
@@ -19,28 +20,66 @@ class TwilioService {
   // Generar audio premium con ElevenLabs si está disponible
   async generatePremiumAudio(text, botConfig) {
     try {
-      // DEBUG: Verificar variables de entorno
+      // Probar OpenAI TTS primero (para testing de calidad español)
+      const hasOpenAI = process.env.OPENAI_API_KEY;
+      
+      logger.info(`🔍 DEBUG - OPENAI_API_KEY exists: ${!!process.env.OPENAI_API_KEY}`);
+      
+      if (hasOpenAI) {
+        try {
+          logger.info('✅ Generando audio con OpenAI TTS (nova - español)...');
+          const result = await openaiTTSService.generateBotResponse(text, 'nova');
+          
+          if (result.success) {
+            logger.info('🎵 Audio OpenAI TTS generado exitosamente');
+            return {
+              success: true,
+              audioUrl: result.audioUrl,
+              provider: 'openai-tts',
+              voice: 'nova',
+              duration: result.durationEstimate
+            };
+          } else {
+            throw new Error(result.error);
+          }
+        } catch (error) {
+          logger.error(`Error generando audio OpenAI TTS: ${error.message}`);
+          // Continuar con fallback a ElevenLabs o Polly
+        }
+      }
+      
+      // Fallback a ElevenLabs si OpenAI falla
+      const hasElevenLabs = process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID;
+      
       logger.info(`🔍 DEBUG - ELEVENLABS_API_KEY exists: ${!!process.env.ELEVENLABS_API_KEY}`);
       logger.info(`🔍 DEBUG - ELEVENLABS_API_KEY length: ${process.env.ELEVENLABS_API_KEY?.length || 0}`);
       logger.info(`🔍 DEBUG - ELEVENLABS_VOICE_ID: ${process.env.ELEVENLABS_VOICE_ID}`);
       
-      // Verificar si ElevenLabs está configurado
-      if (!process.env.ELEVENLABS_API_KEY) {
-        logger.info('❌ ElevenLabs no configurado, usando Polly por defecto');
-        return null;
+      if (hasElevenLabs) {
+        try {
+          logger.info('✅ Generando audio con ElevenLabs (fallback)...');
+          const result = await elevenLabsService.generateBotResponse(text, process.env.ELEVENLABS_VOICE_ID);
+          
+          if (result.success) {
+            logger.info('🎵 Audio generado exitosamente con voz premium');
+            return {
+              success: true,
+              audioUrl: result.audioUrl,
+              provider: 'elevenlabs',
+              duration: result.durationEstimate
+            };
+          } else {
+            throw new Error(result.error);
+          }
+        } catch (error) {
+          logger.error(`Error generando audio premium: ${error.message}`);
+          // Continuar con fallback a Polly
+        }
       }
-
-      // Generar audio con ElevenLabs
-      const voiceId = botConfig?.elevenLabsVoiceId || process.env.ELEVENLABS_VOICE_ID;
-      const result = await elevenLabsService.generateBotResponse(text, voiceId);
       
-      if (result.success) {
-        logger.info(`🎤 Audio premium generado: ${result.audioUrl}`);
-        return result.audioUrl;
-      } else {
-        logger.error(`Error generando audio premium: ${result.error}`);
-        return null;
-      }
+      // Fallback final: usar Polly (TwiML nativo)
+      logger.info('🔊 Usando Polly como fallback para bienvenida');
+      return null; // Esto hará que se use Polly en el TwiML
     } catch (error) {
       logger.error(`Error en generatePremiumAudio: ${error.message}`);
       return null;
