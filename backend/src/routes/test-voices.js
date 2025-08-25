@@ -3,18 +3,18 @@ const router = express.Router();
 const openaiTTSService = require('../services/openaiTTSService');
 const logger = require('../utils/logger');
 
-// Conversación larga y realista en español peninsular
-const testText = `Buenos días, le habla María, su asistente virtual de Tecnologías Avanzadas. Muchas gracias por contactar con nosotros. 
+// Conversación energética y expresiva en español peninsular
+const testText = `¡Buenos días! Le habla María, su asistente virtual de Tecnologías Avanzadas. ¡Muchas gracias por contactar con nosotros!
 
-He revisado su consulta sobre nuestros servicios de automatización empresarial. Efectivamente, ofrecemos soluciones personalizadas que pueden reducir hasta un setenta por ciento los costes operativos de su empresa.
+He revisado su consulta sobre nuestros servicios de automatización empresarial y... ¡tengo excelentes noticias! Efectivamente, ofrecemos soluciones PERSONALIZADAS que pueden reducir hasta un SETENTA POR CIENTO los costes operativos de su empresa.
 
-Nuestro equipo técnico ha desarrollado una plataforma innovadora que integra inteligencia artificial, análisis de datos y automatización de procesos. Esta tecnología permite optimizar las operaciones diarias, mejorar la productividad y aumentar la satisfacción del cliente.
+Nuestro equipo técnico ha desarrollado una plataforma verdaderamente INNOVADORA que integra inteligencia artificial, análisis de datos y automatización de procesos. Esta tecnología permite optimizar las operaciones diarias, mejorar significativamente la productividad y... ¡aumentar la satisfacción del cliente!
 
-¿Le interesaría conocer más detalles sobre cómo podríamos implementar estas soluciones en su negocio? Podemos programar una demostración personalizada donde le mostraremos casos de éxito similares al suyo. 
+¿Le interesaría conocer más detalles sobre cómo podríamos implementar estas soluciones en SU negocio? Podemos programar una demostración PERSONALIZADA donde le mostraremos casos de éxito similares al suyo.
 
-Además, durante este mes ofrecemos una consultoría gratuita de dos horas con nuestros especialistas. ¿Cuál sería el mejor momento para contactarle? Trabajamos de lunes a viernes, de nueve de la mañana a seis de la tarde.
+Además... ¡durante este mes ofrecemos una consultoría GRATUITA de dos horas con nuestros especialistas! ¿Cuál sería el mejor momento para contactarle? Trabajamos de lunes a viernes, de nueve de la mañana a seis de la tarde.
 
-Mientras tanto, le enviaré por correo electrónico nuestra documentación técnica y algunos testimonios de clientes que ya han implementado nuestras soluciones con resultados excepcionales.`;
+Mientras tanto, le enviaré por correo electrónico nuestra documentación técnica y algunos testimonios de clientes que ya han implementado nuestras soluciones con resultados... ¡EXCEPCIONALES!`;
 
 // Lista de todas las voces disponibles en OpenAI TTS
 const availableVoices = [
