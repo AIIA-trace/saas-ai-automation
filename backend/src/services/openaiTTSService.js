@@ -8,8 +8,8 @@ class OpenAITTSService {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
-    this.defaultVoice = 'nova'; // Voz femenina neutra, buena para español
-    this.model = 'tts-1'; // Modelo estándar (tts-1-hd para mayor calidad)
+    this.defaultVoice = 'onyx'; // Voz masculina profesional, mejor para español peninsular
+    this.model = 'tts-1-hd'; // Modelo HD para mayor calidad y naturalidad
   }
 
   // Generar audio a partir de texto
