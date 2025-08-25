@@ -3,8 +3,18 @@ const router = express.Router();
 const openaiTTSService = require('../services/openaiTTSService');
 const logger = require('../utils/logger');
 
-// Texto de prueba en español peninsular
-const testText = "Hola, soy tu asistente de inteligencia artificial. Gracias por llamar a nuestra empresa. ¿En qué puedo ayudarte hoy? Mi pronunciación es clara y natural.";
+// Conversación larga y realista en español peninsular
+const testText = `Buenos días, le habla María, su asistente virtual de Tecnologías Avanzadas. Muchas gracias por contactar con nosotros. 
+
+He revisado su consulta sobre nuestros servicios de automatización empresarial. Efectivamente, ofrecemos soluciones personalizadas que pueden reducir hasta un setenta por ciento los costes operativos de su empresa.
+
+Nuestro equipo técnico ha desarrollado una plataforma innovadora que integra inteligencia artificial, análisis de datos y automatización de procesos. Esta tecnología permite optimizar las operaciones diarias, mejorar la productividad y aumentar la satisfacción del cliente.
+
+¿Le interesaría conocer más detalles sobre cómo podríamos implementar estas soluciones en su negocio? Podemos programar una demostración personalizada donde le mostraremos casos de éxito similares al suyo. 
+
+Además, durante este mes ofrecemos una consultoría gratuita de dos horas con nuestros especialistas. ¿Cuál sería el mejor momento para contactarle? Trabajamos de lunes a viernes, de nueve de la mañana a seis de la tarde.
+
+Mientras tanto, le enviaré por correo electrónico nuestra documentación técnica y algunos testimonios de clientes que ya han implementado nuestras soluciones con resultados excepcionales.`;
 
 // Lista de todas las voces disponibles en OpenAI TTS
 const availableVoices = [
