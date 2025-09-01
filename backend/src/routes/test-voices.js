@@ -144,4 +144,54 @@ router.post('/all-voices', async (req, res) => {
   }
 });
 
+// Endpoint para servir audio directamente como stream (sin guardar en disco)
+router.get('/stream/:voiceId', async (req, res) => {
+  try {
+    const { voiceId } = req.params;
+    const { text, model } = req.query;
+    
+    const textToUse = text || testText;
+    const modelToUse = model || 'tts-1-hd';
+    
+    // Verificar que la voz existe
+    const voice = availableVoices.find(v => v.id === voiceId);
+    if (!voice) {
+      return res.status(400).json({
+        success: false,
+        error: `Voz '${voiceId}' no encontrada`,
+        availableVoices: availableVoices.map(v => v.id)
+      });
+    }
+    
+    logger.info(`🎵 Streaming audio directo para voz: ${voiceId}`);
+    
+    // Generar audio sin guardar en disco
+    const result = await openaiTTSService.generateSpeech(textToUse, voiceId);
+    
+    if (result.success && result.audioBuffer) {
+      // Configurar headers para audio
+      res.set({
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': result.audioBuffer.length,
+        'Cache-Control': 'public, max-age=3600',
+        'Content-Disposition': `inline; filename="${voiceId}_sample.mp3"`
+      });
+      
+      // Enviar el buffer de audio directamente
+      res.send(result.audioBuffer);
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Error generando audio'
+      });
+    }
+  } catch (error) {
+    logger.error(`Error streaming audio: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
