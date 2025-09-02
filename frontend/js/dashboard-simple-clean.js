@@ -3537,8 +3537,10 @@ function loadBotConfiguration() {
         if (callConfig.voiceId) {
             const azureVoiceSelect = document.getElementById('azureVoiceSelect');
             if (azureVoiceSelect) {
+                // Guardar el valor para restaurar después de cargar las voces
+                window.savedAzureVoice = callConfig.voiceId;
                 azureVoiceSelect.value = callConfig.voiceId;
-                console.log('🎤 Voz Azure TTS cargada:', callConfig.voiceId);
+                console.log('🎤 Voz Azure TTS guardada para restaurar:', callConfig.voiceId);
             }
         }
         
@@ -9654,10 +9656,27 @@ async function loadAzureVoices() {
         console.log('✅ Voces Azure TTS cargadas:', result);
 
         populateVoiceSelect(result.voices, result.defaultVoice);
+        
+        // Después de cargar las voces, restaurar el valor guardado si existe
+        restoreSavedAzureVoice();
 
     } catch (error) {
         console.error('❌ Error cargando voces Azure TTS:', error);
         populateVoiceSelect([], null, true);
+    }
+}
+
+/**
+ * Restaurar la voz Azure TTS guardada después de cargar las opciones
+ */
+function restoreSavedAzureVoice() {
+    // Obtener el valor guardado globalmente
+    if (window.savedAzureVoice) {
+        const azureVoiceSelect = document.getElementById('azureVoiceSelect');
+        if (azureVoiceSelect) {
+            azureVoiceSelect.value = window.savedAzureVoice;
+            console.log('🎤 Voz Azure TTS restaurada:', window.savedAzureVoice);
+        }
     }
 }
 
