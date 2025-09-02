@@ -9811,7 +9811,10 @@ async function testAzureVoice() {
         
         const token = localStorage.getItem('authToken');
         
-        const response = await fetch(`${API_BASE_URL}/api/tts/test`, {
+        // Usar la URL base del API_CONFIG
+        const baseUrl = window.API_CONFIG?.baseUrl || 'https://saas-ai-automation.onrender.com';
+        
+        const response = await fetch(`${baseUrl}/api/tts/test`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
