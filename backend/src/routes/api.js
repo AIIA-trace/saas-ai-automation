@@ -7,77 +7,6 @@ const N8NService = require('../services/n8nService');
 router.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-
-// Endpoint para obtener voces disponibles de Azure TTS
-router.get('/voices/azure', authenticate, (req, res) => {
-  try {
-    logger.info(`🎵 Cliente ${req.client.id} solicitando voces Azure TTS disponibles`);
-    
-    const voices = azureTTSService.getAvailableVoices();
-    const isConfigured = azureTTSService.isConfigured();
-    
-    res.json({
-      success: true,
-      configured: isConfigured,
-      voices: voices,
-      defaultVoice: azureTTSService.defaultVoice
-    });
-  } catch (error) {
-    logger.error(`Error obteniendo voces Azure TTS: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      error: 'Error obteniendo voces disponibles'
-    });
-  }
-});
-
-// Endpoint para probar voces Azure TTS
-router.post('/tts/test', authenticate, async (req, res) => {
-  try {
-    const { text, voice, provider } = req.body;
-    
-    logger.info(`🎵 Cliente ${req.client.id} probando voz ${voice} con provider ${provider}`);
-    
-    if (!text || !voice) {
-      return res.status(400).json({
-        success: false,
-        error: 'Texto y voz son requeridos'
-      });
-    }
-    
-    if (provider !== 'azure-tts') {
-      return res.status(400).json({
-        success: false,
-        error: 'Solo se soporta Azure TTS para pruebas'
-      });
-    }
-    
-    // Generar audio con Azure TTS
-    const audioBuffer = await azureTTSService.generateSpeech(text, voice);
-    
-    if (!audioBuffer) {
-      throw new Error('No se pudo generar el audio');
-    }
-    
-    logger.info(`✅ Audio generado exitosamente para cliente ${req.client.id} con voz ${voice}`);
-    
-    // Enviar audio como respuesta
-    res.set({
-      'Content-Type': 'audio/wav',
-      'Content-Length': audioBuffer.length,
-      'Content-Disposition': 'inline; filename="voice-test.wav"'
-    });
-    
-    res.send(audioBuffer);
-    
-  } catch (error) {
-    logger.error(`Error generando audio de prueba: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      error: 'Error generando audio de prueba: ' + error.message
-    });
-  }
-});
 const { PrismaClient } = require('@prisma/client');
 
 // INICIALIZAR PRISMA CON MANEJO DE ERRORES
@@ -192,6 +121,79 @@ const authenticate = async (req, res, next) => {
     return res.status(500).json({ error: 'Error de autenticación' });
   }
 };
+
+// === ENDPOINTS AZURE TTS ===
+
+// Endpoint para obtener voces disponibles de Azure TTS
+router.get('/voices/azure', authenticate, (req, res) => {
+  try {
+    logger.info(`🎵 Cliente ${req.client.id} solicitando voces Azure TTS disponibles`);
+    
+    const voices = azureTTSService.getAvailableVoices();
+    const isConfigured = azureTTSService.isConfigured();
+    
+    res.json({
+      success: true,
+      configured: isConfigured,
+      voices: voices,
+      defaultVoice: azureTTSService.defaultVoice
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo voces Azure TTS: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo voces disponibles'
+    });
+  }
+});
+
+// Endpoint para probar voces Azure TTS
+router.post('/tts/test', authenticate, async (req, res) => {
+  try {
+    const { text, voice, provider } = req.body;
+    
+    logger.info(`🎵 Cliente ${req.client.id} probando voz ${voice} con provider ${provider}`);
+    
+    if (!text || !voice) {
+      return res.status(400).json({
+        success: false,
+        error: 'Texto y voz son requeridos'
+      });
+    }
+    
+    if (provider !== 'azure-tts') {
+      return res.status(400).json({
+        success: false,
+        error: 'Solo se soporta Azure TTS para pruebas'
+      });
+    }
+    
+    // Generar audio con Azure TTS
+    const audioBuffer = await azureTTSService.generateSpeech(text, voice);
+    
+    if (!audioBuffer) {
+      throw new Error('No se pudo generar el audio');
+    }
+    
+    logger.info(`✅ Audio generado exitosamente para cliente ${req.client.id} con voz ${voice}`);
+    
+    // Enviar audio como respuesta
+    res.set({
+      'Content-Type': 'audio/wav',
+      'Content-Length': audioBuffer.length,
+      'Content-Disposition': 'inline; filename="voice-test.wav"'
+    });
+    
+    res.send(audioBuffer);
+    
+  } catch (error) {
+    logger.error(`Error generando audio de prueba: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Error generando audio de prueba: ' + error.message
+    });
+  }
+});
 
 // === ENDPOINTS UNIFICADOS DEL CLIENTE (NUEVA API) ===
 
