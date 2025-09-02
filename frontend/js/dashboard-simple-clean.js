@@ -9653,10 +9653,12 @@ async function loadAzureVoices() {
         console.log('🔑 Token encontrado:', !!token);
         console.log('🔑 Token length:', token ? token.length : 0);
         
-        console.log('🌐 Preparando petición a:', `${API_BASE_URL}/api/voices/azure`);
-        console.log('🌐 API_BASE_URL:', API_BASE_URL);
+        // Usar la URL base del API_CONFIG
+        const baseUrl = window.API_CONFIG?.baseUrl || 'https://saas-ai-automation.onrender.com';
+        console.log('🌐 Preparando petición a:', `${baseUrl}/api/voices/azure`);
+        console.log('🌐 Base URL utilizada:', baseUrl);
         
-        const response = await fetch(`${API_BASE_URL}/api/voices/azure`, {
+        const response = await fetch(`${baseUrl}/api/voices/azure`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
