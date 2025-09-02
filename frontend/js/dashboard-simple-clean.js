@@ -1430,12 +1430,22 @@ function createBotConfigTabContent() {
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label for="voice_type" class="form-label">Tipo de Voz</label>
-                                                        <select class="form-select" id="voice_type" name="voice_type" required>
-                                                            <option value="female" selected>Femenina</option>
-                                                            <option value="male">Masculina</option>
-                                                            <option value="neutral">Neutral</option>
+                                                        <label for="azureVoiceSelect" class="form-label">
+                                                            <i class="fas fa-microphone me-1"></i>
+                                                            Voz Azure TTS
+                                                        </label>
+                                                        <select class="form-select" id="azureVoiceSelect" name="azureVoice" required>
+                                                            <option value="">Cargando voces disponibles...</option>
                                                         </select>
+                                                        <div class="form-text">
+                                                            Voces españolas con ceceo peninsular auténtico
+                                                        </div>
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <button type="button" class="btn btn-outline-primary btn-sm" id="testVoiceBtn">
+                                                            <i class="fas fa-play me-1"></i>
+                                                            Probar Voz
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1677,54 +1687,6 @@ Web: {WEB}</textarea>
                                 <button type="button" class="btn btn-primary" id="save-bot-config-btn-bottom">
                                     <i class="fas fa-save me-2"></i>Guardar
                                 </button>
-                            </div>
-                            
-                            <!-- Sección: Configuración de Voz Azure TTS -->
-                            <div class="card mb-4 border-0 shadow-sm">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-microphone me-2"></i>Configuración de Voz (Azure TTS)</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-12">
-                                            <p class="text-muted mb-3">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Selecciona la voz que usará el bot en las llamadas telefónicas. 
-                                                Recomendamos <strong>Lola</strong> o <strong>Dario</strong> para español peninsular con acento natural.
-                                            </p>
-                                        </div>
-                                        
-                                        <div class="col-md-8">
-                                            <label for="azureVoiceSelect" class="form-label">
-                                                <i class="fas fa-volume-up me-1"></i>
-                                                Seleccionar Voz Española
-                                            </label>
-                                            <select class="form-select" id="azureVoiceSelect" name="azureVoice">
-                                                <option value="">Cargando voces disponibles...</option>
-                                            </select>
-                                            <div class="form-text">
-                                                Las voces Azure TTS ofrecen la máxima calidad y naturalidad para llamadas telefónicas.
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-md-4 d-flex align-items-end">
-                                            <button type="button" class="btn btn-outline-primary btn-sm w-100" id="testVoiceBtn">
-                                                <i class="fas fa-play me-1"></i>
-                                                Probar Voz
-                                            </button>
-                                        </div>
-                                        
-                                        <div class="col-12">
-                                            <div class="alert alert-info py-2 mb-0" role="alert">
-                                                <i class="fas fa-lightbulb me-2"></i>
-                                                <small>
-                                                    <strong>Tip:</strong> La configuración se aplicará automáticamente a todas las nuevas llamadas. 
-                                                    Escucha una muestra antes de guardar para asegurar la mejor experiencia de usuario.
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </form>
                     </div>
@@ -3573,10 +3535,10 @@ function loadBotConfiguration() {
         }
         
         if (callConfig.voiceId) {
-            const voiceSelect = document.getElementById('voice_type');
-            if (voiceSelect) {
-                voiceSelect.value = callConfig.voiceId;
-                console.log('🎤 Tipo de voz cargado:', callConfig.voiceId);
+            const azureVoiceSelect = document.getElementById('azureVoiceSelect');
+            if (azureVoiceSelect) {
+                azureVoiceSelect.value = callConfig.voiceId;
+                console.log('🎤 Voz Azure TTS cargada:', callConfig.voiceId);
             }
         }
         
@@ -6978,7 +6940,7 @@ function saveUnifiedConfig() {
                 const config = {
                     // Campos que SÍ existen en el HTML
                     enabled: document.getElementById('call_bot_active')?.checked || false,
-                    voiceId: document.getElementById('voice_type')?.value || 'female',
+                    voiceId: document.getElementById('azureVoiceSelect')?.value || '',
                     language: document.getElementById('call_language')?.value || 'es-ES',
                     greeting: document.getElementById('call_greeting')?.value || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
                     // Configuración automática para N8N
