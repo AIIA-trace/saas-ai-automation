@@ -1678,6 +1678,54 @@ Web: {WEB}</textarea>
                                     <i class="fas fa-save me-2"></i>Guardar
                                 </button>
                             </div>
+                            
+                            <!-- Sección: Configuración de Voz Azure TTS -->
+                            <div class="card mb-4 border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-microphone me-2"></i>Configuración de Voz (Azure TTS)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <p class="text-muted mb-3">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Selecciona la voz que usará el bot en las llamadas telefónicas. 
+                                                Recomendamos <strong>Lola</strong> o <strong>Dario</strong> para español peninsular con acento natural.
+                                            </p>
+                                        </div>
+                                        
+                                        <div class="col-md-8">
+                                            <label for="azureVoiceSelect" class="form-label">
+                                                <i class="fas fa-volume-up me-1"></i>
+                                                Seleccionar Voz Española
+                                            </label>
+                                            <select class="form-select" id="azureVoiceSelect" name="azureVoice">
+                                                <option value="">Cargando voces disponibles...</option>
+                                            </select>
+                                            <div class="form-text">
+                                                Las voces Azure TTS ofrecen la máxima calidad y naturalidad para llamadas telefónicas.
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-4 d-flex align-items-end">
+                                            <button type="button" class="btn btn-outline-primary btn-sm w-100" id="testVoiceBtn">
+                                                <i class="fas fa-play me-1"></i>
+                                                Probar Voz
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="col-12">
+                                            <div class="alert alert-info py-2 mb-0" role="alert">
+                                                <i class="fas fa-lightbulb me-2"></i>
+                                                <small>
+                                                    <strong>Tip:</strong> La configuración se aplicará automáticamente a todas las nuevas llamadas. 
+                                                    Escucha una muestra antes de guardar para asegurar la mejor experiencia de usuario.
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -6951,6 +6999,9 @@ function saveUnifiedConfig() {
                 return config;
             })(),
             
+            // Configuración de voz Azure TTS
+            azureVoice: document.getElementById('azureVoiceSelect')?.value || '',
+            
             // Configuración de emails - Optimizada para n8n/OpenAI
             emailConfig: (() => {
                 console.log('📧 ===== DEBUG EMAILCONFIG RECOPILACIÓN =====');
@@ -9487,8 +9538,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Adaptar el dashboard según el contexto de la empresa (ya incluye createTabsContent)
         adaptOtherContextSimple(companyData);
         
-        // Solo configurar event listeners adicionales sin recrear contenido
+        // Configurar event listeners
         setupEventListeners();
+        
+        // Configurar Azure TTS
+        setupAzureTTSEventListeners();
         
         // Cargar datos existentes del perfil y configuración desde el backend
         loadExistingData();
@@ -9608,4 +9662,172 @@ function markEmailAsRead(emailId) {
         console.error('Error al marcar como leído:', error);
         toastr.error('Error de conexión', 'Error');
     });
+}
+
+// ========================================
+// FUNCIONES AZURE TTS
+// ========================================
+
+/**
+ * Cargar voces disponibles de Azure TTS
+ */
+async function loadAzureVoices() {
+    try {
+        console.log('🎵 Cargando voces Azure TTS disponibles...');
+        const token = localStorage.getItem('authToken');
+        
+        const response = await fetch(`${API_BASE_URL}/api/voices/azure`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ Voces Azure TTS cargadas:', result);
+
+        populateVoiceSelect(result.voices, result.defaultVoice);
+
+    } catch (error) {
+        console.error('❌ Error cargando voces Azure TTS:', error);
+        populateVoiceSelect([], null, true);
+    }
+}
+
+/**
+ * Poblar el selector de voces Azure TTS
+ */
+function populateVoiceSelect(voices, defaultVoice, hasError = false) {
+    const select = document.getElementById('azureVoiceSelect');
+    
+    if (!select) {
+        console.warn('⚠️ Elemento azureVoiceSelect no encontrado');
+        return;
+    }
+
+    // Limpiar opciones existentes
+    select.innerHTML = '';
+
+    if (hasError) {
+        select.innerHTML = '<option value="">Error cargando voces</option>';
+        select.disabled = true;
+        return;
+    }
+
+    if (!voices || voices.length === 0) {
+        select.innerHTML = '<option value="">No hay voces disponibles</option>';
+        select.disabled = true;
+        return;
+    }
+
+    // Añadir opción por defecto
+    select.innerHTML = '<option value="">Selecciona una voz...</option>';
+
+    // Añadir voces disponibles
+    voices.forEach(voice => {
+        const option = document.createElement('option');
+        option.value = voice.name;
+        option.textContent = `${voice.displayName} (${voice.gender}) - ${voice.locale}`;
+        
+        // Marcar como seleccionada si es la voz por defecto
+        if (voice.name === defaultVoice) {
+            option.selected = true;
+        }
+        
+        select.appendChild(option);
+    });
+
+    select.disabled = false;
+    console.log(`✅ ${voices.length} voces Azure TTS cargadas en el selector`);
+}
+
+/**
+ * Probar voz Azure TTS seleccionada
+ */
+async function testAzureVoice() {
+    const select = document.getElementById('azureVoiceSelect');
+    const selectedVoice = select?.value;
+
+    if (!selectedVoice) {
+        console.warn('⚠️ No hay voz seleccionada para probar');
+        return;
+    }
+
+    const testBtn = document.getElementById('testVoiceBtn');
+    const originalText = testBtn.innerHTML;
+    
+    try {
+        testBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generando audio...';
+        testBtn.disabled = true;
+
+        console.log(`🎵 Probando voz Azure TTS: ${selectedVoice}`);
+        
+        // Texto de prueba en español
+        const testText = "Hola, soy tu asistente virtual. Esta es una muestra de mi voz para las llamadas telefónicas.";
+        
+        const token = localStorage.getItem('authToken');
+        
+        const response = await fetch(`${API_BASE_URL}/api/tts/test`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                text: testText,
+                voice: selectedVoice,
+                provider: 'azure-tts'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        // Obtener el audio como blob
+        const audioBlob = await response.blob();
+        
+        // Crear URL del audio y reproducirlo
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        
+        audio.play();
+        
+        console.log('✅ Audio Azure TTS reproducido correctamente');
+        
+        // Limpiar URL después de reproducir
+        audio.addEventListener('ended', () => {
+            URL.revokeObjectURL(audioUrl);
+        });
+
+    } catch (error) {
+        console.error('❌ Error probando voz Azure TTS:', error);
+    } finally {
+        testBtn.innerHTML = originalText;
+        testBtn.disabled = false;
+    }
+}
+
+/**
+ * Configurar event listeners para Azure TTS
+ */
+function setupAzureTTSEventListeners() {
+    // Event listener para el botón de probar voz
+    const testVoiceBtn = document.getElementById('testVoiceBtn');
+    if (testVoiceBtn) {
+        testVoiceBtn.addEventListener('click', testAzureVoice);
+        console.log('✅ Event listener configurado para testVoiceBtn');
+    }
+    
+    // Cargar voces cuando se carga la página
+    setTimeout(() => {
+        if (document.getElementById('azureVoiceSelect')) {
+            loadAzureVoices();
+        }
+    }, 1000);
 }
