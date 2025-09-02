@@ -1,6 +1,7 @@
 const twilio = require('twilio');
 const logger = require('../utils/logger');
-const openaiTTSService = require('./openaiTTSService');
+const AzureTTSService = require('./azureTTSService');
+const azureTTSService = new AzureTTSService();
 
 class TwilioService {
   constructor() {
@@ -16,33 +17,37 @@ class TwilioService {
     }
   }
 
-  // Generar audio premium con ElevenLabs si está disponible
+  // Generar audio premium con Azure TTS (voces españolas)
   async generatePremiumAudio(text, botConfig) {
     try {
-      // Probar OpenAI TTS primero (español peninsular)
-      const hasOpenAI = process.env.OPENAI_API_KEY;
+      // Verificar si Azure TTS está configurado
+      const hasAzure = azureTTSService.isConfigured();
       
-      logger.info(`🔍 DEBUG - OPENAI_API_KEY exists: ${!!process.env.OPENAI_API_KEY}`);
+      logger.info(`🔍 DEBUG - Azure TTS configurado: ${hasAzure}`);
       
-      if (hasOpenAI) {
+      if (hasAzure) {
         try {
-          logger.info('✅ Generando audio con OpenAI TTS (nova - español peninsular)...');
-          const result = await openaiTTSService.generateBotResponse(text, 'nova');
+          // Obtener voz preferida del usuario (por defecto: lola)
+          const preferredVoice = botConfig?.voiceSettings?.azureVoice || 'lola';
+          
+          logger.info(`✅ Generando audio con Azure TTS (${preferredVoice} - español peninsular)...`);
+          const result = await azureTTSService.generateBotResponse(text, preferredVoice);
           
           if (result.success) {
-            logger.info('🎵 Audio OpenAI TTS generado exitosamente');
+            logger.info('🎵 Audio Azure TTS generado exitosamente');
             return {
               success: true,
               audioUrl: result.audioUrl,
-              provider: 'openai-tts',
-              voice: 'nova',
+              provider: 'azure-tts',
+              voice: preferredVoice,
+              voiceInfo: result.voiceUsed,
               duration: result.durationEstimate
             };
           } else {
             throw new Error(result.error);
           }
         } catch (error) {
-          logger.error(`Error generando audio OpenAI TTS: ${error.message}`);
+          logger.error(`Error generando audio Azure TTS: ${error.message}`);
           // Continuar con fallback a Polly
         }
       }

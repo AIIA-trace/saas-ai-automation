@@ -223,6 +223,46 @@
                         </div>
                     </div>
                     
+                    <!-- Sección: Configuración de Voz Azure TTS -->
+                    <div class="mb-4">
+                        <h4 class="section-header">
+                            <i class="fas fa-microphone me-2"></i>
+                            Configuración de Voz (Azure TTS)
+                        </h4>
+                        
+                        <div class="mb-3">
+                            <label for="azureVoiceSelect" class="form-label">
+                                <i class="fas fa-volume-up me-1"></i>
+                                Seleccionar Voz Española
+                            </label>
+                            <select class="form-select" id="azureVoiceSelect" name="azureVoice">
+                                <option value="">Cargando voces disponibles...</option>
+                            </select>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Selecciona la voz que usará el bot en las llamadas telefónicas. 
+                                Recomendamos <strong>Lola</strong> o <strong>Dario</strong> para español peninsular con acento natural.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="testVoiceBtn">
+                                <i class="fas fa-play me-1"></i>
+                                Probar Voz Seleccionada
+                            </button>
+                            <div class="form-text mt-2">
+                                <i class="fas fa-headphones me-1"></i>
+                                Escucha una muestra de la voz seleccionada antes de guardar
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Tip:</strong> Las voces Azure TTS ofrecen la máxima calidad y naturalidad para llamadas telefónicas. 
+                            La configuración se aplicará automáticamente a todas las nuevas llamadas.
+                        </div>
+                    </div>
+                    
                     <!-- Sección: Horarios Comerciales -->
                     <div class="mb-4">
                         <h4 class="section-header">

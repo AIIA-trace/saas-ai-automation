@@ -7,6 +7,77 @@ const N8NService = require('../services/n8nService');
 router.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Endpoint para obtener voces disponibles de Azure TTS
+router.get('/voices/azure', authenticate, (req, res) => {
+  try {
+    logger.info(`🎵 Cliente ${req.client.id} solicitando voces Azure TTS disponibles`);
+    
+    const voices = azureTTSService.getAvailableVoices();
+    const isConfigured = azureTTSService.isConfigured();
+    
+    res.json({
+      success: true,
+      configured: isConfigured,
+      voices: voices,
+      defaultVoice: azureTTSService.defaultVoice
+    });
+  } catch (error) {
+    logger.error(`Error obteniendo voces Azure TTS: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo voces disponibles'
+    });
+  }
+});
+
+// Endpoint para probar voces Azure TTS
+router.post('/tts/test', authenticate, async (req, res) => {
+  try {
+    const { text, voice, provider } = req.body;
+    
+    logger.info(`🎵 Cliente ${req.client.id} probando voz ${voice} con provider ${provider}`);
+    
+    if (!text || !voice) {
+      return res.status(400).json({
+        success: false,
+        error: 'Texto y voz son requeridos'
+      });
+    }
+    
+    if (provider !== 'azure-tts') {
+      return res.status(400).json({
+        success: false,
+        error: 'Solo se soporta Azure TTS para pruebas'
+      });
+    }
+    
+    // Generar audio con Azure TTS
+    const audioBuffer = await azureTTSService.generateSpeech(text, voice);
+    
+    if (!audioBuffer) {
+      throw new Error('No se pudo generar el audio');
+    }
+    
+    logger.info(`✅ Audio generado exitosamente para cliente ${req.client.id} con voz ${voice}`);
+    
+    // Enviar audio como respuesta
+    res.set({
+      'Content-Type': 'audio/wav',
+      'Content-Length': audioBuffer.length,
+      'Content-Disposition': 'inline; filename="voice-test.wav"'
+    });
+    
+    res.send(audioBuffer);
+    
+  } catch (error) {
+    logger.error(`Error generando audio de prueba: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Error generando audio de prueba: ' + error.message
+    });
+  }
+});
 const { PrismaClient } = require('@prisma/client');
 
 // INICIALIZAR PRISMA CON MANEJO DE ERRORES
@@ -33,6 +104,8 @@ const twilioService = require('../services/twilioService');
 const emailService = require('../services/emailService');
 const elevenlabsService = require('../services/elevenlabsService');
 const authService = require('../services/authService');
+const AzureTTSService = require('../services/azureTTSService');
+const azureTTSService = new AzureTTSService();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const logger = require('../utils/logger');
 
@@ -351,6 +424,7 @@ router.put('/client', authenticate, async (req, res) => {
       // Configuraciones complejas - campos JSON
       emailConfig,
       businessHoursConfig,
+      voiceConfig, // Configuración de voces Azure TTS
 
       
       // Datos específicos del bot unificado
@@ -449,6 +523,37 @@ router.put('/client', authenticate, async (req, res) => {
       }
     } else {
       logger.info(`📞 FORCE DEBUG CALLCONFIG - NO recibido en req.body`);
+    }
+    
+    // Configuración de voces Azure TTS
+    if (voiceConfig || req.body.voiceConfig) {
+      const voiceConfigData = voiceConfig || req.body.voiceConfig;
+      
+      // Validar que la voz seleccionada existe
+      const availableVoices = azureTTSService.getAvailableVoices();
+      const selectedVoice = voiceConfigData.azureVoice || voiceConfigData.voice;
+      
+      if (selectedVoice && !availableVoices.find(v => v.id === selectedVoice)) {
+        logger.warn(`⚠️ Voz Azure seleccionada no válida: ${selectedVoice}. Usando voz por defecto.`);
+        voiceConfigData.azureVoice = azureTTSService.defaultVoice;
+      }
+      
+      // Actualizar o crear callConfig con configuración de voz
+      const currentCallConfig = currentClient.callConfig || {};
+      const updatedCallConfig = {
+        ...currentCallConfig,
+        voiceSettings: {
+          ...currentCallConfig.voiceSettings,
+          provider: 'azure-tts',
+          azureVoice: voiceConfigData.azureVoice || selectedVoice || azureTTSService.defaultVoice
+        }
+      };
+      
+      updateData.callConfig = updatedCallConfig;
+      
+      logger.info(`🎵 AZURE VOICE CONFIG - Configuración de voz actualizada para cliente ${req.client.id}`);
+      logger.info(`🎵 AZURE VOICE CONFIG - Voz seleccionada: ${updatedCallConfig.voiceSettings.azureVoice}`);
+      logger.info(`🎵 AZURE VOICE CONFIG - Configuración completa:`, JSON.stringify(updatedCallConfig.voiceSettings, null, 2));
     }
     
     if (req.body.transferConfig) {

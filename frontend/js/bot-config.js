@@ -14,6 +14,7 @@ class BotConfigManager {
     init() {
         console.log('🤖 Inicializando Bot Configuration Manager...');
         this.bindEvents();
+        this.loadAzureVoices();
         this.loadCurrentConfig();
     }
 
@@ -27,6 +28,11 @@ class BotConfigManager {
         document.getElementById('botConfigForm').addEventListener('submit', (e) => {
             e.preventDefault();
             this.saveConfig();
+        });
+
+        // Eventos para Azure TTS
+        document.getElementById('testVoiceBtn').addEventListener('click', () => {
+            this.testSelectedVoice();
         });
 
         // Validación en tiempo real
@@ -163,8 +169,11 @@ class BotConfigManager {
                 console.log('⚠️ Campo companyDescription no encontrado en DOM');
             }
         }
+
+        // Configuración de voz Azure TTS
+        this.loadSavedVoiceConfig(data);
     
-    console.log('📋 Formulario rellenado con configuración actual y datos de empresa');
+        console.log('📋 Formulario rellenado con configuración actual y datos de empresa');
     }
 
     async saveConfig() {
@@ -279,6 +288,201 @@ class BotConfigManager {
         setTimeout(() => {
             successMessage.style.display = 'none';
         }, 3000);
+    }
+
+    // ===== MÉTODOS AZURE TTS =====
+
+    async loadAzureVoices() {
+        try {
+            console.log('🎵 Cargando voces Azure TTS disponibles...');
+            const token = this.authService.getToken();
+            
+            const response = await fetch(`${this.apiBaseUrl}/api/voices/azure`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log('✅ Voces Azure TTS cargadas:', result);
+
+            this.populateVoiceSelect(result.voices, result.defaultVoice);
+
+        } catch (error) {
+            console.error('❌ Error cargando voces Azure TTS:', error);
+            this.populateVoiceSelect([], null, true);
+        }
+    }
+
+    populateVoiceSelect(voices, defaultVoice, hasError = false) {
+        const select = document.getElementById('azureVoiceSelect');
+        
+        if (!select) {
+            console.warn('⚠️ Elemento azureVoiceSelect no encontrado');
+            return;
+        }
+
+        // Limpiar opciones existentes
+        select.innerHTML = '';
+
+        if (hasError) {
+            select.innerHTML = '<option value="">Error cargando voces</option>';
+            select.disabled = true;
+            return;
+        }
+
+        if (!voices || voices.length === 0) {
+            select.innerHTML = '<option value="">No hay voces disponibles</option>';
+            select.disabled = true;
+            return;
+        }
+
+        // Añadir opción por defecto
+        select.innerHTML = '<option value="">Seleccionar voz...</option>';
+
+        // Añadir voces disponibles
+        voices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.id;
+            option.textContent = `${voice.name} (${voice.gender}) - ${voice.locale}`;
+            
+            // Marcar como seleccionada si es la voz por defecto
+            if (voice.id === defaultVoice) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
+
+        select.disabled = false;
+        console.log(`✅ ${voices.length} voces Azure TTS cargadas en el selector`);
+    }
+
+    loadSavedVoiceConfig(data) {
+        try {
+            console.log('🎵 Cargando configuración de voz guardada...');
+            
+            // Buscar configuración de voz en callConfig
+            const callConfig = data.callConfig;
+            const voiceSettings = callConfig?.voiceSettings;
+            const savedVoice = voiceSettings?.azureVoice;
+            
+            console.log('🔍 CallConfig encontrado:', !!callConfig);
+            console.log('🔍 VoiceSettings encontrado:', !!voiceSettings);
+            console.log('🔍 Voz Azure guardada:', savedVoice);
+            
+            if (savedVoice) {
+                const select = document.getElementById('azureVoiceSelect');
+                if (select) {
+                    // Buscar la opción correspondiente y seleccionarla
+                    const option = Array.from(select.options).find(opt => opt.value === savedVoice);
+                    if (option) {
+                        select.value = savedVoice;
+                        console.log(`✅ Voz Azure cargada: ${savedVoice}`);
+                        toastr.info(`Voz configurada: ${option.textContent}`);
+                    } else {
+                        console.warn(`⚠️ Voz guardada ${savedVoice} no encontrada en opciones disponibles`);
+                    }
+                } else {
+                    console.warn('⚠️ Selector de voz Azure no encontrado');
+                }
+            } else {
+                console.log('ℹ️ No hay voz Azure guardada, usando configuración por defecto');
+            }
+        } catch (error) {
+            console.error('❌ Error cargando configuración de voz:', error);
+        }
+    }
+
+    async testSelectedVoice() {
+        const select = document.getElementById('azureVoiceSelect');
+        const selectedVoice = select.value;
+
+        if (!selectedVoice) {
+            toastr.warning('Por favor selecciona una voz para probar');
+            return;
+        }
+
+        const testBtn = document.getElementById('testVoiceBtn');
+        const originalText = testBtn.innerHTML;
+        
+        try {
+            testBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generando audio...';
+            testBtn.disabled = true;
+
+            console.log(`🎵 Probando voz Azure TTS: ${selectedVoice}`);
+            
+            // Texto de prueba en español
+            const testText = "Hola, soy tu asistente virtual. Esta es una muestra de mi voz para las llamadas telefónicas.";
+            
+            const token = this.authService.getToken();
+            
+            const response = await fetch(`${this.apiBaseUrl}/api/tts/test`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: testText,
+                    voice: selectedVoice,
+                    provider: 'azure-tts'
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+
+            // Obtener el audio como blob
+            const audioBlob = await response.blob();
+            
+            // Crear URL del audio y reproducirlo
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            
+            audio.play();
+            
+            toastr.success('Audio generado correctamente. ¡Escucha la muestra!');
+            
+            // Limpiar URL después de reproducir
+            audio.addEventListener('ended', () => {
+                URL.revokeObjectURL(audioUrl);
+            });
+
+        } catch (error) {
+            console.error('❌ Error probando voz Azure TTS:', error);
+            toastr.error('Error al generar audio de prueba: ' + error.message);
+        } finally {
+            testBtn.innerHTML = originalText;
+            testBtn.disabled = false;
+        }
+    }
+
+    // Actualizar collectFormData para incluir configuración de voz
+    collectFormData() {
+        const azureVoice = document.getElementById('azureVoiceSelect').value;
+        
+        return {
+            // Configuración del bot en formato que espera el backend
+            bot: {
+                name: document.getElementById('botName').value.trim() || null,
+                language: document.getElementById('botLanguage').value || null,
+                personality: document.getElementById('botPersonality').value || null,
+                welcomeMessage: document.getElementById('welcomeMessage').value.trim() || null,
+                confirmationMessage: document.getElementById('confirmationMessage').value.trim() || null
+            },
+            // Configuración de voz Azure TTS
+            voiceConfig: azureVoice ? {
+                azureVoice: azureVoice
+            } : null
+        };
     }
 }
 
