@@ -38,7 +38,15 @@ class AzureTTSService {
     }
     
     const speechConfig = sdk.SpeechConfig.fromSubscription(this.subscriptionKey, this.region);
+    
+    // FORZAR el uso del endpoint REST en lugar de WebSocket
+    const restEndpoint = `https://${this.region}.api.cognitive.microsoft.com/`;
+    speechConfig.endpointId = restEndpoint;
+    
+    // Configurar formato de salida
     speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+    
+    logger.info(`🔍 DEBUG Azure TTS - Usando endpoint REST: ${restEndpoint}`);
     
     return speechConfig;
   }
