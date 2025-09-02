@@ -9637,8 +9637,24 @@ function markEmailAsRead(emailId) {
  */
 async function loadAzureVoices() {
     try {
-        console.log('🎵 Cargando voces Azure TTS disponibles...');
+        console.log('🎵 === DEBUG AZURE TTS - INICIO ===');
+        console.log('🔍 Verificando elementos DOM...');
+        
+        const azureVoiceSelect = document.getElementById('azureVoiceSelect');
+        console.log('📋 Elemento azureVoiceSelect encontrado:', !!azureVoiceSelect);
+        
+        if (!azureVoiceSelect) {
+            console.error('❌ CRÍTICO: Elemento azureVoiceSelect NO encontrado en DOM');
+            return;
+        }
+        
+        console.log('🔑 Obteniendo token de autenticación...');
         const token = localStorage.getItem('authToken');
+        console.log('🔑 Token encontrado:', !!token);
+        console.log('🔑 Token length:', token ? token.length : 0);
+        
+        console.log('🌐 Preparando petición a:', `${API_BASE_URL}/api/voices/azure`);
+        console.log('🌐 API_BASE_URL:', API_BASE_URL);
         
         const response = await fetch(`${API_BASE_URL}/api/voices/azure`, {
             method: 'GET',
@@ -9648,21 +9664,35 @@ async function loadAzureVoices() {
             }
         });
 
+        console.log('📡 Respuesta recibida - Status:', response.status);
+        console.log('📡 Respuesta recibida - OK:', response.ok);
+
         if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('❌ Error en respuesta:', errorText);
+            throw new Error(`Error ${response.status}: ${response.statusText} - ${errorText}`);
         }
 
         const result = await response.json();
-        console.log('✅ Voces Azure TTS cargadas:', result);
+        console.log('✅ Respuesta JSON parseada:', result);
+        console.log('🎤 Voces recibidas:', result.voices);
+        console.log('🎤 Número de voces:', result.voices ? result.voices.length : 0);
+        console.log('🎯 Voz por defecto:', result.defaultVoice);
 
         populateVoiceSelect(result.voices, result.defaultVoice);
         
         // Después de cargar las voces, restaurar el valor guardado si existe
         restoreSavedAzureVoice();
+        
+        console.log('🎵 === DEBUG AZURE TTS - FIN EXITOSO ===');
 
     } catch (error) {
-        console.error('❌ Error cargando voces Azure TTS:', error);
+        console.error('❌ === DEBUG AZURE TTS - ERROR ===');
+        console.error('❌ Error completo:', error);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
         populateVoiceSelect([], null, true);
+        console.log('❌ === DEBUG AZURE TTS - FIN CON ERROR ===');
     }
 }
 
@@ -9683,48 +9713,74 @@ function restoreSavedAzureVoice() {
 /**
  * Poblar el selector de voces Azure TTS
  */
-function populateVoiceSelect(voices, defaultVoice, hasError = false) {
-    const select = document.getElementById('azureVoiceSelect');
+function populateVoiceSelect(voices, defaultVoice, isError = false) {
+    console.log('🔧 === DEBUG POPULATE VOICE SELECT - INICIO ===');
+    console.log('🔧 Parámetros recibidos:');
+    console.log('   - voices:', voices);
+    console.log('   - defaultVoice:', defaultVoice);
+    console.log('   - isError:', isError);
     
-    if (!select) {
-        console.warn('⚠️ Elemento azureVoiceSelect no encontrado');
+    const azureVoiceSelect = document.getElementById('azureVoiceSelect');
+    console.log('🔧 Elemento azureVoiceSelect encontrado:', !!azureVoiceSelect);
+    
+    if (!azureVoiceSelect) {
+        console.error('❌ CRÍTICO: Elemento azureVoiceSelect no encontrado en DOM');
         return;
     }
 
+    console.log('🔧 Opciones actuales antes de limpiar:', azureVoiceSelect.options.length);
+    
     // Limpiar opciones existentes
-    select.innerHTML = '';
+    azureVoiceSelect.innerHTML = '';
+    console.log('🔧 Selector limpiado, opciones después:', azureVoiceSelect.options.length);
 
-    if (hasError) {
-        select.innerHTML = '<option value="">Error cargando voces</option>';
-        select.disabled = true;
+    if (isError) {
+        console.log('🔧 Mostrando opción de error...');
+        // Mostrar opción de error
+        const errorOption = document.createElement('option');
+        errorOption.value = '';
+        errorOption.textContent = 'Error cargando voces';
+        errorOption.disabled = true;
+        azureVoiceSelect.appendChild(errorOption);
+        console.log('🔧 Opción de error añadida');
         return;
     }
 
     if (!voices || voices.length === 0) {
-        select.innerHTML = '<option value="">No hay voces disponibles</option>';
-        select.disabled = true;
+        console.log('🔧 No hay voces disponibles, mostrando mensaje...');
+        // Mostrar opción de no disponible
+        const noVoicesOption = document.createElement('option');
+        noVoicesOption.value = '';
+        noVoicesOption.textContent = 'No hay voces disponibles';
+        noVoicesOption.disabled = true;
+        azureVoiceSelect.appendChild(noVoicesOption);
+        console.log('🔧 Opción "no disponible" añadida');
         return;
     }
 
-    // Añadir opción por defecto
-    select.innerHTML = '<option value="">Selecciona una voz...</option>';
-
-    // Añadir voces disponibles
-    voices.forEach(voice => {
+    console.log('🔧 Procesando', voices.length, 'voces...');
+    
+    // Añadir opciones de voces
+    voices.forEach((voice, index) => {
+        console.log(`🔧 Procesando voz ${index + 1}:`, voice);
         const option = document.createElement('option');
-        option.value = voice.id; // ✅ Usar 'id' en lugar de 'name'
-        option.textContent = voice.name; // ✅ Usar 'name' que ya incluye descripción completa
-        
-        // Marcar como seleccionada si es la voz por defecto
-        if (voice.id === defaultVoice) {
-            option.selected = true;
-        }
-        
-        select.appendChild(option);
+        option.value = voice.id;
+        option.textContent = voice.name;
+        azureVoiceSelect.appendChild(option);
+        console.log(`🔧 Opción añadida: value="${voice.id}", text="${voice.name}"`);
     });
 
-    select.disabled = false;
-    console.log(`✅ ${voices.length} voces Azure TTS cargadas en el selector`);
+    console.log('🔧 Total opciones añadidas:', azureVoiceSelect.options.length);
+
+    // Seleccionar voz por defecto si existe
+    if (defaultVoice) {
+        console.log('🔧 Estableciendo voz por defecto:', defaultVoice);
+        azureVoiceSelect.value = defaultVoice;
+        console.log('🔧 Valor actual del selector:', azureVoiceSelect.value);
+    }
+
+    console.log('✅ Selector de voces Azure TTS poblado con', voices.length, 'voces');
+    console.log('🔧 === DEBUG POPULATE VOICE SELECT - FIN ===');
 }
 
 /**
