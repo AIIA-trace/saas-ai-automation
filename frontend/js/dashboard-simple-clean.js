@@ -9693,11 +9693,11 @@ function populateVoiceSelect(voices, defaultVoice, hasError = false) {
     // Añadir voces disponibles
     voices.forEach(voice => {
         const option = document.createElement('option');
-        option.value = voice.name;
-        option.textContent = `${voice.displayName} (${voice.gender}) - ${voice.locale}`;
+        option.value = voice.id; // ✅ Usar 'id' en lugar de 'name'
+        option.textContent = voice.name; // ✅ Usar 'name' que ya incluye descripción completa
         
         // Marcar como seleccionada si es la voz por defecto
-        if (voice.name === defaultVoice) {
+        if (voice.id === defaultVoice) {
             option.selected = true;
         }
         
