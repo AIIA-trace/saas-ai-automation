@@ -9872,9 +9872,21 @@ async function testAzureVoice() {
         // Obtener el audio como blob
         const audioBlob = await response.blob();
         
+        // Verificar el tipo de blob recibido
+        console.log('🎵 Blob recibido - Type:', audioBlob.type, 'Size:', audioBlob.size);
+        
+        // Crear blob con tipo MIME correcto si es necesario
+        const correctBlob = audioBlob.type === 'audio/mpeg' ? audioBlob : 
+                           new Blob([audioBlob], { type: 'audio/mpeg' });
+        
         // Crear URL del audio y reproducirlo
-        const audioUrl = URL.createObjectURL(audioBlob);
+        const audioUrl = URL.createObjectURL(correctBlob);
         const audio = new Audio(audioUrl);
+        
+        // Agregar event listeners para debug
+        audio.addEventListener('loadstart', () => console.log('🎵 Audio loading started'));
+        audio.addEventListener('canplay', () => console.log('🎵 Audio can play'));
+        audio.addEventListener('error', (e) => console.error('🎵 Audio error:', e));
         
         audio.play();
         
