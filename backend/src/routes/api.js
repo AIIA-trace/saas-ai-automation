@@ -188,11 +188,11 @@ router.post('/tts/test', authenticate, async (req, res) => {
     
     logger.info(`✅ Audio generado exitosamente para cliente ${req.client.id} con voz ${voice}`);
     
-    // Enviar audio como respuesta
+    // Enviar audio como respuesta (Azure TTS genera MP3)
     res.set({
-      'Content-Type': 'audio/wav',
+      'Content-Type': 'audio/mpeg',
       'Content-Length': audioBuffer.length,
-      'Content-Disposition': 'inline; filename="voice-test.wav"'
+      'Content-Disposition': 'inline; filename="voice-test.mp3"'
     });
     
     res.send(audioBuffer);
