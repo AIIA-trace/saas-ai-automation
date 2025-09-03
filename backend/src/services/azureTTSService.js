@@ -8,35 +8,23 @@ class AzureTTSService {
     this.subscriptionKey = process.env.AZURE_SPEECH_KEY;
     this.region = process.env.AZURE_SPEECH_REGION || 'westeurope';
     
-    // Voces españolas disponibles (nombres oficiales de Azure)
+    // Voces españolas disponibles (nombres EXACTOS de Azure Speech Studio)
     this.availableVoices = [
       {
-        id: 'laura',
-        name: 'Laura (Femenina España)',
-        azureName: 'es-ES-LauraNeural',
-        description: 'Voz femenina española con ceceo natural'
+        id: 'lola',
+        name: 'Lola (Femenina Multilingüe)',
+        azureName: 'en-US-LolaMultilingualNeural',
+        description: 'Voz femenina multilingüe que habla español con naturalidad'
       },
       {
-        id: 'pablo',
-        name: 'Pablo (Masculino España)', 
-        azureName: 'es-ES-PabloNeural',
+        id: 'dario',
+        name: 'Dario (Masculino España)', 
+        azureName: 'es-ES-DarioNeural',
         description: 'Voz masculina española con ceceo natural'
-      },
-      {
-        id: 'elvira',
-        name: 'Elvira (Femenina España)',
-        azureName: 'es-ES-ElviraNeural',
-        description: 'Voz femenina española expresiva'
-      },
-      {
-        id: 'alvaro',
-        name: 'Álvaro (Masculino España)',
-        azureName: 'es-ES-AlvaroNeural',
-        description: 'Voz masculina española profesional'
       }
     ];
     
-    this.defaultVoice = 'laura'; // Voz por defecto
+    this.defaultVoice = 'lola'; // Voz por defecto
     
     if (!this.subscriptionKey) {
       logger.warn('⚠️ AZURE_SPEECH_KEY no configurada. Azure TTS no funcionará.');

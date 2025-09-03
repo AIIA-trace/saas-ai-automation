@@ -168,8 +168,19 @@ router.post('/tts/test', authenticate, async (req, res) => {
       });
     }
     
-    // Generar audio con Azure TTS
-    const audioBuffer = await azureTTSService.generateSpeech(text, voice);
+    // Convertir ID de voz a nombre Azure TTS
+    const voiceData = azureTTSService.getAvailableVoices().find(v => v.id === voice);
+    if (!voiceData) {
+      return res.status(400).json({
+        success: false,
+        error: `Voz '${voice}' no encontrada. Voces disponibles: ${azureTTSService.getAvailableVoices().map(v => v.id).join(', ')}`
+      });
+    }
+    
+    logger.info(`🎵 Convirtiendo voz ID '${voice}' a Azure name '${voiceData.azureName}'`);
+    
+    // Generar audio con Azure TTS usando el nombre completo
+    const audioBuffer = await azureTTSService.generateSpeech(text, voiceData.azureName);
     
     if (!audioBuffer) {
       throw new Error('No se pudo generar el audio');
