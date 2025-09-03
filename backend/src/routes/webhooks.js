@@ -37,6 +37,12 @@ const validateStripeWebhook = async (req, res, next) => {
 
 // === WEBHOOKS DE TWILIO ===
 
+// Ruta principal que usa TwilioService (REQUERIDA)
+router.post('/call', validateTwilioWebhook, webhookController.handleIncomingCall);
+router.post('/gather', validateTwilioWebhook, webhookController.handleGatherInput);
+router.post('/recording', validateTwilioWebhook, webhookController.handleRecording);
+router.post('/fallback', validateTwilioWebhook, webhookController.handleIncomingCall);
+
 // Rutas que coinciden con la configuración de Twilio
 router.post('/twilio/voice', validateTwilioWebhook, webhookController.handleIncomingCall);
 router.post('/twilio/status', validateTwilioWebhook, webhookController.handleCallStatus);
