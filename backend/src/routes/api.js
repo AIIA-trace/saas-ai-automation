@@ -180,22 +180,32 @@ router.post('/tts/test', authenticate, async (req, res) => {
     logger.info(`🎵 Convirtiendo voz ID '${voice}' a Azure name '${voiceData.azureName}'`);
     
     // Generar audio con Azure TTS usando el nombre completo
-    const audioBuffer = await azureTTSService.generateSpeech(text, voiceData.azureName);
-    
-    if (!audioBuffer) {
-      throw new Error('No se pudo generar el audio');
-    }
-    
-    logger.info(`✅ Audio generado exitosamente para cliente ${req.client.id} con voz ${voice}`);
-    
-    // Enviar audio como respuesta (Azure TTS genera MP3)
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': audioBuffer.length,
-      'Content-Disposition': 'inline; filename="voice-test.mp3"'
+    const result = await azureTTSService.generateSpeech(text, voiceData.azureName);
+        
+    console.log('🎵 Resultado Azure TTS recibido:', {
+        success: result.success,
+        hasAudioBuffer: !!result.audioBuffer,
+        audioBufferType: typeof result.audioBuffer,
+        audioBufferSize: result.audioBuffer ? result.audioBuffer.byteLength : 0
     });
-    
-    res.send(audioBuffer);
+        
+    if (!result.success || !result.audioBuffer) {
+        return res.status(500).json({
+            success: false,
+            error: 'Error generando audio Azure TTS'
+        });
+    }
+        
+    console.log('🎵 Audio Azure TTS generado exitosamente, enviando respuesta...');
+        
+    // Configurar headers para audio MP3
+    res.set({
+        'Content-Type': 'audio/mpeg',
+        'Content-Disposition': 'attachment; filename="voice-test.mp3"'
+    });
+        
+    // Enviar solo el buffer de audio, no el objeto completo
+    res.send(Buffer.from(result.audioBuffer));
     
   } catch (error) {
     logger.error(`Error generando audio de prueba: ${error.message}`);
