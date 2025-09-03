@@ -3535,13 +3535,12 @@ function loadBotConfiguration() {
         }
         
         if (callConfig.voiceId) {
-            const azureVoiceSelect = document.getElementById('azureVoiceSelect');
-            if (azureVoiceSelect) {
-                // Guardar el valor para restaurar después de cargar las voces
-                window.savedAzureVoice = callConfig.voiceId;
-                azureVoiceSelect.value = callConfig.voiceId;
-                console.log('🎤 Voz Azure TTS guardada para restaurar:', callConfig.voiceId);
-            }
+            // Guardar el valor para restaurar después de cargar las voces
+            window.savedAzureVoice = callConfig.voiceId;
+            console.log('🎤 Voz Azure TTS guardada para restaurar:', callConfig.voiceId);
+            
+            // NO establecer el valor aquí porque las opciones aún no están cargadas
+            // La restauración se hará en restoreSavedAzureVoice() después de loadAzureVoices()
         }
         
         if (callConfig.greeting) {
@@ -6963,8 +6962,8 @@ function saveUnifiedConfig() {
                 return config;
             })(),
             
-            // Configuración de voz Azure TTS
-            azureVoice: document.getElementById('azureVoiceSelect')?.value || '',
+            // Configuración de voz Azure TTS se guarda en callConfig.voiceId (línea 6944)
+            // azureVoice: document.getElementById('azureVoiceSelect')?.value || '', // ELIMINADO: duplicado
             
             // Configuración de emails - Optimizada para n8n/OpenAI
             emailConfig: (() => {
