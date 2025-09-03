@@ -9875,6 +9875,14 @@ async function testAzureVoice() {
         // Verificar el tipo de blob recibido
         console.log('🎵 Blob recibido - Type:', audioBlob.type, 'Size:', audioBlob.size);
         
+        // Si el blob es muy pequeño, probablemente sea un error
+        if (audioBlob.size < 1000) {
+            console.warn('⚠️ Blob muy pequeño, inspeccionando contenido...');
+            const text = await audioBlob.text();
+            console.error('❌ Contenido del blob:', text);
+            throw new Error(`Respuesta inválida del servidor: ${text}`);
+        }
+        
         // Crear blob con tipo MIME correcto si es necesario
         const correctBlob = audioBlob.type === 'audio/mpeg' ? audioBlob : 
                            new Blob([audioBlob], { type: 'audio/mpeg' });
