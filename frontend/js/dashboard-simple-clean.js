@@ -9702,14 +9702,52 @@ async function loadAzureVoices() {
  * Restaurar la voz Azure TTS guardada después de cargar las opciones
  */
 function restoreSavedAzureVoice() {
+    console.log('🔄 === RESTAURANDO VOZ AZURE TTS GUARDADA ===');
+    console.log('🔍 Valor guardado en window.savedAzureVoice:', window.savedAzureVoice);
+    
     // Obtener el valor guardado globalmente
     if (window.savedAzureVoice) {
         const azureVoiceSelect = document.getElementById('azureVoiceSelect');
+        console.log('📋 Elemento azureVoiceSelect encontrado:', !!azureVoiceSelect);
+        
         if (azureVoiceSelect) {
-            azureVoiceSelect.value = window.savedAzureVoice;
-            console.log('🎤 Voz Azure TTS restaurada:', window.savedAzureVoice);
+            // Verificar opciones disponibles
+            const availableOptions = Array.from(azureVoiceSelect.options).map(opt => opt.value);
+            console.log('🎵 Opciones disponibles en selector:', availableOptions);
+            console.log('🎯 Buscando voz guardada:', window.savedAzureVoice);
+            
+            // Verificar si la voz guardada existe en las opciones
+            const voiceExists = availableOptions.includes(window.savedAzureVoice);
+            console.log('✅ ¿Voz guardada existe en opciones?', voiceExists);
+            
+            if (voiceExists) {
+                azureVoiceSelect.value = window.savedAzureVoice;
+                console.log('🎤 ✅ Voz Azure TTS restaurada exitosamente:', window.savedAzureVoice);
+                console.log('🔍 Valor actual del selector después de restaurar:', azureVoiceSelect.value);
+            } else {
+                console.warn('⚠️ La voz guardada no está disponible en las opciones actuales');
+                console.warn('🔍 Intentando encontrar voz similar...');
+                
+                // Intentar encontrar una voz similar (mismo idioma)
+                const similarVoice = availableOptions.find(voice => 
+                    voice.startsWith('es-ES-') || voice.includes('Spanish')
+                );
+                
+                if (similarVoice) {
+                    azureVoiceSelect.value = similarVoice;
+                    console.log('🎤 ⚡ Voz similar seleccionada:', similarVoice);
+                } else {
+                    console.warn('❌ No se encontró voz similar, manteniendo selección por defecto');
+                }
+            }
+        } else {
+            console.error('❌ Elemento azureVoiceSelect no encontrado en DOM');
         }
+    } else {
+        console.log('ℹ️ No hay voz Azure TTS guardada para restaurar');
     }
+    
+    console.log('🔄 === FIN RESTAURACIÓN VOZ AZURE TTS ===');
 }
 
 /**
