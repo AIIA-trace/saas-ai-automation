@@ -56,6 +56,88 @@ router.post('/voice/dtmf', validateTwilioWebhook, webhookController.handleGather
 // Webhook para procesamiento de IA
 router.post('/ai/results', webhookController.handleAIProcessingResults);
 
+// === WEBHOOKS DE IA NATURAL ===
+
+// Webhook para llamadas con IA natural
+router.post('/call/natural/:clientId', validateTwilioWebhook, async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const { CallSid, From, To } = req.body;
+    
+    logger.info(`📞 Llamada natural entrante - Cliente: ${clientId}, From: ${From}`);
+    
+    const twilioService = require('../services/twilioService');
+    const result = await twilioService.handleIncomingCallWithAI(clientId, CallSid, From);
+    
+    if (result.success) {
+      const twiml = await twilioService.generateNaturalTwiML(clientId, result.greeting, {
+        callSid: CallSid,
+        shouldContinue: true
+      });
+      
+      res.type('text/xml');
+      res.send(twiml.toString());
+    } else {
+      const errorTwiml = twilioService.generateErrorTwiML(result.greeting);
+      res.type('text/xml');
+      res.send(errorTwiml.toString());
+    }
+    
+  } catch (error) {
+    logger.error(`❌ Error en webhook de llamada natural: ${error.message}`);
+    const twilioService = require('../services/twilioService');
+    const errorTwiml = twilioService.generateErrorTwiML();
+    res.type('text/xml');
+    res.send(errorTwiml.toString());
+  }
+});
+
+// Webhook para respuestas del usuario durante la llamada
+router.post('/call/response/:clientId', validateTwilioWebhook, async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const { CallSid, SpeechResult, Digits } = req.body;
+    
+    const userInput = SpeechResult || Digits || '';
+    logger.info(`🗣️ Respuesta del usuario - Cliente: ${clientId}, Input: ${userInput}`);
+    
+    if (!userInput.trim()) {
+      // No se detectó entrada, pedir que repita
+      const twilioService = require('../services/twilioService');
+      const twiml = await twilioService.generateNaturalTwiML(
+        clientId, 
+        "No he podido escucharte bien. ¿Podrías repetir lo que necesitas?",
+        { callSid: CallSid, shouldContinue: true }
+      );
+      
+      res.type('text/xml');
+      res.send(twiml.toString());
+      return;
+    }
+    
+    const twilioService = require('../services/twilioService');
+    const result = await twilioService.processCallResponse(clientId, CallSid, userInput);
+    
+    const twiml = await twilioService.generateNaturalTwiML(clientId, result.response, {
+      callSid: CallSid,
+      shouldContinue: result.shouldContinue,
+      needsConsulting: userInput.toLowerCase().includes('precio') || 
+                      userInput.toLowerCase().includes('consultar') ||
+                      userInput.toLowerCase().includes('información')
+    });
+    
+    res.type('text/xml');
+    res.send(twiml.toString());
+    
+  } catch (error) {
+    logger.error(`❌ Error procesando respuesta del usuario: ${error.message}`);
+    const twilioService = require('../services/twilioService');
+    const errorTwiml = twilioService.generateErrorTwiML();
+    res.type('text/xml');
+    res.send(errorTwiml.toString());
+  }
+});
+
 // === WEBHOOKS DE EMAIL ===
 
 // Webhook para emails entrantes (desde n8n o servicio de email)

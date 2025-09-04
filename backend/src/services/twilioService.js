@@ -2,6 +2,8 @@ const twilio = require('twilio');
 const logger = require('../utils/logger');
 const AzureTTSService = require('./azureTTSService');
 const azureTTSService = new AzureTTSService();
+const { processUserMessage } = require('./aiConversationService');
+const { makeTextNatural, getVoiceSettings } = require('./naturalPersonalityService');
 
 class TwilioService {
   constructor() {
@@ -286,6 +288,206 @@ class TwilioService {
         error: error.message
       };
     }
+  }
+
+  // ==========================================
+  // SISTEMA DE IA NATURAL PARA LLAMADAS
+  // ==========================================
+
+  /**
+   * Procesar llamada entrante con IA natural
+   */
+  async handleIncomingCallWithAI(clientId, callSid, from) {
+    try {
+      logger.info(`📞 Llamada entrante con IA - Cliente: ${clientId}, From: ${from}`);
+      
+      // Obtener configuración del cliente
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const client = await prisma.client.findUnique({
+        where: { id: parseInt(clientId) },
+        select: {
+          companyName: true,
+          businessHoursConfig: true,
+          voiceSettings: true,
+          greetingMessage: true
+        }
+      });
+      
+      if (!client) {
+        throw new Error('Cliente no encontrado');
+      }
+      
+      // Generar mensaje de bienvenida natural
+      const greetingMessage = client.greetingMessage || 
+        `Hola, has llamado a ${client.companyName || 'nuestra empresa'}. Soy tu asistente, ¿en qué puedo ayudarte?`;
+      
+      const naturalGreeting = makeTextNatural(greetingMessage, {
+        sessionId: callSid,
+        isGreeting: true
+      });
+      
+      logger.info(`🎵 Mensaje de bienvenida natural: ${naturalGreeting}`);
+      
+      return {
+        success: true,
+        greeting: naturalGreeting,
+        voiceSettings: getVoiceSettings(),
+        clientConfig: client
+      };
+      
+    } catch (error) {
+      logger.error(`❌ Error procesando llamada con IA: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+        greeting: "Hola, gracias por llamar. ¿En qué puedo ayudarte?",
+        voiceSettings: getVoiceSettings()
+      };
+    }
+  }
+
+  /**
+   * Procesar respuesta del usuario durante la llamada
+   */
+  async processCallResponse(clientId, callSid, userInput, context = {}) {
+    try {
+      logger.info(`🗣️ Procesando respuesta del usuario - Cliente: ${clientId}`);
+      logger.info(`👤 Usuario dijo: ${userInput}`);
+      
+      // Procesar con IA natural
+      const aiResult = await processUserMessage(clientId, callSid, userInput, context);
+      
+      if (!aiResult.success) {
+        throw new Error(aiResult.error);
+      }
+      
+      logger.info(`🤖 IA responde: ${aiResult.response}`);
+      
+      return {
+        success: true,
+        response: aiResult.response,
+        voiceSettings: aiResult.voiceSettings,
+        shouldContinue: !this.isEndingConversation(aiResult.response)
+      };
+      
+    } catch (error) {
+      logger.error(`❌ Error procesando respuesta: ${error.message}`);
+      
+      const fallbackResponse = makeTextNatural(
+        "Disculpa, no he entendido bien. ¿Podrías repetir lo que necesitas?",
+        { sessionId: callSid }
+      );
+      
+      return {
+        success: false,
+        response: fallbackResponse,
+        voiceSettings: getVoiceSettings(),
+        shouldContinue: true,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Generar TwiML con IA natural y voz premium
+   */
+  async generateNaturalTwiML(clientId, message, context = {}) {
+    try {
+      const twiml = new twilio.twiml.VoiceResponse();
+      
+      // Obtener configuración del cliente
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const client = await prisma.client.findUnique({
+        where: { id: parseInt(clientId) },
+        select: {
+          voiceSettings: true,
+          language: true
+        }
+      });
+      
+      const voiceConfig = client?.voiceSettings || {};
+      const language = client?.language || 'es-ES';
+      
+      // Procesar mensaje con personalidad natural
+      const naturalMessage = makeTextNatural(message, {
+        sessionId: context.callSid,
+        needsConsulting: context.needsConsulting || false
+      });
+      
+      logger.info(`🎭 Mensaje natural generado: ${naturalMessage}`);
+      
+      // Generar audio premium con Azure TTS
+      const audioResult = await this.generatePremiumAudio(naturalMessage, {
+        voiceSettings: voiceConfig,
+        language: language
+      });
+      
+      if (audioResult.success) {
+        // Usar audio premium
+        twiml.play(audioResult.audioUrl);
+        logger.info(`🎵 Usando audio premium: ${audioResult.provider}`);
+      } else {
+        // Fallback a Polly con configuración natural
+        const voiceSettings = getVoiceSettings();
+        twiml.say({
+          voice: this.getPollyVoiceForLanguage(language),
+          language: language,
+          rate: voiceSettings.rate
+        }, naturalMessage);
+        logger.info(`🔄 Fallback a Polly con configuración natural`);
+      }
+      
+      // Continuar conversación si es necesario
+      if (context.shouldContinue !== false) {
+        twiml.gather({
+          input: 'speech',
+          language: language,
+          speechTimeout: 3,
+          timeout: 10,
+          action: `/webhooks/call/response/${clientId}`,
+          method: 'POST'
+        });
+      } else {
+        twiml.hangup();
+      }
+      
+      return twiml;
+      
+    } catch (error) {
+      logger.error(`❌ Error generando TwiML natural: ${error.message}`);
+      return this.generateErrorTwiML(message);
+    }
+  }
+
+  /**
+   * Determinar si la conversación debería terminar
+   */
+  isEndingConversation(response) {
+    const endingKeywords = [
+      'adiós', 'hasta luego', 'gracias por llamar', 'que tengas buen día',
+      'nos vemos', 'hasta pronto', 'fin de la llamada', 'colgar'
+    ];
+    
+    const lowerResponse = response.toLowerCase();
+    return endingKeywords.some(keyword => lowerResponse.includes(keyword));
+  }
+
+  /**
+   * Obtener voz de Polly según el idioma
+   */
+  getPollyVoiceForLanguage(language) {
+    const voiceMap = {
+      'es-ES': 'Polly.Conchita',
+      'en-US': 'Polly.Joanna',
+      'fr-FR': 'Polly.Celine',
+      'de-DE': 'Polly.Marlene'
+    };
+    
+    return voiceMap[language] || 'Polly.Conchita';
   }
 }
 
