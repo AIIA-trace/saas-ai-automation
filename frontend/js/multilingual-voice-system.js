@@ -29,11 +29,11 @@ const multilingualTexts = {
 };
 
 /**
- * Voces recomendadas por idioma
+ * Voces recomendadas por idioma (las más populares primero)
  */
 const voicesByLanguage = {
-    'es-ES': ['es-ES-AlvaroNeural', 'es-ES-ElviraNeural', 'es-ES-ManuelNeural', 'es-ES-AdrianaNeural'],
-    'en-US': ['en-US-JennyNeural', 'en-US-GuyNeural', 'en-US-AriaNeural', 'en-US-DavisNeural'],
+    'es-ES': ['es-ES-DarioNeural', 'es-ES-ElviraNeural', 'es-ES-AlvaroNeural', 'es-ES-ManuelNeural', 'es-ES-AdrianaNeural'],
+    'en-US': ['en-US-JennyNeural', 'en-US-GuyNeural', 'en-US-AriaNeural', 'en-US-DavisNeural', 'en-US-SaraNeural'],
     'fr-FR': ['fr-FR-DeniseNeural', 'fr-FR-HenriNeural', 'fr-FR-BrigitteNeural', 'fr-FR-AlainNeural'],
     'de-DE': ['de-DE-KatjaNeural', 'de-DE-ConradNeural', 'de-DE-AmalaNeural', 'de-DE-BerndNeural']
 };
@@ -53,10 +53,28 @@ function handleLanguageChange() {
     // Actualizar descripción de voces
     updateVoiceDescription(selectedLanguage);
     
-    // Recargar voces para el idioma seleccionado
+    // Recargar voces para el idioma seleccionado y seleccionar automáticamente una compatible
     loadVoicesForLanguage(selectedLanguage);
     
     console.log('✅ Idioma cambiado exitosamente a:', selectedLanguage);
+    
+    // Mostrar mensaje informativo al usuario
+    showLanguageChangeNotification(selectedLanguage);
+}
+
+/**
+ * Mostrar notificación de cambio de idioma
+ */
+function showLanguageChangeNotification(language) {
+    const languageNames = {
+        'es-ES': 'Español',
+        'en-US': 'Inglés',
+        'fr-FR': 'Francés', 
+        'de-DE': 'Alemán'
+    };
+    
+    const languageName = languageNames[language] || language;
+    console.log(`🎯 CAMBIO COMPLETO: Idioma → ${languageName}, Voz → Compatible automáticamente`);
 }
 
 /**
@@ -138,6 +156,11 @@ async function loadVoicesForLanguage(language) {
         // Seleccionar automáticamente la primera voz del idioma si está disponible
         if (languageVoices.length > 0) {
             voiceSelect.value = languageVoices[0].value;
+            console.log('🎤 Voz seleccionada automáticamente:', languageVoices[0].value);
+            
+            // Disparar evento change para que otros sistemas se enteren del cambio
+            const changeEvent = new Event('change', { bubbles: true });
+            voiceSelect.dispatchEvent(changeEvent);
         }
         
         console.log('✅ Voces cargadas para idioma:', language, `(${languageVoices.length} específicas, ${otherVoices.length} otras)`);
@@ -185,6 +208,11 @@ function initMultilingualVoiceSystem() {
     // Configurar idioma inicial
     const languageSelect = document.getElementById('call_language');
     if (languageSelect) {
+        // Añadir event listener para cambios de idioma
+        languageSelect.addEventListener('change', handleLanguageChange);
+        console.log('🔗 Event listener añadido al selector de idioma');
+        
+        // Configurar idioma inicial
         const initialLanguage = languageSelect.value || 'es-ES';
         handleLanguageChange();
     }
