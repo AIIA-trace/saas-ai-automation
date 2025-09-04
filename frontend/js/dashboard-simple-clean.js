@@ -1410,59 +1410,17 @@ function createBotConfigTabContent() {
                                                     </div>
                                                     
                                                     <!-- Número Twilio Asignado -->
-                                                    <div id="twilio-number-section" class="mt-3 p-3 bg-light rounded" style="display: none;">
-                                                        <div class="mb-2">
-                                                            <label class="form-label fw-bold text-success">
-                                                                <i class="fas fa-phone me-1"></i>
-                                                                Número Twilio Asignado
-                                                            </label>
+                                                    <div id="twilio-number-section" class="mt-3" style="display: none;">
+                                                        <div class="mb-3">
+                                                            <label for="assigned_twilio_number" class="form-label">Número Twilio Asignado</label>
                                                             <div class="input-group">
-                                                                <span class="input-group-text bg-success text-white">
-                                                                    <i class="fas fa-phone"></i>
-                                                                </span>
-                                                                <input type="text" class="form-control fw-bold" id="assigned_twilio_number" readonly placeholder="Comprando número...">
+                                                                <input type="text" class="form-control" id="assigned_twilio_number" readonly placeholder="Comprando número...">
                                                                 <button class="btn btn-outline-secondary" type="button" id="copy-twilio-number" title="Copiar número">
                                                                     <i class="fas fa-copy"></i>
                                                                 </button>
                                                             </div>
+                                                            <div class="form-text">Tu número personal para recibir llamadas del bot</div>
                                                         </div>
-                                                        
-                                                        <!-- Instrucciones de Redirección -->
-                                                        <div class="alert alert-info mb-0">
-                                                            <h6 class="alert-heading">
-                                                                <i class="fas fa-info-circle me-1"></i>
-                                                                Cómo activar tu bot de llamadas:
-                                                            </h6>
-                                                            <p class="mb-2"><strong>Contacta a tu operador telefónico</strong> y solicita redirigir las llamadas de tu número actual al número Twilio asignado arriba.</p>
-                                                            
-                                                            <div class="row g-2 mb-2">
-                                                                <div class="col-md-6">
-                                                                    <small class="text-muted"><strong>Códigos de redirección:</strong></small>
-                                                                    <ul class="small mb-0">
-                                                                        <li><strong>Movistar:</strong> *21*<span class="twilio-number-placeholder">[NÚMERO]</span>#</li>
-                                                                        <li><strong>Vodafone:</strong> **21*<span class="twilio-number-placeholder">[NÚMERO]</span>#</li>
-                                                                    </ul>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <small class="text-muted"><strong>Otros operadores:</strong></small>
-                                                                    <ul class="small mb-0">
-                                                                        <li><strong>Orange:</strong> *21*<span class="twilio-number-placeholder">[NÚMERO]</span>#</li>
-                                                                        <li><strong>Yoigo:</strong> *21*<span class="twilio-number-placeholder">[NÚMERO]</span>#</li>
-                                                                    </ul>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div class="bg-white p-2 rounded border-start border-success border-3">
-                                                                <small class="text-success">
-                                                                    <i class="fas fa-check-circle me-1"></i>
-                                                                    <strong>Tranquilo:</strong> Mantienes tu número actual. Los clientes seguirán llamando a tu número habitual, pero el bot responderá automáticamente.
-                                                                </small>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="mt-3">
-                                                        <small class="text-muted">Activa el bot de llamadas con Twilio y N8N para procesamiento automático.</small>
                                                     </div>
                                                 </div>
                                             </div>
