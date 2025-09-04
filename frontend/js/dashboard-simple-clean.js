@@ -1422,6 +1422,13 @@ function createBotConfigTabContent() {
                                                             <div class="form-text">Tu número personal para recibir llamadas del bot</div>
                                                         </div>
                                                         
+                                                        <div class="alert alert-warning py-2 px-3 mb-2">
+                                                            <small>
+                                                                <i class="fas fa-phone-alt me-1"></i>
+                                                                <strong>Importante:</strong> Contacta a tu operador telefónico para redirigir las llamadas de tu número actual a este número Twilio.
+                                                            </small>
+                                                        </div>
+                                                        
                                                         <div class="alert alert-info py-2 px-3 mb-0">
                                                             <small>
                                                                 <i class="fas fa-info-circle me-1"></i>
