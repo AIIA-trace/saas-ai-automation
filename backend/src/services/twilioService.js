@@ -420,12 +420,13 @@ class TwilioService {
       const client = await prisma.client.findUnique({
         where: { id: parseInt(clientId) },
         select: {
-          voiceSettings: true,
-          language: true
+          callConfig: true,
+          language: true,
+          companyName: true
         }
       });
       
-      const voiceConfig = client?.voiceSettings || {};
+      const voiceConfig = client?.callConfig?.voiceSettings || {};
       const language = client?.language || 'es-ES';
       
       // Procesar mensaje con personalidad natural
@@ -436,40 +437,49 @@ class TwilioService {
       
       logger.info(`🎭 Mensaje natural generado: ${naturalMessage}`);
       
-      // Generar audio premium con Azure TTS
+      // FORZAR uso de Azure TTS - NO usar OpenAI
+      logger.info(`🎵 FORZANDO uso de Azure TTS para voz natural española`);
+      
+      // Obtener voz preferida del usuario (por defecto: lola - voz femenina española)
+      const preferredVoice = voiceConfig?.azureVoice || 'lola';
+      logger.info(`🎭 Usando voz Azure: ${preferredVoice}`);
+      
       const audioResult = await this.generatePremiumAudio(naturalMessage, {
-        voiceSettings: voiceConfig,
+        voiceSettings: { azureVoice: preferredVoice },
         language: language
       });
       
-      if (audioResult.success) {
-        // Usar audio premium
+      if (audioResult && audioResult.success) {
+        // Usar audio premium de Azure TTS
         twiml.play(audioResult.audioUrl);
-        logger.info(`🎵 Usando audio premium: ${audioResult.provider}`);
+        logger.info(`🎵 ✅ Audio Azure TTS generado: ${audioResult.provider} - ${audioResult.voice}`);
       } else {
-        // Fallback a Polly con configuración natural
+        // Fallback a Polly SOLO si Azure falla
         const voiceSettings = getVoiceSettings();
         twiml.say({
           voice: this.getPollyVoiceForLanguage(language),
           language: language,
-          rate: voiceSettings.rate
+          rate: voiceSettings.rate || '0.9'
         }, naturalMessage);
-        logger.info(`🔄 Fallback a Polly con configuración natural`);
+        logger.info(`🔄 Fallback a Polly (Azure no disponible)`);
       }
       
-      // Continuar conversación si es necesario
-      if (context.shouldContinue !== false) {
-        twiml.gather({
-          input: 'speech',
-          language: language,
-          speechTimeout: 3,
-          timeout: 10,
-          action: `/webhooks/call/response/${clientId}`,
-          method: 'POST'
-        });
-      } else {
-        twiml.hangup();
-      }
+      // Continuar conversación - SIEMPRE activa para interacción natural
+      twiml.gather({
+        input: 'speech',
+        language: language,
+        speechTimeout: 5,        // Más tiempo para responder
+        timeout: 15,             // Más tiempo total
+        action: `/webhooks/call/response/${clientId}`,
+        method: 'POST',
+        finishOnKey: '#'         // Permitir terminar con #
+      });
+      
+      // Mensaje si no responde
+      twiml.say({
+        voice: this.getPollyVoiceForLanguage(language),
+        language: language
+      }, 'Si necesitas algo más, puedes decírmelo. Estoy aquí para ayudarte.');
       
       return twiml;
       
