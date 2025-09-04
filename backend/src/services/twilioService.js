@@ -356,8 +356,15 @@ class TwilioService {
       logger.info(`🗣️ Procesando respuesta del usuario - Cliente: ${clientId}`);
       logger.info(`👤 Usuario dijo: ${userInput}`);
       
+      // Añadir información del contexto de la llamada
+      const enhancedContext = {
+        ...context,
+        from: context.from || context.phoneNumber,
+        phoneNumber: context.from || context.phoneNumber
+      };
+      
       // Procesar con IA natural
-      const aiResult = await processUserMessage(clientId, callSid, userInput, context);
+      const aiResult = await processUserMessage(clientId, callSid, userInput, enhancedContext);
       
       if (!aiResult.success) {
         throw new Error(aiResult.error);
@@ -365,11 +372,19 @@ class TwilioService {
       
       logger.info(`🤖 IA responde: ${aiResult.response}`);
       
+      // Determinar si debe colgar automáticamente
+      const shouldHangup = aiResult.shouldHangup || this.isEndingConversation(aiResult.response);
+      
+      if (shouldHangup) {
+        logger.info(`📞 Despedida detectada - La llamada se colgará automáticamente`);
+      }
+      
       return {
         success: true,
         response: aiResult.response,
         voiceSettings: aiResult.voiceSettings,
-        shouldContinue: !this.isEndingConversation(aiResult.response)
+        shouldContinue: !shouldHangup,
+        shouldHangup: shouldHangup
       };
       
     } catch (error) {
@@ -377,7 +392,7 @@ class TwilioService {
       
       const fallbackResponse = makeTextNatural(
         "Disculpa, no he entendido bien. ¿Podrías repetir lo que necesitas?",
-        { sessionId: callSid }
+        { sessionId: callSid, userInput: userInput }
       );
       
       return {
@@ -385,6 +400,7 @@ class TwilioService {
         response: fallbackResponse,
         voiceSettings: getVoiceSettings(),
         shouldContinue: true,
+        shouldHangup: false,
         error: error.message
       };
     }

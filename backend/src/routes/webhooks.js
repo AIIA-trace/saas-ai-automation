@@ -96,10 +96,10 @@ router.post('/call/natural/:clientId', validateTwilioWebhook, async (req, res) =
 router.post('/call/response/:clientId', validateTwilioWebhook, async (req, res) => {
   try {
     const { clientId } = req.params;
-    const { CallSid, SpeechResult, Digits } = req.body;
+    const { CallSid, SpeechResult, Digits, From, To } = req.body;
     
     const userInput = SpeechResult || Digits || '';
-    logger.info(`🗣️ Respuesta del usuario - Cliente: ${clientId}, Input: ${userInput}`);
+    logger.info(`🗣️ Respuesta del usuario - Cliente: ${clientId}, Input: ${userInput}, From: ${From}`);
     
     if (!userInput.trim()) {
       // No se detectó entrada, pedir que repita
@@ -116,11 +116,21 @@ router.post('/call/response/:clientId', validateTwilioWebhook, async (req, res) 
     }
     
     const twilioService = require('../services/twilioService');
-    const result = await twilioService.processCallResponse(clientId, CallSid, userInput);
+    
+    // Preparar contexto completo con información de la llamada
+    const callContext = {
+      from: From,
+      to: To,
+      phoneNumber: From,
+      callSid: CallSid
+    };
+    
+    const result = await twilioService.processCallResponse(clientId, CallSid, userInput, callContext);
     
     const twiml = await twilioService.generateNaturalTwiML(clientId, result.response, {
       callSid: CallSid,
       shouldContinue: result.shouldContinue,
+      shouldHangup: result.shouldHangup,
       needsConsulting: userInput.toLowerCase().includes('precio') || 
                       userInput.toLowerCase().includes('consultar') ||
                       userInput.toLowerCase().includes('información')

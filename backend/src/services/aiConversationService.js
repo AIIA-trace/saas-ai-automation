@@ -2,7 +2,14 @@
 // SERVICIO DE CONVERSACIÓN IA CON PERSONALIDAD NATURAL
 // ==========================================
 
-const { makeTextNatural, generateSystemPrompt, getVoiceSettings } = require('./naturalPersonalityService');
+const { 
+    makeTextNatural, 
+    generateSystemPrompt, 
+    getVoiceSettings,
+    isReturnCall,
+    isFarewell,
+    needsHistoryCheck
+} = require('./naturalPersonalityService');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -24,52 +31,75 @@ async function processUserMessage(clientId, sessionId, userMessage, context = {}
             throw new Error('Cliente no encontrado');
         }
         
-        // 2. Obtener o crear historial de conversación
+        // 2. Detectar casos especiales antes de procesar
+        const phoneNumber = context.from || context.phoneNumber;
+        
+        // 2a. Detectar llamadas repetidas y revisar historial si es necesario
+        let needsHistory = false;
+        if (isReturnCall(userMessage) || needsHistoryCheck(userMessage, phoneNumber)) {
+            needsHistory = true;
+            console.log(`📞 Llamada repetida detectada desde: ${phoneNumber}`);
+        }
+        
+        // 2b. Detectar despedidas
+        const isFarewellMessage = isFarewell(userMessage);
+        
+        // 3. Obtener o crear historial de conversación
         const conversationKey = `${clientId}_${sessionId}`;
         if (!conversationHistory.has(conversationKey)) {
             conversationHistory.set(conversationKey, []);
         }
         const history = conversationHistory.get(conversationKey);
         
-        // 3. Generar prompt del sistema con personalidad natural
+        // 4. Obtener historial de llamadas anteriores si es necesario
+        let previousCallHistory = null;
+        if (needsHistory && phoneNumber) {
+            previousCallHistory = await getPreviousCallHistory(clientId, phoneNumber);
+        }
+        
+        // 5. Generar prompt del sistema con personalidad natural
         const systemPrompt = generateSystemPrompt(clientData);
         
-        // 4. Preparar contexto de conversación
+        // 6. Preparar contexto de conversación
         const conversationContext = [
             { role: 'system', content: systemPrompt },
             ...history,
             { role: 'user', content: userMessage }
         ];
         
-        // 5. Llamar a la IA (OpenAI GPT)
-        const aiResponse = await callOpenAI(conversationContext);
+        // 7. Llamar a la IA (OpenAI GPT)
+        const aiResponse = await callOpenAI(conversationContext, previousCallHistory);
         
-        // 6. Procesar respuesta para hacerla más natural
+        // 8. Procesar respuesta para hacerla más natural
         const naturalResponse = makeTextNatural(aiResponse, {
             sessionId: sessionId,
+            userInput: userMessage,
             needsConsulting: shouldSimulateConsulting(userMessage),
+            needsHistoryCheck: needsHistory,
+            isFarewell: isFarewellMessage,
             clientData: clientData
         });
         
-        // 7. Actualizar historial
+        // 9. Actualizar historial
         history.push(
             { role: 'user', content: userMessage },
             { role: 'assistant', content: naturalResponse }
         );
         
-        // 8. Limitar historial a últimas 10 interacciones
+        // 10. Limitar historial a últimas 10 interacciones
         if (history.length > 20) {
             history.splice(0, history.length - 20);
         }
         
-        // 9. Registrar conversación en base de datos
-        await logConversation(clientId, sessionId, userMessage, naturalResponse);
+        // 11. Registrar conversación en base de datos
+        await logConversation(clientId, sessionId, userMessage, naturalResponse, phoneNumber);
         
         console.log(`✅ Respuesta generada para cliente ${clientId}:`, naturalResponse);
         
         return {
             response: naturalResponse,
             voiceSettings: getVoiceSettings(),
+            shouldHangup: isFarewellMessage,
             success: true
         };
         
@@ -79,12 +109,13 @@ async function processUserMessage(clientId, sessionId, userMessage, context = {}
         // Respuesta de fallback natural
         const fallbackResponse = makeTextNatural(
             "Disculpa, no he podido procesar bien lo que me has dicho. ¿Podrías repetirlo?",
-            { sessionId: sessionId }
+            { sessionId: sessionId, userInput: userMessage }
         );
         
         return {
             response: fallbackResponse,
             voiceSettings: getVoiceSettings(),
+            shouldHangup: false,
             success: false,
             error: error.message
         };
@@ -164,13 +195,45 @@ async function getClientData(clientId) {
 }
 
 /**
+ * Obtener historial de llamadas anteriores
+ */
+async function getPreviousCallHistory(clientId, phoneNumber) {
+    try {
+        // Aquí buscarías en la base de datos las llamadas anteriores
+        // Por ahora simulamos un historial básico
+        console.log(`📋 Buscando historial de llamadas para ${phoneNumber}`);
+        
+        // Simulación de historial anterior
+        const mockHistory = [
+            {
+                date: new Date(Date.now() - 24 * 60 * 60 * 1000), // Ayer
+                topic: "Consulta sobre precios de desarrollo móvil",
+                summary: "Cliente preguntó por desarrollo de app móvil, se le dijo que contactaríamos"
+            }
+        ];
+        
+        return mockHistory;
+        
+    } catch (error) {
+        console.error('❌ Error obteniendo historial:', error);
+        return null;
+    }
+}
+
+/**
  * Llamar a OpenAI GPT para generar respuesta
  */
-async function callOpenAI(messages) {
+async function callOpenAI(messages, previousHistory = null) {
     // Aquí integrarías con OpenAI API
     // Por ahora simulamos una respuesta
     
     const userMessage = messages[messages.length - 1].content.toLowerCase();
+    
+    // Si hay historial previo, incluirlo en la respuesta
+    if (previousHistory && previousHistory.length > 0) {
+        const lastTopic = previousHistory[0].topic;
+        return `Ah sí, veo que ${lastTopic.toLowerCase()}. ¿Quieres que continuemos con eso o tienes alguna otra consulta?`;
+    }
     
     // Respuestas simuladas inteligentes
     if (userMessage.includes('horario') || userMessage.includes('abierto')) {
@@ -209,13 +272,28 @@ function shouldSimulateConsulting(message) {
 /**
  * Registrar conversación en base de datos
  */
-async function logConversation(clientId, sessionId, userMessage, aiResponse) {
+async function logConversation(clientId, sessionId, userMessage, aiResponse, phoneNumber = null) {
     try {
         // Aquí registrarías en una tabla de conversaciones
         // Por ahora solo loggeamos en consola
         console.log(`📝 Conversación registrada - Cliente: ${clientId}, Sesión: ${sessionId}`);
+        if (phoneNumber) {
+            console.log(`📞 Teléfono: ${phoneNumber}`);
+        }
         console.log(`👤 Usuario: ${userMessage}`);
         console.log(`🤖 IA: ${aiResponse}`);
+        
+        // TODO: Implementar guardado real en base de datos
+        // await prisma.callLog.create({
+        //     data: {
+        //         clientId: parseInt(clientId),
+        //         sessionId: sessionId,
+        //         phoneNumber: phoneNumber,
+        //         userMessage: userMessage,
+        //         aiResponse: aiResponse,
+        //         timestamp: new Date()
+        //     }
+        // });
         
     } catch (error) {
         console.error('❌ Error registrando conversación:', error);

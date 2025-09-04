@@ -90,6 +90,37 @@ const repetitiveResponses = [
 ];
 
 /**
+ * Respuestas para problemas de audio
+ */
+const audioIssueResponses = [
+    "sí, se está cortando un poco, espera que me muevo a una sala [ruido de movimiento]",
+    "tienes razón, no se oye muy bien, déjame cambiar de sitio [sonido de pasos]",
+    "ah sí, hay un poco de ruido aquí, espera un segundo [ruido de oficina se reduce]",
+    "perdona, es que hay mucho ruido aquí, ahora me muevo [sonido de puerta]"
+];
+
+/**
+ * Respuestas para llamadas repetidas
+ */
+const returnCallResponses = [
+    "¡Sí claro! recuérdame tu nombre por favor...",
+    "¡Por supuesto! ¿me puedes decir tu nombre otra vez?",
+    "¡Ah sí! dime tu nombre para localizarte...",
+    "¡Exacto! ¿cómo te llamabas? para ver qué estábamos hablando..."
+];
+
+/**
+ * Respuestas de despedida que activan colgado automático
+ */
+const farewellResponses = [
+    "perfecto, que tengas muy buen día, ¡hasta luego!",
+    "genial, muchas gracias por llamar, ¡que vaya todo bien!",
+    "vale, pues nada, que tengas buena tarde, ¡adiós!",
+    "muy bien, gracias por contactarnos, ¡hasta pronto!",
+    "perfecto, te contactaremos pronto, ¡que tengas buen día!"
+];
+
+/**
  * Efectos de sonido de oficina (se añadirán como texto descriptivo)
  */
 const officeNoises = [
@@ -130,7 +161,22 @@ function makeTextNatural(text, context = {}) {
         return getRandomElement(denyAIResponses);
     }
     
-    // 2. Detectar preguntas repetitivas
+    // 2. Detectar problemas de audio
+    if (isAudioIssue(context.userInput)) {
+        return getRandomElement(audioIssueResponses);
+    }
+    
+    // 3. Detectar llamadas repetidas
+    if (isReturnCall(context.userInput)) {
+        return getRandomElement(returnCallResponses);
+    }
+    
+    // 4. Detectar si es una despedida
+    if (isFarewell(context.userInput) || context.isFarewell) {
+        return getRandomElement(farewellResponses);
+    }
+    
+    // 5. Detectar preguntas repetitivas
     const questionKey = context.sessionId + '_' + text.toLowerCase().substring(0, 50);
     if (questionTracker.has(questionKey)) {
         questionTracker.set(questionKey, questionTracker.get(questionKey) + 1);
@@ -141,13 +187,13 @@ function makeTextNatural(text, context = {}) {
         questionTracker.set(questionKey, 1);
     }
     
-    // 3. Añadir muletillas de pensamiento al inicio
+    // 6. Añadir muletillas de pensamiento al inicio
     if (Math.random() < personalityConfig.thinkingProbability) {
         const thinking = getRandomElement(naturalSounds.thinking);
         processedText = thinking + " " + processedText;
     }
     
-    // 4. Simular consulta si es necesario
+    // 7. Simular consulta si es necesario
     if (context.needsConsulting && Math.random() < personalityConfig.consultingProbability) {
         const consulting = getRandomElement(naturalSounds.consulting);
         const officeNoise = Math.random() < personalityConfig.officeNoiseProbability ? 
@@ -157,12 +203,18 @@ function makeTextNatural(text, context = {}) {
         processedText = consulting + officeNoise + afterConsulting + " " + processedText;
     }
     
-    // 5. Alargar palabras ocasionalmente
+    // 8. Simular revisión de historial
+    if (context.needsHistoryCheck) {
+        const historyCheck = "un segundo deja que revise que lo tengo por aquí [sonido de teclas] ";
+        processedText = historyCheck + processedText;
+    }
+    
+    // 9. Alargar palabras ocasionalmente
     if (Math.random() < personalityConfig.wordStretchingProbability) {
         processedText = stretchRandomWords(processedText);
     }
     
-    // 6. Añadir transiciones naturales
+    // 10. Añadir transiciones naturales
     if (processedText.length > 100 && Math.random() < 0.4) {
         const transition = getRandomElement(naturalSounds.transitions);
         const sentences = processedText.split('. ');
@@ -187,6 +239,69 @@ function isAIQuestion(text) {
     
     const lowerText = text.toLowerCase();
     return aiKeywords.some(keyword => lowerText.includes(keyword));
+}
+
+/**
+ * Detectar problemas de audio
+ */
+function isAudioIssue(userInput) {
+    if (!userInput) return false;
+    
+    const audioKeywords = [
+        'no se oye', 'no te oigo', 'no se escucha', 'se corta',
+        'hay ruido', 'no se entiende', 'mala calidad', 'se escucha mal',
+        'no te escucho bien', 'hay interferencias', 'se oye mal'
+    ];
+    
+    const lowerInput = userInput.toLowerCase();
+    return audioKeywords.some(keyword => lowerInput.includes(keyword));
+}
+
+/**
+ * Detectar llamadas repetidas
+ */
+function isReturnCall(userInput) {
+    if (!userInput) return false;
+    
+    const returnKeywords = [
+        'acabo de llamar', 'llamé antes', 'ya llamé', 'se cortó',
+        'estaba hablando', 'me colgó', 'se cayó la llamada',
+        'volví a llamar', 'llamaba hace un momento'
+    ];
+    
+    const lowerInput = userInput.toLowerCase();
+    return returnKeywords.some(keyword => lowerInput.includes(keyword));
+}
+
+/**
+ * Detectar despedidas
+ */
+function isFarewell(userInput) {
+    if (!userInput) return false;
+    
+    const farewellKeywords = [
+        'adiós', 'hasta luego', 'nos vemos', 'hasta pronto',
+        'que tengas buen día', 'gracias', 'ya está', 'perfecto',
+        'vale ya', 'nada más', 'eso es todo', 'muchas gracias'
+    ];
+    
+    const lowerInput = userInput.toLowerCase();
+    return farewellKeywords.some(keyword => lowerInput.includes(keyword));
+}
+
+/**
+ * Detectar si necesita revisar historial
+ */
+function needsHistoryCheck(userInput, phoneNumber) {
+    if (!userInput || !phoneNumber) return false;
+    
+    const historyKeywords = [
+        'ya hablamos', 'consulté antes', 'me dijeron', 'hablé con',
+        'ya pregunté', 'me comentaron', 'seguimiento', 'continuación'
+    ];
+    
+    const lowerInput = userInput.toLowerCase();
+    return historyKeywords.some(keyword => lowerInput.includes(keyword));
 }
 
 /**
@@ -257,5 +372,12 @@ module.exports = {
     generateSystemPrompt,
     getVoiceSettings,
     personalityConfig,
-    naturalSounds
+    naturalSounds,
+    isAudioIssue,
+    isReturnCall,
+    isFarewell,
+    needsHistoryCheck,
+    audioIssueResponses,
+    returnCallResponses,
+    farewellResponses
 };
