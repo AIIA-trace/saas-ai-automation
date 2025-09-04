@@ -1421,6 +1421,13 @@ function createBotConfigTabContent() {
                                                             </div>
                                                             <div class="form-text">Tu número personal para recibir llamadas del bot</div>
                                                         </div>
+                                                        
+                                                        <div class="alert alert-info py-2 px-3 mb-0">
+                                                            <small>
+                                                                <i class="fas fa-info-circle me-1"></i>
+                                                                <strong>Tranquilo:</strong> Conservas tu número actual. Los clientes seguirán llamando a tu número habitual, pero el bot responderá automáticamente.
+                                                            </small>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

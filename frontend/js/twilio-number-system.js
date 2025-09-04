@@ -80,6 +80,8 @@ async function checkUserTwilioNumber() {
             if (data.numbers && data.numbers.length > 0) {
                 return data.numbers[0].phoneNumber;
             }
+        } else {
+            console.log('⚠️ Error al verificar números:', response.status, response.statusText);
         }
         
         return null;
@@ -127,6 +129,16 @@ async function purchaseNewTwilioNumber() {
             
             toastr.success(`Número asignado: ${data.phoneNumber}`, '¡Número Twilio Comprado!');
         } else {
+            // Si ya tiene un número, no es un error real
+            if (data.error && data.error.includes('already has')) {
+                console.log('ℹ️ Usuario ya tiene número asignado');
+                // Intentar obtener el número existente
+                const existingNumber = await checkUserTwilioNumber();
+                if (existingNumber) {
+                    displayTwilioNumber(existingNumber);
+                    return;
+                }
+            }
             throw new Error(data.error || 'Error comprando número Twilio');
         }
         
@@ -200,14 +212,19 @@ async function copyTwilioNumber() {
 async function checkExistingTwilioNumber() {
     const callBotActiveSwitch = document.getElementById('call_bot_active');
     
+    // Si el bot está activo, mostrar siempre la sección
     if (callBotActiveSwitch && callBotActiveSwitch.checked) {
+        const twilioSection = document.getElementById('twilio-number-section');
+        twilioSection.style.display = 'block';
+        
         const existingNumber = await checkUserTwilioNumber();
         
         if (existingNumber) {
-            const twilioSection = document.getElementById('twilio-number-section');
-            twilioSection.style.display = 'block';
             displayTwilioNumber(existingNumber);
             console.log('✅ Número Twilio existente cargado:', existingNumber);
+        } else {
+            // Solo comprar si realmente no tiene número
+            await purchaseNewTwilioNumber();
         }
     }
 }
