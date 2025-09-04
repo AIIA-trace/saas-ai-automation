@@ -229,7 +229,7 @@ class TwilioService {
       const purchasedNumber = await this.client.incomingPhoneNumbers.create({
         phoneNumber: phoneNumberToBuy,
         friendlyName: `Cliente ${clientId}`,
-        voiceUrl: `${process.env.TWILIO_WEBHOOK_BASE_URL}/webhooks/call`,
+        voiceUrl: `${process.env.TWILIO_WEBHOOK_BASE_URL}/webhooks/call/natural/${clientId}`,
         voiceMethod: 'POST',
         voiceFallbackUrl: `${process.env.TWILIO_WEBHOOK_BASE_URL}/webhooks/fallback`,
         voiceFallbackMethod: 'POST'
@@ -320,7 +320,7 @@ class TwilioService {
       }
       
       // Generar mensaje de bienvenida natural
-      const greetingMessage = client.greetingMessage || 
+      const greetingMessage = client.callConfig?.greetingMessage || 
         `Hola, has llamado a ${client.companyName || 'nuestra empresa'}. Soy tu asistente, ¿en qué puedo ayudarte?`;
       
       const naturalGreeting = makeTextNatural(greetingMessage, {
@@ -504,6 +504,25 @@ class TwilioService {
     };
     
     return voiceMap[language] || 'Polly.Conchita';
+  }
+
+  /**
+   * Generar TwiML de error para manejo de fallos
+   */
+  generateErrorTwiML(errorMessage = 'Lo siento, ha ocurrido un error técnico. Por favor, inténtalo de nuevo más tarde.') {
+    const twiml = new twilio.twiml.VoiceResponse();
+    
+    // Mensaje de error con voz natural
+    twiml.say({
+      voice: 'Polly.Conchita',
+      language: 'es-ES'
+    }, errorMessage);
+    
+    // Colgar después del mensaje
+    twiml.hangup();
+    
+    logger.info(`🚨 TwiML de error generado: ${errorMessage}`);
+    return twiml.toString();
   }
 }
 

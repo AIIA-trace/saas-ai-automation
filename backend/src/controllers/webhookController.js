@@ -85,7 +85,7 @@ class WebhookController {
       const { CallSid, RecordingUrl, RecordingDuration } = req.body;
       
       // Buscar la llamada en nuestra BD
-      const callLog = await prisma.callLog.findUnique({
+      const callLog = await prisma.callLog.findFirst({
         where: { twilioCallSid: CallSid },
         include: { client: true }
       });
@@ -139,7 +139,7 @@ class WebhookController {
       const input = SpeechResult || Digits || '';
       
       // Buscar la llamada en nuestra BD
-      const callLog = await prisma.callLog.findUnique({
+      const callLog = await prisma.callLog.findFirst({
         where: { twilioCallSid: CallSid },
         include: { client: true }
       });
@@ -170,7 +170,7 @@ class WebhookController {
       logger.info(`Estado de llamada ${CallSid}: ${CallStatus}`);
       
       // Buscar la llamada en nuestra BD
-      const callLog = await prisma.callLog.findUnique({
+      const callLog = await prisma.callLog.findFirst({
         where: { twilioCallSid: CallSid }
       });
       
