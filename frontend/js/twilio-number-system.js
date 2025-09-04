@@ -13,6 +13,7 @@ function setupTwilioNumberSystem() {
     if (callBotActiveSwitch) {
         callBotActiveSwitch.addEventListener('change', handleCallBotToggle);
         console.log('✅ Event listener configurado para call_bot_active switch');
+        console.log('🔍 Estado inicial del switch:', callBotActiveSwitch.checked);
     }
     
     // Event listener para copiar número Twilio
@@ -23,6 +24,7 @@ function setupTwilioNumberSystem() {
     }
     
     // Verificar estado inicial y mostrar número si ya existe
+    console.log('🚀 Verificando estado inicial del bot de llamadas...');
     checkExistingTwilioNumber();
 }
 
@@ -211,10 +213,17 @@ async function copyTwilioNumber() {
  */
 async function checkExistingTwilioNumber() {
     const callBotActiveSwitch = document.getElementById('call_bot_active');
+    const twilioSection = document.getElementById('twilio-number-section');
+    
+    console.log('🔍 Verificando estado del bot:', {
+        switchExists: !!callBotActiveSwitch,
+        switchChecked: callBotActiveSwitch?.checked,
+        sectionExists: !!twilioSection
+    });
     
     // Si el bot está activo, mostrar siempre la sección
-    if (callBotActiveSwitch && callBotActiveSwitch.checked) {
-        const twilioSection = document.getElementById('twilio-number-section');
+    if (callBotActiveSwitch && callBotActiveSwitch.checked && twilioSection) {
+        console.log('✅ Bot activo detectado, mostrando sección Twilio...');
         twilioSection.style.display = 'block';
         
         const existingNumber = await checkUserTwilioNumber();
@@ -223,14 +232,33 @@ async function checkExistingTwilioNumber() {
             displayTwilioNumber(existingNumber);
             console.log('✅ Número Twilio existente cargado:', existingNumber);
         } else {
+            console.log('📞 No hay número existente, comprando uno nuevo...');
             // Solo comprar si realmente no tiene número
             await purchaseNewTwilioNumber();
         }
+    } else {
+        console.log('ℹ️ Bot no activo o elementos no encontrados');
     }
 }
 
 // Inicializar el sistema cuando se carga la página
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Inicializando sistema de números Twilio...');
-    setupTwilioNumberSystem();
+    
+    // Esperar a que el contenido dinámico se genere
+    const initTwilioSystem = () => {
+        const callBotActiveSwitch = document.getElementById('call_bot_active');
+        const twilioSection = document.getElementById('twilio-number-section');
+        
+        if (callBotActiveSwitch && twilioSection) {
+            console.log('✅ Elementos encontrados, configurando sistema Twilio...');
+            setupTwilioNumberSystem();
+        } else {
+            console.log('⏳ Esperando elementos del DOM...');
+            setTimeout(initTwilioSystem, 500);
+        }
+    };
+    
+    // Iniciar con un pequeño delay para permitir que se genere el contenido
+    setTimeout(initTwilioSystem, 1000);
 });
