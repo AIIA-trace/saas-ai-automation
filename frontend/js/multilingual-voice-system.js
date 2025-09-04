@@ -29,13 +29,29 @@ const multilingualTexts = {
 };
 
 /**
- * Voces recomendadas por idioma (las más populares primero)
+ * Voces recomendadas por idioma y género
  */
 const voicesByLanguage = {
-    'es-ES': ['es-ES-DarioNeural', 'es-ES-ElviraNeural', 'es-ES-AlvaroNeural', 'es-ES-ManuelNeural', 'es-ES-AdrianaNeural'],
-    'en-US': ['en-US-JennyNeural', 'en-US-GuyNeural', 'en-US-AriaNeural', 'en-US-DavisNeural', 'en-US-SaraNeural'],
-    'fr-FR': ['fr-FR-DeniseNeural', 'fr-FR-HenriNeural', 'fr-FR-BrigitteNeural', 'fr-FR-AlainNeural'],
-    'de-DE': ['de-DE-KatjaNeural', 'de-DE-ConradNeural', 'de-DE-AmalaNeural', 'de-DE-BerndNeural']
+    'es-ES': {
+        male: ['es-ES-DarioNeural', 'es-ES-AlvaroNeural', 'es-ES-ManuelNeural'],
+        female: ['es-ES-ElviraNeural', 'es-ES-AdrianaNeural', 'es-ES-LaiaNeural'],
+        all: ['es-ES-DarioNeural', 'es-ES-ElviraNeural', 'es-ES-AlvaroNeural', 'es-ES-ManuelNeural', 'es-ES-AdrianaNeural']
+    },
+    'en-US': {
+        male: ['en-US-GuyNeural', 'en-US-DavisNeural', 'en-US-JasonNeural'],
+        female: ['en-US-JennyNeural', 'en-US-AriaNeural', 'en-US-SaraNeural'],
+        all: ['en-US-GuyNeural', 'en-US-JennyNeural', 'en-US-AriaNeural', 'en-US-DavisNeural', 'en-US-SaraNeural']
+    },
+    'fr-FR': {
+        male: ['fr-FR-HenriNeural', 'fr-FR-AlainNeural', 'fr-FR-ClaudeNeural'],
+        female: ['fr-FR-DeniseNeural', 'fr-FR-BrigitteNeural', 'fr-FR-CoralieNeural'],
+        all: ['fr-FR-HenriNeural', 'fr-FR-DeniseNeural', 'fr-FR-BrigitteNeural', 'fr-FR-AlainNeural']
+    },
+    'de-DE': {
+        male: ['de-DE-ConradNeural', 'de-DE-BerndNeural', 'de-DE-KlausNeural'],
+        female: ['de-DE-KatjaNeural', 'de-DE-AmalaNeural', 'de-DE-GiselaNeural'],
+        all: ['de-DE-ConradNeural', 'de-DE-KatjaNeural', 'de-DE-AmalaNeural', 'de-DE-BerndNeural']
+    }
 };
 
 /**
@@ -74,7 +90,14 @@ function showLanguageChangeNotification(language) {
     };
     
     const languageName = languageNames[language] || language;
-    console.log(`🎯 CAMBIO COMPLETO: Idioma → ${languageName}, Voz → Compatible automáticamente`);
+    
+    // Obtener información de la voz seleccionada
+    const voiceSelect = document.getElementById('azureVoiceSelect');
+    const selectedVoice = voiceSelect?.value || '';
+    const gender = detectVoiceGender(selectedVoice);
+    const genderEmoji = gender === 'male' ? '👨' : gender === 'female' ? '👩' : '🎤';
+    
+    console.log(`🎯 CAMBIO COMPLETO: Idioma → ${languageName}, Voz → ${genderEmoji} ${gender === 'male' ? 'Masculina' : gender === 'female' ? 'Femenina' : 'Compatible'} automáticamente`);
 }
 
 /**
@@ -100,6 +123,59 @@ function updateVoiceDescription(language) {
 }
 
 /**
+ * Detectar género de una voz
+ */
+function detectVoiceGender(voiceName) {
+    const maleVoices = [
+        'Dario', 'Alvaro', 'Manuel', 'Guy', 'Davis', 'Jason', 
+        'Henri', 'Alain', 'Claude', 'Conrad', 'Bernd', 'Klaus'
+    ];
+    
+    const femaleVoices = [
+        'Elvira', 'Adriana', 'Laia', 'Jenny', 'Aria', 'Sara',
+        'Denise', 'Brigitte', 'Coralie', 'Katja', 'Amala', 'Gisela'
+    ];
+    
+    // Extraer el nombre base de la voz (ej: "es-ES-DarioNeural" -> "Dario")
+    const baseName = voiceName.split('-').pop().replace('Neural', '');
+    
+    if (maleVoices.includes(baseName)) {
+        return 'male';
+    } else if (femaleVoices.includes(baseName)) {
+        return 'female';
+    }
+    
+    return 'unknown';
+}
+
+/**
+ * Obtener voz recomendada manteniendo el género
+ */
+function getRecommendedVoiceForLanguage(language, currentVoice = null) {
+    const languageVoices = voicesByLanguage[language];
+    if (!languageVoices) return null;
+    
+    // Si no hay voz actual, usar la primera voz masculina por defecto
+    if (!currentVoice) {
+        return languageVoices.male[0] || languageVoices.all[0];
+    }
+    
+    // Detectar género de la voz actual
+    const currentGender = detectVoiceGender(currentVoice);
+    console.log(`🎭 Voz actual: ${currentVoice} → Género: ${currentGender}`);
+    
+    // Seleccionar voz del mismo género
+    if (currentGender === 'male' && languageVoices.male.length > 0) {
+        return languageVoices.male[0];
+    } else if (currentGender === 'female' && languageVoices.female.length > 0) {
+        return languageVoices.female[0];
+    }
+    
+    // Fallback: primera voz disponible
+    return languageVoices.all[0];
+}
+
+/**
  * Cargar voces específicas para el idioma seleccionado
  */
 async function loadVoicesForLanguage(language) {
@@ -107,6 +183,9 @@ async function loadVoicesForLanguage(language) {
     if (!voiceSelect) return;
     
     console.log('🎤 Cargando voces para idioma:', language);
+    
+    // Obtener voz actual antes de cambiar
+    const currentVoice = voiceSelect.value;
     
     // Mostrar estado de carga
     voiceSelect.innerHTML = '<option value="">Cargando voces...</option>';
@@ -153,14 +232,22 @@ async function loadVoicesForLanguage(language) {
             voiceSelect.appendChild(otherGroup);
         }
         
-        // Seleccionar automáticamente la primera voz del idioma si está disponible
-        if (languageVoices.length > 0) {
-            voiceSelect.value = languageVoices[0].value;
-            console.log('🎤 Voz seleccionada automáticamente:', languageVoices[0].value);
+        // Seleccionar voz inteligente manteniendo el género
+        const recommendedVoice = getRecommendedVoiceForLanguage(language, currentVoice);
+        if (recommendedVoice) {
+            // Buscar la opción exacta en el select
+            const matchingOption = Array.from(voiceSelect.options).find(option => 
+                option.value.includes(recommendedVoice)
+            );
             
-            // Disparar evento change para que otros sistemas se enteren del cambio
-            const changeEvent = new Event('change', { bubbles: true });
-            voiceSelect.dispatchEvent(changeEvent);
+            if (matchingOption) {
+                voiceSelect.value = matchingOption.value;
+                console.log('🎤 Voz seleccionada manteniendo género:', matchingOption.value);
+                
+                // Disparar evento change para que otros sistemas se enteren del cambio
+                const changeEvent = new Event('change', { bubbles: true });
+                voiceSelect.dispatchEvent(changeEvent);
+            }
         }
         
         console.log('✅ Voces cargadas para idioma:', language, `(${languageVoices.length} específicas, ${otherVoices.length} otras)`);
