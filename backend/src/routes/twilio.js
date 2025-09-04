@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
+const { authenticate } = require('./auth');
 const twilioService = require('../services/twilioService');
 const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger');
