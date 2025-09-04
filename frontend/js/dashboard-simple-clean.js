@@ -1447,7 +1447,7 @@ function createBotConfigTabContent() {
                                                     <h6 class="card-subtitle mb-3 text-muted">Configuración de Voz</h6>
                                                     <div class="mb-3">
                                                         <label for="call_language" class="form-label">Idioma Principal</label>
-                                                        <select class="form-select" id="call_language" name="call_language" required>
+                                                        <select class="form-select" id="call_language" name="call_language" required onchange="handleLanguageChange()">
                                                             <option value="es-ES" selected>Español (España)</option>
                                                             <option value="en-US">Inglés (EEUU)</option>
                                                             <option value="fr-FR">Francés</option>
@@ -9868,8 +9868,12 @@ async function testAzureVoice() {
 
         console.log(`🎵 Probando voz Azure TTS: ${selectedVoice}`);
         
-        // Texto de prueba en español
-        const testText = "Hola, soy tu asistente virtual. Esta es una muestra de mi voz para las llamadas telefónicas.";
+        // Obtener texto de prueba según el idioma seleccionado
+        const testText = typeof getTestTextForCurrentLanguage === 'function' 
+            ? getTestTextForCurrentLanguage() 
+            : "Hola, soy tu asistente virtual. Esta es una muestra de mi voz para las llamadas telefónicas.";
+            
+        console.log(`🌍 Usando texto de prueba: ${testText}`);
         
         const token = localStorage.getItem('authToken');
         
