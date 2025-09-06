@@ -41,7 +41,7 @@ router.post('/generate', async (req, res) => {
         logger.info(`🎵 Generando nuevo audio Azure TTS para cliente ${clientId}: ${text.substring(0, 50)}...`);
         
         // Usar voz por defecto si no se especifica
-        const selectedVoice = voice || 'es-ES-ElviraNeural';
+        const selectedVoice = voice || 'es-ES-LolaNeural';
         
         const result = await azureTTSService.generateBotResponse(text, selectedVoice);
         
@@ -83,8 +83,8 @@ router.get('/voices', async (req, res) => {
     try {
         const voices = [
             {
-                name: 'es-ES-ElviraNeural',
-                displayName: 'Elvira (Española)',
+                name: 'es-ES-LolaNeural',
+                displayName: 'Lola (Española)',
                 gender: 'Female',
                 locale: 'es-ES'
             },

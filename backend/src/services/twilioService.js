@@ -74,7 +74,7 @@ class TwilioService {
       
       // 🎯 CONFIGURACIÓN DE VOZ POR DEFECTO
       voiceConfig: {
-        azureVoice: 'es-ES-ElviraNeural',
+        azureVoice: 'es-ES-LolaNeural',
         language: 'es-ES',
         rate: '0.95', // Ligeramente más lento para naturalidad
         pitch: '0', // Tono neutro
@@ -134,10 +134,12 @@ class TwilioService {
       const clientData = await this.getClientDataCached(client.id);
       
       // 2. Procesar con IA conversacional CON CONTEXTO EMPRESARIAL + PAUTAS DE COMPORTAMIENTO
-      const aiResponse = await processUserMessage(userInput, {
-        clientId: client.id,
-        callSid: callSid,
-        context: 'phone_call',
+      const aiResponse = await processUserMessage(
+        client.id,           // clientId
+        callSid,            // sessionId
+        userInput,          // userMessage
+        {                   // context
+          context: 'phone_call',
         language: clientData.language || 'es-ES',
         
         // 🏢 CONTEXTO EMPRESARIAL COMPLETO PARA IA
@@ -206,7 +208,7 @@ class TwilioService {
             examples: "he apuntado el teléfono 647-866-629, ¿es correcto? / ¿puedes deletrear el email para asegurarme?"
           }
         }
-      });
+      );
       
       // 2. Hacer respuesta natural CON COMPORTAMIENTO HUMANO
       const naturalResponse = this.makeResponseNatural(aiResponse, clientData, userInput);
@@ -326,8 +328,8 @@ class TwilioService {
    */
   async generateAzureAudio(text, clientData) {
     try {
-      // 🎯 RECONOCIMIENTO DINÁMICO DE VOZ POR USUARIO
-      let selectedVoice = this.globalPersonality.voiceConfig.azureVoice; // Fallback
+      // 🎯 RECONOCIMIENTO DINÁMICO DE VOZ POR USUARIO (SOLO LOLA Y DARIO)
+      let requestedVoice = this.globalPersonality.voiceConfig.azureVoice; // Fallback
       let selectedLanguage = 'es-ES'; // Fallback
       
       // 1. Verificar configuración de voz del usuario
@@ -335,8 +337,8 @@ class TwilioService {
         const voiceSettings = clientData.emailConfig.voiceSettings;
         
         if (voiceSettings.azureVoice) {
-          selectedVoice = voiceSettings.azureVoice;
-          logger.info(`🎭 Usando voz personalizada del usuario: ${selectedVoice}`);
+          requestedVoice = voiceSettings.azureVoice;
+          logger.info(`🎭 Voz solicitada por el usuario: ${requestedVoice}`);
         }
         
         if (voiceSettings.language) {
@@ -351,11 +353,9 @@ class TwilioService {
         logger.info(`🌍 Usando idioma del cliente: ${selectedLanguage}`);
       }
       
-      // 3. Mapear idioma a voz Azure si no hay voz específica
-      if (!clientData.emailConfig?.voiceSettings?.azureVoice) {
-        selectedVoice = this.getAzureVoiceForLanguage(selectedLanguage);
-        logger.info(`🎵 Voz automática para idioma ${selectedLanguage}: ${selectedVoice}`);
-      }
+      // 3. VALIDAR Y OBTENER VOZ PERMITIDA (SOLO LOLA Y DARIO)
+      const selectedVoice = this.validateAndGetVoice(requestedVoice);
+      logger.info(`✅ Voz validada y seleccionada: ${selectedVoice}`);
       
       logger.info(`🎯 CONFIGURACIÓN FINAL - Voz: ${selectedVoice}, Idioma: ${selectedLanguage}`);
       
@@ -375,22 +375,35 @@ class TwilioService {
   }
   
   /**
-   * Mapear idioma a voz Azure TTS apropiada
+   * Validar y obtener voz permitida (solo Lola o Dario)
    */
-  getAzureVoiceForLanguage(language) {
-    const voiceMap = {
-      'es-ES': 'es-ES-ElviraNeural',     // Español España - Femenina
-      'es-MX': 'es-MX-DaliaNeural',      // Español México - Femenina  
-      'es-AR': 'es-AR-ElenaNeural',      // Español Argentina - Femenina
-      'en-US': 'en-US-JennyNeural',      // Inglés USA - Femenina
-      'en-GB': 'en-GB-SoniaNeural',      // Inglés Reino Unido - Femenina
-      'fr-FR': 'fr-FR-DeniseNeural',     // Francés - Femenina
-      'de-DE': 'de-DE-KatjaNeural',      // Alemán - Femenina
-      'it-IT': 'it-IT-ElsaNeural',       // Italiano - Femenina
-      'pt-BR': 'pt-BR-FranciscaNeural'   // Portugués Brasil - Femenina
+  validateAndGetVoice(requestedVoice) {
+    const allowedVoices = {
+      'lola': 'es-ES-LolaNeural',
+      'dario': 'es-ES-DarioNeural',
+      'es-ES-LolaNeural': 'es-ES-LolaNeural',
+      'es-ES-DarioNeural': 'es-ES-DarioNeural'
     };
     
-    return voiceMap[language] || voiceMap['es-ES']; // Fallback a español
+    // Normalizar entrada a minúsculas
+    const normalizedVoice = requestedVoice?.toLowerCase();
+    
+    // Validar si la voz está permitida
+    if (allowedVoices[normalizedVoice]) {
+      return allowedVoices[normalizedVoice];
+    }
+    
+    // Fallback por defecto: Lola
+    logger.warn(`⚠️ Voz no permitida: ${requestedVoice}. Usando Lola por defecto.`);
+    return 'es-ES-LolaNeural';
+  }
+
+  /**
+   * Mapear idioma a voz Azure TTS apropiada (SOLO LOLA Y DARIO)
+   */
+  getAzureVoiceForLanguage(language) {
+    // Solo permitimos Lola y Dario - por defecto Lola
+    return 'es-ES-LolaNeural';
   }
 
   /**
@@ -644,8 +657,9 @@ class TwilioService {
       
       if (hasAzure) {
         try {
-          // Obtener voz preferida del usuario (por defecto: lola)
-          const preferredVoice = botConfig?.voiceSettings?.azureVoice || 'lola';
+          // Obtener y validar voz preferida del usuario (solo Lola o Dario)
+          const requestedVoice = botConfig?.voiceSettings?.azureVoice || 'lola';
+          const preferredVoice = this.validateAndGetVoice(requestedVoice);
           
           logger.info(`✅ Generando audio con Azure TTS (${preferredVoice} - español peninsular)...`);
           const result = await azureTTSService.generateBotResponse(text, preferredVoice);
@@ -1056,7 +1070,8 @@ class TwilioService {
       logger.info(`🎵 FORZANDO uso de Azure TTS para voz natural española`);
       
       // Obtener voz preferida del usuario (por defecto: lola - voz femenina española)
-      const preferredVoice = voiceConfig?.azureVoice || 'lola';
+      const requestedVoice = voiceConfig?.azureVoice || 'lola';
+      const preferredVoice = this.validateAndGetVoice(requestedVoice);
       logger.info(`🎭 Usando voz Azure: ${preferredVoice}`);
       
       const audioResult = await this.generatePremiumAudio(naturalMessage, {
