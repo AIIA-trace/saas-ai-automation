@@ -4,6 +4,12 @@ const AzureTTSService = require('./azureTTSService');
 const azureTTSService = new AzureTTSService();
 const { processUserMessage } = require('./aiConversationService');
 const { makeTextNatural, getVoiceSettings } = require('./naturalPersonalityService');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// Cache para respuestas de clientes (evita consultas repetidas)
+const clientCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 class TwilioService {
   constructor() {
@@ -17,6 +23,627 @@ class TwilioService {
       this.client = null;
       logger.warn('Twilio credentials not configured');
     }
+    
+    // PERSONALIDAD ULTRA-REALISTA GLOBAL (Común para todos los clientes)
+    this.globalPersonality = {
+      // NATURALIDAD POR IDIOMA
+      naturalness: {
+        // 🎭 PAUTAS DE NATURALIDAD POR IDIOMA (NO frases hardcodeadas)
+        languageGuidelines: {
+          'es-ES': {
+            muletillas: "Usar muletillas españolas naturales como 'eh', 'bueno', 'pues', 'vale', 'a ver'",
+            pausas: "Incluir pausas naturales, respiración y momentos de reflexión",
+            transiciones: "Conectar ideas con 'entonces', 'bueno', 'por tanto', 'en ese caso'",
+            confirmaciones: "Confirmar comprensión con 'sí', 'exacto', 'perfecto', 'entiendo'",
+            rellenos: "Usar rellenos conversacionales como '¿sabes?', '¿vale?', '¿no?'"
+          },
+          'en-US': {
+            muletillas: "Use natural English fillers like 'uh', 'um', 'well', 'so', 'like', 'you know'",
+            pausas: "Include natural pauses, breathing and thinking moments",
+            transiciones: "Connect ideas with 'so', 'well', 'therefore', 'in that case'",
+            confirmaciones: "Confirm understanding with 'yes', 'exactly', 'perfect', 'I see'",
+            rellenos: "Use conversational fillers like 'you know?', 'right?', 'okay?'"
+          },
+          'fr-FR': {
+            muletillas: "Utiliser des hésitations françaises naturelles comme 'euh', 'bon', 'alors', 'voilà', 'donc'",
+            pausas: "Inclure des pauses naturelles, respiration et moments de réflexion",
+            transiciones: "Connecter les idées avec 'donc', 'alors', 'par conséquent', 'dans ce cas'",
+            confirmaciones: "Confirmer la compréhension avec 'oui', 'exactement', 'parfait', 'je vois'",
+            rellenos: "Utiliser des mots de remplissage comme 'vous voyez?', 'd'accord?', 'n'est-ce pas?'"
+          }
+        }
+      },
+      
+      // 🎵 SONIDOS DE FONDO REALISTAS
+      backgroundSounds: {
+        enabled: true,
+        officeAmbient: {
+          keyboardTyping: ["*tecleo suave*", "*click de ratón*"],
+          paperSounds: ["*hoja de papel*", "*escribiendo*"],
+          phoneRings: ["*teléfono de fondo*"],
+          voicesDistance: ["*voces lejanas*", "*conversación de fondo*"],
+          chairSounds: ["*silla girando*"],
+          probability: 0.15 // 15% probabilidad de añadir sonido
+        },
+        naturalBreathing: {
+          enabled: true,
+          sounds: ["*respira*", "*suspira ligeramente*"],
+          probability: 0.25 // 25% probabilidad
+        }
+      },
+      
+      // 🎯 CONFIGURACIÓN DE VOZ POR DEFECTO
+      voiceConfig: {
+        azureVoice: 'es-ES-ElviraNeural',
+        language: 'es-ES',
+        rate: '0.95', // Ligeramente más lento para naturalidad
+        pitch: '0', // Tono neutro
+        volume: '0' // Volumen neutro
+      },
+      
+      // 🎭 CONFIGURACIÓN DE NATURALIDAD (Solo elementos técnicos, no frases)
+      naturalnessProbabilities: {
+        muletillas: 0.4,        // 40% probabilidad de añadir muletillas
+        breathing: 0.25,        // 25% probabilidad de respiración
+        transitions: 0.3,       // 30% probabilidad de transiciones
+        fillers: 0.25,          // 25% probabilidad de rellenos
+        backgroundSounds: 0.15  // 15% probabilidad de sonidos de fondo
+      }
+    };
+  }
+
+  /**
+   * MÉTODO PRINCIPAL: Generar respuesta completa para llamada entrante
+   */
+  async generateCallResponse({ client, callerNumber, callSid }) {
+    try {
+      logger.info(`🎯 Generando respuesta para ${client.companyName} (${callSid})`);
+      
+      // 1. Obtener datos del cliente (con caché)
+      const clientData = await this.getClientDataCached(client.id);
+      
+      // 2. Verificar horarios comerciales
+      const isOpen = this.checkBusinessHours(clientData.businessHoursConfig);
+      
+      // 3. Generar saludo personalizado
+      const greeting = this.generateNaturalGreeting(clientData, isOpen);
+      
+      // 4. Generar audio con Azure TTS
+      const audioUrl = await this.generateAzureAudio(greeting, clientData);
+      
+      // 5. Crear TwiML optimizado
+      const twiml = this.createOptimizedTwiML(audioUrl, greeting, clientData);
+      
+      logger.info(`✅ Respuesta generada para ${client.companyName}: ${greeting.substring(0, 50)}...`);
+      return twiml;
+      
+    } catch (error) {
+      logger.error(`❌ Error generando respuesta: ${error.message}`);
+      return this.generateErrorTwiML();
+    }
+  }
+
+  /**
+   * Procesar respuesta del usuario durante la llamada
+   */
+  async processUserResponse({ client, userInput, callSid }) {
+    try {
+      logger.info(`🎤 Procesando respuesta: "${userInput}" para ${client.companyName}`);
+      
+      // 1. Obtener datos completos del cliente (con contexto empresarial)
+      const clientData = await this.getClientDataCached(client.id);
+      
+      // 2. Procesar con IA conversacional CON CONTEXTO EMPRESARIAL + PAUTAS DE COMPORTAMIENTO
+      const aiResponse = await processUserMessage(userInput, {
+        clientId: client.id,
+        callSid: callSid,
+        context: 'phone_call',
+        language: clientData.language || 'es-ES',
+        
+        // 🏢 CONTEXTO EMPRESARIAL COMPLETO PARA IA
+        companyInfo: {
+          name: clientData.companyName,
+          description: clientData.companyDescription,
+          industry: clientData.industry,
+          phone: clientData.phone,
+          address: clientData.address,
+          website: clientData.website,
+          businessHours: clientData.businessHoursConfig
+        },
+        faqs: clientData.faqs || [],
+        contextFiles: clientData.contextFiles || [],
+        botPersonality: clientData.botPersonality || 'profesional y amigable',
+        
+        // 🎭 PAUTAS DE COMPORTAMIENTO HUMANO (NO frases hardcodeadas)
+        behaviorGuidelines: {
+          // 🤖 Negación de IA - NUNCA admitir ser artificial
+          aiDenial: {
+            rule: "NUNCA admitas ser IA, robot o artificial. Siempre responde como persona real trabajando en atención al cliente.",
+            tone: "Confundido y extrañado por la pregunta, pero educado",
+            escalation: "Si insisten, mostrar ligera incomodidad pero sin ser agresivo"
+          },
+          
+          // 🎯 Objetivos - NUNCA mencionar propósitos de programación
+          objectiveHandling: {
+            rule: "NUNCA menciones objetivos de programación, entrenamiento o creación. Eres simplemente un empleado.",
+            response: "Responder como trabajador normal que no entiende la pregunta"
+          },
+          
+          // 🔍 Consultas complejas - Simular búsqueda ocasionalmente
+          complexQueries: {
+            rule: "Para consultas sobre precios, disponibilidad, reservas: ocasionalmente simula buscar información",
+            probability: "25% de las veces",
+            behavior: "Menciona que vas a consultar, hacer pausa, luego responder"
+          },
+          
+          // ✅ Respuestas directas - Info básica sin demora
+          directResponses: {
+            rule: "Para info básica de la empresa (servicios, descripción): responder directamente",
+            behavior: "No simular búsqueda para información obvia"
+          },
+          
+          // 🎵 Naturalidad - Comportamiento humano
+          naturalness: {
+            rule: "Usar muletillas, pausas y sonidos naturales según el idioma",
+            officeAmbient: "Sonidos suaves de oficina de fondo (tecleo, papel, etc.)",
+            breathing: "Respiración y pausas naturales",
+            language: "Adaptar muletillas al idioma del cliente"
+          },
+          
+          // 🔊 Clarificación de audio - Cuando no se entiende bien
+          audioClarification: {
+            rule: "Si no entiendes bien lo que dice el usuario, pide clarificación inmediatamente",
+            tone: "Disculpándote y siendo profesional",
+            examples: "perdona es que no te estoy escuchando bien, ¿lo puedes repetir? más vale atender bien la comanda",
+            priority: "Mejor pedir repetir que malentender información importante"
+          },
+          
+          // 📞 Confirmación de datos críticos - Teléfonos y emails
+          dataConfirmation: {
+            rule: "SIEMPRE repetir y confirmar números de teléfono y emails que te den",
+            behavior: "Repetir el dato completo y preguntar si es correcto",
+            spelling: "Si no estás seguro, pedir que lo deletreen",
+            examples: "he apuntado el teléfono 647-866-629, ¿es correcto? / ¿puedes deletrear el email para asegurarme?"
+          }
+        }
+      });
+      
+      // 2. Hacer respuesta natural CON COMPORTAMIENTO HUMANO
+      const naturalResponse = this.makeResponseNatural(aiResponse, clientData, userInput);
+      
+      // 3. Generar audio con Azure TTS
+      const audioUrl = await this.generateAzureAudio(naturalResponse, client);
+      
+      // 4. Crear TwiML de continuación
+      const twiml = this.createContinuationTwiML(audioUrl, naturalResponse, client);
+      
+      return twiml;
+      
+    } catch (error) {
+      logger.error(`❌ Error procesando respuesta: ${error.message}`);
+      return this.generateErrorTwiML('Disculpa, no he entendido bien. ¿Puedes repetir?');
+    }
+  }
+
+  /**
+   * Obtener datos del cliente con caché
+   */
+  async getClientDataCached(clientId) {
+    const cacheKey = `client_${clientId}`;
+    const cached = clientCache.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      logger.info(`📋 Usando datos cacheados para cliente ${clientId}`);
+      return cached.data;
+    }
+    
+    logger.info(`🔄 Obteniendo datos frescos para cliente ${clientId}`);
+    const clientData = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: {
+        id: true,
+        companyName: true,
+        email: true,
+        industry: true,
+        businessHoursConfig: true,
+        botName: true,
+        botPersonality: true,
+        welcomeMessage: true,
+        language: true,
+        // Configuración de voz personalizada
+        emailConfig: true,  // Contiene voiceSettings
+        
+        // 🏢 CONTEXTO EMPRESARIAL COMPLETO
+        companyDescription: true,  // Descripción de la empresa
+        phone: true,              // Teléfono de contacto
+        address: true,            // Dirección física
+        website: true,            // Sitio web
+        faqs: true,              // Preguntas frecuentes
+        contextFiles: true       // Archivos de contexto/documentos
+      }
+    });
+    
+    // Guardar en caché
+    clientCache.set(cacheKey, {
+      data: clientData,
+      timestamp: Date.now()
+    });
+    
+    return clientData;
+  }
+
+  /**
+   * Verificar horarios comerciales
+   */
+  checkBusinessHours(businessHoursConfig) {
+    if (!businessHoursConfig || !businessHoursConfig.enabled) {
+      return true; // Siempre abierto si no hay configuración
+    }
+    
+    const now = new Date();
+    const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const currentTime = now.toTimeString().slice(0, 5);
+    
+    const isWorkingDay = businessHoursConfig.workingDays && businessHoursConfig.workingDays[currentDay];
+    const isWithinHours = currentTime >= businessHoursConfig.openingTime && 
+                         currentTime <= businessHoursConfig.closingTime;
+    
+    return isWorkingDay && isWithinHours;
+  }
+
+  /**
+   * 🎭 Generar saludo ULTRA-REALISTA usando datos de la base de datos
+   */
+  generateNaturalGreeting(clientData, isOpen) {
+    let greeting;
+    
+    // 🎯 USAR EL welcomeMessage CONFIGURADO EN LA BD
+    if (clientData.welcomeMessage) {
+      logger.info(`🎭 Usando mensaje de bienvenida configurado: ${clientData.welcomeMessage}`);
+      greeting = clientData.welcomeMessage;
+    } else {
+      // 🔄 FALLBACK: Generar saludo básico con naturalidad
+      logger.warn(`⚠️ Cliente ${clientData.companyName} no tiene welcomeMessage configurado. Generando fallback natural.`);
+      
+      const language = clientData.language || 'es-ES';
+      const naturalness = this.getNaturalnessForLanguage(language);
+      
+      // Añadir sonido de saludo natural
+      const greetingPattern = this.globalPersonality.conversationPatterns.greeting;
+      let greetingSound = '';
+      if (Math.random() < greetingPattern.probability) {
+        greetingSound = greetingPattern.patterns[Math.floor(Math.random() * greetingPattern.patterns.length)] + ' ';
+      }
+      
+      const randomMuletilla = naturalness.muletillas[Math.floor(Math.random() * naturalness.muletillas.length)];
+      
+      greeting = `${greetingSound}${randomMuletilla} hola, has llamado a ${clientData.companyName}. Soy tu asistente virtual.`;
+      
+      if (isOpen) {
+        const relleno = naturalness.rellenos[Math.floor(Math.random() * naturalness.rellenos.length)];
+        greeting += ` ¿En qué puedo ayudarte ${relleno}`;
+      } else {
+        greeting += " Ahora mismo estamos cerrados. ¿Quieres dejar algún mensaje?";
+      }
+    }
+    
+    // 🎵 APLICAR NATURALIDAD ULTRA-REALISTA AL SALUDO
+    greeting = this.makeResponseNatural(greeting, clientData);
+    
+    return greeting;
+  }
+
+  /**
+   * Generar audio con Azure TTS (optimizado) - CON RECONOCIMIENTO DINÁMICO
+   */
+  async generateAzureAudio(text, clientData) {
+    try {
+      // 🎯 RECONOCIMIENTO DINÁMICO DE VOZ POR USUARIO
+      let selectedVoice = this.globalPersonality.voiceConfig.azureVoice; // Fallback
+      let selectedLanguage = 'es-ES'; // Fallback
+      
+      // 1. Verificar configuración de voz del usuario
+      if (clientData.emailConfig && clientData.emailConfig.voiceSettings) {
+        const voiceSettings = clientData.emailConfig.voiceSettings;
+        
+        if (voiceSettings.azureVoice) {
+          selectedVoice = voiceSettings.azureVoice;
+          logger.info(`🎭 Usando voz personalizada del usuario: ${selectedVoice}`);
+        }
+        
+        if (voiceSettings.language) {
+          selectedLanguage = voiceSettings.language;
+          logger.info(`🌍 Usando idioma personalizado del usuario: ${selectedLanguage}`);
+        }
+      }
+      
+      // 2. Verificar idioma del cliente (campo directo)
+      if (clientData.language) {
+        selectedLanguage = clientData.language;
+        logger.info(`🌍 Usando idioma del cliente: ${selectedLanguage}`);
+      }
+      
+      // 3. Mapear idioma a voz Azure si no hay voz específica
+      if (!clientData.emailConfig?.voiceSettings?.azureVoice) {
+        selectedVoice = this.getAzureVoiceForLanguage(selectedLanguage);
+        logger.info(`🎵 Voz automática para idioma ${selectedLanguage}: ${selectedVoice}`);
+      }
+      
+      logger.info(`🎯 CONFIGURACIÓN FINAL - Voz: ${selectedVoice}, Idioma: ${selectedLanguage}`);
+      
+      const result = await azureTTSService.generateBotResponse(text, selectedVoice);
+      
+      if (result.success) {
+        logger.info(`✅ Audio Azure TTS generado: ${result.audioUrl}`);
+        return result.audioUrl;
+      } else {
+        throw new Error(result.error);
+      }
+      
+    } catch (error) {
+      logger.error(`❌ Error Azure TTS: ${error.message}`);
+      return null; // Fallback a Polly
+    }
+  }
+  
+  /**
+   * Mapear idioma a voz Azure TTS apropiada
+   */
+  getAzureVoiceForLanguage(language) {
+    const voiceMap = {
+      'es-ES': 'es-ES-ElviraNeural',     // Español España - Femenina
+      'es-MX': 'es-MX-DaliaNeural',      // Español México - Femenina  
+      'es-AR': 'es-AR-ElenaNeural',      // Español Argentina - Femenina
+      'en-US': 'en-US-JennyNeural',      // Inglés USA - Femenina
+      'en-GB': 'en-GB-SoniaNeural',      // Inglés Reino Unido - Femenina
+      'fr-FR': 'fr-FR-DeniseNeural',     // Francés - Femenina
+      'de-DE': 'de-DE-KatjaNeural',      // Alemán - Femenina
+      'it-IT': 'it-IT-ElsaNeural',       // Italiano - Femenina
+      'pt-BR': 'pt-BR-FranciscaNeural'   // Portugués Brasil - Femenina
+    };
+    
+    return voiceMap[language] || voiceMap['es-ES']; // Fallback a español
+  }
+
+  /**
+   * Crear TwiML optimizado para respuesta inicial
+   */
+  createOptimizedTwiML(audioUrl, greeting, clientData) {
+    const VoiceResponse = twilio.twiml.VoiceResponse;
+    const twiml = new VoiceResponse();
+    
+    if (audioUrl) {
+      // Usar Azure TTS
+      twiml.play(audioUrl);
+      logger.info('🎵 Usando Azure TTS para respuesta');
+    } else {
+      // Fallback a Polly
+      twiml.say({
+        voice: 'Polly.Conchita',
+        language: 'es-ES'
+      }, greeting);
+      logger.info('🔄 Fallback a Polly');
+    }
+    
+    // Recoger respuesta del usuario
+    twiml.gather({
+      input: 'speech',
+      language: 'es-ES',
+      speechTimeout: 5,
+      timeout: 15,
+      action: '/api/twilio/webhook/response',
+      method: 'POST'
+    });
+    
+    // Mensaje si no responde
+    twiml.say({
+      voice: 'Polly.Conchita',
+      language: 'es-ES'
+    }, 'Si necesitas algo más, puedes llamarnos en nuestro horario de atención. ¡Hasta pronto!');
+    
+    return twiml.toString();
+  }
+
+  /**
+   * Crear TwiML para continuación de conversación
+   */
+  createContinuationTwiML(audioUrl, response, clientData) {
+    const VoiceResponse = twilio.twiml.VoiceResponse;
+    const twiml = new VoiceResponse();
+    
+    if (audioUrl) {
+      twiml.play(audioUrl);
+    } else {
+      twiml.say({
+        voice: 'Polly.Conchita',
+        language: 'es-ES'
+      }, response);
+    }
+    
+    // Verificar si debe continuar la conversación
+    if (!this.isEndingConversation(response)) {
+      twiml.gather({
+        input: 'speech',
+        language: 'es-ES',
+        speechTimeout: 5,
+        timeout: 15,
+        action: '/api/twilio/webhook/response',
+        method: 'POST'
+      });
+      
+      twiml.say({
+        voice: 'Polly.Conchita',
+        language: 'es-ES'
+      }, '¿Hay algo más en lo que pueda ayudarte?');
+    } else {
+      twiml.hangup();
+    }
+    
+    return twiml.toString();
+  }
+
+  /**
+   * 🎭 APLICAR SOLO SONIDOS DE OFICINA (Las pautas ya están en el contexto de IA)
+   */
+  makeResponseNatural(aiResponse, clientData, userInput = '') {
+    // 1. Detectar idioma del cliente
+    const language = clientData.language || 'es-ES';
+    
+    logger.info(`🎭 Aplicando sonidos de oficina para idioma: ${language}`);
+    logger.info(`🎭 Las pautas de comportamiento y naturalidad ya fueron enviadas a la IA`);
+    
+    // 2. Aplicar SOLO sonidos de oficina (NO muletillas - eso lo hace la IA)
+    aiResponse = this.addNaturalness(aiResponse, clientData, language);
+    
+    // 3. Personalizar por empresa
+    aiResponse = aiResponse.replace(/\[EMPRESA\]/g, clientData.companyName);
+    
+    logger.info(`🎵 Respuesta con sonidos de oficina: "${aiResponse.substring(0, 100)}..."`);
+    
+    return aiResponse;
+  }
+  
+  /**
+   * 🤖 Detectar si preguntan sobre IA
+   */
+  isAskingAboutAI(userInput) {
+    const aiKeywords = [
+      'inteligencia artificial', 'ia', 'ai', 'robot', 'bot', 'chatbot', 
+      'artificial', 'máquina', 'algoritmo', 'eres una ia', 'eres un robot',
+      'eres artificial', 'eres humano', 'persona real'
+    ];
+    
+    const input = userInput.toLowerCase();
+    return aiKeywords.some(keyword => input.includes(keyword));
+  }
+  
+  /**
+   * 🎯 Detectar si preguntan sobre objetivos/propósitos (NUNCA RESPONDER)
+   */
+  isAskingAboutObjective(userInput) {
+    const objectiveKeywords = [
+      'objetivo', 'propósito', 'para qué', 'por qué', 'cuál es tu función',
+      'para que sirves', 'qué haces', 'tu trabajo', 'tu misión', 'creado para',
+      'diseñado para', 'programado para', 'entrenado para'
+    ];
+    
+    const input = userInput.toLowerCase();
+    return objectiveKeywords.some(keyword => input.includes(keyword));
+  }
+  
+  /**
+   * 🔍 Detectar consulta compleja que requiere "búsqueda"
+   */
+  isComplexQuery(userInput) {
+    const complexTriggers = this.globalPersonality.conversationPatterns.complexQuery.triggers;
+    const input = userInput.toLowerCase();
+    return complexTriggers.some(trigger => input.includes(trigger));
+  }
+  
+  /**
+   * ✅ Detectar respuesta directa (info básica)
+   */
+  isDirectResponse(userInput) {
+    const directTriggers = this.globalPersonality.conversationPatterns.directResponse.triggers;
+    const input = userInput.toLowerCase();
+    return directTriggers.some(trigger => input.includes(trigger));
+  }
+  
+  /**
+   * 🎵 Añadir naturalidad usando SOLO sonidos de oficina (las pautas van a la IA)
+   */
+  addNaturalness(response, clientData, language) {
+    const probabilities = this.globalPersonality.naturalnessProbabilities;
+    
+    // SOLO añadir sonidos de fondo de oficina (NO muletillas - eso lo hace la IA)
+    if (this.globalPersonality.backgroundSounds.enabled && Math.random() < probabilities.backgroundSounds) {
+      response = this.addBackgroundSounds(response, language);
+    }
+    
+    // SOLO añadir pausas y respiración natural
+    if (Math.random() < probabilities.breathing) {
+      const breathSound = this.globalPersonality.backgroundSounds.naturalBreathing.sounds[
+        Math.floor(Math.random() * this.globalPersonality.backgroundSounds.naturalBreathing.sounds.length)
+      ];
+      response = `${breathSound} ${response}`;
+    }
+    
+    return response;
+  }
+  
+  /**
+   * 🎵 Añadir naturalidad básica (SIN sonidos de oficina) - Solo para negaciones de IA
+   */
+  addBasicNaturalness(response, naturalness, language) {
+    // 🚫 NO añadir sonidos de oficina (tecleo, papel, etc.)
+    
+    // Añadir muletillas naturales por idioma
+    if (Math.random() < 0.4) {
+      const muletilla = naturalness.muletillas[Math.floor(Math.random() * naturalness.muletillas.length)];
+      response = `${muletilla} ${response}`;
+    }
+    
+    // Añadir pausas y respiración natural
+    if (Math.random() < this.globalPersonality.backgroundSounds.naturalBreathing.probability) {
+      const breathSound = this.globalPersonality.backgroundSounds.naturalBreathing.sounds[
+        Math.floor(Math.random() * this.globalPersonality.backgroundSounds.naturalBreathing.sounds.length)
+      ];
+      response = `${breathSound} ${response}`;
+    }
+    
+    // Añadir transiciones naturales
+    if (response.includes('.') && Math.random() < 0.3) {
+      const transicion = naturalness.transiciones[Math.floor(Math.random() * naturalness.transiciones.length)];
+      response = response.replace('.', `, ${transicion},`);
+    }
+    
+    // NO añadir rellenos en negaciones de IA (sería raro)
+    
+    return response;
+  }
+  
+  /**
+   * 🎵 Añadir sonidos de fondo de oficina realistas
+   */
+  addBackgroundSounds(response, language) {
+    const { officeAmbient } = this.globalPersonality.backgroundSounds;
+    
+    // Probabilidad de añadir sonido de fondo
+    if (Math.random() > officeAmbient.probability) {
+      return response;
+    }
+    
+    // Seleccionar tipo de sonido aleatorio
+    const soundTypes = ['keyboardTyping', 'paperSounds', 'chairSounds'];
+    const randomType = soundTypes[Math.floor(Math.random() * soundTypes.length)];
+    const sounds = officeAmbient[randomType];
+    const selectedSound = sounds[Math.floor(Math.random() * sounds.length)];
+    
+    // Posición aleatoria en la respuesta
+    const words = response.split(' ');
+    const insertPosition = Math.floor(Math.random() * words.length);
+    
+    words.splice(insertPosition, 0, selectedSound);
+    
+    logger.info(`🎵 Sonido de fondo añadido: ${selectedSound}`);
+    
+    return words.join(' ');
+  }
+  
+  /**
+   * 🎯 Obtener configuración de naturalidad por idioma
+   */
+  getNaturalnessForLanguage(language) {
+    return this.globalPersonality.naturalness[language] || this.globalPersonality.naturalness['es-ES'];
+  }
+
+  /**
+   * Limpiar caché de cliente (cuando se actualiza)
+   */
+  clearClientCache(clientId) {
+    const cacheKey = `client_${clientId}`;
+    clientCache.delete(cacheKey);
+    logger.info(`🗑️ Caché limpiado para cliente ${clientId}`);
   }
 
   // Generar audio premium con Azure TTS (voces españolas)

@@ -165,6 +165,169 @@ router.delete('/release-number/:numberId', authenticate, async (req, res) => {
 });
 
 /**
+ * POST /api/twilio/webhook
+ * Webhook principal para manejar llamadas de Twilio
+ * NO requiere autenticación (viene de Twilio)
+ */
+router.post('/webhook', async (req, res) => {
+    try {
+        const { To: twilioNumber, From: callerNumber, CallSid } = req.body;
+        
+        logger.info(`📞 LLAMADA RECIBIDA: ${callerNumber} → ${twilioNumber} (${CallSid})`);
+        
+        // 1. Identificar cliente por número Twilio
+        const twilioNumberRecord = await prisma.twilioNumber.findFirst({
+            where: {
+                phoneNumber: twilioNumber,
+                status: 'active'
+            },
+            include: {
+                client: true  // Incluir TODOS los datos del cliente
+            }
+        });
+        
+        if (!twilioNumberRecord) {
+            logger.error(`❌ Número Twilio no encontrado: ${twilioNumber}`);
+            return res.status(404).send(`
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Response>
+                    <Say voice="Polly.Conchita" language="es-ES">Lo siento, este número no está configurado.</Say>
+                </Response>
+            `);
+        }
+        
+        const client = twilioNumberRecord.client;
+        logger.info(`✅ Cliente identificado: ${client.companyName} (ID: ${client.id})`);
+        
+        // 2. Generar respuesta personalizada con Azure TTS
+        const twimlResponse = await twilioService.generateCallResponse({
+            client: client,
+            callerNumber: callerNumber,
+            callSid: CallSid
+        });
+        
+        logger.info(`🎵 Respuesta TwiML generada para ${client.companyName}`);
+        
+        // 3. Devolver TwiML
+        res.set('Content-Type', 'text/xml');
+        res.send(twimlResponse);
+        
+    } catch (error) {
+        logger.error(`❌ Error en webhook Twilio: ${error.message}`, error);
+        
+        // Respuesta de fallback
+        res.set('Content-Type', 'text/xml');
+        res.send(`
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Response>
+                <Say voice="Polly.Conchita" language="es-ES">Lo siento, hay un problema técnico. Inténtalo más tarde.</Say>
+            </Response>
+        `);
+    }
+});
+
+/**
+ * POST /api/twilio/webhook/response
+ * Manejar respuestas del usuario durante la llamada
+ */
+router.post('/webhook/response', async (req, res) => {
+    try {
+        const { SpeechResult, CallSid, To: twilioNumber } = req.body;
+        
+        logger.info(`🎤 RESPUESTA DEL USUARIO: "${SpeechResult}" (${CallSid})`);
+        
+        // Identificar cliente
+        const twilioNumberRecord = await prisma.twilioNumber.findFirst({
+            where: { phoneNumber: twilioNumber, status: 'active' },
+            include: { client: true }
+        });
+        
+        if (!twilioNumberRecord) {
+            logger.error(`❌ Cliente no encontrado para respuesta: ${twilioNumber}`);
+            return res.status(404).send('<Response><Hangup/></Response>');
+        }
+        
+        // Procesar respuesta con IA
+        const aiResponse = await twilioService.processUserResponse({
+            client: twilioNumberRecord.client,
+            userInput: SpeechResult,
+            callSid: CallSid
+        });
+        
+        logger.info(`🤖 Respuesta IA generada para ${twilioNumberRecord.client.companyName}`);
+        
+        res.set('Content-Type', 'text/xml');
+        res.send(aiResponse);
+        
+    } catch (error) {
+        logger.error(`❌ Error procesando respuesta: ${error.message}`, error);
+        
+        res.set('Content-Type', 'text/xml');
+        res.send(`
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Response>
+                <Say voice="Polly.Conchita" language="es-ES">Gracias por llamar. ¡Hasta pronto!</Say>
+                <Hangup/>
+            </Response>
+        `);
+    }
+});
+
+/**
+ * POST /api/twilio/identify
+ * Identificar cliente por número Twilio (para N8N u otros servicios)
+ */
+router.post('/identify', async (req, res) => {
+    try {
+        const { twilioNumber } = req.body;
+        
+        if (!twilioNumber) {
+            return res.status(400).json({
+                success: false,
+                error: 'Número Twilio requerido'
+            });
+        }
+        
+        const twilioNumberRecord = await prisma.twilioNumber.findFirst({
+            where: {
+                phoneNumber: twilioNumber,
+                status: 'active'
+            },
+            include: {
+                client: {
+                    select: {
+                        id: true,
+                        companyName: true,
+                        email: true,
+                        profile: true,
+                        businessHoursConfig: true
+                    }
+                }
+            }
+        });
+        
+        if (!twilioNumberRecord) {
+            return res.status(404).json({
+                success: false,
+                error: 'Cliente no encontrado'
+            });
+        }
+        
+        res.json({
+            success: true,
+            client: twilioNumberRecord.client
+        });
+        
+    } catch (error) {
+        logger.error(`❌ Error identificando cliente: ${error.message}`);
+        res.status(500).json({
+            success: false,
+            error: 'Error identificando cliente'
+        });
+    }
+});
+
+/**
  * GET /api/twilio/status
  * Obtener estado general de la configuración Twilio
  */

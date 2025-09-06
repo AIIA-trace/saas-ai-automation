@@ -707,6 +707,15 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`   Guardado:`, JSON.stringify(updatedClient.businessHoursConfig, null, 2));
     }
     
+    // 🗑️ LIMPIAR CACHÉ DEL CLIENTE (datos actualizados)
+    try {
+      twilioService.clearClientCache(req.client.id);
+      logger.info(`🔄 Caché limpiado para cliente ${req.client.id} tras actualización`);
+    } catch (cacheError) {
+      logger.warn(`⚠️ Error limpiando caché: ${cacheError.message}`);
+      // No bloquear la respuesta por error de caché
+    }
+    
     return res.json({
       success: true,
       message: 'Datos del cliente actualizados correctamente',
