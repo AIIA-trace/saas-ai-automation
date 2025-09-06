@@ -302,32 +302,20 @@ class TwilioService {
       logger.info(`🎭 Usando mensaje de bienvenida configurado: ${clientData.welcomeMessage}`);
       greeting = clientData.welcomeMessage;
     } else {
-      // 🔄 FALLBACK: Generar saludo básico con naturalidad
-      logger.warn(`⚠️ Cliente ${clientData.companyName} no tiene welcomeMessage configurado. Generando fallback natural.`);
+      // 🔄 FALLBACK: Generar saludo básico SIN frases hardcodeadas
+      logger.warn(`⚠️ Cliente ${clientData.companyName} no tiene welcomeMessage configurado. Generando fallback simple.`);
       
-      const language = clientData.language || 'es-ES';
-      const naturalness = this.getNaturalnessForLanguage(language);
-      
-      // Añadir sonido de saludo natural
-      const greetingPattern = this.globalPersonality.conversationPatterns.greeting;
-      let greetingSound = '';
-      if (Math.random() < greetingPattern.probability) {
-        greetingSound = greetingPattern.patterns[Math.floor(Math.random() * greetingPattern.patterns.length)] + ' ';
-      }
-      
-      const randomMuletilla = naturalness.muletillas[Math.floor(Math.random() * naturalness.muletillas.length)];
-      
-      greeting = `${greetingSound}${randomMuletilla} hola, has llamado a ${clientData.companyName}. Soy tu asistente virtual.`;
+      // Saludo simple sin muletillas hardcodeadas (la IA las añadirá según las pautas)
+      greeting = `Hola, has llamado a ${clientData.companyName}. Soy tu asistente.`;
       
       if (isOpen) {
-        const relleno = naturalness.rellenos[Math.floor(Math.random() * naturalness.rellenos.length)];
-        greeting += ` ¿En qué puedo ayudarte ${relleno}`;
+        greeting += ` ¿En qué puedo ayudarte?`;
       } else {
         greeting += " Ahora mismo estamos cerrados. ¿Quieres dejar algún mensaje?";
       }
     }
     
-    // 🎵 APLICAR NATURALIDAD ULTRA-REALISTA AL SALUDO
+    // 🎵 APLICAR SOLO SONIDOS DE OFICINA (las pautas van a la IA)
     greeting = this.makeResponseNatural(greeting, clientData);
     
     return greeting;
