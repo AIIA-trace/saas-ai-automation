@@ -1,5 +1,5 @@
 const twilio = require('twilio');
-const logger = require('../config/logger');
+const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const OpenAI = require('openai');
 const StreamingTwiMLService = require('./streamingTwiMLService');
