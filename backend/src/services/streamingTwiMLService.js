@@ -19,39 +19,31 @@ class StreamingTwiMLService {
       logger.info(`🎵 Creando TwiML Stream para ${clientData.companyName}`);
       logger.info(`🔌 WebSocket URL: ${wsUrl}`);
 
-      // Contestar la llamada con audio mínimo (evita no-answer)
-      twiml.say('.');
+      // Contestar la llamada inmediatamente (sin audio audible)
+      twiml.say('');
       
-      // Conectar a WebSocket Stream (Azure TTS manejará todo el audio)
-      const connect = twiml.connect();
-      const stream = connect.stream({
+      // Iniciar stream para Azure TTS
+      const start = twiml.start();
+      const stream = start.stream({
         url: wsUrl,
-        track: 'both_tracks' // Audio bidireccional - necesario para eventos start/connected
+        track: 'both_tracks'
       });
-
-      // Parámetros adicionales para el stream
+      
+      // Parámetros del stream
       stream.parameter({
         name: 'clientId',
         value: clientData.id.toString()
       });
-
-      stream.parameter({
-        name: 'companyName',
-        value: clientData.companyName
-      });
-
-      stream.parameter({
-        name: 'language',
-        value: clientData.language || 'es'
-      });
-
-      // Agregar CallSid si está disponible
+      
       if (callSid) {
         stream.parameter({
           name: 'callSid',
           value: callSid
         });
       }
+      
+      // Pausa para mantener la llamada activa
+      twiml.pause({ length: 3600 }); // 1 hora máximo
 
       const twimlString = twiml.toString();
       logger.info(`✅ TwiML Stream generado: ${twimlString.length} caracteres`);
