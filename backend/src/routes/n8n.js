@@ -88,7 +88,7 @@ router.get('/client/:clientId/config', authenticateN8N, async (req, res) => {
       bot: {
         name: client.botName || 'Asistente Virtual',
         personality: client.botPersonality || 'profesional y amigable',
-        welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
+        welcomeMessage: client.welcomeMessage,
         confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos.',
         language: client.botLanguage || 'es'
       },
@@ -98,7 +98,7 @@ router.get('/client/:clientId/config', authenticateN8N, async (req, res) => {
         transcribeCalls: false,
         voiceId: 'neutral',
         language: 'es-ES',
-        greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual.'
+        greeting: client.welcomeMessage
       },
       emailConfig: client.emailConfig || {
         enabled: false,

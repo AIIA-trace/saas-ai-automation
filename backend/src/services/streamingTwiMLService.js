@@ -19,8 +19,8 @@ class StreamingTwiMLService {
       logger.info(`🎵 Creando TwiML Stream para ${clientData.companyName}`);
       logger.info(`🔌 WebSocket URL: ${wsUrl}`);
 
-      // Contestar la llamada con audio real (evita no-answer)
-      twiml.say('Hola');
+      // Contestar la llamada con audio mínimo (evita no-answer)
+      twiml.say('');
       
       // Conectar a WebSocket Stream (Azure TTS manejará todo el audio)
       const connect = twiml.connect();
@@ -85,9 +85,9 @@ class StreamingTwiMLService {
     const twiml = new this.VoiceResponse();
     
     try {
-      // Mensaje de fallback
+      // Mensaje de fallback personalizado
       const fallbackMessage = clientData.welcomeMessage || 
-        `Hola, has llamado a ${clientData.companyName}. Disculpa, nuestro sistema está temporalmente no disponible. Por favor, inténtalo más tarde.`;
+        `Has llamado a ${clientData.companyName}. Disculpa, nuestro sistema está temporalmente no disponible. Por favor, inténtalo más tarde.`;
 
       twiml.say({
         voice: 'Polly.Conchita',
@@ -183,7 +183,7 @@ class StreamingTwiMLService {
         id: 999,
         companyName: 'Test Company',
         language: 'es',
-        welcomeMessage: 'Hola, este es un test'
+        welcomeMessage: 'Bienvenido a Test Company'
       };
 
       const twiml = this.createStreamTwiML(testClient);

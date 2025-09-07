@@ -229,15 +229,25 @@ class TwilioStreamHandler {
   async sendInitialGreeting(ws, data) {
     try {
       const { streamSid, callSid } = data;
-      const greetingText = "Hola, gracias por llamar. ¿En qué puedo ayudarte?";
       
-      logger.info(`🎵 Enviando saludo inicial para CallSid ${callSid}: "${greetingText}"`);
-      
-      // Verificar que el stream esté activo
-      if (!this.activeStreams.has(callSid)) {
+      // Obtener datos del stream para acceder al cliente
+      const streamData = this.activeStreams.get(callSid);
+      if (!streamData) {
         logger.warn(`⚠️ Stream no encontrado para CallSid: ${callSid}`);
         return;
       }
+      
+      // Usar SOLO el mensaje de bienvenida personalizado del cliente
+      const greetingText = streamData.clientData.welcomeMessage;
+      
+      if (!greetingText) {
+        logger.error(`❌ Cliente ${streamData.clientData.companyName} no tiene welcomeMessage configurado`);
+        return;
+      }
+      
+      logger.info(`🎵 Enviando saludo inicial para CallSid ${callSid}: "${greetingText}"`);
+      logger.info(`🎵 Usando welcomeMessage del cliente: ${streamData.clientData.welcomeMessage ? 'SÍ' : 'NO (fallback)'}`);
+      
       
       // Generar audio con Azure TTS usando voz española
       const voice = 'es-ES-DarioNeural'; // Usar Darío por defecto
@@ -248,8 +258,9 @@ class TwilioStreamHandler {
       
     } catch (error) {
       logger.error(`❌ Error enviando saludo: ${error.message}`);
-      // Fallback a mensaje de texto
-      await this.sendFallbackMessage(ws, "Hola, gracias por llamar. ¿En qué puedo ayudarte?");
+      // Fallback usando welcomeMessage del cliente si existe
+      const fallbackText = streamData?.clientData?.welcomeMessage || "Sistema temporalmente no disponible";
+      await this.sendFallbackMessage(ws, fallbackText);
     }
   }
 
@@ -351,6 +362,79 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Construir contexto completo del cliente para GPT-4
+   */
+  buildClientContext(clientData) {
+    let context = `Eres un asistente virtual para ${clientData.companyName}.`;
+    
+    // Añadir descripción de la empresa
+    if (clientData.companyDescription) {
+      context += `\n\nDescripción de la empresa: ${clientData.companyDescription}`;
+    }
+    
+    // Añadir información de la empresa desde JSON
+    if (clientData.companyInfo) {
+      const companyInfo = typeof clientData.companyInfo === 'string' 
+        ? JSON.parse(clientData.companyInfo) 
+        : clientData.companyInfo;
+      
+      if (companyInfo.services) context += `\nServicios: ${companyInfo.services}`;
+      if (companyInfo.address) context += `\nDirección: ${companyInfo.address}`;
+      if (companyInfo.phone) context += `\nTeléfono: ${companyInfo.phone}`;
+      if (companyInfo.email) context += `\nEmail: ${companyInfo.email}`;
+      if (companyInfo.website) context += `\nWeb: ${companyInfo.website}`;
+    }
+    
+    // Añadir FAQs
+    if (clientData.faqs) {
+      const faqs = typeof clientData.faqs === 'string' 
+        ? JSON.parse(clientData.faqs) 
+        : clientData.faqs;
+      
+      if (Array.isArray(faqs) && faqs.length > 0) {
+        context += `\n\nPreguntas frecuentes:`;
+        faqs.forEach((faq, index) => {
+          context += `\n${index + 1}. P: ${faq.question}\n   R: ${faq.answer}`;
+        });
+      }
+    }
+    
+    // Añadir archivos de contexto
+    if (clientData.contextFiles) {
+      const contextFiles = typeof clientData.contextFiles === 'string' 
+        ? JSON.parse(clientData.contextFiles) 
+        : clientData.contextFiles;
+      
+      if (Array.isArray(contextFiles) && contextFiles.length > 0) {
+        context += `\n\nInformación adicional:`;
+        contextFiles.forEach(file => {
+          if (file.content) context += `\n- ${file.content}`;
+        });
+      }
+    }
+    
+    // Añadir horario comercial
+    if (clientData.businessHoursConfig) {
+      const businessHours = typeof clientData.businessHoursConfig === 'string' 
+        ? JSON.parse(clientData.businessHoursConfig) 
+        : clientData.businessHoursConfig;
+      
+      if (businessHours.schedule) {
+        context += `\n\nHorario de atención: ${businessHours.schedule}`;
+      }
+    }
+    
+    // Añadir personalidad del bot
+    if (clientData.botPersonality) {
+      context += `\n\nPersonalidad: ${clientData.botPersonality}`;
+    }
+    
+    context += `\n\nInstrucciones: Responde de forma natural, amigable y concisa. Máximo 2 frases por respuesta. Usa la información proporcionada para ayudar al cliente.`;
+    
+    return context;
+  }
+
+  /**
    * Generar respuesta con IA
    */
   async generateAIResponse(callSid, userInput) {
@@ -361,15 +445,16 @@ class TwilioStreamHandler {
       // Añadir mensaje del usuario
       conversation.push({ role: 'user', content: userInput });
 
-      // Generar respuesta con OpenAI
+      // Construir contexto completo del cliente
+      const clientContext = this.buildClientContext(streamData.clientData);
+      
+      // Generar respuesta con OpenAI usando contexto personalizado
       const completion = await openai.chat.completions.create({
         model: 'gpt-4',
         messages: [
           {
             role: 'system',
-            content: `Eres un asistente virtual para ${streamData.clientData.companyName}. 
-                     Responde de forma natural, amigable y concisa. 
-                     Máximo 2 frases por respuesta.`
+            content: clientContext
           },
           ...conversation
         ],

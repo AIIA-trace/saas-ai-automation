@@ -462,7 +462,7 @@ class TwilioService {
     // 🔄 FALLBACK: Solo si el usuario no tiene welcomeMessage configurado
     logger.warn(`⚠️ Cliente ${clientData.companyName} no tiene welcomeMessage configurado. Generando fallback básico.`);
     
-    const fallbackGreeting = `Hola, has llamado a ${clientData.companyName}. ${isOpen ? '¿En qué puedo ayudarte?' : 'Ahora mismo estamos cerrados. ¿Quieres dejar algún mensaje?'}`;
+    const fallbackGreeting = `Has llamado a ${clientData.companyName}. ${isOpen ? '¿En qué puedo ayudarte?' : 'Ahora mismo estamos cerrados. ¿Quieres dejar algún mensaje?'}`;
     
     logger.info(`🔄 Usando saludo fallback: "${fallbackGreeting}"`);
     return fallbackGreeting;

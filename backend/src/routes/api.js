@@ -350,7 +350,7 @@ router.get('/api/client', authenticate, async (req, res) => {
         name: client.botName || 'Asistente Virtual',
         personality: client.botPersonality || 'profesional y amigable',
 
-        welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
+        welcomeMessage: client.welcomeMessage,
         confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
         language: client.botLanguage || 'es'
       },
@@ -362,7 +362,7 @@ router.get('/api/client', authenticate, async (req, res) => {
         transcribeCalls: false,
         voiceId: 'female',
         language: 'es-ES',
-        greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
+        greeting: client.welcomeMessage,
         volume: '1.0',
         speed: '1.0',
         pitch: '1.0',
@@ -760,7 +760,7 @@ router.put('/client', authenticate, async (req, res) => {
         bot: {
           name: updatedClient.botName || 'Asistente Virtual',
           language: updatedClient.botLanguage || 'es',
-          welcomeMessage: updatedClient.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
+          welcomeMessage: updatedClient.welcomeMessage,
           confirmationMessage: updatedClient.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
 
           personality: updatedClient.botPersonality || 'profesional y amigable'
@@ -869,7 +869,7 @@ router.get('/client', authenticate, async (req, res) => {
         name: client.botName || 'Asistente Virtual',
         personality: client.botPersonality || 'profesional y amigable',
 
-        welcomeMessage: client.welcomeMessage || 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte?',
+        welcomeMessage: client.welcomeMessage,
         confirmationMessage: client.confirmationMessage || 'Gracias por contactarnos. Te responderemos pronto.',
         language: client.botLanguage || 'es'
       },
@@ -881,7 +881,7 @@ router.get('/client', authenticate, async (req, res) => {
         transcribeCalls: false,
         voiceId: 'female',
         language: 'es-ES',
-        greeting: 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
+        greeting: client.welcomeMessage,
         volume: '1.0',
         speed: '1.0',
         pitch: '1.0',
