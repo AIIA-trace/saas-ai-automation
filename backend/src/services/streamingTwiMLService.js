@@ -7,9 +7,9 @@ class StreamingTwiMLService {
   }
 
   /**
-   * Crear TwiML para iniciar Twilio Stream
+   * Crear TwiML para iniciar Stream con WebSocket
    */
-  createStreamTwiML(clientData) {
+  createStreamTwiML(clientData, callSid = null) {
     const twiml = new this.VoiceResponse();
     
     try {
@@ -41,6 +41,14 @@ class StreamingTwiMLService {
         name: 'language',
         value: clientData.language || 'es'
       });
+
+      // Agregar CallSid si está disponible
+      if (callSid) {
+        stream.parameter({
+          name: 'callSid',
+          value: callSid
+        });
+      }
 
       const twimlString = twiml.toString();
       logger.info(`✅ TwiML Stream generado: ${twimlString.length} caracteres`);

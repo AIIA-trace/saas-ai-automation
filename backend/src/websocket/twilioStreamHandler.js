@@ -99,8 +99,11 @@ class TwilioStreamHandler {
    * Stream iniciado - configurar cliente
    */
   async handleStreamStart(ws, data) {
-    const { callSid, streamSid } = data;
-    const { to: twilioNumber, from: callerNumber } = data.start;
+    const { streamSid } = data;
+    const { to: twilioNumber, from: callerNumber, customParameters } = data.start;
+    
+    // Obtener CallSid desde parámetros personalizados o desde data
+    const callSid = customParameters?.callSid || data.callSid || streamSid;
 
     logger.info(`🎤 Stream iniciado: ${streamSid} para llamada ${callSid}`);
     logger.info(`📞 ${callerNumber} → ${twilioNumber}`);

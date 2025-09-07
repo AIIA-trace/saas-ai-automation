@@ -131,7 +131,7 @@ class TwilioService {
 
       // Crear TwiML Stream para conversación en tiempo real
       logger.info(`🎵 [${contextId}] Iniciando conversación con Twilio Streams`);
-      return streamingTwiML.createStreamTwiML(clientData);
+      return streamingTwiML.createStreamTwiML(clientData, callSid);
 
     } catch (error) {
       logger.error(`❌ [${contextId}] Error manejando llamada: ${error.message}`);
