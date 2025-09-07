@@ -61,7 +61,11 @@ class TwilioStreamHandler {
    * Procesar mensajes de Twilio Streams
    */
   async handleTwilioMessage(ws, data) {
+    // Debug: log todos los mensajes que llegan
+    logger.info(`📡 Mensaje WebSocket recibido:`, JSON.stringify(data, null, 2));
+    
     const { event, streamSid, callSid } = data;
+    logger.info(`📡 Evento: ${event}, StreamSid: ${streamSid}, CallSid: ${callSid}`);
 
     switch (event) {
       case 'connected':
