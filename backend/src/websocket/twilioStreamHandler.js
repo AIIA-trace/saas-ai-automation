@@ -176,10 +176,19 @@ class TwilioStreamHandler {
    * Procesar chunk de audio del usuario
    */
   async handleMediaChunk(ws, data) {
-    const { callSid, media } = data;
+    const { streamSid, media } = data;
     
-    if (!this.activeStreams.has(callSid)) {
-      logger.warn(`⚠️ Stream no encontrado para CallSid: ${callSid}`);
+    // Buscar el CallSid correspondiente al streamSid
+    let callSid = null;
+    for (const [cid, streamData] of this.activeStreams.entries()) {
+      if (streamData.streamSid === streamSid) {
+        callSid = cid;
+        break;
+      }
+    }
+    
+    if (!callSid || !this.activeStreams.has(callSid)) {
+      logger.warn(`⚠️ Stream no encontrado para StreamSid: ${streamSid}`);
       return;
     }
 
@@ -382,10 +391,22 @@ class TwilioStreamHandler {
    * Stream terminado
    */
   async handleStreamStop(ws, data) {
-    const { callSid } = data;
-    logger.info(`🛑 Stream terminado: ${callSid}`);
+    const { streamSid } = data;
     
-    this.cleanupStream(callSid);
+    // Buscar el CallSid correspondiente al streamSid
+    let callSid = null;
+    for (const [cid, streamData] of this.activeStreams.entries()) {
+      if (streamData.streamSid === streamSid) {
+        callSid = cid;
+        break;
+      }
+    }
+    
+    logger.info(`🛑 Stream terminado: ${callSid || streamSid}`);
+    
+    if (callSid) {
+      this.cleanupStream(callSid);
+    }
   }
 
   /**
