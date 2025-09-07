@@ -19,6 +19,12 @@ class StreamingTwiMLService {
       logger.info(`🎵 Creando TwiML Stream para ${clientData.companyName}`);
       logger.info(`🔌 WebSocket URL: ${wsUrl}`);
 
+      // Contestar la llamada primero con un mensaje breve
+      twiml.say({
+        voice: 'alice',
+        language: 'es-ES'
+      }, 'Conectando...');
+
       // Conectar a WebSocket Stream
       const connect = twiml.connect();
       const stream = connect.stream({
