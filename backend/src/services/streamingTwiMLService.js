@@ -23,7 +23,7 @@ class StreamingTwiMLService {
       const connect = twiml.connect();
       const stream = connect.stream({
         url: wsUrl,
-        track: 'inbound_track' // Solo audio del usuario
+        track: 'both_tracks' // Audio bidireccional - necesario para eventos start/connected
       });
 
       // Parámetros adicionales para el stream
