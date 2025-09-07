@@ -219,9 +219,10 @@ class AzureTTSService {
       
       logger.info(`🎵 Configuración SSML: ${JSON.stringify(settings)}`);
       
-      // Añadir naturalidad universal al texto (funciona para Lola y Daría)
-      const naturalText = this.addUniversalNaturalness(text);
-      logger.info(`🎭 Texto con naturalidad aplicada: ${naturalText.substring(0, 100)}...`);
+      // 🧪 TEMPORAL: Desactivar naturalidad para probar Azure TTS
+      // const naturalText = this.addUniversalNaturalness(text);
+      const naturalText = text; // Usar texto simple sin SSML anidado
+      logger.info(`🧪 PRUEBA: Texto SIN naturalidad: ${naturalText.substring(0, 100)}...`);
       
       // Crear SSML con configuración avanzada
       const ssml = `
@@ -278,7 +279,10 @@ class AzureTTSService {
               });
             } else {
               logger.error(`❌ Error en síntesis SSML: ${result.reason}`);
-              reject(new Error(`Error en síntesis SSML: ${result.reason}`));
+              logger.error(`❌ Detalles del error: ${result.errorDetails || 'No hay detalles'}`);
+              logger.error(`❌ Código de resultado: ${result.reason} (${sdk.ResultReason[result.reason] || 'Desconocido'})`);
+              logger.error(`❌ SSML problemático: ${ssml.substring(0, 500)}`);
+              reject(new Error(`Error en síntesis SSML: ${result.reason} - ${result.errorDetails || 'Sin detalles'}`));
             }
             synthesizer.close();
           },
