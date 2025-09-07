@@ -381,8 +381,9 @@ class TwilioService {
     twiml.gather({
       input: 'speech',
       language: 'es-ES',
-      speechTimeout: 5,
-      timeout: 15,
+      speechTimeout: 10,
+      timeout: 30,
+      partialResultCallback: '/api/twilio/webhook/response',
       action: '/api/twilio/webhook/response',
       method: 'POST'
     });
@@ -417,8 +418,9 @@ class TwilioService {
       twiml.gather({
         input: 'speech',
         language: 'es-ES',
-        speechTimeout: 5,
-        timeout: 15,
+        speechTimeout: 10,
+        timeout: 30,
+        partialResultCallback: '/api/twilio/webhook/response',
         action: '/api/twilio/webhook/response',
         method: 'POST'
       });
