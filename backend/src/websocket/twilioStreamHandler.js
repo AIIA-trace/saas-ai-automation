@@ -90,9 +90,7 @@ class TwilioStreamHandler {
    */
   async handleStreamConnected(ws, data) {
     logger.info(`✅ Stream conectado: ${data.streamSid}`);
-    
-    // Enviar saludo inicial inmediatamente
-    await this.sendInitialGreeting(ws, data);
+    // No enviar saludo aquí - esperar a que llegue el evento 'start' con CallSid
   }
 
   /**
@@ -137,6 +135,9 @@ class TwilioStreamHandler {
 
       logger.info(`✅ Cliente identificado: ${client.companyName} (ID: ${client.id})`);
 
+      // Ahora que tenemos el CallSid y el cliente configurado, enviar saludo inicial
+      await this.sendInitialGreeting(ws, { streamSid, callSid });
+
     } catch (error) {
       logger.error(`❌ Error configurando stream: ${error.message}`);
     }
@@ -147,13 +148,22 @@ class TwilioStreamHandler {
    */
   async sendInitialGreeting(ws, data) {
     try {
+      const { streamSid, callSid } = data;
       const greetingText = "Hola, gracias por llamar. ¿En qué puedo ayudarte?";
       
-      logger.info(`🎵 Enviando saludo inicial: "${greetingText}"`);
+      logger.info(`🎵 Enviando saludo inicial para CallSid ${callSid}: "${greetingText}"`);
+      
+      // Verificar que el stream esté activo
+      if (!this.activeStreams.has(callSid)) {
+        logger.warn(`⚠️ Stream no encontrado para CallSid: ${callSid}`);
+        return;
+      }
       
       // Generar audio con Azure TTS y enviarlo por streaming
       const audioBuffer = await azureTTS.synthesizeToStream(greetingText);
-      await azureTTS.streamAudioToWebSocket(ws, audioBuffer, data.streamSid);
+      await azureTTS.streamAudioToWebSocket(ws, audioBuffer, streamSid);
+      
+      logger.info(`✅ Saludo inicial enviado correctamente para CallSid: ${callSid}`);
       
     } catch (error) {
       logger.error(`❌ Error enviando saludo: ${error.message}`);
@@ -298,14 +308,23 @@ class TwilioStreamHandler {
     try {
       logger.info(`🎵 Enviando TTS: "${text}"`);
       
+      // Obtener streamSid y callSid del WebSocket
+      const streamData = this.getStreamDataFromWs(ws);
+      if (!streamData) {
+        logger.error(`❌ No se encontró stream data para el WebSocket`);
+        return;
+      }
+      
+      const { streamSid, callSid } = streamData;
+      logger.info(`🎵 Enviando TTS para CallSid ${callSid}: "${text}"`);
+      
       // Generar audio con Azure TTS
       const audioBuffer = await azureTTS.synthesizeToStream(text);
       
-      // Obtener streamSid del WebSocket o de los datos activos
-      const streamSid = ws.streamSid || this.getStreamSidFromWs(ws);
-      
       // Enviar por streaming
       await azureTTS.streamAudioToWebSocket(ws, audioBuffer, streamSid);
+      
+      logger.info(`✅ TTS enviado correctamente para CallSid: ${callSid}`);
 
     } catch (error) {
       logger.error(`❌ Error enviando TTS: ${error.message}`);
@@ -321,6 +340,18 @@ class TwilioStreamHandler {
     for (const [callSid, streamData] of this.activeStreams.entries()) {
       if (streamData.ws === ws) {
         return streamData.streamSid;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Obtener datos completos del stream desde WebSocket
+   */
+  getStreamDataFromWs(ws) {
+    for (const [callSid, streamData] of this.activeStreams.entries()) {
+      if (streamData.ws === ws) {
+        return streamData;
       }
     }
     return null;
