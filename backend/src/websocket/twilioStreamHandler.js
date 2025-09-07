@@ -133,6 +133,13 @@ class TwilioStreamHandler {
     logger.info(`🔍 Evento start completo:`, JSON.stringify(data, null, 2));
     logger.info(`🔍 data.start:`, JSON.stringify(data.start, null, 2));
     logger.info(`🔍 Todas las keys en data:`, Object.keys(data));
+    logger.info(`🔍 StreamSid extraído: "${streamSid}"`);
+    
+    // Verificar que tenemos un streamSid válido
+    if (!streamSid) {
+      logger.error(`❌ No se pudo extraer streamSid del evento start`);
+      return;
+    }
     
     // Intentar múltiples formas de extraer los datos
     const startData = data.start || data;
@@ -233,10 +240,14 @@ class TwilioStreamHandler {
       this.conversationState.set(streamSid, []);
 
       logger.info(`✅ Cliente configurado: ${client.companyName} (ID: ${client.id})`);
+      logger.info(`🔑 Stream registrado con StreamSid: "${streamSid}"`);
+      logger.info(`🗂️ Total streams activos: ${this.activeStreams.size}`);
+      logger.info(`🗂️ StreamSids activos: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
 
       // Verificar que los datos se almacenaron correctamente
       const storedStreamData = this.activeStreams.get(streamSid);
       logger.info(`🔍 Datos almacenados en activeStreams:`, JSON.stringify({
+        streamSid: storedStreamData.streamSid,
         clientId: storedStreamData.clientId,
         companyName: storedStreamData.clientData.companyName,
         welcomeMessage: storedStreamData.clientData.welcomeMessage
@@ -348,9 +359,23 @@ class TwilioStreamHandler {
   async handleMediaChunk(ws, data) {
     const { streamSid, media } = data;
     
+    // Debug detallado para diagnosticar el problema
+    logger.info(`📨 Media chunk recibido para StreamSid: "${streamSid}"`);
+    logger.info(`🗂️ Streams activos disponibles: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
+    logger.info(`🔍 ¿Stream existe? ${this.activeStreams.has(streamSid)}`);
+    
     // Usar streamSid directamente como clave
     if (!this.activeStreams.has(streamSid)) {
       logger.warn(`⚠️ Stream no encontrado para StreamSid: ${streamSid}`);
+      logger.warn(`⚠️ Streams disponibles: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
+      
+      // Intentar encontrar stream por coincidencia parcial o similar
+      const availableStreamSids = Array.from(this.activeStreams.keys());
+      logger.warn(`⚠️ Comparando "${streamSid}" con streams disponibles:`);
+      availableStreamSids.forEach(sid => {
+        logger.warn(`   - "${sid}" (match: ${sid === streamSid})`);
+      });
+      
       return;
     }
 
