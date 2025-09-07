@@ -64,7 +64,13 @@ class TwilioStreamHandler {
 
     ws.on('error', (error) => {
       logger.error(`❌ Error WebSocket ${streamId}: ${error.message}`);
-      this.cleanupStream(ws.streamId);
+      
+      // Solo limpiar si es un error crítico, no por errores temporales de red
+      if (error.code === 'ECONNRESET' || error.code === 'EPIPE') {
+        logger.warn(`⚠️ Error de red temporal, no limpiando stream: ${streamId}`);
+      } else {
+        this.cleanupStream(ws.streamId);
+      }
     });
   }
 
@@ -647,7 +653,17 @@ class TwilioStreamHandler {
     logger.info(`🛑 Stream terminado: ${streamSid}`);
     
     if (this.activeStreams.has(streamSid)) {
-      this.cleanupStream(streamSid);
+      const streamData = this.activeStreams.get(streamSid);
+      
+      // Si hay TTS en proceso, esperar antes de limpiar
+      if (streamData && streamData.isSendingTTS) {
+        logger.info(`⏳ Esperando que termine TTS antes de limpiar stream: ${streamSid}`);
+        setTimeout(() => {
+          this.cleanupStream(streamSid);
+        }, 3000); // Esperar 3 segundos
+      } else {
+        this.cleanupStream(streamSid);
+      }
     }
   }
 
