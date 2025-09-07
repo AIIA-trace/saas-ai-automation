@@ -179,11 +179,8 @@ class TwilioService {
       // 3. Hacer respuesta natural CON COMPORTAMIENTO HUMANO
       const naturalResponse = this.makeResponseNatural(aiResponseText, clientData, userInput);
       
-      // 3. Generar audio con Azure TTS
-      const audioUrl = await this.generateAzureAudio(naturalResponse, client);
-      
-      // 4. Crear TwiML de continuación
-      const twiml = this.createContinuationTwiML(audioUrl, naturalResponse, client);
+      // 3. ✅ CREAR TwiML DIRECTO (sin generar archivos)
+      const twiml = this.createContinuationTwiML(null, naturalResponse, client);
       
       return twiml;
       
@@ -334,21 +331,11 @@ class TwilioService {
       logger.info(`✅ [PROCESS-DEBUG-${processId}] Naturalidad aplicada en ${naturalTime}ms`);
       logger.info(`✅ [PROCESS-DEBUG-${processId}] Respuesta natural: "${naturalResponse}"`);
       
-      // 7. Generar audio con Azure TTS
-      logger.info(`🎵 [PROCESS-DEBUG-${processId}] Generando audio con Azure TTS...`);
-      const ttsStart = Date.now();
-      
-      const audioUrlResponse = await this.generateAzureAudio(naturalResponse, clientData);
-      
-      const ttsTime = Date.now() - ttsStart;
-      logger.info(`✅ [PROCESS-DEBUG-${processId}] Audio generado en ${ttsTime}ms`);
-      logger.info(`✅ [PROCESS-DEBUG-${processId}] URL del audio: ${audioUrlResponse}`);
-      
-      // 8. Crear TwiML de continuación
-      logger.info(`📝 [PROCESS-DEBUG-${processId}] Creando TwiML de respuesta...`);
+      // 7. ✅ CREAR TwiML DIRECTO (sin generar archivos)
+      logger.info(`📝 [PROCESS-DEBUG-${processId}] Creando TwiML directo con Azure TTS...`);
       const twimlStart = Date.now();
       
-      const twiml = this.createContinuationTwiML(audioUrlResponse, naturalResponse, clientData);
+      const twiml = this.createContinuationTwiML(null, naturalResponse, clientData);
       
       const twimlTime = Date.now() - twimlStart;
       const totalTime = Date.now() - startTime;
@@ -361,7 +348,7 @@ class TwilioService {
       logger.info(`🎉 [PROCESS-DEBUG-${processId}] - Transcripción: ${transcriptionTime}ms`);
       logger.info(`🎉 [PROCESS-DEBUG-${processId}] - IA: ${aiTime}ms`);
       logger.info(`🎉 [PROCESS-DEBUG-${processId}] - Naturalidad: ${naturalTime}ms`);
-      logger.info(`🎉 [PROCESS-DEBUG-${processId}] - TTS: ${ttsTime}ms`);
+      logger.info(`🎵 [PROCESS-DEBUG-${processId}] - TTS: DIRECTO (sin archivos)`);
       logger.info(`🎉 [PROCESS-DEBUG-${processId}] - TwiML: ${twimlTime}ms`);
       logger.info(`🎉 [PROCESS-DEBUG-${processId}] - TOTAL: ${totalTime}ms`);
       
@@ -573,15 +560,13 @@ class TwilioService {
     const VoiceResponse = twilio.twiml.VoiceResponse;
     const twiml = new VoiceResponse();
     
-    // Reproducir respuesta de IA
-    if (audioUrl) {
-      twiml.play(audioUrl);
-      logger.info('🔊 Reproduciendo audio generado por Azure TTS');
-    } else {
-      const voice = this.validateAndGetVoice(clientData.language || 'es-ES');
-      twiml.say({ voice: voice, language: 'es-ES' }, response);
-      logger.info('🔄 Fallback a Polly');
-    }
+    // ✅ USAR AZURE TTS DIRECTO CON <Say>
+    const azureVoice = this.validateAndGetVoice(clientData.language || 'es-ES');
+    twiml.say({ 
+      voice: azureVoice, 
+      language: 'es-ES' 
+    }, response);
+    logger.info(`🎵 Usando Azure TTS directo: ${azureVoice}`);
     
     // Verificar si debe continuar la conversación
     if (!this.isEndingConversation(response)) {
