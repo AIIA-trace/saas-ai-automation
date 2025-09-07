@@ -224,7 +224,7 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Enviar saludo inicial con Azure TTS (OPCIONAL - ya se reprodujo en TwiML)
+   * Enviar saludo inicial con Azure TTS
    */
   async sendInitialGreeting(ws, data) {
     try {
@@ -237,13 +237,27 @@ class TwilioStreamHandler {
         return;
       }
       
-      logger.info(`🎵 Saludo inicial ya reproducido en TwiML para CallSid: ${callSid}`);
-      logger.info(`🔌 WebSocket listo para conversación interactiva`);
+      // Usar SOLO el mensaje de bienvenida personalizado del cliente
+      const greetingText = streamData.clientData.welcomeMessage;
       
-      // NO enviar saludo duplicado - ya se reprodujo en el <Say> del TwiML
+      if (!greetingText) {
+        logger.error(`❌ Cliente ${streamData.clientData.companyName} no tiene welcomeMessage configurado`);
+        return;
+      }
+      
+      logger.info(`🎵 Enviando saludo inicial para CallSid ${callSid}: "${greetingText}"`);
+      
+      // Generar audio con Azure TTS usando voz española
+      const voice = 'es-ES-DarioNeural';
+      const audioBuffer = await azureTTS.synthesizeToStream(greetingText, voice);
+      await azureTTS.streamAudioToWebSocket(ws, audioBuffer, streamSid);
+      
+      logger.info(`✅ Saludo inicial enviado correctamente para CallSid: ${callSid}`);
       
     } catch (error) {
-      logger.error(`❌ Error en configuración inicial: ${error.message}`);
+      logger.error(`❌ Error enviando saludo: ${error.message}`);
+      const fallbackText = streamData?.clientData?.welcomeMessage || "Sistema temporalmente no disponible";
+      await this.sendFallbackMessage(ws, fallbackText);
     }
   }
 
