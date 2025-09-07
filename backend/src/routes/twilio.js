@@ -228,30 +228,63 @@ router.post('/webhook', async (req, res) => {
 
 // NUEVO ENDPOINT: Maneja audio grabado de Twilio y usa OpenAI Whisper
 router.post('/webhook/audio', async (req, res) => {
+    const requestId = `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = Date.now();
+    
+    logger.info(`🎙️ [AUDIO-DEBUG-${requestId}] ===== NUEVA PETICIÓN DE AUDIO =====`);
+    logger.info(`🎙️ [AUDIO-DEBUG-${requestId}] Headers recibidos: ${JSON.stringify(req.headers)}`);
+    logger.info(`🎙️ [AUDIO-DEBUG-${requestId}] Body completo: ${JSON.stringify(req.body)}`);
+    
     try {
-        const { RecordingUrl, CallSid, To: twilioNumber, RecordingDuration } = req.body;
+        const { RecordingUrl, CallSid, To: twilioNumber, RecordingDuration, From: callerNumber } = req.body;
         
-        logger.info(`🎙️ AUDIO RECIBIDO: ${RecordingUrl} (${CallSid}) - Duración: ${RecordingDuration}s`);
+        logger.info(`🎙️ [AUDIO-DEBUG-${requestId}] Datos extraídos:`);
+        logger.info(`🎙️ [AUDIO-DEBUG-${requestId}] - RecordingUrl: ${RecordingUrl}`);
+        logger.info(`🎙️ [AUDIO-DEBUG-${requestId}] - CallSid: ${CallSid}`);
+        logger.info(`🎙️ [AUDIO-DEBUG-${requestId}] - TwilioNumber: ${twilioNumber}`);
+        logger.info(`🎙️ [AUDIO-DEBUG-${requestId}] - CallerNumber: ${callerNumber}`);
+        logger.info(`🎙️ [AUDIO-DEBUG-${requestId}] - Duration: ${RecordingDuration}s`);
         
         // Identificar cliente
+        logger.info(`🔍 [AUDIO-DEBUG-${requestId}] Buscando cliente para número: ${twilioNumber}`);
         const twilioNumberRecord = await prisma.twilioNumber.findFirst({
             where: { phoneNumber: twilioNumber, status: 'active' },
             include: { client: true }
         });
         
         if (!twilioNumberRecord) {
-            logger.error(`❌ Cliente no encontrado para audio: ${twilioNumber}`);
+            logger.error(`❌ [AUDIO-DEBUG-${requestId}] Cliente no encontrado para número: ${twilioNumber}`);
+            logger.error(`❌ [AUDIO-DEBUG-${requestId}] Números disponibles en BD:`);
+            
+            // Debug: mostrar números disponibles
+            const availableNumbers = await prisma.twilioNumber.findMany({
+                select: { phoneNumber: true, status: true, client: { select: { companyName: true } } }
+            });
+            availableNumbers.forEach(num => {
+                logger.error(`❌ [AUDIO-DEBUG-${requestId}] - ${num.phoneNumber} (${num.status}) - ${num.client?.companyName}`);
+            });
+            
             return res.status(404).send('<Response><Hangup/></Response>');
         }
         
+        logger.info(`✅ [AUDIO-DEBUG-${requestId}] Cliente encontrado: ${twilioNumberRecord.client.companyName} (ID: ${twilioNumberRecord.client.id})`);
+        
         // Validar que tenemos URL de grabación
         if (!RecordingUrl) {
-            logger.warn(`⚠️ Sin URL de grabación para ${CallSid}, generando respuesta de error`);
+            logger.warn(`⚠️ [AUDIO-DEBUG-${requestId}] Sin URL de grabación para ${CallSid}`);
             const errorTwiml = twilioService.generateErrorTwiML("No he podido escuchar tu respuesta. ¿Puedes repetir tu pregunta?");
             return res.set('Content-Type', 'text/xml').send(errorTwiml);
         }
+        
+        // Validar formato de URL de grabación
+        if (!RecordingUrl.includes('api.twilio.com')) {
+            logger.warn(`⚠️ [AUDIO-DEBUG-${requestId}] URL de grabación sospechosa: ${RecordingUrl}`);
+        }
 
         // Procesar audio con OpenAI Whisper y generar respuesta
+        logger.info(`🔄 [AUDIO-DEBUG-${requestId}] Iniciando procesamiento de audio...`);
+        const processStart = Date.now();
+        
         const aiResponse = await twilioService.processUserAudio({
             client: twilioNumberRecord.client,
             audioUrl: RecordingUrl,
@@ -259,14 +292,29 @@ router.post('/webhook/audio', async (req, res) => {
             duration: RecordingDuration
         });
         
-        logger.info(`🤖 Respuesta IA generada para ${twilioNumberRecord.client.companyName}`);
+        const processTime = Date.now() - processStart;
+        const totalTime = Date.now() - startTime;
+        
+        logger.info(`✅ [AUDIO-DEBUG-${requestId}] Procesamiento completado en ${processTime}ms`);
+        logger.info(`✅ [AUDIO-DEBUG-${requestId}] Tiempo total de request: ${totalTime}ms`);
+        logger.info(`✅ [AUDIO-DEBUG-${requestId}] Respuesta IA generada para ${twilioNumberRecord.client.companyName}`);
+        logger.info(`✅ [AUDIO-DEBUG-${requestId}] TwiML response length: ${aiResponse?.length || 0} caracteres`);
         
         res.set('Content-Type', 'text/xml');
         res.send(aiResponse);
         
+        logger.info(`🎉 [AUDIO-DEBUG-${requestId}] ===== REQUEST COMPLETADO EXITOSAMENTE =====`);
+        
     } catch (error) {
-        logger.error(`❌ Error procesando audio usuario: ${error.message}`);
+        const totalTime = Date.now() - startTime;
+        logger.error(`❌ [AUDIO-DEBUG-${requestId}] Error después de ${totalTime}ms`);
+        logger.error(`❌ [AUDIO-DEBUG-${requestId}] Error tipo: ${error.constructor.name}`);
+        logger.error(`❌ [AUDIO-DEBUG-${requestId}] Error mensaje: ${error.message}`);
+        logger.error(`❌ [AUDIO-DEBUG-${requestId}] Error stack: ${error.stack}`);
+        
         res.status(500).send('<Response><Hangup/></Response>');
+        
+        logger.error(`💥 [AUDIO-DEBUG-${requestId}] ===== REQUEST FALLÓ =====`);
     }
 });
 

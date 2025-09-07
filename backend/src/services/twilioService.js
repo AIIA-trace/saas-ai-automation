@@ -203,29 +203,52 @@ class TwilioService {
    * @returns {Promise<string>} - TwiML response
    */
   async processUserAudio({ client, audioUrl, callSid, duration }) {
+    const processId = `PROC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = Date.now();
+    
+    logger.info(`🎙️ [PROCESS-DEBUG-${processId}] ===== INICIANDO PROCESAMIENTO DE AUDIO =====`);
+    logger.info(`🎙️ [PROCESS-DEBUG-${processId}] Cliente: ${client.companyName} (ID: ${client.id})`);
+    logger.info(`🎙️ [PROCESS-DEBUG-${processId}] Audio URL: ${audioUrl}`);
+    logger.info(`🎙️ [PROCESS-DEBUG-${processId}] Call SID: ${callSid}`);
+    logger.info(`🎙️ [PROCESS-DEBUG-${processId}] Duración: ${duration}s`);
+    
     try {
-      logger.info(`🎙️ Procesando audio: ${audioUrl} para ${client.companyName}`);
-      
       // 1. Obtener datos completos del cliente
+      logger.info(`🔍 [PROCESS-DEBUG-${processId}] Obteniendo datos del cliente...`);
+      const clientDataStart = Date.now();
+      
       const clientData = await this.getClientDataCached(client.id);
       
+      const clientDataTime = Date.now() - clientDataStart;
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Datos del cliente obtenidos en ${clientDataTime}ms`);
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Idioma del cliente: ${clientData.language}`);
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Empresa: ${clientData.companyName}`);
+      
       // 2. Transcribir audio con OpenAI Whisper
-      logger.info(`🔄 Transcribiendo audio con OpenAI Whisper...`);
+      logger.info(`🔄 [PROCESS-DEBUG-${processId}] Iniciando transcripción con OpenAI Whisper...`);
+      const transcriptionStart = Date.now();
+      
       const transcription = await openaiWhisperService.transcribeWithRetry(
         audioUrl, 
         clientData.language === 'en' ? 'en' : 'es'
       );
       
+      const transcriptionTime = Date.now() - transcriptionStart;
+      
       if (!transcription) {
-        logger.warn(`⚠️ No se pudo transcribir el audio para ${callSid}`);
+        logger.warn(`⚠️ [PROCESS-DEBUG-${processId}] No se pudo transcribir el audio después de ${transcriptionTime}ms`);
         return this.generateErrorTwiML("No he podido escuchar tu respuesta claramente. ¿Puedes repetir tu pregunta?");
       }
       
-      logger.info(`✅ Transcripción completada: "${transcription}"`);
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Transcripción completada en ${transcriptionTime}ms`);
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Texto transcrito: "${transcription}"`);
       
       // 3. Guardar transcripción en base de datos
+      logger.info(`💾 [PROCESS-DEBUG-${processId}] Guardando transcripción en BD...`);
+      const dbStart = Date.now();
+      
       try {
-        await prisma.callLog.create({
+        const callLogEntry = await prisma.callLog.create({
           data: {
             clientId: client.id,
             twilioCallSid: callSid,
@@ -236,64 +259,121 @@ class TwilioService {
             status: 'completed'
           }
         });
-        logger.info(`💾 Transcripción guardada en BD para ${callSid}`);
+        
+        const dbTime = Date.now() - dbStart;
+        logger.info(`✅ [PROCESS-DEBUG-${processId}] Transcripción guardada en BD en ${dbTime}ms (ID: ${callLogEntry.id})`);
+        
       } catch (dbError) {
-        logger.error(`❌ Error guardando transcripción: ${dbError.message}`);
+        const dbTime = Date.now() - dbStart;
+        logger.error(`❌ [PROCESS-DEBUG-${processId}] Error guardando transcripción después de ${dbTime}ms: ${dbError.message}`);
+        logger.error(`❌ [PROCESS-DEBUG-${processId}] Stack del error BD: ${dbError.stack}`);
         // Continuar sin fallar
       }
       
       // 4. Procesar con IA conversacional
+      logger.info(`🤖 [PROCESS-DEBUG-${processId}] Enviando a IA conversacional...`);
+      const aiStart = Date.now();
+      
+      const aiContext = {
+        context: 'phone_call',
+        language: clientData.language || 'es-ES',
+        
+        // 🏢 CONTEXTO EMPRESARIAL COMPLETO PARA IA
+        companyInfo: {
+          name: clientData.companyName,
+          description: clientData.companyDescription,
+          industry: clientData.industry,
+          phone: clientData.phone,
+          website: clientData.website,
+          address: clientData.address
+        },
+        
+        // 🎭 PAUTAS DE COMPORTAMIENTO HUMANO
+        behaviorGuidelines: this.globalPersonality.behaviorGuidelines
+      };
+      
+      logger.info(`🤖 [PROCESS-DEBUG-${processId}] Contexto IA: ${JSON.stringify(aiContext, null, 2)}`);
+      
       const aiResponse = await processUserMessage(
         client.id,           // clientId
         callSid,            // sessionId
         transcription,      // userMessage (transcripción de Whisper)
-        {                   // context
-          context: 'phone_call',
-          language: clientData.language || 'es-ES',
-          
-          // 🏢 CONTEXTO EMPRESARIAL COMPLETO PARA IA
-          companyInfo: {
-            name: clientData.companyName,
-            description: clientData.companyDescription,
-            industry: clientData.industry,
-            phone: clientData.phone,
-            website: clientData.website,
-            address: clientData.address
-          },
-          
-          // 🎭 PAUTAS DE COMPORTAMIENTO HUMANO
-          behaviorGuidelines: this.globalPersonality.behaviorGuidelines
-        }
+        aiContext           // context
       );
+      
+      const aiTime = Date.now() - aiStart;
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] IA respondió en ${aiTime}ms`);
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Tipo de respuesta IA: ${typeof aiResponse}`);
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Respuesta IA raw: ${JSON.stringify(aiResponse)}`);
       
       // 5. Extraer el string de la respuesta de IA (puede venir como objeto)
       let aiResponseText;
       if (typeof aiResponse === 'string') {
         aiResponseText = aiResponse;
+        logger.info(`✅ [PROCESS-DEBUG-${processId}] Respuesta IA es string directo`);
       } else if (aiResponse && typeof aiResponse === 'object' && aiResponse.response) {
         aiResponseText = aiResponse.response;
+        logger.info(`✅ [PROCESS-DEBUG-${processId}] Respuesta IA extraída de .response`);
       } else if (aiResponse && typeof aiResponse === 'object' && aiResponse.content) {
         aiResponseText = aiResponse.content;
+        logger.info(`✅ [PROCESS-DEBUG-${processId}] Respuesta IA extraída de .content`);
       } else {
-        logger.error(`❌ Formato de aiResponse no reconocido:`, aiResponse);
+        logger.error(`❌ [PROCESS-DEBUG-${processId}] Formato de aiResponse no reconocido:`, aiResponse);
         aiResponseText = "Disculpa, ha ocurrido un error procesando tu consulta. ¿Puedes repetir tu pregunta?";
       }
       
-      logger.info(`🤖 Respuesta IA extraída: "${aiResponseText}"`);
+      logger.info(`🤖 [PROCESS-DEBUG-${processId}] Respuesta IA final: "${aiResponseText}"`);
       
       // 6. Hacer respuesta natural CON COMPORTAMIENTO HUMANO
+      logger.info(`🎭 [PROCESS-DEBUG-${processId}] Aplicando naturalidad a la respuesta...`);
+      const naturalStart = Date.now();
+      
       const naturalResponse = this.makeResponseNatural(aiResponseText, clientData, transcription);
       
+      const naturalTime = Date.now() - naturalStart;
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Naturalidad aplicada en ${naturalTime}ms`);
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Respuesta natural: "${naturalResponse}"`);
+      
       // 7. Generar audio con Azure TTS
-      const audioUrlResponse = await this.generateAzureAudio(naturalResponse, client);
+      logger.info(`🎵 [PROCESS-DEBUG-${processId}] Generando audio con Azure TTS...`);
+      const ttsStart = Date.now();
+      
+      const audioUrlResponse = await this.generateAzureAudio(naturalResponse, clientData);
+      
+      const ttsTime = Date.now() - ttsStart;
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] Audio generado en ${ttsTime}ms`);
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] URL del audio: ${audioUrlResponse}`);
       
       // 8. Crear TwiML de continuación
-      const twiml = this.createContinuationTwiML(audioUrlResponse, naturalResponse, client);
+      logger.info(`📝 [PROCESS-DEBUG-${processId}] Creando TwiML de respuesta...`);
+      const twimlStart = Date.now();
+      
+      const twiml = this.createContinuationTwiML(audioUrlResponse, naturalResponse, clientData);
+      
+      const twimlTime = Date.now() - twimlStart;
+      const totalTime = Date.now() - startTime;
+      
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] TwiML creado en ${twimlTime}ms`);
+      logger.info(`✅ [PROCESS-DEBUG-${processId}] TwiML length: ${twiml?.length || 0} caracteres`);
+      logger.info(`🎉 [PROCESS-DEBUG-${processId}] PROCESAMIENTO COMPLETADO en ${totalTime}ms`);
+      logger.info(`🎉 [PROCESS-DEBUG-${processId}] ===== TIEMPOS DETALLADOS =====`);
+      logger.info(`🎉 [PROCESS-DEBUG-${processId}] - Cliente: ${clientDataTime}ms`);
+      logger.info(`🎉 [PROCESS-DEBUG-${processId}] - Transcripción: ${transcriptionTime}ms`);
+      logger.info(`🎉 [PROCESS-DEBUG-${processId}] - IA: ${aiTime}ms`);
+      logger.info(`🎉 [PROCESS-DEBUG-${processId}] - Naturalidad: ${naturalTime}ms`);
+      logger.info(`🎉 [PROCESS-DEBUG-${processId}] - TTS: ${ttsTime}ms`);
+      logger.info(`🎉 [PROCESS-DEBUG-${processId}] - TwiML: ${twimlTime}ms`);
+      logger.info(`🎉 [PROCESS-DEBUG-${processId}] - TOTAL: ${totalTime}ms`);
       
       return twiml;
       
     } catch (error) {
-      logger.error(`❌ Error procesando audio: ${error.message}`);
+      const totalTime = Date.now() - startTime;
+      logger.error(`❌ [PROCESS-DEBUG-${processId}] Error después de ${totalTime}ms`);
+      logger.error(`❌ [PROCESS-DEBUG-${processId}] Error tipo: ${error.constructor.name}`);
+      logger.error(`❌ [PROCESS-DEBUG-${processId}] Error mensaje: ${error.message}`);
+      logger.error(`❌ [PROCESS-DEBUG-${processId}] Error stack: ${error.stack}`);
+      
       return this.generateErrorTwiML('Disculpa, ha ocurrido un problema técnico. ¿Puedes repetir tu pregunta?');
     }
   }
@@ -418,33 +498,48 @@ class TwilioService {
         }
       }
       
-      // 2. Verificar idioma del cliente (campo directo)
-      if (clientData.language) {
-        selectedLanguage = clientData.language;
-        logger.info(`🌍 Usando idioma del cliente: ${selectedLanguage}`);
+      // Verificar que Azure TTS esté disponible
+      if (!azureTTSService) {
+        logger.error(`❌ [TTS-DEBUG-${ttsId}] Azure TTS Service no disponible`);
+        return null;
       }
       
-      // 3. VALIDAR Y OBTENER VOZ PERMITIDA (SOLO LOLA Y DARIO)
-      const selectedVoice = this.validateAndGetVoice(requestedVoice);
-      logger.info(`✅ Voz validada y seleccionada: ${selectedVoice}`);
+      logger.info(`🔄 [TTS-DEBUG-${ttsId}] Enviando a Azure TTS...`);
+      const azureStart = Date.now();
       
-      logger.info(`🎯 CONFIGURACIÓN FINAL - Voz: ${selectedVoice}, Idioma: ${selectedLanguage}`);
+      const audioUrl = await azureTTSService.generateSpeech(text, {
+        voice: azureVoice,
+        language: language,
+        rate: '0.95',
+        pitch: '0',
+        volume: '0'
+      });
       
-      const result = await azureTTSService.generateBotResponse(text, selectedVoice);
+      const azureTime = Date.now() - azureStart;
+      const totalTime = Date.now() - startTime;
       
-      if (result.success) {
-        logger.info(`✅ Audio Azure TTS generado: ${result.audioUrl}`);
-        return result.audioUrl;
+      if (audioUrl) {
+        logger.info(`✅ [TTS-DEBUG-${ttsId}] Audio Azure TTS generado en ${azureTime}ms`);
+        logger.info(`✅ [TTS-DEBUG-${ttsId}] URL generada: ${audioUrl}`);
+        logger.info(`✅ [TTS-DEBUG-${ttsId}] Tiempo total: ${totalTime}ms`);
+        return audioUrl;
       } else {
-        throw new Error(result.error);
+        logger.warn(`⚠️ [TTS-DEBUG-${ttsId}] Azure TTS retornó null después de ${azureTime}ms`);
+        logger.warn(`⚠️ [TTS-DEBUG-${ttsId}] Usando fallback a Polly`);
+        return null;
       }
       
     } catch (error) {
-      logger.error(`❌ Error Azure TTS: ${error.message}`);
-      return null; // Fallback a Polly
+      const totalTime = Date.now() - startTime;
+      logger.error(`❌ [TTS-DEBUG-${ttsId}] Error después de ${totalTime}ms`);
+      logger.error(`❌ [TTS-DEBUG-${ttsId}] Error tipo: ${error.constructor.name}`);
+      logger.error(`❌ [TTS-DEBUG-${ttsId}] Error mensaje: ${error.message}`);
+      logger.error(`❌ [TTS-DEBUG-${ttsId}] Error stack: ${error.stack}`);
+      
+      return null;
     }
   }
-  
+
   /**
    * Validar y obtener voz permitida (solo Lola o Dario)
    */
@@ -810,8 +905,13 @@ class TwilioService {
     }
   }
 
-  // Generar TwiML para dar la bienvenida al llamante
+  /**
+   * DEPRECATED: Generar TwiML para dar la bienvenida al llamante
+   * ⚠️ ESTA FUNCIÓN ESTÁ DEPRECATED - USAR generateCallResponse EN SU LUGAR
+   */
   async generateWelcomeTwiml(botConfig) {
+    logger.warn('⚠️ generateWelcomeTwiml está deprecated. Usar generateCallResponse con OpenAI Whisper.');
+    return this.generateErrorTwiML('Función deprecated. Contacta con soporte técnico.');
     try {
       const VoiceResponse = twilio.twiml.VoiceResponse;
       const twiml = new VoiceResponse();
@@ -1154,9 +1254,12 @@ class TwilioService {
   }
 
   /**
-   * Generar TwiML con IA natural y voz premium
+   * DEPRECATED: Generar TwiML con personalidad natural y configuración avanzada
+   * ⚠️ ESTA FUNCIÓN ESTÁ DEPRECATED - USAR processUserAudio CON OPENAI WHISPER
    */
   async generateNaturalTwiML(clientId, message, context = {}) {
+    logger.warn('⚠️ generateNaturalTwiML está deprecated. Usar processUserAudio con OpenAI Whisper.');
+    return this.generateErrorTwiML('Función deprecated. Contacta con soporte técnico.');
     try {
       const twiml = new twilio.twiml.VoiceResponse();
       
