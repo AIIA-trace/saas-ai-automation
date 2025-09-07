@@ -438,17 +438,23 @@ class TwilioService {
    * 🎭 APLICAR SOLO SONIDOS DE OFICINA (Las pautas ya están en el contexto de IA)
    */
   makeResponseNatural(aiResponse, clientData, userInput = '') {
-    // 1. Detectar idioma del cliente
+    // 1. Validar que aiResponse sea un string
+    if (!aiResponse || typeof aiResponse !== 'string') {
+      logger.error(`❌ aiResponse inválido: ${typeof aiResponse}, valor: ${aiResponse}`);
+      aiResponse = "Disculpa, ha ocurrido un error. ¿Puedes repetir tu pregunta?";
+    }
+    
+    // 2. Detectar idioma del cliente
     const language = clientData.language || 'es-ES';
     
     logger.info(`🎭 Aplicando sonidos de oficina para idioma: ${language}`);
     logger.info(`🎭 Las pautas de comportamiento y naturalidad ya fueron enviadas a la IA`);
     
-    // 2. Aplicar SOLO sonidos de oficina (NO muletillas - eso lo hace la IA)
+    // 3. Aplicar SOLO sonidos de oficina (NO muletillas - eso lo hace la IA)
     aiResponse = this.addNaturalness(aiResponse, clientData, language);
     
-    // 3. Personalizar por empresa
-    aiResponse = aiResponse.replace(/\[EMPRESA\]/g, clientData.companyName);
+    // 4. Personalizar por empresa
+    aiResponse = aiResponse.replace(/\[EMPRESA\]/g, clientData.companyName || 'la empresa');
     
     logger.info(`🎵 Respuesta con sonidos de oficina: "${aiResponse.substring(0, 100)}..."`);
     

@@ -137,7 +137,7 @@ async function getClientData(clientId) {
                 email: true,
                 phone: true,
                 website: true,
-                description: true
+                companyDescription: true
             }
         });
         
@@ -148,8 +148,8 @@ async function getClientData(clientId) {
         // Construir información de contexto
         let contextInfo = `Empresa: ${client.companyName || 'No especificada'}\n`;
         
-        if (client.description) {
-            contextInfo += `Descripción: ${client.description}\n`;
+        if (client.companyDescription) {
+            contextInfo += `Descripción: ${client.companyDescription}\n`;
         }
         
         if (client.phone) {
