@@ -172,57 +172,34 @@ class AzureTTSStreaming {
   }
 
   /**
-   * Enviar audio por chunks a WebSocket - VERSIÓN MEJORADA
+   * Enviar audio por chunks a WebSocket
    */
   async streamAudioToWebSocket(ws, audioBuffer, streamSid) {
     try {
       const chunks = this.splitAudioIntoChunks(audioBuffer);
       
-      logger.info(`🎵 Enviando ${chunks.length} chunks de audio para StreamSid: ${streamSid}`);
+      logger.info(`🎵 Enviando ${chunks.length} chunks de audio`);
 
-      // Verificar que el WebSocket esté conectado
-      if (!ws || ws.readyState !== 1) { // 1 = WebSocket.OPEN
-        throw new Error(`WebSocket no está conectado. ReadyState: ${ws?.readyState || 'undefined'}`);
-      }
-
-      const startTime = Date.now();
-      
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         const base64Audio = this.audioToBase64(chunk);
-
-        // Timestamp más preciso basado en el tiempo real transcurrido
-        const timestamp = startTime + (i * 20);
 
         const message = {
           event: 'media',
           streamSid: streamSid,
           media: {
-            timestamp: timestamp,
+            timestamp: Date.now() + (i * 20), // 20ms por chunk
             payload: base64Audio
           }
         };
 
-        // Verificar que el WebSocket sigue conectado antes de enviar
-        if (ws.readyState !== 1) {
-          logger.warn(`⚠️ WebSocket desconectado durante streaming en chunk ${i}`);
-          break;
-        }
-
         ws.send(JSON.stringify(message));
-        
-        // Log cada 50 chunks para no saturar los logs
-        if (i % 50 === 0 || i === chunks.length - 1) {
-          logger.debug(`📤 Enviado chunk ${i + 1}/${chunks.length} (${base64Audio.length} chars)`);
-        }
 
-        // Pausa más precisa usando setTimeout en lugar de sleep
-        if (i < chunks.length - 1) { // No esperar después del último chunk
-          await new Promise(resolve => setTimeout(resolve, 20));
-        }
+        // Pequeña pausa para simular streaming real
+        await this.sleep(20); // 20ms entre chunks
       }
 
-      logger.info(`✅ Audio streaming completado: ${chunks.length} chunks enviados en ${Date.now() - startTime}ms`);
+      logger.info(`✅ Audio streaming completado`);
 
     } catch (error) {
       logger.error(`❌ Error streaming audio: ${error.message}`);
@@ -251,6 +228,80 @@ class AzureTTSStreaming {
 
     logger.info('✅ Configuración Azure TTS validada');
     return true;
+  }
+
+  /**
+   * Combinar chunks de audio en un solo buffer
+   */
+  combineAudioChunks(chunks) {
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const combined = new Uint8Array(totalLength);
+    
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+    
+    return combined;
+  }
+
+  /**
+   * Convertir audio a formato base64 para Twilio
+   */
+  audioToBase64(audioBuffer) {
+    return Buffer.from(audioBuffer).toString('base64');
+  }
+
+  /**
+   * Dividir audio en chunks para streaming
+   */
+  splitAudioIntoChunks(audioBuffer, chunkSize = 160) {
+    // 160 bytes = 20ms de audio a 8kHz mulaw
+    const chunks = [];
+    
+    for (let i = 0; i < audioBuffer.length; i += chunkSize) {
+      const chunk = audioBuffer.slice(i, i + chunkSize);
+      chunks.push(chunk);
+    }
+    
+    return chunks;
+  }
+
+  /**
+   * Enviar audio por chunks a WebSocket
+   */
+  async streamAudioToWebSocket(ws, audioBuffer, streamSid) {
+    try {
+      const chunks = this.splitAudioIntoChunks(audioBuffer);
+      
+      logger.info(`🎵 Enviando ${chunks.length} chunks de audio`);
+
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const base64Audio = this.audioToBase64(chunk);
+
+        const message = {
+          event: 'media',
+          streamSid: streamSid,
+          media: {
+            timestamp: Date.now() + (i * 20), // 20ms por chunk
+            payload: base64Audio
+          }
+        };
+
+        ws.send(JSON.stringify(message));
+
+        // Pequeña pausa para simular streaming real
+        await this.sleep(20); // 20ms entre chunks
+      }
+
+      logger.info(`✅ Audio streaming completado`);
+
+    } catch (error) {
+      logger.error(`❌ Error streaming audio: ${error.message}`);
+      throw error;
+    }
   }
 
   /**

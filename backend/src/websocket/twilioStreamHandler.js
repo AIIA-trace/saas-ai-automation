@@ -236,6 +236,9 @@ class TwilioStreamHandler {
         welcomeMessage: storedStreamData.clientData.welcomeMessage
       }, null, 2));
 
+      // Inicializar flag para prevenir bucles
+      streamData.isSendingTTS = false;
+      
       // Ahora que tenemos el CallSid y el cliente configurado, enviar saludo inicial
       await this.sendInitialGreeting(ws, { streamSid, callSid });
 
@@ -258,18 +261,33 @@ class TwilioStreamHandler {
         return;
       }
       
+      // Marcar que estamos enviando TTS para prevenir bucles
+      streamData.isSendingTTS = true;
+      
       // Debug: mostrar todos los datos del cliente
       logger.info(`🔍 Datos completos del cliente:`, JSON.stringify({
         id: streamData.clientData.id,
         companyName: streamData.clientData.companyName,
         welcomeMessage: streamData.clientData.welcomeMessage,
+        callConfig: streamData.clientData.callConfig,
         companyInfo: streamData.clientData.companyInfo,
         language: streamData.clientData.language,
         botPersonality: streamData.clientData.botPersonality
       }, null, 2));
       
-      // Usar SOLO el mensaje de bienvenida personalizado del cliente
-      const greetingText = streamData.clientData.welcomeMessage;
+      // Usar el mensaje de bienvenida desde callConfig.greeting o welcomeMessage como fallback
+      let greetingText = null;
+      
+      // Prioridad 1: callConfig.greeting
+      if (streamData.clientData.callConfig && streamData.clientData.callConfig.greeting) {
+        greetingText = streamData.clientData.callConfig.greeting;
+        logger.info(`✅ Usando saludo desde callConfig.greeting: "${greetingText}"`);
+      }
+      // Prioridad 2: welcomeMessage (fallback)
+      else if (streamData.clientData.welcomeMessage) {
+        greetingText = streamData.clientData.welcomeMessage;
+        logger.info(`✅ Usando saludo desde welcomeMessage: "${greetingText}"`);
+      }
       
       if (!greetingText || greetingText.trim() === '') {
         logger.error(`❌ Cliente ${streamData.clientData.companyName} no tiene welcomeMessage configurado o está vacío`);
@@ -295,6 +313,14 @@ class TwilioStreamHandler {
       await azureTTS.streamAudioToWebSocket(ws, audioBuffer, streamSid);
       
       logger.info(`✅ Saludo inicial enviado correctamente para StreamSid: ${streamSid}`);
+      
+      // Desmarcar flag después de enviar TTS y esperar un poco para que termine
+      setTimeout(() => {
+        if (streamData) {
+          streamData.isSendingTTS = false;
+          logger.debug(`🔊 Reactivando escucha para StreamSid: ${streamSid}`);
+        }
+      }, 3000); // 3 segundos de pausa después del saludo
       
     } catch (error) {
       logger.error(`❌ Error enviando saludo: ${error.message}`);
@@ -322,6 +348,14 @@ class TwilioStreamHandler {
       return;
     }
 
+    const streamData = this.activeStreams.get(streamSid);
+    
+    // PREVENIR BUCLE: No procesar audio si estamos enviando TTS
+    if (streamData.isSendingTTS) {
+      logger.debug(`🔇 Ignorando audio mientras se envía TTS para StreamSid: ${streamSid}`);
+      return;
+    }
+
     // Decodificar audio base64
     const audioChunk = Buffer.from(media.payload, 'base64');
     
@@ -331,7 +365,6 @@ class TwilioStreamHandler {
     this.audioBuffers.set(streamSid, buffer);
 
     // Actualizar actividad
-    const streamData = this.activeStreams.get(streamSid);
     streamData.lastActivity = Date.now();
 
     // Procesar cuando tengamos suficiente audio (ej: 1 segundo)
@@ -531,6 +564,12 @@ class TwilioStreamHandler {
       const { streamSid, callSid } = streamData;
       logger.info(`🎵 Enviando TTS para CallSid ${callSid}: "${text}"`);
       
+      // Marcar que estamos enviando TTS para prevenir bucles
+      const activeStreamData = this.activeStreams.get(streamSid);
+      if (activeStreamData) {
+        activeStreamData.isSendingTTS = true;
+      }
+      
       // Generar audio con Azure TTS
       const audioBuffer = await azureTTS.synthesizeToStream(text);
       
@@ -538,6 +577,14 @@ class TwilioStreamHandler {
       await azureTTS.streamAudioToWebSocket(ws, audioBuffer, streamSid);
       
       logger.info(`✅ TTS enviado correctamente para CallSid: ${callSid}`);
+      
+      // Desmarcar flag después de enviar TTS y esperar un poco para que termine
+      setTimeout(() => {
+        if (activeStreamData) {
+          activeStreamData.isSendingTTS = false;
+          logger.debug(`🔊 Reactivando escucha para StreamSid: ${streamSid}`);
+        }
+      }, 2000); // 2 segundos de pausa después de respuesta
 
     } catch (error) {
       logger.error(`❌ Error enviando TTS: ${error.message}`);
