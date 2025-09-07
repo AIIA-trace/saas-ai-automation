@@ -19,13 +19,10 @@ class StreamingTwiMLService {
       logger.info(`🎵 Creando TwiML Stream para ${clientData.companyName}`);
       logger.info(`🔌 WebSocket URL: ${wsUrl}`);
 
-      // Contestar la llamada primero con un mensaje breve
-      twiml.say({
-        voice: 'alice',
-        language: 'es-ES'
-      }, 'Conectando...');
-
-      // Conectar a WebSocket Stream
+      // Contestar la llamada con pausa silenciosa (evita no-answer)
+      twiml.pause({ length: 1 });
+      
+      // Conectar a WebSocket Stream (Azure TTS manejará todo el audio)
       const connect = twiml.connect();
       const stream = connect.stream({
         url: wsUrl,
