@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const AzureTTSService = require('../services/azureTTSService');
+const azureTTSService = require('../services/azureTTSService');
 const logger = require('../utils/logger');
-
-const azureTTSService = new AzureTTSService();
 
 // Cache para audios generados (evita regenerar el mismo texto)
 const audioCache = new Map();

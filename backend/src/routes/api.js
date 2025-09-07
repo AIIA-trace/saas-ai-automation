@@ -33,8 +33,7 @@ const twilioService = require('../services/twilioService');
 const emailService = require('../services/emailService');
 const elevenlabsService = require('../services/elevenlabsService');
 const authService = require('../services/authService');
-const AzureTTSService = require('../services/azureTTSService');
-const azureTTSService = new AzureTTSService();
+const azureTTSService = require('../services/azureTTSService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const logger = require('../utils/logger');
 
