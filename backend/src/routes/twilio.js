@@ -226,15 +226,12 @@ router.post('/webhook', async (req, res) => {
     }
 });
 
-/**
- * POST /api/twilio/webhook/response
- * Manejar respuestas del usuario durante la llamada
- */
-router.post('/webhook/response', async (req, res) => {
+// NUEVO ENDPOINT: Maneja audio grabado de Twilio y usa OpenAI Whisper
+router.post('/webhook/audio', async (req, res) => {
     try {
-        const { SpeechResult, CallSid, To: twilioNumber } = req.body;
+        const { RecordingUrl, CallSid, To: twilioNumber, RecordingDuration } = req.body;
         
-        logger.info(`🎤 RESPUESTA DEL USUARIO: "${SpeechResult}" (${CallSid})`);
+        logger.info(`🎙️ AUDIO RECIBIDO: ${RecordingUrl} (${CallSid}) - Duración: ${RecordingDuration}s`);
         
         // Identificar cliente
         const twilioNumberRecord = await prisma.twilioNumber.findFirst({
@@ -243,15 +240,23 @@ router.post('/webhook/response', async (req, res) => {
         });
         
         if (!twilioNumberRecord) {
-            logger.error(`❌ Cliente no encontrado para respuesta: ${twilioNumber}`);
+            logger.error(`❌ Cliente no encontrado para audio: ${twilioNumber}`);
             return res.status(404).send('<Response><Hangup/></Response>');
         }
         
-        // Procesar respuesta con IA
-        const aiResponse = await twilioService.processUserResponse({
+        // Validar que tenemos URL de grabación
+        if (!RecordingUrl) {
+            logger.warn(`⚠️ Sin URL de grabación para ${CallSid}, generando respuesta de error`);
+            const errorTwiml = twilioService.generateErrorTwiML("No he podido escuchar tu respuesta. ¿Puedes repetir tu pregunta?");
+            return res.set('Content-Type', 'text/xml').send(errorTwiml);
+        }
+
+        // Procesar audio con OpenAI Whisper y generar respuesta
+        const aiResponse = await twilioService.processUserAudio({
             client: twilioNumberRecord.client,
-            userInput: SpeechResult,
-            callSid: CallSid
+            audioUrl: RecordingUrl,
+            callSid: CallSid,
+            duration: RecordingDuration
         });
         
         logger.info(`🤖 Respuesta IA generada para ${twilioNumberRecord.client.companyName}`);
@@ -260,16 +265,8 @@ router.post('/webhook/response', async (req, res) => {
         res.send(aiResponse);
         
     } catch (error) {
-        logger.error(`❌ Error procesando respuesta: ${error.message}`, error);
-        
-        res.set('Content-Type', 'text/xml');
-        res.send(`
-            <?xml version="1.0" encoding="UTF-8"?>
-            <Response>
-                <Say voice="Polly.Conchita" language="es-ES">Gracias por llamar. ¡Hasta pronto!</Say>
-                <Hangup/>
-            </Response>
-        `);
+        logger.error(`❌ Error procesando audio usuario: ${error.message}`);
+        res.status(500).send('<Response><Hangup/></Response>');
     }
 });
 

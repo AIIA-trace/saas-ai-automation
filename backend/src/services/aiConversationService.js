@@ -227,7 +227,13 @@ async function callOpenAI(messages, previousHistory = null) {
     // Aquí integrarías con OpenAI API
     // Por ahora simulamos una respuesta
     
-    const userMessage = messages[messages.length - 1].content.toLowerCase();
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || !lastMessage.content || typeof lastMessage.content !== 'string') {
+        logger.error('❌ Mensaje inválido recibido en callOpenAI:', lastMessage);
+        return "Disculpa, no he podido entender tu mensaje. ¿Puedes repetir tu pregunta?";
+    }
+    
+    const userMessage = lastMessage.content.toLowerCase();
     
     // Si hay historial previo, incluirlo en la respuesta
     if (previousHistory && previousHistory.length > 0) {

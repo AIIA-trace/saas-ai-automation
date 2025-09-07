@@ -135,8 +135,9 @@ class WebhookController {
   // Manejar recolección de información mediante teclado (DTMF) o voz
   async handleGatherInput(req, res) {
     try {
-      const { CallSid, SpeechResult, Digits } = req.body;
-      const input = SpeechResult || Digits || '';
+      // LEGACY CODE - DEPRECATED: Usar OpenAI Whisper en su lugar
+      logger.warn('⚠️ Webhook controller legacy llamado. Migrar a OpenAI Whisper.');
+      const input = '';
       
       // Buscar la llamada en nuestra BD
       const callLog = await prisma.callLog.findFirst({

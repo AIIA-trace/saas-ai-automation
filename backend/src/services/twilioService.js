@@ -1,8 +1,8 @@
 const twilio = require('twilio');
 const logger = require('../utils/logger');
-const AzureTTSService = require('./azureTTSService');
-const azureTTSService = new AzureTTSService();
 const { processUserMessage } = require('./aiConversationService');
+const azureTTSService = require('./azureTTSService');
+const openaiWhisperService = require('./openaiWhisperService');
 const { makeTextNatural, getVoiceSettings } = require('./naturalPersonalityService');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
@@ -161,8 +161,23 @@ class TwilioService {
         }
       );
       
-      // 2. Hacer respuesta natural CON COMPORTAMIENTO HUMANO
-      const naturalResponse = this.makeResponseNatural(aiResponse, clientData, userInput);
+      // 2. Extraer el string de la respuesta de IA (puede venir como objeto)
+      let aiResponseText;
+      if (typeof aiResponse === 'string') {
+        aiResponseText = aiResponse;
+      } else if (aiResponse && typeof aiResponse === 'object' && aiResponse.response) {
+        aiResponseText = aiResponse.response;
+      } else if (aiResponse && typeof aiResponse === 'object' && aiResponse.content) {
+        aiResponseText = aiResponse.content;
+      } else {
+        logger.error(`❌ Formato de aiResponse no reconocido:`, aiResponse);
+        aiResponseText = "Disculpa, ha ocurrido un error procesando tu consulta. ¿Puedes repetir tu pregunta?";
+      }
+      
+      logger.info(`🤖 Respuesta IA extraída: "${aiResponseText}"`);
+      
+      // 3. Hacer respuesta natural CON COMPORTAMIENTO HUMANO
+      const naturalResponse = this.makeResponseNatural(aiResponseText, clientData, userInput);
       
       // 3. Generar audio con Azure TTS
       const audioUrl = await this.generateAzureAudio(naturalResponse, client);
@@ -175,6 +190,111 @@ class TwilioService {
     } catch (error) {
       logger.error(`❌ Error procesando respuesta: ${error.message}`);
       return this.generateErrorTwiML('Disculpa, no he entendido bien. ¿Puedes repetir?');
+    }
+  }
+
+  /**
+   * Procesar audio del usuario usando OpenAI Whisper
+   * @param {Object} params - Parámetros
+   * @param {Object} params.client - Cliente
+   * @param {string} params.audioUrl - URL del audio de Twilio
+   * @param {string} params.callSid - ID de la llamada
+   * @param {number} params.duration - Duración del audio
+   * @returns {Promise<string>} - TwiML response
+   */
+  async processUserAudio({ client, audioUrl, callSid, duration }) {
+    try {
+      logger.info(`🎙️ Procesando audio: ${audioUrl} para ${client.companyName}`);
+      
+      // 1. Obtener datos completos del cliente
+      const clientData = await this.getClientDataCached(client.id);
+      
+      // 2. Transcribir audio con OpenAI Whisper
+      logger.info(`🔄 Transcribiendo audio con OpenAI Whisper...`);
+      const transcription = await openaiWhisperService.transcribeWithRetry(
+        audioUrl, 
+        clientData.language === 'en' ? 'en' : 'es'
+      );
+      
+      if (!transcription) {
+        logger.warn(`⚠️ No se pudo transcribir el audio para ${callSid}`);
+        return this.generateErrorTwiML("No he podido escuchar tu respuesta claramente. ¿Puedes repetir tu pregunta?");
+      }
+      
+      logger.info(`✅ Transcripción completada: "${transcription}"`);
+      
+      // 3. Guardar transcripción en base de datos
+      try {
+        await prisma.callLog.create({
+          data: {
+            clientId: client.id,
+            twilioCallSid: callSid,
+            callerNumber: 'unknown', // Se actualizará desde el webhook principal
+            recordingUrl: audioUrl,
+            transcription: transcription,
+            duration: duration,
+            status: 'completed'
+          }
+        });
+        logger.info(`💾 Transcripción guardada en BD para ${callSid}`);
+      } catch (dbError) {
+        logger.error(`❌ Error guardando transcripción: ${dbError.message}`);
+        // Continuar sin fallar
+      }
+      
+      // 4. Procesar con IA conversacional
+      const aiResponse = await processUserMessage(
+        client.id,           // clientId
+        callSid,            // sessionId
+        transcription,      // userMessage (transcripción de Whisper)
+        {                   // context
+          context: 'phone_call',
+          language: clientData.language || 'es-ES',
+          
+          // 🏢 CONTEXTO EMPRESARIAL COMPLETO PARA IA
+          companyInfo: {
+            name: clientData.companyName,
+            description: clientData.companyDescription,
+            industry: clientData.industry,
+            phone: clientData.phone,
+            website: clientData.website,
+            address: clientData.address
+          },
+          
+          // 🎭 PAUTAS DE COMPORTAMIENTO HUMANO
+          behaviorGuidelines: this.globalPersonality.behaviorGuidelines
+        }
+      );
+      
+      // 5. Extraer el string de la respuesta de IA (puede venir como objeto)
+      let aiResponseText;
+      if (typeof aiResponse === 'string') {
+        aiResponseText = aiResponse;
+      } else if (aiResponse && typeof aiResponse === 'object' && aiResponse.response) {
+        aiResponseText = aiResponse.response;
+      } else if (aiResponse && typeof aiResponse === 'object' && aiResponse.content) {
+        aiResponseText = aiResponse.content;
+      } else {
+        logger.error(`❌ Formato de aiResponse no reconocido:`, aiResponse);
+        aiResponseText = "Disculpa, ha ocurrido un error procesando tu consulta. ¿Puedes repetir tu pregunta?";
+      }
+      
+      logger.info(`🤖 Respuesta IA extraída: "${aiResponseText}"`);
+      
+      // 6. Hacer respuesta natural CON COMPORTAMIENTO HUMANO
+      const naturalResponse = this.makeResponseNatural(aiResponseText, clientData, transcription);
+      
+      // 7. Generar audio con Azure TTS
+      const audioUrlResponse = await this.generateAzureAudio(naturalResponse, client);
+      
+      // 8. Crear TwiML de continuación
+      const twiml = this.createContinuationTwiML(audioUrlResponse, naturalResponse, client);
+      
+      return twiml;
+      
+    } catch (error) {
+      logger.error(`❌ Error procesando audio: ${error.message}`);
+      return this.generateErrorTwiML('Disculpa, ha ocurrido un problema técnico. ¿Puedes repetir tu pregunta?');
     }
   }
 
@@ -358,6 +478,47 @@ class TwilioService {
   }
 
   /**
+   * Crear TwiML para continuar la conversación (después de respuesta IA)
+   */
+  createContinuationTwiML(audioUrl, response, clientData) {
+    const VoiceResponse = twilio.twiml.VoiceResponse;
+    const twiml = new VoiceResponse();
+    
+    // Reproducir respuesta de IA
+    if (audioUrl) {
+      twiml.play(audioUrl);
+      logger.info('🔊 Reproduciendo audio generado por Azure TTS');
+    } else {
+      const voice = this.validateAndGetVoice(clientData.language || 'es-ES');
+      twiml.say({ voice: voice, language: 'es-ES' }, response);
+      logger.info('🔄 Fallback a Polly');
+    }
+    
+    // Verificar si debe continuar la conversación
+    if (!this.isEndingConversation(response)) {
+      twiml.record({
+        maxLength: 30,
+        playBeep: false,
+        timeout: 5,
+        finishOnKey: '#',
+        action: '/api/twilio/webhook/audio',
+        method: 'POST'
+      });
+      
+      // Mensaje de timeout si no hay respuesta
+      twiml.say({ 
+        voice: this.validateAndGetVoice(clientData.language || 'es-ES'), 
+        language: 'es-ES' 
+      }, 'Si necesitas algo más, puedes llamarnos en nuestro horario de atención. ¡Hasta pronto!');
+    }
+    
+    // Colgar al final
+    twiml.hangup();
+    
+    return twiml.toString();
+  }
+
+  /**
    * Crear TwiML optimizado para respuesta inicial
    */
   createOptimizedTwiML(audioUrl, greeting, clientData) {
@@ -377,14 +538,13 @@ class TwilioService {
       logger.info('🔄 Fallback a Polly');
     }
     
-    // Recoger respuesta del usuario
-    twiml.gather({
-      input: 'speech',
-      language: 'es-ES',
-      speechTimeout: 10,
-      timeout: 30,
-      partialResultCallback: '/api/twilio/webhook/response',
-      action: '/api/twilio/webhook/response',
+    // Grabar respuesta del usuario para OpenAI Whisper
+    twiml.record({
+      maxLength: 30,
+      playBeep: false,
+      timeout: 5,
+      finishOnKey: '#',
+      action: '/api/twilio/webhook/audio',
       method: 'POST'
     });
     
@@ -415,13 +575,12 @@ class TwilioService {
     
     // Verificar si debe continuar la conversación
     if (!this.isEndingConversation(response)) {
-      twiml.gather({
-        input: 'speech',
-        language: 'es-ES',
-        speechTimeout: 10,
-        timeout: 30,
-        partialResultCallback: '/api/twilio/webhook/response',
-        action: '/api/twilio/webhook/response',
+      twiml.record({
+        maxLength: 30,
+        playBeep: false,
+        timeout: 5,
+        finishOnKey: '#',
+        action: '/api/twilio/webhook/audio',
         method: 'POST'
       });
       

@@ -92,59 +92,24 @@ router.post('/call/natural/:clientId', validateTwilioWebhook, async (req, res) =
   }
 });
 
-// Webhook para respuestas del usuario durante la llamada
+// ENDPOINT LEGACY - DEPRECATED: Usar /api/twilio/webhook/audio en su lugar
 router.post('/call/response/:clientId', validateTwilioWebhook, async (req, res) => {
   try {
-    const { clientId } = req.params;
-    const { CallSid, SpeechResult, Digits, From, To } = req.body;
+    logger.warn('⚠️ Endpoint /call/response/:clientId está deprecated. Usar OpenAI Whisper en su lugar.');
     
-    const userInput = SpeechResult || Digits || '';
-    logger.info(`🗣️ Respuesta del usuario - Cliente: ${clientId}, Input: ${userInput}, From: ${From}`);
-    
-    if (!userInput.trim()) {
-      // No se detectó entrada, pedir que repita
-      const twilioService = require('../services/twilioService');
-      const twiml = await twilioService.generateNaturalTwiML(
-        clientId, 
-        "No he podido escucharte bien. ¿Podrías repetir lo que necesitas?",
-        { callSid: CallSid, shouldContinue: true }
-      );
-      
-      res.type('text/xml');
-      res.send(twiml.toString());
-      return;
-    }
-    
-    const twilioService = require('../services/twilioService');
-    
-    // Preparar contexto completo con información de la llamada
-    const callContext = {
-      from: From,
-      to: To,
-      phoneNumber: From,
-      callSid: CallSid
-    };
-    
-    const result = await twilioService.processCallResponse(clientId, CallSid, userInput, callContext);
-    
-    const twiml = await twilioService.generateNaturalTwiML(clientId, result.response, {
-      callSid: CallSid,
-      shouldContinue: result.shouldContinue,
-      shouldHangup: result.shouldHangup,
-      needsConsulting: userInput.toLowerCase().includes('precio') || 
-                      userInput.toLowerCase().includes('consultar') ||
-                      userInput.toLowerCase().includes('información')
-    });
-    
-    res.type('text/xml');
-    res.send(twiml.toString());
+    // Responder con error para forzar migración
+    res.set('Content-Type', 'text/xml');
+    res.send(`
+      <?xml version="1.0" encoding="UTF-8"?>
+      <Response>
+        <Say voice="Polly.Conchita" language="es-ES">Error de configuración. Por favor, contacta con soporte técnico.</Say>
+        <Hangup/>
+      </Response>
+    `);
     
   } catch (error) {
-    logger.error(`❌ Error procesando respuesta del usuario: ${error.message}`);
-    const twilioService = require('../services/twilioService');
-    const errorTwiml = twilioService.generateErrorTwiML();
-    res.type('text/xml');
-    res.send(errorTwiml.toString());
+    logger.error(`❌ Endpoint deprecated llamado: ${error.message}`);
+    res.status(500).send('<Response><Hangup/></Response>');
   }
 });
 
