@@ -478,25 +478,21 @@ class TwilioService {
    * Generar audio con Azure TTS (optimizado) - CON RECONOCIMIENTO DINÁMICO
    */
   async generateAzureAudio(text, clientData) {
+    const ttsId = `TTS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = Date.now();
+    
+    logger.info(`🎵 [TTS-DEBUG-${ttsId}] ===== INICIANDO GENERACIÓN DE AUDIO =====`);
+    logger.info(`🎵 [TTS-DEBUG-${ttsId}] Texto a sintetizar: "${text}"`);
+    logger.info(`🎵 [TTS-DEBUG-${ttsId}] Longitud del texto: ${text.length} caracteres`);
+    logger.info(`🎵 [TTS-DEBUG-${ttsId}] Cliente: ${clientData.companyName}`);
+    
     try {
-      // 🎯 RECONOCIMIENTO DINÁMICO DE VOZ POR USUARIO (SOLO LOLA Y DARIO)
-      let requestedVoice = this.globalPersonality.voiceConfig.azureVoice; // Fallback
-      let selectedLanguage = 'es-ES'; // Fallback
+      // Obtener voz apropiada para el idioma del cliente
+      const language = clientData.language || 'es-ES';
+      const azureVoice = this.getAzureVoiceForLanguage(language);
       
-      // 1. Verificar configuración de voz del usuario
-      if (clientData.emailConfig && clientData.emailConfig.voiceSettings) {
-        const voiceSettings = clientData.emailConfig.voiceSettings;
-        
-        if (voiceSettings.azureVoice) {
-          requestedVoice = voiceSettings.azureVoice;
-          logger.info(`🎭 Voz solicitada por el usuario: ${requestedVoice}`);
-        }
-        
-        if (voiceSettings.language) {
-          selectedLanguage = voiceSettings.language;
-          logger.info(`🌍 Usando idioma personalizado del usuario: ${selectedLanguage}`);
-        }
-      }
+      logger.info(`🎵 [TTS-DEBUG-${ttsId}] Idioma detectado: ${language}`);
+      logger.info(`🎵 [TTS-DEBUG-${ttsId}] Voz Azure seleccionada: ${azureVoice}`);
       
       // Verificar que Azure TTS esté disponible
       if (!azureTTSService) {
