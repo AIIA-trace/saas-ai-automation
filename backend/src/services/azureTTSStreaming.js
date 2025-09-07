@@ -15,7 +15,7 @@ class AzureTTSStreaming {
   /**
    * Sintetizar texto a audio streaming
    */
-  async synthesizeToStream(text, voice = 'en-US-LolaMultilingualNeural') {
+  async synthesizeToStream(text, voice = 'es-ES-DarioNeural') {
     return new Promise((resolve, reject) => {
       try {
         // Configurar voz

@@ -239,8 +239,9 @@ class TwilioStreamHandler {
         return;
       }
       
-      // Generar audio con Azure TTS y enviarlo por streaming
-      const audioBuffer = await azureTTS.synthesizeToStream(greetingText);
+      // Generar audio con Azure TTS usando voz española
+      const voice = 'es-ES-DarioNeural'; // Usar Darío por defecto
+      const audioBuffer = await azureTTS.synthesizeToStream(greetingText, voice);
       await azureTTS.streamAudioToWebSocket(ws, audioBuffer, streamSid);
       
       logger.info(`✅ Saludo inicial enviado correctamente para CallSid: ${callSid}`);
