@@ -98,24 +98,35 @@ class TwilioStreamHandler {
    */
   async handleStreamStart(ws, data) {
     const { streamSid } = data;
-    const { to: twilioNumber, from: callerNumber, customParameters } = data.start;
+    
+    // Debug: log completo del evento start para verificar estructura
+    logger.info(`🔍 Evento start completo:`, JSON.stringify(data, null, 2));
+    
+    const startData = data.start || {};
+    const { to: twilioNumber, from: callerNumber, customParameters } = startData;
     
     // Obtener CallSid desde parámetros personalizados o desde data
     const callSid = customParameters?.callSid || data.callSid || streamSid;
 
     logger.info(`🎤 Stream iniciado: ${streamSid} para llamada ${callSid}`);
-    logger.info(`📞 ${callerNumber} → ${twilioNumber}`);
+    logger.info(`📞 ${callerNumber || 'undefined'} → ${twilioNumber || 'undefined'}`);
 
     try {
-      // Buscar cliente por número de Twilio
-      const client = await prisma.client.findFirst({
-        where: { twilioNumber: twilioNumber }
+      // Buscar cliente por número de Twilio usando la tabla correcta
+      const twilioNumberRecord = await prisma.twilioNumber.findFirst({
+        where: { 
+          phoneNumber: twilioNumber,
+          status: 'active'
+        },
+        include: { client: true }
       });
 
-      if (!client) {
+      if (!twilioNumberRecord || !twilioNumberRecord.client) {
         logger.error(`❌ Cliente no encontrado para número: ${twilioNumber}`);
         return;
       }
+
+      const client = twilioNumberRecord.client;
 
       // Inicializar estado del stream
       this.activeStreams.set(callSid, {
