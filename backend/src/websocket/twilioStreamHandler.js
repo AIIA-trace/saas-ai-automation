@@ -237,7 +237,7 @@ class TwilioStreamHandler {
       }, null, 2));
 
       // Inicializar flag para prevenir bucles
-      streamData.isSendingTTS = false;
+      storedStreamData.isSendingTTS = false;
       
       // Ahora que tenemos el CallSid y el cliente configurado, enviar saludo inicial
       await this.sendInitialGreeting(ws, { streamSid, callSid });
