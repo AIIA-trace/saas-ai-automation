@@ -101,9 +101,14 @@ class TwilioStreamHandler {
     
     // Debug: log completo del evento start para verificar estructura
     logger.info(`🔍 Evento start completo:`, JSON.stringify(data, null, 2));
+    logger.info(`🔍 data.start:`, JSON.stringify(data.start, null, 2));
+    logger.info(`🔍 Todas las keys en data:`, Object.keys(data));
     
-    const startData = data.start || {};
-    const { to: twilioNumber, from: callerNumber, customParameters } = startData;
+    // Intentar múltiples formas de extraer los datos
+    const startData = data.start || data;
+    const twilioNumber = startData.to || data.to;
+    const callerNumber = startData.from || data.from;
+    const customParameters = startData.customParameters || data.customParameters;
     
     // Obtener CallSid desde parámetros personalizados o desde data
     const callSid = customParameters?.callSid || data.callSid || streamSid;
