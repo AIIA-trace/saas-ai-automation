@@ -199,12 +199,12 @@ router.post('/webhook', async (req, res) => {
         const client = twilioNumberRecord.client;
         logger.info(`✅ Cliente identificado: ${client.companyName} (ID: ${client.id})`);
         
-        // 2. Generar respuesta personalizada con Azure TTS
-        const twimlResponse = await twilioService.generateCallResponse({
-            client: client,
-            callerNumber: callerNumber,
-            callSid: CallSid
-        });
+        // 2. Generar respuesta personalizada con streaming TTS
+        const twimlResponse = await twilioService.handleIncomingCall(
+            callerNumber,
+            to,
+            CallSid
+        );
         
         logger.info(`🎵 Respuesta TwiML generada para ${client.companyName}`);
         
