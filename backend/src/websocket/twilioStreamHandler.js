@@ -27,19 +27,17 @@ class TwilioStreamHandler {
     const streamId = this.generateStreamId();
     ws.streamId = streamId;
     
-    // Extraer parámetros de la URL del WebSocket
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const params = url.searchParams;
-    
-    // Obtener parámetros del TwiML
-    ws.callSid = params.get('callSid');
-    ws.clientId = params.get('clientId');
-    ws.companyName = params.get('companyName');
-    ws.language = params.get('language');
-    
     logger.info(`🔌 Nueva conexión WebSocket: ${streamId}`);
-    logger.info(`📋 Parámetros WebSocket: CallSid=${ws.callSid}, ClientId=${ws.clientId}, Company=${ws.companyName}`);
+    logger.info(`🔍 URL completa: ${req.url}`);
+    logger.info(`🔍 Headers: ${JSON.stringify(req.headers, null, 2)}`);
 
+    // Los parámetros de Twilio Stream se envían en los eventos, no en la URL
+    // Inicializar como null hasta que lleguen en los eventos
+    ws.callSid = null;
+    ws.clientId = null;
+    ws.companyName = null;
+    ws.language = null;
+    
     ws.streamId = streamId;
     ws.isAlive = true;
 
@@ -71,90 +69,52 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Procesar mensajes de Twilio Streams
+   * Manejar eventos de Twilio Stream
    */
   async handleTwilioMessage(ws, data) {
-    // Debug: log todos los mensajes que llegan
-    logger.info(`📡 Mensaje WebSocket recibido:`, JSON.stringify(data, null, 2));
+    const { event } = data;
     
-    const { event, streamSid, callSid } = data;
-    logger.info(`📡 Evento: ${event}, StreamSid: ${streamSid}, CallSid: ${callSid}`);
-
+    logger.debug(`📨 Evento Twilio recibido: ${event}`);
+    logger.debug(`📨 Datos completos del evento: ${JSON.stringify(data, null, 2)}`);
+    
     switch (event) {
       case 'connected':
         await this.handleStreamConnected(ws, data);
         break;
-      
       case 'start':
         await this.handleStreamStart(ws, data);
         break;
-      
       case 'media':
         await this.handleMediaChunk(ws, data);
         break;
-      
       case 'stop':
         await this.handleStreamStop(ws, data);
         break;
-      
       default:
-        logger.debug(`📡 Evento WebSocket no manejado: ${event}`);
+        logger.debug(`🔍 Evento no manejado: ${event}`);
     }
   }
 
   /**
-   * Stream conectado - inicializar (MOVER TODA LA LÓGICA AQUÍ)
+   * Stream conectado - inicializar
    */
   async handleStreamConnected(ws, data) {
     const { streamSid } = data;
     logger.info(`✅ Stream conectado: ${streamSid}`);
     
-    // Como el evento 'start' no llega, obtener CallSid desde el WebSocket o usar streamSid
-    // El CallSid se pasa desde el TwiML como parámetro
-    const callSid = ws.callSid || streamSid; // Fallback al streamSid si no hay CallSid
-    
-    logger.info(`🎤 Inicializando stream: ${streamSid} para llamada ${callSid}`);
-    
-    try {
-      // Obtener datos completos del cliente usando el clientId
-      if (!ws.clientId) {
-        logger.error(`❌ No se encontró clientId en parámetros WebSocket`);
-        return;
-      }
+    // Extraer parámetros del evento connected si están disponibles
+    if (data.parameters) {
+      logger.info(`🔍 Parámetros en evento connected: ${JSON.stringify(data.parameters)}`);
       
-      const clientData = await prisma.client.findUnique({
-        where: { id: parseInt(ws.clientId) }
-      });
-      
-      if (!clientData) {
-        logger.error(`❌ Cliente no encontrado para ID: ${ws.clientId}`);
-        return;
-      }
-      
-      // Inicializar estado del stream
-      this.activeStreams.set(callSid, {
-        streamSid,
-        callSid,
-        clientId: clientData.id,
-        clientData: clientData,
-        callerNumber: ws.callerNumber,
-        twilioNumber: ws.twilioNumber,
-        ws,
-        startTime: Date.now(),
-        lastActivity: Date.now()
-      });
-
-      this.audioBuffers.set(callSid, []);
-      this.conversationState.set(callSid, []);
-
-      logger.info(`✅ Cliente identificado: ${clientData.companyName} (ID: ${clientData.id})`);
-
-      // Enviar saludo inicial inmediatamente
-      await this.sendInitialGreeting(ws, { streamSid, callSid });
-
-    } catch (error) {
-      logger.error(`❌ Error configurando stream: ${error.message}`);
+      // Extraer parámetros del stream
+      const parameters = data.parameters || {};
+      ws.clientId = parameters.clientId;
+      ws.callSid = parameters.callSid;
     }
+    
+    // El evento connected no siempre tiene todos los parámetros
+    // Esperar al evento start para obtener todos los parámetros
+    logger.info(`🎤 Stream conectado, esperando evento start para parámetros completos`);
   }
 
   /**
@@ -174,31 +134,84 @@ class TwilioStreamHandler {
     const callerNumber = startData.from || data.from;
     const customParameters = startData.customParameters || data.customParameters;
     
+    // Extraer clientId de los parámetros personalizados
+    let clientId = null;
+    if (customParameters) {
+      // Los parámetros pueden venir como objeto o array
+      if (Array.isArray(customParameters)) {
+        const clientIdParam = customParameters.find(p => p.name === 'clientId');
+        clientId = clientIdParam ? clientIdParam.value : null;
+      } else if (customParameters.clientId) {
+        clientId = customParameters.clientId;
+      }
+    }
+    
     // Obtener CallSid desde parámetros personalizados o desde data
     const callSid = customParameters?.callSid || data.callSid || streamSid;
 
     logger.info(`🎤 Stream iniciado: ${streamSid} para llamada ${callSid}`);
     logger.info(`📞 ${callerNumber || 'undefined'} → ${twilioNumber || 'undefined'}`);
+    logger.info(`🆔 ClientId extraído: ${clientId}`);
 
     try {
-      // Buscar cliente por número de Twilio usando la tabla correcta
-      const twilioNumberRecord = await prisma.twilioNumber.findFirst({
-        where: { 
-          phoneNumber: twilioNumber,
-          status: 'active'
-        },
-        include: { client: true }
-      });
+      let client = null;
+      
+      // Si tenemos clientId, usarlo directamente
+      if (clientId) {
+        client = await prisma.client.findUnique({
+          where: { id: parseInt(clientId) },
+          include: {
+            twilioNumbers: true
+          }
+        });
+        
+        if (client) {
+          logger.info(`✅ Cliente encontrado por ID: ${client.companyName} (ID: ${client.id})`);
+          logger.info(`🎵 WelcomeMessage: "${client.welcomeMessage || 'NO CONFIGURADO'}"`);
+          logger.info(`🏢 CompanyInfo: "${client.companyInfo || 'NO CONFIGURADO'}"`);
+        }
+      }
+      
+      // Si no encontramos cliente por ID, buscar por número de Twilio
+      if (!client && twilioNumber) {
+        const twilioNumberRecord = await prisma.twilioNumber.findFirst({
+          where: { 
+            phoneNumber: twilioNumber,
+            status: 'active'
+          },
+          include: { 
+            client: {
+              include: {
+                twilioNumbers: true
+              }
+            }
+          }
+        });
 
-      if (!twilioNumberRecord || !twilioNumberRecord.client) {
-        logger.error(`❌ Cliente no encontrado para número: ${twilioNumber}`);
+        if (twilioNumberRecord && twilioNumberRecord.client) {
+          client = twilioNumberRecord.client;
+          logger.info(`✅ Cliente encontrado por número: ${client.companyName} (ID: ${client.id})`);
+          logger.info(`🎵 WelcomeMessage: "${client.welcomeMessage || 'NO CONFIGURADO'}"`);
+          logger.info(`🏢 CompanyInfo: "${client.companyInfo || 'NO CONFIGURADO'}"`);
+        }
+      }
+
+      if (!client) {
+        logger.error(`❌ Cliente no encontrado para número: ${twilioNumber} o ID: ${clientId}`);
         return;
       }
 
-      const client = twilioNumberRecord.client;
+      // Debug: verificar datos del cliente antes de almacenar
+      logger.info(`🔍 Datos del cliente antes de almacenar en stream:`, JSON.stringify({
+        id: client.id,
+        companyName: client.companyName,
+        welcomeMessage: client.welcomeMessage,
+        companyInfo: client.companyInfo,
+        language: client.language
+      }, null, 2));
 
-      // Inicializar estado del stream
-      this.activeStreams.set(callSid, {
+      // Inicializar estado del stream USANDO STREAMSID COMO CLAVE
+      this.activeStreams.set(streamSid, {
         streamSid,
         callSid,
         clientId: client.id,
@@ -210,10 +223,18 @@ class TwilioStreamHandler {
         lastActivity: Date.now()
       });
 
-      this.audioBuffers.set(callSid, []);
-      this.conversationState.set(callSid, []);
+      this.audioBuffers.set(streamSid, []);
+      this.conversationState.set(streamSid, []);
 
-      logger.info(`✅ Cliente identificado: ${client.companyName} (ID: ${client.id})`);
+      logger.info(`✅ Cliente configurado: ${client.companyName} (ID: ${client.id})`);
+
+      // Verificar que los datos se almacenaron correctamente
+      const storedStreamData = this.activeStreams.get(streamSid);
+      logger.info(`🔍 Datos almacenados en activeStreams:`, JSON.stringify({
+        clientId: storedStreamData.clientId,
+        companyName: storedStreamData.clientData.companyName,
+        welcomeMessage: storedStreamData.clientData.welcomeMessage
+      }, null, 2));
 
       // Ahora que tenemos el CallSid y el cliente configurado, enviar saludo inicial
       await this.sendInitialGreeting(ws, { streamSid, callSid });
@@ -230,34 +251,62 @@ class TwilioStreamHandler {
     try {
       const { streamSid, callSid } = data;
       
-      // Obtener datos del stream para acceder al cliente
-      const streamData = this.activeStreams.get(callSid);
+      // Obtener datos del stream usando streamSid como clave
+      const streamData = this.activeStreams.get(streamSid);
       if (!streamData) {
-        logger.warn(`⚠️ Stream no encontrado para CallSid: ${callSid}`);
+        logger.warn(`⚠️ Stream no encontrado para StreamSid: ${streamSid}`);
         return;
       }
+      
+      // Debug: mostrar todos los datos del cliente
+      logger.info(`🔍 Datos completos del cliente:`, JSON.stringify({
+        id: streamData.clientData.id,
+        companyName: streamData.clientData.companyName,
+        welcomeMessage: streamData.clientData.welcomeMessage,
+        companyInfo: streamData.clientData.companyInfo,
+        language: streamData.clientData.language,
+        botPersonality: streamData.clientData.botPersonality
+      }, null, 2));
       
       // Usar SOLO el mensaje de bienvenida personalizado del cliente
       const greetingText = streamData.clientData.welcomeMessage;
       
-      if (!greetingText) {
-        logger.error(`❌ Cliente ${streamData.clientData.companyName} no tiene welcomeMessage configurado`);
+      if (!greetingText || greetingText.trim() === '') {
+        logger.error(`❌ Cliente ${streamData.clientData.companyName} no tiene welcomeMessage configurado o está vacío`);
+        logger.error(`❌ WelcomeMessage value: "${greetingText}"`);
+        
+        // Usar mensaje por defecto temporal
+        const defaultGreeting = `Hola, gracias por llamar a ${streamData.clientData.companyName}. En este momento nuestro sistema está configurándose. Por favor, intente más tarde.`;
+        
+        logger.info(`🎵 Enviando saludo por defecto para ${streamData.clientData.companyName}`);
+        
+        const voice = 'es-ES-DarioNeural';
+        const audioBuffer = await azureTTS.synthesizeToStream(defaultGreeting, voice);
+        await azureTTS.streamAudioToWebSocket(ws, audioBuffer, streamSid);
+        
         return;
       }
       
-      logger.info(`🎵 Enviando saludo inicial para CallSid ${callSid}: "${greetingText}"`);
+      logger.info(`🎵 Enviando saludo inicial para StreamSid ${streamSid}: "${greetingText}"`);
       
       // Generar audio con Azure TTS usando voz española
       const voice = 'es-ES-DarioNeural';
       const audioBuffer = await azureTTS.synthesizeToStream(greetingText, voice);
       await azureTTS.streamAudioToWebSocket(ws, audioBuffer, streamSid);
       
-      logger.info(`✅ Saludo inicial enviado correctamente para CallSid: ${callSid}`);
+      logger.info(`✅ Saludo inicial enviado correctamente para StreamSid: ${streamSid}`);
       
     } catch (error) {
       logger.error(`❌ Error enviando saludo: ${error.message}`);
-      const fallbackText = streamData?.clientData?.welcomeMessage || "Sistema temporalmente no disponible";
-      await this.sendFallbackMessage(ws, fallbackText);
+      const fallbackText = "Sistema temporalmente no disponible. Por favor, intente más tarde.";
+      
+      try {
+        const voice = 'es-ES-DarioNeural';
+        const audioBuffer = await azureTTS.synthesizeToStream(fallbackText, voice);
+        await azureTTS.streamAudioToWebSocket(ws, audioBuffer, data.streamSid);
+      } catch (fallbackError) {
+        logger.error(`❌ Error enviando mensaje de fallback: ${fallbackError.message}`);
+      }
     }
   }
 
@@ -267,16 +316,8 @@ class TwilioStreamHandler {
   async handleMediaChunk(ws, data) {
     const { streamSid, media } = data;
     
-    // Buscar el CallSid correspondiente al streamSid
-    let callSid = null;
-    for (const [cid, streamData] of this.activeStreams.entries()) {
-      if (streamData.streamSid === streamSid) {
-        callSid = cid;
-        break;
-      }
-    }
-    
-    if (!callSid || !this.activeStreams.has(callSid)) {
+    // Usar streamSid directamente como clave
+    if (!this.activeStreams.has(streamSid)) {
       logger.warn(`⚠️ Stream no encontrado para StreamSid: ${streamSid}`);
       return;
     }
@@ -284,28 +325,28 @@ class TwilioStreamHandler {
     // Decodificar audio base64
     const audioChunk = Buffer.from(media.payload, 'base64');
     
-    // Acumular chunks de audio
-    const buffer = this.audioBuffers.get(callSid) || [];
+    // Acumular chunks de audio usando streamSid
+    const buffer = this.audioBuffers.get(streamSid) || [];
     buffer.push(audioChunk);
-    this.audioBuffers.set(callSid, buffer);
+    this.audioBuffers.set(streamSid, buffer);
 
     // Actualizar actividad
-    const streamData = this.activeStreams.get(callSid);
+    const streamData = this.activeStreams.get(streamSid);
     streamData.lastActivity = Date.now();
 
     // Procesar cuando tengamos suficiente audio (ej: 1 segundo)
     const totalSize = buffer.reduce((sum, chunk) => sum + chunk.length, 0);
     if (totalSize > 8000) { // ~1 segundo de audio a 8kHz
-      await this.processAudioBuffer(callSid);
+      await this.processAudioBuffer(streamSid);
     }
   }
 
   /**
    * Procesar buffer de audio acumulado
    */
-  async processAudioBuffer(callSid) {
-    const buffer = this.audioBuffers.get(callSid);
-    const streamData = this.activeStreams.get(callSid);
+  async processAudioBuffer(streamSid) {
+    const buffer = this.audioBuffers.get(streamSid);
+    const streamData = this.activeStreams.get(streamSid);
 
     if (!buffer || !streamData) return;
 
@@ -314,7 +355,7 @@ class TwilioStreamHandler {
       const audioData = Buffer.concat(buffer);
       
       // Limpiar buffer
-      this.audioBuffers.set(callSid, []);
+      this.audioBuffers.set(streamSid, []);
 
       // Transcribir con Whisper
       const transcription = await this.transcribeAudio(audioData);
@@ -323,7 +364,7 @@ class TwilioStreamHandler {
         logger.info(`🎤 Transcripción: "${transcription}"`);
         
         // Generar respuesta IA
-        const aiResponse = await this.generateAIResponse(callSid, transcription);
+        const aiResponse = await this.generateAIResponse(streamSid, transcription);
         
         if (aiResponse) {
           logger.info(`🤖 Respuesta IA: "${aiResponse}"`);
@@ -434,9 +475,9 @@ class TwilioStreamHandler {
   /**
    * Generar respuesta con IA
    */
-  async generateAIResponse(callSid, userInput) {
-    const streamData = this.activeStreams.get(callSid);
-    const conversation = this.conversationState.get(callSid) || [];
+  async generateAIResponse(streamSid, userInput) {
+    const streamData = this.activeStreams.get(streamSid);
+    const conversation = this.conversationState.get(streamSid) || [];
 
     try {
       // Añadir mensaje del usuario
@@ -460,16 +501,16 @@ class TwilioStreamHandler {
       });
 
       const aiResponse = completion.choices[0].message.content;
-      
-      // Añadir respuesta a la conversación
+
+      // Guardar respuesta en conversación
       conversation.push({ role: 'assistant', content: aiResponse });
-      this.conversationState.set(callSid, conversation);
+      this.conversationState.set(streamSid, conversation);
 
       return aiResponse;
 
     } catch (error) {
       logger.error(`❌ Error generando respuesta IA: ${error.message}`);
-      return "Disculpa, no he entendido bien. ¿Puedes repetir?";
+      return null;
     }
   }
 
@@ -509,7 +550,7 @@ class TwilioStreamHandler {
    * Obtener streamSid desde WebSocket
    */
   getStreamSidFromWs(ws) {
-    for (const [callSid, streamData] of this.activeStreams.entries()) {
+    for (const [streamSid, streamData] of this.activeStreams.entries()) {
       if (streamData.ws === ws) {
         return streamData.streamSid;
       }
@@ -521,7 +562,7 @@ class TwilioStreamHandler {
    * Obtener datos completos del stream desde WebSocket
    */
   getStreamDataFromWs(ws) {
-    for (const [callSid, streamData] of this.activeStreams.entries()) {
+    for (const [streamSid, streamData] of this.activeStreams.entries()) {
       if (streamData.ws === ws) {
         return streamData;
       }
@@ -556,35 +597,22 @@ class TwilioStreamHandler {
   async handleStreamStop(ws, data) {
     const { streamSid } = data;
     
-    // Buscar el CallSid correspondiente al streamSid
-    let callSid = null;
-    for (const [cid, streamData] of this.activeStreams.entries()) {
-      if (streamData.streamSid === streamSid) {
-        callSid = cid;
-        break;
-      }
-    }
+    logger.info(`🛑 Stream terminado: ${streamSid}`);
     
-    logger.info(`🛑 Stream terminado: ${callSid || streamSid}`);
-    
-    if (callSid) {
-      this.cleanupStream(callSid);
+    if (this.activeStreams.has(streamSid)) {
+      this.cleanupStream(streamSid);
     }
   }
 
   /**
    * Limpiar recursos del stream
    */
-  cleanupStream(identifier) {
-    // Puede ser streamId o callSid
-    for (const [callSid, streamData] of this.activeStreams.entries()) {
-      if (callSid === identifier || streamData.streamSid === identifier) {
-        this.activeStreams.delete(callSid);
-        this.audioBuffers.delete(callSid);
-        this.conversationState.delete(callSid);
-        logger.info(`🧹 Stream limpiado: ${callSid}`);
-        break;
-      }
+  cleanupStream(streamSid) {
+    if (this.activeStreams.has(streamSid)) {
+      this.activeStreams.delete(streamSid);
+      this.audioBuffers.delete(streamSid);
+      this.conversationState.delete(streamSid);
+      logger.info(`🧹 Stream limpiado: ${streamSid}`);
     }
   }
 
@@ -600,11 +628,11 @@ class TwilioStreamHandler {
    */
   startHeartbeat() {
     setInterval(() => {
-      this.activeStreams.forEach((streamData, callSid) => {
+      this.activeStreams.forEach((streamData, streamSid) => {
         if (!streamData.ws.isAlive) {
-          logger.warn(`💔 Conexión WebSocket muerta: ${callSid}`);
+          logger.warn(`💔 Conexión WebSocket muerta: ${streamSid}`);
           streamData.ws.terminate();
-          this.cleanupStream(callSid);
+          this.cleanupStream(streamSid);
           return;
         }
 
