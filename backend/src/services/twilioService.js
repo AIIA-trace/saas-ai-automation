@@ -74,7 +74,7 @@ class TwilioService {
       
       // 🎯 CONFIGURACIÓN DE VOZ POR DEFECTO
       voiceConfig: {
-        azureVoice: 'es-ES-LolaNeural',
+        azureVoice: 'en-US-LolaMultilingualNeural',
         language: 'es-ES',
         rate: '0.95', // Ligeramente más lento para naturalidad
         pitch: '0', // Tono neutro
@@ -539,9 +539,9 @@ class TwilioService {
    */
   validateAndGetVoice(requestedVoice) {
     const allowedVoices = {
-      'lola': 'es-ES-LolaNeural',
+      'lola': 'en-US-LolaMultilingualNeural',
       'dario': 'es-ES-DarioNeural',
-      'es-ES-LolaNeural': 'es-ES-LolaNeural',
+      'en-US-LolaMultilingualNeural': 'en-US-LolaMultilingualNeural',
       'es-ES-DarioNeural': 'es-ES-DarioNeural'
     };
     
@@ -555,7 +555,7 @@ class TwilioService {
     
     // Fallback por defecto: Lola
     logger.warn(`⚠️ Voz no permitida: ${requestedVoice}. Usando Lola por defecto.`);
-    return 'es-ES-LolaNeural';
+    return 'en-US-LolaMultilingualNeural';
   }
 
   /**
@@ -563,7 +563,7 @@ class TwilioService {
    */
   getAzureVoiceForLanguage(language) {
     // Solo permitimos Lola y Dario - por defecto Lola
-    return 'es-ES-LolaNeural';
+    return 'en-US-LolaMultilingualNeural';
   }
 
   /**

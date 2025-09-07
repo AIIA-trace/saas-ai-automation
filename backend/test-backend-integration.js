@@ -180,7 +180,7 @@ async function testAzureTTS() {
     
     // Test de generación de audio
     const testText = 'Hola, este es un test de Azure TTS para verificar la integración.';
-    const testVoice = 'es-ES-ElviraNeural';
+    const testVoice = 'en-US-LolaMultilingualNeural';
     
     console.log(`🎤 Generando audio de prueba con voz: ${testVoice}`);
     

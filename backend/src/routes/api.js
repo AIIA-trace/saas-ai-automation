@@ -178,8 +178,16 @@ router.post('/tts/test', authenticate, async (req, res) => {
     
     logger.info(`🎵 Convirtiendo voz ID '${voice}' a Azure name '${voiceData.azureName}'`);
     
-    // Generar audio con Azure TTS usando el nombre completo
-    const result = await azureTTSService.generateSpeech(text, voiceData.azureName);
+    // Generar audio con Azure TTS usando SSML y códigos correctos
+    const voiceSettings = {
+      rate: 'medium',
+      pitch: 'medium', 
+      volume: 'medium',
+      style: 'friendly',
+      emphasis: 'moderate'
+    };
+    
+    const result = await azureTTSService.generateSpeechWithSSML(text, voiceData.azureName, voiceSettings);
         
     console.log('🎵 Resultado Azure TTS recibido:', {
         success: result.success,

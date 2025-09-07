@@ -12,10 +12,10 @@ class AzureTTSService {
     this.availableVoices = [
       {
         id: 'lola',
-        name: 'es-ES-LolaNeural',
-        azureName: 'es-ES-LolaNeural',
+        name: 'en-US-LolaMultilingualNeural',
+        azureName: 'en-US-LolaMultilingualNeural',
         locale: 'es-ES',
-        description: 'Voz femenina española natural'
+        description: 'Voz Lola multilingüe (funciona en español)'
       },
       {
         id: 'dario',
@@ -219,10 +219,9 @@ class AzureTTSService {
       
       logger.info(`🎵 Configuración SSML: ${JSON.stringify(settings)}`);
       
-      // 🧪 TEMPORAL: Desactivar naturalidad para probar Azure TTS
-      // const naturalText = this.addUniversalNaturalness(text);
-      const naturalText = text; // Usar texto simple sin SSML anidado
-      logger.info(`🧪 PRUEBA: Texto SIN naturalidad: ${naturalText.substring(0, 100)}...`);
+      // Añadir naturalidad universal al texto (funciona para Lola y Daría)
+      const naturalText = this.addUniversalNaturalness(text);
+      logger.info(`🎭 Texto con naturalidad aplicada: ${naturalText.substring(0, 100)}...`);
       
       // Crear SSML con configuración avanzada
       const ssml = `

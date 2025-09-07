@@ -33,9 +33,9 @@ const multilingualTexts = {
  */
 const voicesByLanguage = {
     'es-ES': {
-        male: ['es-ES-DarioNeural', 'es-ES-AlvaroNeural', 'es-ES-ManuelNeural'],
-        female: ['es-ES-ElviraNeural', 'es-ES-AdrianaNeural', 'es-ES-LaiaNeural'],
-        all: ['es-ES-DarioNeural', 'es-ES-ElviraNeural', 'es-ES-AlvaroNeural', 'es-ES-ManuelNeural', 'es-ES-AdrianaNeural']
+        male: ['es-ES-DarioNeural'],
+        female: ['en-US-LolaMultilingualNeural'],
+        all: ['es-ES-DarioNeural', 'en-US-LolaMultilingualNeural']
     },
     'en-US': {
         male: ['en-US-GuyNeural', 'en-US-DavisNeural', 'en-US-JasonNeural'],
