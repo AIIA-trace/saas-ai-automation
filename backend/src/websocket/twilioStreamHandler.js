@@ -1,0 +1,400 @@
+const WebSocket = require('ws');
+const logger = require('../utils/logger');
+const OpenAI = require('openai');
+const { PrismaClient } = require('@prisma/client');
+const AzureTTSStreaming = require('../services/azureTTSStreaming');
+const RealtimeTranscription = require('../services/realtimeTranscription');
+
+const prisma = new PrismaClient();
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const azureTTS = new AzureTTSStreaming();
+const transcriptionService = new RealtimeTranscription();
+
+class TwilioStreamHandler {
+  constructor() {
+    this.activeStreams = new Map(); // CallSid -> StreamData
+    this.audioBuffers = new Map(); // CallSid -> Buffer chunks
+    this.conversationState = new Map(); // CallSid -> conversation history
+  }
+
+  /**
+   * Manejar nueva conexión WebSocket de Twilio
+   */
+  handleConnection(ws, req) {
+    const streamId = this.generateStreamId();
+    logger.info(`🔌 Nueva conexión WebSocket: ${streamId}`);
+
+    ws.streamId = streamId;
+    ws.isAlive = true;
+
+    // Heartbeat para mantener conexión
+    ws.on('pong', () => {
+      ws.isAlive = true;
+    });
+
+    // Manejar mensajes de Twilio
+    ws.on('message', async (message) => {
+      try {
+        const data = JSON.parse(message);
+        await this.handleTwilioMessage(ws, data);
+      } catch (error) {
+        logger.error(`❌ Error procesando mensaje WebSocket: ${error.message}`);
+      }
+    });
+
+    // Limpiar al cerrar conexión
+    ws.on('close', () => {
+      this.cleanupStream(ws.streamId);
+      logger.info(`🔌 Conexión WebSocket cerrada: ${streamId}`);
+    });
+
+    ws.on('error', (error) => {
+      logger.error(`❌ Error WebSocket ${streamId}: ${error.message}`);
+      this.cleanupStream(ws.streamId);
+    });
+  }
+
+  /**
+   * Procesar mensajes de Twilio Streams
+   */
+  async handleTwilioMessage(ws, data) {
+    const { event, streamSid, callSid } = data;
+
+    switch (event) {
+      case 'connected':
+        await this.handleStreamConnected(ws, data);
+        break;
+      
+      case 'start':
+        await this.handleStreamStart(ws, data);
+        break;
+      
+      case 'media':
+        await this.handleMediaChunk(ws, data);
+        break;
+      
+      case 'stop':
+        await this.handleStreamStop(ws, data);
+        break;
+      
+      default:
+        logger.debug(`📡 Evento WebSocket no manejado: ${event}`);
+    }
+  }
+
+  /**
+   * Stream conectado - inicializar
+   */
+  async handleStreamConnected(ws, data) {
+    logger.info(`✅ Stream conectado: ${data.streamSid}`);
+    
+    // Enviar saludo inicial inmediatamente
+    await this.sendInitialGreeting(ws, data);
+  }
+
+  /**
+   * Stream iniciado - configurar cliente
+   */
+  async handleStreamStart(ws, data) {
+    const { callSid, streamSid } = data;
+    const { to: twilioNumber, from: callerNumber } = data.start;
+
+    logger.info(`🎤 Stream iniciado: ${streamSid} para llamada ${callSid}`);
+    logger.info(`📞 ${callerNumber} → ${twilioNumber}`);
+
+    try {
+      // Buscar cliente por número de Twilio
+      const client = await prisma.client.findFirst({
+        where: { twilioNumber: twilioNumber }
+      });
+
+      if (!client) {
+        logger.error(`❌ Cliente no encontrado para número: ${twilioNumber}`);
+        return;
+      }
+
+      // Inicializar estado del stream
+      this.activeStreams.set(callSid, {
+        streamSid,
+        callSid,
+        clientId: client.id,
+        clientData: client,
+        callerNumber,
+        twilioNumber,
+        ws,
+        startTime: Date.now(),
+        lastActivity: Date.now()
+      });
+
+      this.audioBuffers.set(callSid, []);
+      this.conversationState.set(callSid, []);
+
+      logger.info(`✅ Cliente identificado: ${client.companyName} (ID: ${client.id})`);
+
+    } catch (error) {
+      logger.error(`❌ Error configurando stream: ${error.message}`);
+    }
+  }
+
+  /**
+   * Enviar saludo inicial con Azure TTS
+   */
+  async sendInitialGreeting(ws, data) {
+    try {
+      const greetingText = "Hola, gracias por llamar. ¿En qué puedo ayudarte?";
+      
+      logger.info(`🎵 Enviando saludo inicial: "${greetingText}"`);
+      
+      // Generar audio con Azure TTS y enviarlo por streaming
+      const audioBuffer = await azureTTS.synthesizeToStream(greetingText);
+      await azureTTS.streamAudioToWebSocket(ws, audioBuffer, data.streamSid);
+      
+    } catch (error) {
+      logger.error(`❌ Error enviando saludo: ${error.message}`);
+      // Fallback a mensaje de texto
+      await this.sendFallbackMessage(ws, "Hola, gracias por llamar. ¿En qué puedo ayudarte?");
+    }
+  }
+
+  /**
+   * Procesar chunk de audio del usuario
+   */
+  async handleMediaChunk(ws, data) {
+    const { callSid, media } = data;
+    
+    if (!this.activeStreams.has(callSid)) {
+      logger.warn(`⚠️ Stream no encontrado para CallSid: ${callSid}`);
+      return;
+    }
+
+    // Decodificar audio base64
+    const audioChunk = Buffer.from(media.payload, 'base64');
+    
+    // Acumular chunks de audio
+    const buffer = this.audioBuffers.get(callSid) || [];
+    buffer.push(audioChunk);
+    this.audioBuffers.set(callSid, buffer);
+
+    // Actualizar actividad
+    const streamData = this.activeStreams.get(callSid);
+    streamData.lastActivity = Date.now();
+
+    // Procesar cuando tengamos suficiente audio (ej: 1 segundo)
+    const totalSize = buffer.reduce((sum, chunk) => sum + chunk.length, 0);
+    if (totalSize > 8000) { // ~1 segundo de audio a 8kHz
+      await this.processAudioBuffer(callSid);
+    }
+  }
+
+  /**
+   * Procesar buffer de audio acumulado
+   */
+  async processAudioBuffer(callSid) {
+    const buffer = this.audioBuffers.get(callSid);
+    const streamData = this.activeStreams.get(callSid);
+
+    if (!buffer || !streamData) return;
+
+    try {
+      // Combinar chunks en un solo buffer
+      const audioData = Buffer.concat(buffer);
+      
+      // Limpiar buffer
+      this.audioBuffers.set(callSid, []);
+
+      // Transcribir con Whisper
+      const transcription = await this.transcribeAudio(audioData);
+      
+      if (transcription && transcription.trim()) {
+        logger.info(`🎤 Transcripción: "${transcription}"`);
+        
+        // Generar respuesta IA
+        const aiResponse = await this.generateAIResponse(callSid, transcription);
+        
+        if (aiResponse) {
+          logger.info(`🤖 Respuesta IA: "${aiResponse}"`);
+          
+          // Enviar respuesta con TTS
+          await this.sendTTSAudio(streamData.ws, aiResponse);
+        }
+      }
+
+    } catch (error) {
+      logger.error(`❌ Error procesando audio: ${error.message}`);
+    }
+  }
+
+  /**
+   * Transcribir audio con servicio de transcripción en tiempo real
+   */
+  async transcribeAudio(audioBuffer) {
+    try {
+      const result = await transcriptionService.transcribeAudioBuffer(audioBuffer, 'es');
+      
+      if (result.success) {
+        return result.text;
+      } else {
+        logger.warn(`⚠️ Transcripción falló: ${result.error}`);
+        return null;
+      }
+
+    } catch (error) {
+      logger.error(`❌ Error transcribiendo audio: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Generar respuesta con IA
+   */
+  async generateAIResponse(callSid, userInput) {
+    const streamData = this.activeStreams.get(callSid);
+    const conversation = this.conversationState.get(callSid) || [];
+
+    try {
+      // Añadir mensaje del usuario
+      conversation.push({ role: 'user', content: userInput });
+
+      // Generar respuesta con OpenAI
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: `Eres un asistente virtual para ${streamData.clientData.companyName}. 
+                     Responde de forma natural, amigable y concisa. 
+                     Máximo 2 frases por respuesta.`
+          },
+          ...conversation
+        ],
+        max_tokens: 150,
+        temperature: 0.7
+      });
+
+      const aiResponse = completion.choices[0].message.content;
+      
+      // Añadir respuesta a la conversación
+      conversation.push({ role: 'assistant', content: aiResponse });
+      this.conversationState.set(callSid, conversation);
+
+      return aiResponse;
+
+    } catch (error) {
+      logger.error(`❌ Error generando respuesta IA: ${error.message}`);
+      return "Disculpa, no he entendido bien. ¿Puedes repetir?";
+    }
+  }
+
+  /**
+   * Enviar audio TTS al stream
+   */
+  async sendTTSAudio(ws, text) {
+    try {
+      logger.info(`🎵 Enviando TTS: "${text}"`);
+      
+      // Generar audio con Azure TTS
+      const audioBuffer = await azureTTS.synthesizeToStream(text);
+      
+      // Obtener streamSid del WebSocket o de los datos activos
+      const streamSid = ws.streamSid || this.getStreamSidFromWs(ws);
+      
+      // Enviar por streaming
+      await azureTTS.streamAudioToWebSocket(ws, audioBuffer, streamSid);
+
+    } catch (error) {
+      logger.error(`❌ Error enviando TTS: ${error.message}`);
+      // Fallback a mensaje de texto
+      await this.sendFallbackMessage(ws, text);
+    }
+  }
+
+  /**
+   * Obtener streamSid desde WebSocket
+   */
+  getStreamSidFromWs(ws) {
+    for (const [callSid, streamData] of this.activeStreams.entries()) {
+      if (streamData.ws === ws) {
+        return streamData.streamSid;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Enviar mensaje de fallback cuando TTS falla
+   */
+  async sendFallbackMessage(ws, text) {
+    try {
+      const message = {
+        event: 'mark',
+        streamSid: this.getStreamSidFromWs(ws),
+        mark: {
+          name: 'tts_fallback'
+        }
+      };
+      
+      ws.send(JSON.stringify(message));
+      logger.info(`📝 Fallback message enviado: "${text}"`);
+      
+    } catch (error) {
+      logger.error(`❌ Error enviando fallback: ${error.message}`);
+    }
+  }
+
+  /**
+   * Stream terminado
+   */
+  async handleStreamStop(ws, data) {
+    const { callSid } = data;
+    logger.info(`🛑 Stream terminado: ${callSid}`);
+    
+    this.cleanupStream(callSid);
+  }
+
+  /**
+   * Limpiar recursos del stream
+   */
+  cleanupStream(identifier) {
+    // Puede ser streamId o callSid
+    for (const [callSid, streamData] of this.activeStreams.entries()) {
+      if (callSid === identifier || streamData.streamSid === identifier) {
+        this.activeStreams.delete(callSid);
+        this.audioBuffers.delete(callSid);
+        this.conversationState.delete(callSid);
+        logger.info(`🧹 Stream limpiado: ${callSid}`);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Generar ID único para stream
+   */
+  generateStreamId() {
+    return `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Heartbeat para mantener conexiones activas
+   */
+  startHeartbeat() {
+    setInterval(() => {
+      this.activeStreams.forEach((streamData, callSid) => {
+        if (!streamData.ws.isAlive) {
+          logger.warn(`💔 Conexión WebSocket muerta: ${callSid}`);
+          streamData.ws.terminate();
+          this.cleanupStream(callSid);
+          return;
+        }
+
+        streamData.ws.isAlive = false;
+        streamData.ws.ping();
+      });
+    }, 30000); // Cada 30 segundos
+  }
+}
+
+module.exports = TwilioStreamHandler;

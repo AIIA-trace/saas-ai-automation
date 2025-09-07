@@ -1,11 +1,13 @@
 const twilio = require('twilio');
-const logger = require('../utils/logger');
-const { processUserMessage } = require('./aiConversationService');
-const azureTTSService = require('./azureTTSService');
+const logger = require('../config/logger');
+const { PrismaClient } = require('@prisma/client');
+const OpenAI = require('openai');
+const StreamingTwiMLService = require('./streamingTwiMLService');
 const openaiWhisperService = require('./openaiWhisperService');
 const { makeTextNatural, getVoiceSettings } = require('./naturalPersonalityService');
-const { PrismaClient } = require('@prisma/client');
+
 const prisma = new PrismaClient();
+const streamingTwiML = new StreamingTwiMLService();
 
 // Cache para respuestas de clientes (evita consultas repetidas)
 const clientCache = new Map();
@@ -95,31 +97,36 @@ class TwilioService {
   /**
    * MÉTODO PRINCIPAL: Generar respuesta completa para llamada entrante
    */
-  async generateCallResponse({ client, callerNumber, callSid }) {
+  async handleIncomingCall(from, to, callSid) {
+    const contextId = `call_${callSid}`;
+    logger.info(`📞 [${contextId}] Llamada entrante de ${from} a ${to}`);
+
     try {
-      logger.info(`🎯 Generando respuesta para ${client.companyName} (${callSid})`);
+      // Buscar cliente por número de teléfono
+      const clientData = await this.getClientByPhoneNumber(to);
       
-      // 1. Obtener datos del cliente (con caché)
-      const clientData = await this.getClientDataCached(client.id);
+      if (!clientData) {
+        logger.warn(`⚠️ [${contextId}] Cliente no encontrado para número ${to}`);
+        return streamingTwiML.createClientNotFoundTwiML();
+      }
+
+      logger.info(`✅ [${contextId}] Cliente encontrado: ${clientData.companyName}`);
       
-      // 2. Verificar horarios comerciales
-      const isOpen = this.checkBusinessHours(clientData.businessHoursConfig);
+      // Verificar horario de atención
+      const isBusinessHours = await this.checkBusinessHours(clientData);
       
-      // 3. Usar saludo configurado por el usuario
-      const greeting = this.generateNaturalGreeting(clientData, isOpen);
-      
-      // 4. Generar audio con Azure TTS
-      const audioUrl = await this.generateAzureAudio(greeting, clientData);
-      
-      // 5. Crear TwiML optimizado
-      const twiml = this.createOptimizedTwiML(audioUrl, greeting, clientData);
-      
-      logger.info(`✅ Respuesta generada para ${client.companyName}: ${greeting.substring(0, 50)}...`);
-      return twiml;
-      
+      if (!isBusinessHours) {
+        logger.info(`🕐 [${contextId}] Fuera de horario de atención`);
+        return this.createOutOfHoursTwiML(clientData);
+      }
+
+      // Crear TwiML Stream para conversación en tiempo real
+      logger.info(`🎵 [${contextId}] Iniciando conversación con Twilio Streams`);
+      return streamingTwiML.createStreamTwiML(clientData);
+
     } catch (error) {
-      logger.error(`❌ Error generando respuesta: ${error.message}`);
-      return this.generateErrorTwiML();
+      logger.error(`❌ [${contextId}] Error manejando llamada: ${error.message}`);
+      return streamingTwiML.createFallbackTwiML({ companyName: 'nuestro servicio' });
     }
   }
 
@@ -179,8 +186,9 @@ class TwilioService {
       // 3. Hacer respuesta natural CON COMPORTAMIENTO HUMANO
       const naturalResponse = this.makeResponseNatural(aiResponseText, clientData, userInput);
       
-      // 3. ✅ CREAR TwiML DIRECTO (sin generar archivos)
-      const twiml = this.createContinuationTwiML(null, naturalResponse, client);
+      // 3. ✅ USAR STREAMING TTS (obsoleto - ya no se usa)
+      logger.warn(`⚠️ [${contextId}] Método obsoleto - usando Twilio Streams`);
+      const twiml = streamingTwiML.createFallbackTwiML(client);
       
       return twiml;
       
@@ -335,7 +343,8 @@ class TwilioService {
       logger.info(`📝 [PROCESS-DEBUG-${processId}] Creando TwiML directo con Azure TTS...`);
       const twimlStart = Date.now();
       
-      const twiml = this.createContinuationTwiML(null, naturalResponse, clientData);
+      logger.warn(`⚠️ [PROCESS-DEBUG-${processId}] Método obsoleto - usando Twilio Streams`);
+      const twiml = streamingTwiML.createFallbackTwiML(clientData);
       
       const twimlTime = Date.now() - twimlStart;
       const totalTime = Date.now() - startTime;
@@ -554,42 +563,11 @@ class TwilioService {
   }
 
   /**
-   * Crear TwiML para continuar la conversación (después de respuesta IA)
+   * OBSOLETO: Crear TwiML para continuar la conversación (reemplazado por Streaming TTS)
    */
   createContinuationTwiML(audioUrl, response, clientData) {
-    const VoiceResponse = twilio.twiml.VoiceResponse;
-    const twiml = new VoiceResponse();
-    
-    // ✅ USAR AZURE TTS DIRECTO CON <Say>
-    const azureVoice = this.validateAndGetVoice(clientData.language || 'es-ES');
-    twiml.say({ 
-      voice: azureVoice, 
-      language: 'es-ES' 
-    }, response);
-    logger.info(`🎵 Usando Azure TTS directo: ${azureVoice}`);
-    
-    // Verificar si debe continuar la conversación
-    if (!this.isEndingConversation(response)) {
-      twiml.record({
-        maxLength: 30,
-        playBeep: false,
-        timeout: 5,
-        finishOnKey: '#',
-        action: '/api/twilio/webhook/audio',
-        method: 'POST'
-      });
-      
-      // Mensaje de timeout si no hay respuesta
-      twiml.say({ 
-        voice: this.validateAndGetVoice(clientData.language || 'es-ES'), 
-        language: 'es-ES' 
-      }, 'Si necesitas algo más, puedes llamarnos en nuestro horario de atención. ¡Hasta pronto!');
-    }
-    
-    // Colgar al final
-    twiml.hangup();
-    
-    return twiml.toString();
+    logger.warn('⚠️ createContinuationTwiML está obsoleto - usar Twilio Streams');
+    return streamingTwiML.createFallbackTwiML(clientData);
   }
 
   /**
@@ -632,42 +610,8 @@ class TwilioService {
   }
 
   /**
-   * Crear TwiML para continuación de conversación
+   * OBSOLETO: Crear TwiML para continuación de conversación (función duplicada eliminada)
    */
-  createContinuationTwiML(audioUrl, response, clientData) {
-    const VoiceResponse = twilio.twiml.VoiceResponse;
-    const twiml = new VoiceResponse();
-    
-    if (audioUrl) {
-      twiml.play(audioUrl);
-    } else {
-      twiml.say({
-        voice: 'Polly.Conchita',
-        language: 'es-ES'
-      }, response);
-    }
-    
-    // Verificar si debe continuar la conversación
-    if (!this.isEndingConversation(response)) {
-      twiml.record({
-        maxLength: 30,
-        playBeep: false,
-        timeout: 5,
-        finishOnKey: '#',
-        action: '/api/twilio/webhook/audio',
-        method: 'POST'
-      });
-      
-      twiml.say({
-        voice: 'Polly.Conchita',
-        language: 'es-ES'
-      }, '¿Hay algo más en lo que pueda ayudarte?');
-    } else {
-      twiml.hangup();
-    }
-    
-    return twiml.toString();
-  }
 
   /**
    * 🎭 APLICAR SOLO SONIDOS DE OFICINA (Las pautas ya están en el contexto de IA)

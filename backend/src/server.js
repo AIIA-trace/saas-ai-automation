@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 const path = require('path');
 const fs = require('fs');
 const logger = require('./utils/logger');
+const WebSocketServer = require('./websocket/websocketServer');
 
 // Rutas importadas
 const { router: authRouter } = require('./routes/auth');
@@ -125,6 +126,17 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
     // Verificar conexión con base de datos
     await prisma.$connect();
     logger.info('Conexión a base de datos exitosa');
+    
+    // Inicializar servidor WebSocket
+    const wsServer = new WebSocketServer(server);
+    const wsInitialized = wsServer.initialize();
+    
+    if (wsInitialized) {
+      wsServer.startAutoCleanup();
+      logger.info('✅ Servidor WebSocket inicializado correctamente');
+    } else {
+      logger.error('❌ Error inicializando servidor WebSocket');
+    }
     
     const host = process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL || 'https://saas-ai-automation.onrender.com' : `http://localhost:${PORT}`;
     logger.info(`Servidor corriendo en ${host}`);

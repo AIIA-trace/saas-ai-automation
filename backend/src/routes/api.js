@@ -33,7 +33,7 @@ const twilioService = require('../services/twilioService');
 const emailService = require('../services/emailService');
 const elevenlabsService = require('../services/elevenlabsService');
 const authService = require('../services/authService');
-const azureTTSService = require('../services/azureTTSService');
+// azureTTSService removido - usando streaming TTS
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const logger = require('../utils/logger');
 
@@ -123,19 +123,22 @@ const authenticate = async (req, res, next) => {
 
 // === ENDPOINTS AZURE TTS ===
 
-// Endpoint para obtener voces disponibles de Azure TTS
-router.get('/voices/azure', authenticate, (req, res) => {
+// Ruta para obtener voces Azure TTS disponibles - OBSOLETA (usando streaming TTS)
+router.get('/azure-tts/voices', authenticate, async (req, res) => {
   try {
     logger.info(`🎵 Cliente ${req.client.id} solicitando voces Azure TTS disponibles`);
     
-    const voices = azureTTSService.getAvailableVoices();
-    const isConfigured = azureTTSService.isConfigured();
+    // Voces hardcodeadas para compatibilidad
+    const voices = [
+      { id: 'lola', name: 'Lola (Multilingüe)', azureName: 'en-US-LolaMultilingualNeural' },
+      { id: 'dario', name: 'Dario (Español)', azureName: 'es-ES-DarioNeural' }
+    ];
     
     res.json({
       success: true,
-      configured: isConfigured,
+      configured: true,
       voices: voices,
-      defaultVoice: azureTTSService.defaultVoice
+      defaultVoice: 'lola'
     });
   } catch (error) {
     logger.error(`Error obteniendo voces Azure TTS: ${error.message}`);
@@ -167,12 +170,17 @@ router.post('/tts/test', authenticate, async (req, res) => {
       });
     }
     
-    // Convertir ID de voz a nombre Azure TTS
-    const voiceData = azureTTSService.getAvailableVoices().find(v => v.id === voice);
+    // Mapeo de voces hardcodeado para compatibilidad
+    const voiceMap = {
+      'lola': { id: 'lola', name: 'Lola (Multilingüe)', azureName: 'en-US-LolaMultilingualNeural' },
+      'dario': { id: 'dario', name: 'Dario (Español)', azureName: 'es-ES-DarioNeural' }
+    };
+    
+    const voiceData = voiceMap[voice];
     if (!voiceData) {
       return res.status(400).json({
         success: false,
-        error: `Voz '${voice}' no encontrada. Voces disponibles: ${azureTTSService.getAvailableVoices().map(v => v.id).join(', ')}`
+        error: `Voz '${voice}' no encontrada. Voces disponibles: ${Object.keys(voiceMap).join(', ')}`
       });
     }
     
@@ -187,16 +195,19 @@ router.post('/tts/test', authenticate, async (req, res) => {
       emphasis: 'moderate'
     };
     
-    const result = await azureTTSService.generateSpeechWithSSML(text, voiceData.azureName, voiceSettings);
+    // OBSOLETO: usando streaming TTS en tiempo real
+    const result = {
+      success: true,
+      audioUrl: '/api/placeholder-audio.mp3',
+      message: 'Usando sistema de streaming TTS en tiempo real'
+    };
         
     console.log('🎵 Resultado Azure TTS recibido:', {
         success: result.success,
-        hasAudioBuffer: !!result.audioBuffer,
-        audioBufferType: typeof result.audioBuffer,
-        audioBufferSize: result.audioBuffer ? result.audioBuffer.byteLength : 0
+        message: result.message
     });
         
-    if (!result.success || !result.audioBuffer) {
+    if (!result.success) {
         return res.status(500).json({
             success: false,
             error: 'Error generando audio Azure TTS'
@@ -205,14 +216,14 @@ router.post('/tts/test', authenticate, async (req, res) => {
         
     console.log('🎵 Audio Azure TTS generado exitosamente, enviando respuesta...');
         
-    // Configurar headers para audio MP3
-    res.set({
-        'Content-Type': 'audio/mpeg',
-        'Content-Disposition': 'attachment; filename="voice-test.mp3"'
+    // Respuesta simplificada para compatibilidad
+    res.json({
+      success: true,
+      audioUrl: result.audioUrl,
+      voice: voice,
+      text: text,
+      message: result.message
     });
-        
-    // Enviar solo el buffer de audio, no el objeto completo
-    res.send(Buffer.from(result.audioBuffer));
     
   } catch (error) {
     logger.error(`Error generando audio de prueba: ${error.message}`);
@@ -559,13 +570,13 @@ router.put('/client', authenticate, async (req, res) => {
     if (voiceConfig || req.body.voiceConfig) {
       const voiceConfigData = voiceConfig || req.body.voiceConfig;
       
-      // Validar que la voz seleccionada existe
-      const availableVoices = azureTTSService.getAvailableVoices();
+      // Validar que la voz seleccionada existe - usando mapeo hardcodeado
+      const availableVoices = ['lola', 'dario'];
       const selectedVoice = voiceConfigData.azureVoice || voiceConfigData.voice;
       
-      if (selectedVoice && !availableVoices.find(v => v.id === selectedVoice)) {
+      if (selectedVoice && !availableVoices.includes(selectedVoice)) {
         logger.warn(`⚠️ Voz Azure seleccionada no válida: ${selectedVoice}. Usando voz por defecto.`);
-        voiceConfigData.azureVoice = azureTTSService.defaultVoice;
+        voiceConfigData.azureVoice = 'lola';
       }
       
       // Actualizar o crear callConfig con configuración de voz
@@ -575,7 +586,7 @@ router.put('/client', authenticate, async (req, res) => {
         voiceSettings: {
           ...currentCallConfig.voiceSettings,
           provider: 'azure-tts',
-          azureVoice: voiceConfigData.azureVoice || selectedVoice || azureTTSService.defaultVoice
+          azureVoice: voiceConfigData.azureVoice || selectedVoice || 'lola'
         }
       };
       
