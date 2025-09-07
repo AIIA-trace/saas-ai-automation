@@ -153,11 +153,155 @@ class AzureTTSService {
     }
   }
 
+  // Añadir naturalidad universal al texto (funciona para Lola y Daría)
+  addUniversalNaturalness(text) {
+    let naturalText = text;
+    
+    // 🎭 PAUSAS NATURALES UNIVERSALES
+    naturalText = naturalText
+      // Pausas después de saludos
+      .replace(/^(hola|buenas|buenos días|buenas tardes)/gi, '$1<break time="300ms"/>')
+      // Pausas antes de preguntas
+      .replace(/(\?)/g, '<break time="200ms"/>$1')
+      // Pausas después de comas (respiración natural)
+      .replace(/(,)/g, '$1<break time="150ms"/>')
+      // Pausas en transiciones
+      .replace(/\b(entonces|bueno|pues|vale)\b/gi, '<break time="200ms"/>$1<break time="150ms"/>');
+    
+    // 🎵 VARIACIONES DE VELOCIDAD UNIVERSALES
+    naturalText = naturalText
+      // Nombre de empresa más lento (énfasis)
+      .replace(/\b([A-Z][a-záéíóúñ]+\s+[A-Z][a-záéíóúñ]+)\b/g, '<prosody rate="slow"><emphasis level="moderate">$1</emphasis></prosody>')
+      // Números de teléfono más lentos
+      .replace(/\b(\d{3}[\s-]?\d{3}[\s-]?\d{3})\b/g, '<prosody rate="slow">$1</prosody>')
+      // Palabras importantes con énfasis
+      .replace(/\b(importante|urgente|necesario|ayuda)\b/gi, '<emphasis level="strong">$1</emphasis>');
+    
+    // 🎪 MULETILLAS NATURALES UNIVERSALES (ocasionales)
+    if (Math.random() < 0.3) { // 30% de probabilidad
+      const muletillas = ['eee', 'mmm', 'pues'];
+      const muletilla = muletillas[Math.floor(Math.random() * muletillas.length)];
+      naturalText = `<break time="200ms"/>${muletilla}<break time="150ms"/> ${naturalText}`;
+    }
+    
+    // 🎯 ALARGAMIENTO OCASIONAL DE PALABRAS (universal)
+    if (Math.random() < 0.2) { // 20% de probabilidad
+      naturalText = naturalText
+        .replace(/\bvale\b/gi, 'vaaale')
+        .replace(/\bbueno\b/gi, 'bueeeno')
+        .replace(/\bsí\b/gi, 'sííí');
+    }
+    
+    // 🔄 PAUSAS DE CONSULTA UNIVERSALES
+    naturalText = naturalText
+      .replace(/\b(déjame ver|un momento|espera)\b/gi, '<break time="250ms"/>$1<break time="400ms"/>')
+      .replace(/\b(consultando|revisando|mirando)\b/gi, '<break time="200ms"/>$1<break time="300ms"/>');
+    
+    return naturalText;
+  }
+
+  // Generar audio con SSML para configuración avanzada de voz
+  async generateSpeechWithSSML(text, voiceId = null, outputPath = null, voiceSettings = null) {
+    try {
+      const voice = this.getVoiceById(voiceId || this.defaultVoice);
+      logger.info(`🎵 Generando audio Azure TTS con SSML - Voz: ${voice.name}`);
+      
+      // Configuración por defecto si no se proporciona
+      const settings = {
+        rate: voiceSettings?.rate || 'medium',           // slow, medium, fast, +20%, -10%
+        pitch: voiceSettings?.pitch || 'medium',         // low, medium, high, +2st, -50Hz
+        volume: voiceSettings?.volume || 'medium',       // silent, x-soft, soft, medium, loud, x-loud
+        style: voiceSettings?.style || 'friendly',       // cheerful, sad, angry, excited, friendly, etc.
+        emphasis: voiceSettings?.emphasis || 'moderate'   // strong, moderate, reduced
+      };
+      
+      logger.info(`🎵 Configuración SSML: ${JSON.stringify(settings)}`);
+      
+      // Añadir naturalidad universal al texto (funciona para Lola y Daría)
+      const naturalText = this.addUniversalNaturalness(text);
+      logger.info(`🎭 Texto con naturalidad aplicada: ${naturalText.substring(0, 100)}...`);
+      
+      // Crear SSML con configuración avanzada
+      const ssml = `
+        <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" 
+               xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${voice.locale}">
+          <voice name="${voice.name}">
+            <mstts:express-as style="${settings.style}">
+              <prosody rate="${settings.rate}" pitch="${settings.pitch}" volume="${settings.volume}">
+                ${naturalText}
+              </prosody>
+            </mstts:express-as>
+          </voice>
+        </speak>
+      `;
+      
+      logger.info(`🎵 SSML generado: ${ssml.substring(0, 200)}...`);
+      
+      // Configurar Azure Speech SDK
+      const speechConfig = sdk.SpeechConfig.fromSubscription(
+        process.env.AZURE_SPEECH_KEY,
+        process.env.AZURE_SPEECH_REGION
+      );
+      
+      let audioConfig;
+      if (outputPath) {
+        const outputDir = path.dirname(outputPath);
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+        audioConfig = sdk.AudioConfig.fromAudioFileOutput(outputPath);
+      } else {
+        audioConfig = sdk.AudioConfig.fromDefaultSpeakerOutput();
+      }
+      
+      const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
+      
+      return new Promise((resolve, reject) => {
+        synthesizer.speakSsmlAsync(
+          ssml,
+          (result) => {
+            if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+              logger.info(`🎵 Audio Azure con SSML generado exitosamente`);
+              
+              if (outputPath && fs.existsSync(outputPath)) {
+                const stats = fs.statSync(outputPath);
+                logger.info(`🎵 Audio guardado: ${outputPath} (${stats.size} bytes)`);
+              }
+              
+              resolve({
+                success: true,
+                outputPath,
+                audioBuffer: result.audioData,
+                voiceSettings: settings
+              });
+            } else {
+              logger.error(`❌ Error en síntesis SSML: ${result.reason}`);
+              reject(new Error(`Error en síntesis SSML: ${result.reason}`));
+            }
+            synthesizer.close();
+          },
+          (error) => {
+            logger.error(`❌ Error SSML Azure TTS: ${error}`);
+            synthesizer.close();
+            reject(error);
+          }
+        );
+      });
+    } catch (error) {
+      logger.error(`❌ Error generando audio SSML Azure TTS: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
   // Generar audio para una respuesta del bot de llamadas
-  async generateBotResponse(responseText, voiceId = null) {
+  async generateBotResponse(responseText, voiceId = null, voiceSettings = null) {
     try {
       logger.info(`🔍 DEBUG Azure TTS - generateBotResponse iniciado con texto: "${responseText.substring(0, 50)}..."`);  
       logger.info(`🔍 DEBUG Azure TTS - voz recibida: ${voiceId || this.defaultVoice}`);
+      logger.info(`🔍 DEBUG Azure TTS - configuración de voz: ${JSON.stringify(voiceSettings)}`);
       
       // Crear nombre de archivo único
       const timestamp = Date.now();
@@ -172,8 +316,8 @@ class AzureTTSService {
       
       logger.info(`🔍 DEBUG Azure TTS - Llamando a generateSpeech con outputPath: ${outputPath}`);
       
-      // Generar el audio
-      const result = await this.generateSpeech(responseText, voiceId, outputPath);
+      // Generar el audio con configuración de voz
+      const result = await this.generateSpeechWithSSML(responseText, voiceId, outputPath, voiceSettings);
       
       logger.info(`🔍 DEBUG Azure TTS - generateSpeech completado, result.success: ${result?.success}`);
       

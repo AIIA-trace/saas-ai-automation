@@ -105,7 +105,7 @@ class TwilioService {
       // 2. Verificar horarios comerciales
       const isOpen = this.checkBusinessHours(clientData.businessHoursConfig);
       
-      // 3. Generar saludo personalizado
+      // 3. Usar saludo configurado por el usuario
       const greeting = this.generateNaturalGreeting(clientData, isOpen);
       
       // 4. Generar audio con Azure TTS
@@ -448,30 +448,19 @@ class TwilioService {
    * 🎭 Generar saludo ULTRA-REALISTA usando datos de la base de datos
    */
   generateNaturalGreeting(clientData, isOpen) {
-    let greeting;
-    
-    // 🎯 USAR EL welcomeMessage CONFIGURADO EN LA BD
+    // 🎯 USAR EL welcomeMessage CONFIGURADO POR EL USUARIO
     if (clientData.welcomeMessage) {
-      logger.info(`🎭 Usando mensaje de bienvenida configurado: ${clientData.welcomeMessage}`);
-      greeting = clientData.welcomeMessage;
-    } else {
-      // 🔄 FALLBACK: Generar saludo básico SIN frases hardcodeadas
-      logger.warn(`⚠️ Cliente ${clientData.companyName} no tiene welcomeMessage configurado. Generando fallback simple.`);
-      
-      // Saludo simple sin muletillas hardcodeadas (la IA las añadirá según las pautas)
-      greeting = `Hola, has llamado a ${clientData.companyName}. Soy tu asistente.`;
-      
-      if (isOpen) {
-        greeting += ` ¿En qué puedo ayudarte?`;
-      } else {
-        greeting += " Ahora mismo estamos cerrados. ¿Quieres dejar algún mensaje?";
-      }
+      logger.info(`🎭 Usando mensaje de bienvenida del usuario: ${clientData.welcomeMessage}`);
+      return clientData.welcomeMessage;
     }
     
-    // 🎵 APLICAR SOLO SONIDOS DE OFICINA (las pautas van a la IA)
-    greeting = this.makeResponseNatural(greeting, clientData);
+    // 🔄 FALLBACK: Solo si el usuario no tiene welcomeMessage configurado
+    logger.warn(`⚠️ Cliente ${clientData.companyName} no tiene welcomeMessage configurado. Generando fallback básico.`);
     
-    return greeting;
+    const fallbackGreeting = `Hola, has llamado a ${clientData.companyName}. ${isOpen ? '¿En qué puedo ayudarte?' : 'Ahora mismo estamos cerrados. ¿Quieres dejar algún mensaje?'}`;
+    
+    logger.info(`🔄 Usando saludo fallback: "${fallbackGreeting}"`);
+    return fallbackGreeting;
   }
 
   /**
@@ -491,8 +480,22 @@ class TwilioService {
       const language = clientData.language || 'es-ES';
       const azureVoice = this.getAzureVoiceForLanguage(language);
       
+      // Obtener voz personalizada del usuario o usar la detectada por idioma
+      const userVoice = clientData.botConfig?.voiceSettings?.azureVoice || azureVoice || 'lola';
+      
+      // Obtener configuración avanzada de voz del usuario
+      const voiceSettings = {
+        rate: clientData.botConfig?.voiceSettings?.rate || 'medium',           // Velocidad de habla
+        pitch: clientData.botConfig?.voiceSettings?.pitch || 'medium',         // Tono de voz
+        volume: clientData.botConfig?.voiceSettings?.volume || 'medium',       // Volumen
+        style: clientData.botConfig?.voiceSettings?.style || 'friendly',       // Estilo emocional
+        emphasis: clientData.botConfig?.voiceSettings?.emphasis || 'moderate'   // Énfasis
+      };
+      
       logger.info(`🎵 [TTS-DEBUG-${ttsId}] Idioma detectado: ${language}`);
       logger.info(`🎵 [TTS-DEBUG-${ttsId}] Voz Azure seleccionada: ${azureVoice}`);
+      logger.info(`🎵 [TTS-DEBUG-${ttsId}] Voz final del usuario: ${userVoice}`);
+      logger.info(`🎵 [TTS-DEBUG-${ttsId}] Configuración de voz: ${JSON.stringify(voiceSettings)}`);
       
       // Verificar que Azure TTS esté disponible
       if (!azureTTSService) {
@@ -500,10 +503,10 @@ class TwilioService {
         return null;
       }
       
-      logger.info(`🔄 [TTS-DEBUG-${ttsId}] Enviando a Azure TTS...`);
+      logger.info(`🔄 [TTS-DEBUG-${ttsId}] Enviando a Azure TTS con SSML...`);
       const azureStart = Date.now();
       
-      const result = await azureTTSService.generateBotResponse(text, 'lola');
+      const result = await azureTTSService.generateBotResponse(text, userVoice, voiceSettings);
       const audioUrl = result.success ? result.audioUrl : null;
       
       const azureTime = Date.now() - azureStart;

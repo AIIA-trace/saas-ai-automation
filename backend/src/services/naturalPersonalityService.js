@@ -331,6 +331,30 @@ function stretchRandomWords(text) {
  * Generar prompt del sistema para la IA
  */
 function generateSystemPrompt(clientData) {
+    // 🎯 USAR INSTRUCCIONES DE SPEECH PERSONALIZADAS DEL USUARIO
+    if (clientData.botConfig?.speechInstructions) {
+        console.log(`🎭 Usando instrucciones de speech personalizadas para ${clientData.companyName}`);
+        
+        // Combinar instrucciones personalizadas con información empresarial
+        return `${clientData.botConfig.speechInstructions}
+
+INFORMACIÓN DE LA EMPRESA:
+${clientData.contextInfo || 'Información no disponible'}
+
+HORARIOS: ${clientData.businessHours || 'Consultar disponibilidad'}
+
+CONTEXTO ADICIONAL:
+- Empresa: ${clientData.companyName || 'la empresa'}
+- Descripción: ${clientData.companyDescription || 'No especificada'}
+- Teléfono: ${clientData.phone || 'No especificado'}
+- Website: ${clientData.website || 'No especificado'}
+
+Mantén siempre el tono y estilo definido en las instrucciones de speech.`;
+    }
+    
+    // 🔄 FALLBACK: Usar prompt genérico si no hay instrucciones personalizadas
+    console.log(`⚠️ Cliente ${clientData.companyName} no tiene instrucciones de speech personalizadas. Usando prompt genérico.`);
+    
     return `Eres un asistente telefónico humano muy natural y profesional de ${clientData.companyName || 'la empresa'}. 
 
 PERSONALIDAD:
