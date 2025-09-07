@@ -12,14 +12,16 @@ class AzureTTSService {
     this.availableVoices = [
       {
         id: 'lola',
-        name: 'Lola (Femenina Multilingüe)',
-        azureName: 'en-US-LolaMultilingualNeural',
-        description: 'Voz femenina multilingüe que habla español con naturalidad'
+        name: 'es-ES-LolaNeural',
+        azureName: 'es-ES-LolaNeural',
+        locale: 'es-ES',
+        description: 'Voz femenina española natural'
       },
       {
         id: 'dario',
-        name: 'Dario (Masculino España)', 
+        name: 'es-ES-DarioNeural', 
         azureName: 'es-ES-DarioNeural',
+        locale: 'es-ES',
         description: 'Voz masculina española con ceceo natural'
       }
     ];
