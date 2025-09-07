@@ -21,24 +21,21 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Configurar nueva conexión WebSocket
+   * Manejar conexión WebSocket
    */
   handleConnection(ws, req) {
     const streamId = this.generateStreamId();
-    ws.streamId = streamId;
     
-    logger.info(`🔌 Nueva conexión WebSocket: ${streamId}`);
-    logger.info(`🔍 URL completa: ${req.url}`);
-    logger.info(`🔍 Headers: ${JSON.stringify(req.headers, null, 2)}`);
-
-    // Los parámetros de Twilio Stream se envían en los eventos, no en la URL
-    // Inicializar como null hasta que lleguen en los eventos
+    logger.info(`🔌 NUEVA CONEXIÓN TWILIO STREAM: ${streamId}`);
+    logger.info(`🔍 Request URL: ${req.url}`);
+    logger.info(`🔍 Request Headers: ${JSON.stringify(req.headers)}`);
+    
+    // Configurar WebSocket
+    ws.streamId = streamId;
     ws.callSid = null;
     ws.clientId = null;
     ws.companyName = null;
     ws.language = null;
-    
-    ws.streamId = streamId;
     ws.isAlive = true;
 
     // Heartbeat para mantener conexión
@@ -49,10 +46,13 @@ class TwilioStreamHandler {
     // Manejar mensajes de Twilio
     ws.on('message', async (message) => {
       try {
+        logger.info(`📨 MENSAJE WEBSOCKET RECIBIDO en ${streamId}: ${message.toString().substring(0, 200)}...`);
         const data = JSON.parse(message);
+        logger.info(`📨 DATOS PARSEADOS: ${JSON.stringify(data, null, 2)}`);
         await this.handleTwilioMessage(ws, data);
       } catch (error) {
         logger.error(`❌ Error procesando mensaje WebSocket: ${error.message}`);
+        logger.error(`❌ Mensaje problemático: ${message.toString()}`);
       }
     });
 

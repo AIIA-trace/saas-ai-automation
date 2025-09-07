@@ -91,8 +91,15 @@ class WebSocketServer {
   handleNewConnection(ws, req) {
     const connectionId = this.generateConnectionId();
     const clientIP = req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'] || 'No User-Agent';
+    const origin = req.headers['origin'] || 'No Origin';
     
-    logger.info(`🔌 Nueva conexión WebSocket: ${connectionId} desde ${clientIP}`);
+    logger.info(`🔌 NUEVA CONEXIÓN WEBSOCKET: ${connectionId}`);
+    logger.info(`   - IP: ${clientIP}`);
+    logger.info(`   - User-Agent: ${userAgent}`);
+    logger.info(`   - Origin: ${origin}`);
+    logger.info(`   - URL: ${req.url}`);
+    logger.info(`   - Headers: ${JSON.stringify(req.headers)}`);
 
     // Almacenar conexión
     this.activeConnections.set(connectionId, {
@@ -107,6 +114,7 @@ class WebSocketServer {
     ws.isAlive = true;
 
     // Delegar manejo a TwilioStreamHandler
+    logger.info(`🔄 Delegando conexión ${connectionId} a TwilioStreamHandler`);
     this.streamHandler.handleConnection(ws, req);
 
     // Manejar cierre de conexión
