@@ -103,13 +103,22 @@ class TwilioService {
 
     try {
       // Buscar cliente por número de teléfono
-      const clientData = await this.getClientByPhoneNumber(to);
+      const twilioNumberRecord = await prisma.twilioNumber.findFirst({
+        where: {
+          phoneNumber: to,
+          status: 'active'
+        },
+        include: {
+          client: true
+        }
+      });
       
-      if (!clientData) {
+      if (!twilioNumberRecord || !twilioNumberRecord.client) {
         logger.warn(`⚠️ [${contextId}] Cliente no encontrado para número ${to}`);
         return streamingTwiML.createClientNotFoundTwiML();
       }
 
+      const clientData = twilioNumberRecord.client;
       logger.info(`✅ [${contextId}] Cliente encontrado: ${clientData.companyName}`);
       
       // Verificar horario de atención
