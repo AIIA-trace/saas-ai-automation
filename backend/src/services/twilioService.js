@@ -503,13 +503,8 @@ class TwilioService {
       logger.info(`🔄 [TTS-DEBUG-${ttsId}] Enviando a Azure TTS...`);
       const azureStart = Date.now();
       
-      const audioUrl = await azureTTSService.generateSpeech(text, {
-        voice: azureVoice,
-        language: language,
-        rate: '0.95',
-        pitch: '0',
-        volume: '0'
-      });
+      const result = await azureTTSService.generateBotResponse(text, 'lola');
+      const audioUrl = result.success ? result.audioUrl : null;
       
       const azureTime = Date.now() - azureStart;
       const totalTime = Date.now() - startTime;
@@ -814,30 +809,12 @@ class TwilioService {
   
   /**
    * 🎵 Añadir sonidos de fondo de oficina realistas
+   * NOTA: Los sonidos están desactivados para evitar que se narren
    */
   addBackgroundSounds(response, language) {
-    const { officeAmbient } = this.globalPersonality.backgroundSounds;
-    
-    // Probabilidad de añadir sonido de fondo
-    if (Math.random() > officeAmbient.probability) {
-      return response;
-    }
-    
-    // Seleccionar tipo de sonido aleatorio
-    const soundTypes = ['keyboardTyping', 'paperSounds', 'chairSounds'];
-    const randomType = soundTypes[Math.floor(Math.random() * soundTypes.length)];
-    const sounds = officeAmbient[randomType];
-    const selectedSound = sounds[Math.floor(Math.random() * sounds.length)];
-    
-    // Posición aleatoria en la respuesta
-    const words = response.split(' ');
-    const insertPosition = Math.floor(Math.random() * words.length);
-    
-    words.splice(insertPosition, 0, selectedSound);
-    
-    logger.info(`🎵 Sonido de fondo añadido: ${selectedSound}`);
-    
-    return words.join(' ');
+    // DESACTIVADO: Los sonidos de oficina se estaban narrando en lugar de aplicarse como efectos
+    // TODO: Implementar efectos de audio reales en lugar de texto
+    return response;
   }
   
   /**

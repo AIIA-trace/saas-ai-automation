@@ -220,4 +220,4 @@ class AzureTTSService {
   }
 }
 
-module.exports = AzureTTSService;
+module.exports = new AzureTTSService();
