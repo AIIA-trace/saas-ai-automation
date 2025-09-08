@@ -107,7 +107,7 @@ class TwilioStreamHandler {
     const callSid = data.start?.callSid;
     const customParameters = data.start?.customParameters || {};
     const clientId = customParameters.clientId;
-    
+
     if (!streamSid) {
       logger.error('❌ No streamSid found in start event');
       return;
@@ -116,10 +116,12 @@ class TwilioStreamHandler {
     logger.info(`🎤 Stream starting: ${streamSid} for call ${callSid}, clientId: ${clientId}`);
 
     try {
-      // Find client in database
-      let client = null;
+      logger.info('🔍 PASO 1: Iniciando búsqueda de cliente...');
       
+      // Buscar cliente en base de datos
+      let client = null;
       if (clientId) {
+        logger.info(`🔍 PASO 2: Buscando cliente con ID: ${clientId}`);
         client = await prisma.client.findUnique({
           where: { id: parseInt(clientId) },
           include: {
@@ -127,6 +129,7 @@ class TwilioStreamHandler {
             callConfig: true
           }
         });
+        logger.info(`🔍 PASO 3: Cliente encontrado: ${client ? 'SÍ' : 'NO'}`);
       }
 
       if (!client) {
@@ -135,8 +138,9 @@ class TwilioStreamHandler {
       }
 
       logger.info(`✅ Client found: ${client.companyName} (ID: ${client.id})`);
+      logger.info('🔍 PASO 4: Creando streamData...');
 
-      // Store stream data
+      // Crear datos del stream
       const streamData = {
         streamSid,
         ws,
@@ -149,6 +153,9 @@ class TwilioStreamHandler {
         isSendingTTS: false
       };
 
+      logger.info('🔍 PASO 5: Registrando stream en activeStreams...');
+      
+      // Registrar stream
       this.activeStreams.set(streamSid, streamData);
       this.audioBuffers.set(streamSid, []);
       this.conversationState.set(streamSid, []);
@@ -157,8 +164,12 @@ class TwilioStreamHandler {
       logger.info(`📊 Active streams: ${this.activeStreams.size}`);
       logger.info(`🗂️ Stream IDs: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
 
-      // Send initial greeting
+      logger.info('🔍 PASO 6: Enviando saludo inicial...');
+      
+      // Enviar saludo inicial
       await this.sendInitialGreeting(ws, { streamSid, callSid });
+      
+      logger.info('🔍 PASO 7: ✅ handleStreamStart COMPLETADO EXITOSAMENTE');
 
     } catch (error) {
       logger.error(`❌ Error in handleStreamStart: ${error.message}`);
