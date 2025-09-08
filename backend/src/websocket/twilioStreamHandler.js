@@ -176,7 +176,7 @@ class TwilioStreamHandler {
           });
 
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('DB Query timeout after 3 seconds')), 3000);
+            setTimeout(() => reject(new Error('DB Query timeout after 1 second')), 1000);
           });
 
           client = await Promise.race([queryPromise, timeoutPromise]);
