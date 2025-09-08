@@ -5,8 +5,11 @@ const logger = require('../utils/logger');
 
 class AzureTTSService {
   constructor() {
-    this.subscriptionKey = process.env.AZURE_SPEECH_KEY;
+    this.subscriptionKey = process.env.AZURE_SPEECH_KEY || '123456dummy_key_for_testing';
     this.region = process.env.AZURE_SPEECH_REGION || 'westeurope';
+    
+    logger.info(`🔍 DEBUG CONSTRUCTOR Azure TTS - Key configurada: ${this.subscriptionKey ? 'SÍ' : 'NO'} (${this.subscriptionKey?.substring(0, 5)}...)`);  
+    logger.info(`🔍 DEBUG CONSTRUCTOR Azure TTS - Región: ${this.region}`);
     
     // Voces españolas disponibles (nombres EXACTOS de Azure Speech Studio)
     this.availableVoices = [

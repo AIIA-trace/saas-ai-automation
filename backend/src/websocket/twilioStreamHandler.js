@@ -293,16 +293,17 @@ class TwilioStreamHandler {
 
       // Generar audio con Azure TTS
       logger.info('🎵 PASO 5: Llamando a TTS generateSpeech...');
-      const audioBuffer = await this.ttsService.generateSpeech(greeting);
-      logger.info(`🎵 PASO 6: TTS completado, buffer: ${audioBuffer ? 'SÍ' : 'NO'}`);
+      const ttsResult = await this.ttsService.generateSpeech(greeting);
+      logger.info(`🎵 PASO 6: TTS completado, resultado: ${JSON.stringify({success: ttsResult?.success, hasBuffer: !!ttsResult?.audioBuffer})}`);
       
-      if (audioBuffer) {
+      if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
         // Enviar audio a Twilio
         logger.info('🎵 PASO 7: Enviando audio a Twilio...');
-        await this.sendAudioToTwilio(ws, audioBuffer, streamSid);
+        await this.sendAudioToTwilio(ws, ttsResult.audioBuffer, streamSid);
         logger.info(`✅ PASO 8: Saludo inicial enviado correctamente`);
       } else {
         logger.error(`❌ No se pudo generar audio para el saludo`);
+        logger.error(`❌ TTS Result: ${JSON.stringify(ttsResult)}`);
       }
 
     } catch (error) {
@@ -385,10 +386,10 @@ class TwilioStreamHandler {
       const response = "Entiendo. ¿Puedes darme más detalles?";
       
       // Generar respuesta de audio
-      const responseAudio = await this.ttsService.generateSpeech(response);
+      const ttsResult = await this.ttsService.generateSpeech(response);
       
-      if (responseAudio) {
-        await this.sendAudioToTwilio(streamData.ws, responseAudio, streamSid);
+      if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
+        await this.sendAudioToTwilio(streamData.ws, ttsResult.audioBuffer, streamSid);
       }
 
     } catch (error) {
