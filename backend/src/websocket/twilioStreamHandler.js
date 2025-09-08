@@ -150,7 +150,25 @@ class TwilioStreamHandler {
         logger.info(`🔍 PASO 2: Buscando cliente con ID: ${clientId}`);
         client = await prisma.client.findUnique({
           where: { id: parseInt(clientId) },
-          include: { twilioNumbers: true, callConfig: true }
+          select: {
+            id: true,
+            companyName: true,
+            companyDescription: true,
+            contactName: true,
+            botName: true,
+            botPersonality: true,
+            welcomeMessage: true,
+            callConfig: true,
+            twilioNumbers: {
+              select: {
+                id: true,
+                phoneNumber: true,
+                twilioSid: true,
+                friendlyName: true,
+                status: true
+              }
+            }
+          }
         });
         logger.info(`🔍 PASO 3: Cliente encontrado: ${client ? 'SÍ' : 'NO'}`);
         if (client) {
