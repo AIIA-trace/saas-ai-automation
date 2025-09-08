@@ -379,6 +379,18 @@ class TwilioStreamHandler {
       }
     }
   }
+
+  /**
+   * Iniciar heartbeat para mantener conexiones activas
+   */
+  startHeartbeat() {
+    // Limpiar streams inactivos cada 2 minutos
+    setInterval(() => {
+      this.cleanupInactiveStreams();
+    }, 2 * 60 * 1000);
+
+    logger.info('💓 Heartbeat iniciado para limpieza de streams inactivos');
+  }
 }
 
 module.exports = TwilioStreamHandler;
