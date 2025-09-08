@@ -162,7 +162,9 @@ class TwilioStreamHandler {
       let client = null;
       if (clientId) {
         logger.info(`🔍 PASO 2: Buscando cliente con ID: ${clientId}`);
-        client = await prisma.client.findUnique({
+        
+        // Consulta simplificada con timeout
+        const queryPromise = prisma.client.findUnique({
           where: { id: parseInt(clientId) },
           select: {
             id: true,
@@ -172,21 +174,25 @@ class TwilioStreamHandler {
             botName: true,
             botPersonality: true,
             welcomeMessage: true,
-            callConfig: true,
-            twilioNumbers: {
-              select: {
-                id: true,
-                phoneNumber: true,
-                twilioSid: true,
-                friendlyName: true,
-                status: true
-              }
-            }
+            callConfig: true
+            // Removemos twilioNumbers temporalmente para diagnosticar
           }
         });
-        logger.info(`🔍 PASO 3: Cliente encontrado: ${client ? 'SÍ' : 'NO'}`);
-        if (client) {
-          logger.info(`🔍 PASO 3b: Cliente: ${client.companyName}, callConfig: ${client.callConfig ? 'SÍ' : 'NO'}`);
+
+        // Timeout de 5 segundos
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('DB Query timeout after 5 seconds')), 5000);
+        });
+
+        try {
+          client = await Promise.race([queryPromise, timeoutPromise]);
+          logger.info(`🔍 PASO 3: Cliente encontrado: ${client ? 'SÍ' : 'NO'}`);
+          if (client) {
+            logger.info(`🔍 PASO 3b: Cliente: ${client.companyName}, callConfig: ${client.callConfig ? 'SÍ' : 'NO'}`);
+          }
+        } catch (error) {
+          logger.error(`❌ Error en consulta DB: ${error.message}`);
+          throw error;
         }
       }
 
@@ -345,7 +351,7 @@ class TwilioStreamHandler {
       const response = "Entiendo. ¿Puedes darme más detalles?";
       
       // Generar respuesta de audio
-      const responseAudio = await this.ttsService.synthesizeSpeech(response);
+      const responseAudio = await this.ttsService.generateSpeech(response);
       
       if (responseAudio) {
         await this.sendAudioToTwilio(streamData.ws, responseAudio, streamSid);
