@@ -48,8 +48,8 @@ class AzureTTSService {
     // Configurar idioma español
     speechConfig.speechSynthesisLanguage = "es-ES";
     
-    // Configurar formato de salida (igual que en ejemplos oficiales)
-    speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+    // Configurar formato de salida para Twilio (μ-law 8kHz mono)
+    speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Raw8Khz8BitMonoMULaw;
     
     logger.info(`🔍 DEBUG Azure TTS - SpeechConfig creado correctamente con fromSubscription`);
     
