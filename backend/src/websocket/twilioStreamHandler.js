@@ -261,7 +261,7 @@ class TwilioStreamHandler {
       logger.info(`🎵 Enviando saludo inicial: "${greeting}"`);
 
       // Generar audio con Azure TTS
-      const audioBuffer = await this.ttsService.synthesizeSpeech(greeting);
+      const audioBuffer = await this.ttsService.generateSpeech(greeting);
       
       if (audioBuffer) {
         // Enviar audio a Twilio
