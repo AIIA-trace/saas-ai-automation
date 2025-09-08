@@ -1,7 +1,7 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const OpenAI = require('openai');
-const { AzureTTSService } = require('../services/azureTTSService');
+const azureTTSService = require('../services/azureTTSService');
 
 const prisma = new PrismaClient();
 
@@ -13,7 +13,7 @@ class TwilioStreamHandler {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
-    this.ttsService = new AzureTTSService();
+    this.ttsService = azureTTSService;
   }
 
   /**
