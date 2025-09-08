@@ -1,4 +1,4 @@
-DEPLOY TRIGGER - 2025-08-07 22:29
+Deploy trigger - 2024-12-19 19:26:08 - Stream registration debugging29
 DEPLOY_TRIGGER=2025-01-11_20-49-17_password_fix
 Fix businessHoursConfig aplicado y listo para producción
 Commit: 64fba65

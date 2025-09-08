@@ -127,46 +127,46 @@ class TwilioStreamHandler {
    * Stream iniciado - configurar cliente
    */
   async handleStreamStart(ws, data) {
-    const { streamSid } = data;
-    
-    // Debug: log completo del evento start para verificar estructura
-    logger.info(`🔍 Evento start completo:`, JSON.stringify(data, null, 2));
-    logger.info(`🔍 data.start:`, JSON.stringify(data.start, null, 2));
-    logger.info(`🔍 Todas las keys en data:`, Object.keys(data));
-    logger.info(`🔍 StreamSid extraído: "${streamSid}"`);
-    
-    // Verificar que tenemos un streamSid válido
-    if (!streamSid) {
-      logger.error(`❌ No se pudo extraer streamSid del evento start`);
-      return;
-    }
-    
-    // Intentar múltiples formas de extraer los datos
-    const startData = data.start || data;
-    const twilioNumber = startData.to || data.to;
-    const callerNumber = startData.from || data.from;
-    const customParameters = startData.customParameters || data.customParameters;
-    
-    // Extraer clientId de los parámetros personalizados
-    let clientId = null;
-    if (customParameters) {
-      // Los parámetros pueden venir como objeto o array
-      if (Array.isArray(customParameters)) {
-        const clientIdParam = customParameters.find(p => p.name === 'clientId');
-        clientId = clientIdParam ? clientIdParam.value : null;
-      } else if (customParameters.clientId) {
-        clientId = customParameters.clientId;
-      }
-    }
-    
-    // Obtener CallSid desde parámetros personalizados o desde data
-    const callSid = customParameters?.callSid || data.callSid || streamSid;
-
-    logger.info(`🎤 Stream iniciado: ${streamSid} para llamada ${callSid}`);
-    logger.info(`📞 ${callerNumber || 'undefined'} → ${twilioNumber || 'undefined'}`);
-    logger.info(`🆔 ClientId extraído: ${clientId}`);
-
     try {
+      const { streamSid } = data;
+      
+      // Debug: log completo del evento start para verificar estructura
+      logger.info(`🔍 Evento start completo:`, JSON.stringify(data, null, 2));
+      logger.info(`🔍 data.start:`, JSON.stringify(data.start, null, 2));
+      logger.info(`🔍 Todas las keys en data:`, Object.keys(data));
+      logger.info(`🔍 StreamSid extraído: "${streamSid}"`);
+      
+      // Verificar que tenemos un streamSid válido
+      if (!streamSid) {
+        logger.error(`❌ No se pudo extraer streamSid del evento start`);
+        return;
+      }
+      
+      // Intentar múltiples formas de extraer los datos
+      const startData = data.start || data;
+      const twilioNumber = startData.to || data.to;
+      const callerNumber = startData.from || data.from;
+      const customParameters = startData.customParameters || data.customParameters;
+      
+      // Extraer clientId de los parámetros personalizados
+      let clientId = null;
+      if (customParameters) {
+        // Los parámetros pueden venir como objeto o array
+        if (Array.isArray(customParameters)) {
+          const clientIdParam = customParameters.find(p => p.name === 'clientId');
+          clientId = clientIdParam ? clientIdParam.value : null;
+        } else if (customParameters.clientId) {
+          clientId = customParameters.clientId;
+        }
+      }
+      
+      // Obtener CallSid desde parámetros personalizados o desde data
+      const callSid = customParameters?.callSid || data.callSid || streamSid;
+
+      logger.info(`🎤 Stream iniciado: ${streamSid} para llamada ${callSid}`);
+      logger.info(`📞 ${callerNumber || 'undefined'} → ${twilioNumber || 'undefined'}`);
+      logger.info(`🆔 ClientId extraído: ${clientId}`);
+
       let client = null;
       
       // Si tenemos clientId, usarlo directamente
@@ -261,7 +261,11 @@ class TwilioStreamHandler {
 
     } catch (error) {
       logger.error(`❌ Error configurando stream: ${error.message}`);
+      logger.error(`❌ Stack trace: ${error.stack}`);
     }
+  } catch (error) {
+    logger.error(`❌ Error crítico en handleStreamStart: ${error.message}`);
+    logger.error(`❌ Stack trace: ${error.stack}`);
   }
 
   /**
