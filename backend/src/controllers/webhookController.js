@@ -19,34 +19,59 @@ class WebhookController {
       
       logger.info(`📞 Llamada entrante desde ${fromNumber} a ${toNumber}, SID: ${CallSid}`);
       
-      // Para número Twilio genérico, necesitamos identificar el cliente
-      // Por ahora, usar el primer cliente con bot activo (para testing)
-      // TODO: Implementar lógica de identificación por número de origen o configuración
-      
+      // Buscar cliente por número Twilio llamado
       let targetClient = null;
       
-      // Buscar cliente con bot de llamadas activo
-      const activeClients = await prisma.client.findMany({
-        where: {
-          callConfig: {
-            path: ['enabled'],
-            equals: true
+      // Primero intentar buscar por número Twilio específico
+      const twilioNumber = await prisma.twilioNumber.findUnique({
+        where: { phoneNumber: toNumber },
+        include: { 
+          client: {
+            include: {
+              twilioNumbers: true
+            }
           }
-        },
-        include: {
-          twilioNumbers: true
         }
       });
       
-      if (activeClients.length === 0) {
-        logger.error(`❌ No hay clientes con bot de llamadas activo`);
-        const errorTwiml = twilioService.generateErrorTwiml("Servicio no disponible");
-        res.type('text/xml');
-        return res.status(404).send(errorTwiml.toString());
+      if (twilioNumber && twilioNumber.client) {
+        // Verificar que el cliente tenga bot activo
+        const clientCallConfig = twilioNumber.client.callConfig;
+        if (clientCallConfig && clientCallConfig.enabled) {
+          targetClient = twilioNumber.client;
+          logger.info(`✅ Cliente encontrado por número Twilio: ${toNumber} → ${targetClient.companyName}`);
+        } else {
+          logger.warn(`⚠️ Cliente encontrado pero bot desactivado para número: ${toNumber}`);
+        }
       }
       
-      // Para testing, usar el primer cliente activo
-      targetClient = activeClients[0];
+      // Fallback: buscar cualquier cliente activo (para testing)
+      if (!targetClient) {
+        logger.warn(`⚠️ No se encontró cliente específico para ${toNumber}, usando fallback`);
+        
+        const activeClients = await prisma.client.findMany({
+          where: {
+            callConfig: {
+              path: ['enabled'],
+              equals: true
+            }
+          },
+          include: {
+            twilioNumbers: true
+          }
+        });
+        
+        if (activeClients.length === 0) {
+          logger.error(`❌ No hay clientes con bot de llamadas activo`);
+          const errorTwiml = twilioService.generateErrorTwiml("Servicio no disponible");
+          res.type('text/xml');
+          return res.status(404).send(errorTwiml.toString());
+        }
+        
+        // Usar el primer cliente activo como fallback
+        targetClient = activeClients[0];
+        logger.info(`🔄 Usando cliente fallback: ${targetClient.companyName}`);
+      }
       
       logger.info(`✅ Llamada asignada a cliente: ${targetClient.email} (${targetClient.companyName || 'Sin nombre'})`);
       logger.info(`🔍 Clientes activos encontrados: ${activeClients.length}`);

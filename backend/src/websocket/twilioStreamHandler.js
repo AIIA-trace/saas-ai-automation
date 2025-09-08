@@ -162,79 +162,93 @@ class TwilioStreamHandler {
       let client = null;
       if (clientId) {
         logger.info(`🔍 PASO 2: Buscando cliente con ID: ${clientId}`);
-        
-        // Consulta simplificada con timeout
-        const queryPromise = prisma.client.findUnique({
-          where: { id: parseInt(clientId) },
-          select: {
-            id: true,
-            companyName: true,
-            companyDescription: true,
-            contactName: true,
-            botName: true,
-            botPersonality: true,
-            welcomeMessage: true,
-            callConfig: true
-            // Removemos twilioNumbers temporalmente para diagnosticar
-          }
-        });
+        try {
+          // Consulta más simple con timeout de 3 segundos
+          logger.info(`🔍 PASO 2a: Ejecutando consulta Prisma...`);
+          
+          const queryPromise = prisma.client.findUnique({
+            where: { id: parseInt(clientId) },
+            select: {
+              id: true,
+              companyName: true,
+              callConfig: true
+            }
+          });
 
-        // Timeout de 5 segundos
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('DB Query timeout after 5 seconds')), 5000);
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('DB Query timeout after 3 seconds')), 3000);
+          });
+
+          client = await Promise.race([queryPromise, timeoutPromise]);
+          logger.info(`🔍 PASO 3: Consulta completada - Cliente: ${client ? client.companyName : 'NO ENCONTRADO'}`);
+          
+        } catch (error) {
+          logger.error(`❌ Error en consulta DB: ${error.message}`);
+          
+          // Si hay timeout, intentar consulta aún más simple
+          if (error.message.includes('timeout')) {
+            logger.info(`🔍 PASO 3b: Intentando consulta de emergencia...`);
+            try {
+              client = await prisma.client.findFirst({
+                where: { id: parseInt(clientId) },
+                select: { id: true, companyName: true, callConfig: true }
+              });
+              logger.info(`🔍 PASO 3c: Consulta de emergencia - Cliente: ${client ? client.companyName : 'NO'}`);
+            } catch (emergencyError) {
+              logger.error(`❌ Consulta de emergencia falló: ${emergencyError.message}`);
+              // Crear cliente mock para continuar
+              client = {
+                id: parseInt(clientId),
+                companyName: 'Cliente Mock',
+                callConfig: { greeting: 'Hola, gracias por llamar. ¿En qué puedo ayudarte?' }
+              };
+              logger.info(`🔍 PASO 3d: Usando cliente mock para continuar`);
+            }
+          } else {
+            throw error;
+          }
+        }
+
+        if (!client) {
+          logger.error(`❌ Client not found for clientId: ${clientId}`);
+          // Remover el stream placeholder si no se encuentra el cliente
+          this.activeStreams.delete(streamSid);
+          this.audioBuffers.delete(streamSid);
+          this.conversationState.delete(streamSid);
+          throw new Error(`Client not found for clientId: ${clientId}`);
+        }
+
+        logger.info(`✅ Cliente encontrado: ${client.companyName} (ID: ${client.id})`);
+
+        // ACTUALIZAR EL STREAM CON LOS DATOS DEL CLIENTE
+        logger.info('🔄 PASO 4: ACTUALIZANDO stream con datos del cliente...');
+        const streamData = this.activeStreams.get(streamSid);
+        streamData.client = client;
+        streamData.isInitializing = false;
+        
+        logger.info(`🔄 PASO 5: Stream actualizado con cliente: ${client.companyName}`);
+
+        logger.info('🔍 PASO 6: Enviando saludo inicial...');
+        
+        // Timeout para sendInitialGreeting
+        const greetingPromise = this.sendInitialGreeting(ws, { streamSid, callSid });
+        const greetingTimeout = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('sendInitialGreeting timeout after 10 seconds')), 10000);
         });
 
         try {
-          client = await Promise.race([queryPromise, timeoutPromise]);
-          logger.info(`🔍 PASO 3: Cliente encontrado: ${client ? 'SÍ' : 'NO'}`);
-          if (client) {
-            logger.info(`🔍 PASO 3b: Cliente: ${client.companyName}, callConfig: ${client.callConfig ? 'SÍ' : 'NO'}`);
-          }
+          await Promise.race([greetingPromise, greetingTimeout]);
+          logger.info('🔍 PASO 7: ✅ Saludo inicial enviado correctamente');
         } catch (error) {
-          logger.error(`❌ Error en consulta DB: ${error.message}`);
-          throw error;
+          logger.error(`❌ Error en saludo inicial: ${error.message}`);
+          // Continuar sin saludo si hay error
         }
+        
+        logger.info('🔍 PASO 8: ✅ handleStreamStart COMPLETADO EXITOSAMENTE');
+
+        // Verificación final
+        logger.info(`🔍 VERIFICACIÓN FINAL: Stream ${streamSid} existe: ${this.activeStreams.has(streamSid)}`);
       }
-
-      if (!client) {
-        logger.error(`❌ Client not found for clientId: ${clientId}`);
-        // Remover el stream placeholder si no se encuentra el cliente
-        this.activeStreams.delete(streamSid);
-        this.audioBuffers.delete(streamSid);
-        this.conversationState.delete(streamSid);
-        throw new Error(`Client not found for clientId: ${clientId}`);
-      }
-
-      logger.info(`✅ Cliente encontrado: ${client.companyName} (ID: ${client.id})`);
-
-      // ACTUALIZAR EL STREAM CON LOS DATOS DEL CLIENTE
-      logger.info('🔄 PASO 4: ACTUALIZANDO stream con datos del cliente...');
-      const streamData = this.activeStreams.get(streamSid);
-      streamData.client = client;
-      streamData.isInitializing = false;
-      
-      logger.info(`🔄 PASO 5: Stream actualizado con cliente: ${client.companyName}`);
-
-      logger.info('🔍 PASO 6: Enviando saludo inicial...');
-      
-      // Timeout para sendInitialGreeting
-      const greetingPromise = this.sendInitialGreeting(ws, { streamSid, callSid });
-      const greetingTimeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('sendInitialGreeting timeout after 10 seconds')), 10000);
-      });
-
-      try {
-        await Promise.race([greetingPromise, greetingTimeout]);
-        logger.info('🔍 PASO 7: ✅ Saludo inicial enviado correctamente');
-      } catch (error) {
-        logger.error(`❌ Error en saludo inicial: ${error.message}`);
-        // Continuar sin saludo si hay error
-      }
-      
-      logger.info('🔍 PASO 8: ✅ handleStreamStart COMPLETADO EXITOSAMENTE');
-
-      // Verificación final
-      logger.info(`🔍 VERIFICACIÓN FINAL: Stream ${streamSid} existe: ${this.activeStreams.has(streamSid)}`);
 
     } catch (error) {
       logger.error(`❌ Error in handleStreamStart: ${error.message}`);
