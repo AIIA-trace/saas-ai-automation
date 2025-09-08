@@ -122,25 +122,39 @@ class TwilioStreamHandler {
    * Stream iniciado - configurar cliente
    */
   async handleStreamStart(ws, data) {
-    logger.info('🎤 Processing start event:', JSON.stringify(data, null, 2));
-    
-    const streamSid = data.streamSid;
-    const callSid = data.start?.callSid;
-    const customParameters = data.start?.customParameters || {};
-    const clientId = customParameters.clientId;
+    const { streamSid, callSid, customParameters } = data.start;
+    const clientId = customParameters?.clientId;
 
-    if (!streamSid) {
-      logger.error('❌ No streamSid found in start event');
-      throw new Error('No streamSid found in start event');
-    }
-
+    logger.info(`🎤 Processing start event:`);
     logger.info(`🎤 Stream starting: ${streamSid} for call ${callSid}, clientId: ${clientId}`);
 
-    // Verificar si el stream ya existe (evitar duplicados)
+    // Verificar si el stream ya existe
     if (this.activeStreams.has(streamSid)) {
       logger.warn(`⚠️ Stream ${streamSid} ya existe en activeStreams`);
       return;
     }
+
+    // REGISTRO INMEDIATO DEL STREAM - Antes de la consulta DB lenta
+    logger.info('🚀 REGISTRO INMEDIATO: Registrando stream antes de consulta DB...');
+    const placeholderStreamData = {
+      streamSid,
+      ws,
+      client: null, // Se llenará después
+      callSid,
+      audioBuffer: [],
+      conversationHistory: [],
+      lastActivity: Date.now(),
+      isProcessing: false,
+      isSendingTTS: false,
+      isInitializing: true // Flag para indicar que está inicializando
+    };
+    
+    this.activeStreams.set(streamSid, placeholderStreamData);
+    this.audioBuffers.set(streamSid, []);
+    this.conversationState.set(streamSid, []);
+    
+    logger.info(`🚀 Stream registrado INMEDIATAMENTE: ${streamSid}`);
+    logger.info(`📊 Active streams: ${this.activeStreams.size}`);
 
     try {
       logger.info('🔍 PASO 1: Iniciando búsqueda de cliente...');
@@ -178,42 +192,22 @@ class TwilioStreamHandler {
 
       if (!client) {
         logger.error(`❌ Client not found for clientId: ${clientId}`);
+        // Remover el stream placeholder si no se encuentra el cliente
+        this.activeStreams.delete(streamSid);
+        this.audioBuffers.delete(streamSid);
+        this.conversationState.delete(streamSid);
         throw new Error(`Client not found for clientId: ${clientId}`);
       }
 
       logger.info(`✅ Client found: ${client.companyName} (ID: ${client.id})`);
 
-      logger.info('🔍 PASO 4: Creando streamData...');
-      const streamData = {
-        streamSid,
-        ws,
-        client,
-        callSid,
-        audioBuffer: [],
-        conversationHistory: [],
-        lastActivity: Date.now(),
-        isProcessing: false,
-        isSendingTTS: false
-      };
-      logger.info('🔍 PASO 4b: streamData creado correctamente');
-
-      logger.info('🔍 PASO 5: Registrando stream en activeStreams...');
-      logger.info(`🔍 PASO 5a: Antes del registro - activeStreams.size: ${this.activeStreams.size}`);
+      // ACTUALIZAR EL STREAM CON LOS DATOS DEL CLIENTE
+      logger.info('🔄 ACTUALIZANDO stream con datos del cliente...');
+      const streamData = this.activeStreams.get(streamSid);
+      streamData.client = client;
+      streamData.isInitializing = false;
       
-      this.activeStreams.set(streamSid, streamData);
-      this.audioBuffers.set(streamSid, []);
-      this.conversationState.set(streamSid, []);
-
-      logger.info(`🔍 PASO 5b: Después del registro - activeStreams.size: ${this.activeStreams.size}`);
-      logger.info(`🔍 PASO 5c: Verificando si existe: ${this.activeStreams.has(streamSid)}`);
-      
-      // Verificación adicional inmediata
-      const retrievedStream = this.activeStreams.get(streamSid);
-      logger.info(`🔍 PASO 5d: Stream recuperado: ${retrievedStream ? 'SÍ' : 'NO'}`);
-
-      logger.info(`✅ Stream registered: ${streamSid}`);
-      logger.info(`📊 Active streams: ${this.activeStreams.size}`);
-      logger.info(`🗂️ Stream IDs: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
+      logger.info(`🔄 Stream actualizado con cliente: ${client.companyName}`);
 
       logger.info('🔍 PASO 6: Enviando saludo inicial...');
       await this.sendInitialGreeting(ws, { streamSid, callSid });
@@ -292,10 +286,18 @@ class TwilioStreamHandler {
     if (!streamData) {
       logger.warn(`⚠️ Stream no encontrado para StreamSid: ${streamSid}`);
       logger.warn(`⚠️ Streams disponibles: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
-      logger.warn(`⚠️ Comparando "${streamSid}" con streams disponibles:`);
-      Array.from(this.activeStreams.keys()).forEach(key => {
-        logger.warn(`   - "${key}" === "${streamSid}": ${key === streamSid}`);
-      });
+      return;
+    }
+
+    // Si el stream está inicializándose, solo almacenar el audio sin procesar
+    if (streamData.isInitializing) {
+      logger.info(`🔄 Stream ${streamSid} está inicializándose, almacenando audio...`);
+      // Solo almacenar el audio, no procesar aún
+      if (data.media.track === 'inbound') {
+        const audioBuffer = this.audioBuffers.get(streamSid) || [];
+        audioBuffer.push(data.media.payload);
+        this.audioBuffers.set(streamSid, audioBuffer);
+      }
       return;
     }
 
