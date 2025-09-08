@@ -205,20 +205,33 @@ class TwilioStreamHandler {
         throw new Error(`Client not found for clientId: ${clientId}`);
       }
 
-      logger.info(`✅ Client found: ${client.companyName} (ID: ${client.id})`);
+      logger.info(`✅ Cliente encontrado: ${client.companyName} (ID: ${client.id})`);
 
       // ACTUALIZAR EL STREAM CON LOS DATOS DEL CLIENTE
-      logger.info('🔄 ACTUALIZANDO stream con datos del cliente...');
+      logger.info('🔄 PASO 4: ACTUALIZANDO stream con datos del cliente...');
       const streamData = this.activeStreams.get(streamSid);
       streamData.client = client;
       streamData.isInitializing = false;
       
-      logger.info(`🔄 Stream actualizado con cliente: ${client.companyName}`);
+      logger.info(`🔄 PASO 5: Stream actualizado con cliente: ${client.companyName}`);
 
       logger.info('🔍 PASO 6: Enviando saludo inicial...');
-      await this.sendInitialGreeting(ws, { streamSid, callSid });
       
-      logger.info('🔍 PASO 7: ✅ handleStreamStart COMPLETADO EXITOSAMENTE');
+      // Timeout para sendInitialGreeting
+      const greetingPromise = this.sendInitialGreeting(ws, { streamSid, callSid });
+      const greetingTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('sendInitialGreeting timeout after 10 seconds')), 10000);
+      });
+
+      try {
+        await Promise.race([greetingPromise, greetingTimeout]);
+        logger.info('🔍 PASO 7: ✅ Saludo inicial enviado correctamente');
+      } catch (error) {
+        logger.error(`❌ Error en saludo inicial: ${error.message}`);
+        // Continuar sin saludo si hay error
+      }
+      
+      logger.info('🔍 PASO 8: ✅ handleStreamStart COMPLETADO EXITOSAMENTE');
 
       // Verificación final
       logger.info(`🔍 VERIFICACIÓN FINAL: Stream ${streamSid} existe: ${this.activeStreams.has(streamSid)}`);
@@ -241,32 +254,39 @@ class TwilioStreamHandler {
    */
   async sendInitialGreeting(ws, data) {
     try {
+      logger.info('🎵 INICIO sendInitialGreeting');
       const { streamSid, callSid } = data;
       
+      logger.info(`🎵 PASO 1: Obteniendo stream data para ${streamSid}`);
       const streamData = this.activeStreams.get(streamSid);
       if (!streamData) {
         logger.error(`❌ No se encontró stream data para ${streamSid}`);
         return;
       }
 
+      logger.info('🎵 PASO 2: Obteniendo cliente');
       const { client } = streamData;
       
       // Obtener el saludo desde callConfig.greeting
       let greeting = 'Hola, gracias por llamar. ¿En qué puedo ayudarte?';
       
+      logger.info('🎵 PASO 3: Verificando callConfig');
       if (client.callConfig && client.callConfig.greeting) {
         greeting = client.callConfig.greeting;
       }
 
-      logger.info(`🎵 Enviando saludo inicial: "${greeting}"`);
+      logger.info(`🎵 PASO 4: Saludo preparado: "${greeting}"`);
 
       // Generar audio con Azure TTS
+      logger.info('🎵 PASO 5: Llamando a TTS generateSpeech...');
       const audioBuffer = await this.ttsService.generateSpeech(greeting);
+      logger.info(`🎵 PASO 6: TTS completado, buffer: ${audioBuffer ? 'SÍ' : 'NO'}`);
       
       if (audioBuffer) {
         // Enviar audio a Twilio
+        logger.info('🎵 PASO 7: Enviando audio a Twilio...');
         await this.sendAudioToTwilio(ws, audioBuffer, streamSid);
-        logger.info(`✅ Saludo inicial enviado correctamente`);
+        logger.info(`✅ PASO 8: Saludo inicial enviado correctamente`);
       } else {
         logger.error(`❌ No se pudo generar audio para el saludo`);
       }
