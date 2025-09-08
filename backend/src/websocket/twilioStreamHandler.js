@@ -223,18 +223,38 @@ class TwilioStreamHandler {
         language: client.language
       }, null, 2));
 
-      // Inicializar estado del stream USANDO STREAMSID COMO CLAVE
-      this.activeStreams.set(streamSid, {
-        streamSid,
+      // Registrar el stream en activeStreams con toda la información necesaria
+      const storedStreamData = {
+        ws,
+        client,
         callSid,
-        clientId: client.id,
-        clientData: client,
         callerNumber,
         twilioNumber,
-        ws,
-        startTime: Date.now(),
-        lastActivity: Date.now()
-      });
+        audioBuffer: [],
+        conversationHistory: [],
+        lastActivity: Date.now(),
+        isProcessing: false
+      };
+
+      logger.info(`🔧 ANTES de registrar stream - activeStreams.size: ${this.activeStreams.size}`);
+      logger.info(`🔧 Registrando stream con streamSid: "${streamSid}"`);
+      
+      this.activeStreams.set(streamSid, storedStreamData);
+      
+      logger.info(`🔧 DESPUÉS de registrar stream - activeStreams.size: ${this.activeStreams.size}`);
+      logger.info(`🔧 Verificando si el stream se registró correctamente:`);
+      logger.info(`🔧 activeStreams.has("${streamSid}"): ${this.activeStreams.has(streamSid)}`);
+      logger.info(`🔧 activeStreams.get("${streamSid}"): ${this.activeStreams.get(streamSid) ? 'EXISTS' : 'NULL'}`);
+      
+      logger.info(`✅ Stream registrado en activeStreams:`, JSON.stringify({
+        streamSid,
+        clientId: client?.id,
+        clientName: client?.name,
+        callSid,
+        callerNumber,
+        twilioNumber,
+        activeStreamsCount: this.activeStreams.size
+      }, null, 2));
 
       this.audioBuffers.set(streamSid, []);
       this.conversationState.set(streamSid, []);
@@ -245,16 +265,16 @@ class TwilioStreamHandler {
       logger.info(`🗂️ StreamSids activos: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
 
       // Verificar que los datos se almacenaron correctamente
-      const storedStreamData = this.activeStreams.get(streamSid);
+      const verifyStreamData = this.activeStreams.get(streamSid);
       logger.info(`🔍 Datos almacenados en activeStreams:`, JSON.stringify({
-        streamSid: storedStreamData.streamSid,
-        clientId: storedStreamData.clientId,
-        companyName: storedStreamData.clientData.companyName,
-        welcomeMessage: storedStreamData.clientData.welcomeMessage
+        hasClient: !!verifyStreamData?.client,
+        clientId: verifyStreamData?.client?.id,
+        companyName: verifyStreamData?.client?.companyName,
+        callSid: verifyStreamData?.callSid
       }, null, 2));
 
       // Inicializar flag para prevenir bucles
-      storedStreamData.isSendingTTS = false;
+      verifyStreamData.isSendingTTS = false;
       
       // Ahora que tenemos el CallSid y el cliente configurado, enviar saludo inicial
       await this.sendInitialGreeting(ws, { streamSid, callSid });
