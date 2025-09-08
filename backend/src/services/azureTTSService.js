@@ -98,9 +98,17 @@ class AzureTTSService {
       logger.info(`🔍 DEBUG Azure TTS - SpeechSynthesizer creado, iniciando síntesis...`);
       
       return new Promise((resolve, reject) => {
+        // Timeout de 10 segundos para Azure TTS
+        const timeout = setTimeout(() => {
+          logger.error(`❌ TIMEOUT Azure TTS después de 10 segundos`);
+          synthesizer.close();
+          reject(new Error('Azure TTS timeout después de 10 segundos'));
+        }, 10000);
+
         synthesizer.speakTextAsync(
           text,
           (result) => {
+            clearTimeout(timeout);
             logger.info(`🔍 DEBUG Azure TTS - Callback ejecutado, reason: ${result.reason}`);
             
             if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
@@ -141,6 +149,7 @@ class AzureTTSService {
             synthesizer.close();
           },
           (error) => {
+            clearTimeout(timeout);
             logger.error(`❌ Error Azure TTS en callback: ${error}`);
             logger.error(`❌ Error type: ${typeof error}`);
             logger.error(`❌ Error message: ${error.message || error}`);
@@ -262,9 +271,17 @@ class AzureTTSService {
       const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
       
       return new Promise((resolve, reject) => {
+        // Timeout de 10 segundos para Azure TTS
+        const timeout = setTimeout(() => {
+          logger.error(`❌ TIMEOUT Azure TTS después de 10 segundos`);
+          synthesizer.close();
+          reject(new Error('Azure TTS timeout después de 10 segundos'));
+        }, 10000);
+
         synthesizer.speakSsmlAsync(
           ssml,
           (result) => {
+            clearTimeout(timeout);
             if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
               logger.info(`🎵 Audio Azure con SSML generado exitosamente`);
               
@@ -289,6 +306,7 @@ class AzureTTSService {
             synthesizer.close();
           },
           (error) => {
+            clearTimeout(timeout);
             logger.error(`❌ Error SSML Azure TTS: ${error}`);
             synthesizer.close();
             reject(error);

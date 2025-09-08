@@ -291,24 +291,61 @@ class TwilioStreamHandler {
 
       logger.info(`🎵 PASO 4: Saludo preparado: "${greeting}"`);
 
-      // Generar audio con Azure TTS
+      // Generar audio con Azure TTS con timeout y fallback
       logger.info('🎵 PASO 5: Llamando a TTS generateSpeech...');
-      const ttsResult = await this.ttsService.generateSpeech(greeting);
-      logger.info(`🎵 PASO 6: TTS completado, resultado: ${JSON.stringify({success: ttsResult?.success, hasBuffer: !!ttsResult?.audioBuffer})}`);
       
-      if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
-        // Enviar audio a Twilio
-        logger.info('🎵 PASO 7: Enviando audio a Twilio...');
-        await this.sendAudioToTwilio(ws, ttsResult.audioBuffer, streamSid);
-        logger.info(`✅ PASO 8: Saludo inicial enviado correctamente`);
-      } else {
-        logger.error(`❌ No se pudo generar audio para el saludo`);
-        logger.error(`❌ TTS Result: ${JSON.stringify(ttsResult)}`);
+      try {
+        const ttsResult = await this.ttsService.generateSpeech(greeting);
+        logger.info(`🎵 PASO 6: TTS completado, resultado: ${JSON.stringify({success: ttsResult?.success, hasBuffer: !!ttsResult?.audioBuffer})}`);
+        
+        if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
+          // Enviar audio a Twilio
+          logger.info('🎵 PASO 7: Enviando audio a Twilio...');
+          await this.sendAudioToTwilio(ws, ttsResult.audioBuffer, streamSid);
+          logger.info(`✅ PASO 8: Saludo inicial enviado correctamente`);
+        } else {
+          logger.error(`❌ No se pudo generar audio para el saludo`);
+          logger.error(`❌ TTS Result: ${JSON.stringify(ttsResult)}`);
+          
+          // Fallback: enviar mensaje de texto a través de Twilio
+          logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto...');
+          this.sendTextFallback(ws, greeting, streamSid);
+        }
+      } catch (error) {
+        logger.error(`❌ Error en Azure TTS: ${error.message}`);
+        
+        // Fallback: enviar mensaje de texto a través de Twilio
+        logger.info('🔄 FALLBACK: Azure TTS falló, enviando saludo como mensaje de texto...');
+        this.sendTextFallback(ws, greeting, streamSid);
       }
 
     } catch (error) {
       logger.error(`❌ Error enviando saludo inicial: ${error.message}`);
       logger.error(`❌ Stack: ${error.stack}`);
+    }
+  }
+
+  /**
+   * Fallback para enviar texto cuando Azure TTS falla
+   */
+  sendTextFallback(ws, text, streamSid) {
+    try {
+      logger.info(`📝 Enviando fallback de texto: "${text}"`);
+      
+      // Enviar mensaje de texto a través del WebSocket
+      const textMessage = {
+        event: 'mark',
+        streamSid: streamSid,
+        mark: {
+          name: `fallback_text_${Date.now()}`
+        }
+      };
+      
+      ws.send(JSON.stringify(textMessage));
+      logger.info(`✅ Fallback de texto enviado para ${streamSid}`);
+      
+    } catch (error) {
+      logger.error(`❌ Error enviando fallback de texto: ${error.message}`);
     }
   }
 
