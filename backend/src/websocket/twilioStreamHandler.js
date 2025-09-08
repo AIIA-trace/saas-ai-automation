@@ -60,33 +60,54 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Manejar eventos de Twilio Stream
+   * Manejo centralizado de mensajes WebSocket de Twilio
    */
   async handleTwilioMessage(ws, data) {
     const event = data.event;
+    const streamSid = data.streamSid;
+    
+    logger.info(`📨 Evento recibido: ${event} para stream: ${streamSid}`);
     
     try {
-      if (event === "connected") {
-        logger.info('🔌 Media WS: Connected event received');
-        await this.handleStreamConnected(ws, data);
-      }
-      
-      if (event === "start") {
-        logger.info('🎤 Media WS: Start event received');
-        await this.handleStreamStart(ws, data);
-      }
-      
-      if (event === "media") {
-        await this.handleMediaChunk(ws, data);
-      }
-      
-      if (event === "stop") {
-        logger.info('🛑 Media WS: Stop event received');
-        await this.handleStreamStop(ws, data);
+      // Procesar eventos de forma secuencial y explícita
+      switch (event) {
+        case "connected":
+          logger.info('🔌 Media WS: Connected event received');
+          await this.handleStreamConnected(ws, data);
+          break;
+          
+        case "start":
+          logger.info('🎤 Media WS: Start event received');
+          // Asegurar que el start se procese completamente antes de continuar
+          await this.handleStreamStart(ws, data);
+          logger.info(`✅ Start event procesado completamente para stream: ${streamSid}`);
+          break;
+          
+        case "media":
+          // Verificar que el stream esté registrado antes de procesar media
+          if (!this.activeStreams.has(streamSid)) {
+            logger.warn(`⚠️ Media event recibido para stream no registrado: ${streamSid}`);
+            logger.info(`📊 Streams activos: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
+            return;
+          }
+          await this.handleMediaChunk(ws, data);
+          break;
+          
+        case "stop":
+          logger.info('🛑 Media WS: Stop event received');
+          await this.handleStreamStop(ws, data);
+          break;
+          
+        default:
+          logger.warn(`⚠️ Evento desconocido: ${event}`);
       }
     } catch (error) {
-      logger.error(`❌ Error procesando evento ${event}: ${error.message}`);
+      logger.error(`❌ Error procesando evento ${event} para stream ${streamSid}: ${error.message}`);
       logger.error(`❌ Stack: ${error.stack}`);
+      
+      // Log adicional del estado actual
+      logger.error(`📊 Estado actual - Streams activos: ${this.activeStreams.size}`);
+      logger.error(`🗂️ Stream IDs: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
     }
   }
 
@@ -110,37 +131,41 @@ class TwilioStreamHandler {
 
     if (!streamSid) {
       logger.error('❌ No streamSid found in start event');
-      return;
+      throw new Error('No streamSid found in start event');
     }
 
     logger.info(`🎤 Stream starting: ${streamSid} for call ${callSid}, clientId: ${clientId}`);
 
+    // Verificar si el stream ya existe (evitar duplicados)
+    if (this.activeStreams.has(streamSid)) {
+      logger.warn(`⚠️ Stream ${streamSid} ya existe en activeStreams`);
+      return;
+    }
+
     try {
       logger.info('🔍 PASO 1: Iniciando búsqueda de cliente...');
       
-      // Buscar cliente en base de datos
       let client = null;
       if (clientId) {
         logger.info(`🔍 PASO 2: Buscando cliente con ID: ${clientId}`);
         client = await prisma.client.findUnique({
           where: { id: parseInt(clientId) },
-          include: {
-            twilioNumbers: true,
-            callConfig: true
-          }
+          include: { twilioNumbers: true, callConfig: true }
         });
         logger.info(`🔍 PASO 3: Cliente encontrado: ${client ? 'SÍ' : 'NO'}`);
+        if (client) {
+          logger.info(`🔍 PASO 3b: Cliente: ${client.companyName}, callConfig: ${client.callConfig ? 'SÍ' : 'NO'}`);
+        }
       }
 
       if (!client) {
         logger.error(`❌ Client not found for clientId: ${clientId}`);
-        return;
+        throw new Error(`Client not found for clientId: ${clientId}`);
       }
 
       logger.info(`✅ Client found: ${client.companyName} (ID: ${client.id})`);
-      logger.info('🔍 PASO 4: Creando streamData...');
 
-      // Crear datos del stream
+      logger.info('🔍 PASO 4: Creando streamData...');
       const streamData = {
         streamSid,
         ws,
@@ -152,28 +177,44 @@ class TwilioStreamHandler {
         isProcessing: false,
         isSendingTTS: false
       };
+      logger.info('🔍 PASO 4b: streamData creado correctamente');
 
       logger.info('🔍 PASO 5: Registrando stream en activeStreams...');
+      logger.info(`🔍 PASO 5a: Antes del registro - activeStreams.size: ${this.activeStreams.size}`);
       
-      // Registrar stream
       this.activeStreams.set(streamSid, streamData);
       this.audioBuffers.set(streamSid, []);
       this.conversationState.set(streamSid, []);
+
+      logger.info(`🔍 PASO 5b: Después del registro - activeStreams.size: ${this.activeStreams.size}`);
+      logger.info(`🔍 PASO 5c: Verificando si existe: ${this.activeStreams.has(streamSid)}`);
+      
+      // Verificación adicional inmediata
+      const retrievedStream = this.activeStreams.get(streamSid);
+      logger.info(`🔍 PASO 5d: Stream recuperado: ${retrievedStream ? 'SÍ' : 'NO'}`);
 
       logger.info(`✅ Stream registered: ${streamSid}`);
       logger.info(`📊 Active streams: ${this.activeStreams.size}`);
       logger.info(`🗂️ Stream IDs: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
 
       logger.info('🔍 PASO 6: Enviando saludo inicial...');
-      
-      // Enviar saludo inicial
       await this.sendInitialGreeting(ws, { streamSid, callSid });
       
       logger.info('🔍 PASO 7: ✅ handleStreamStart COMPLETADO EXITOSAMENTE');
 
+      // Verificación final
+      logger.info(`🔍 VERIFICACIÓN FINAL: Stream ${streamSid} existe: ${this.activeStreams.has(streamSid)}`);
+
     } catch (error) {
       logger.error(`❌ Error in handleStreamStart: ${error.message}`);
       logger.error(`❌ Stack: ${error.stack}`);
+      
+      // Limpiar en caso de error
+      this.activeStreams.delete(streamSid);
+      this.audioBuffers.delete(streamSid);
+      this.conversationState.delete(streamSid);
+      
+      throw error; // Re-lanzar el error para que se capture en el nivel superior
     }
   }
 
