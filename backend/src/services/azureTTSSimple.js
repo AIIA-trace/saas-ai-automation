@@ -60,16 +60,16 @@ class AzureTTSSimple {
       
       const hostname = `${this.region}.tts.speech.microsoft.com`;
       const options = {
-        hostname: hostname,
+        hostname,
         port: 443,
         path: '/cognitiveservices/v1',
         method: 'POST',
-        timeout: 10000,
+        timeout: 15000, // Timeout más generoso
         headers: {
           'Ocp-Apim-Subscription-Key': this.subscriptionKey,
           'Content-Type': 'application/ssml+xml',
           'X-Microsoft-OutputFormat': this.outputFormat,
-          'User-Agent': 'SaaS-AI-Automation/1.0 (Node.js)',
+          'User-Agent': 'Azure-TTS-Diagnostic/1.0',
           'Connection': 'Keep-Alive',
           'Accept': 'audio/*',
           'Content-Length': Buffer.byteLength(postData, 'utf8')
@@ -103,18 +103,18 @@ class AzureTTSSimple {
       let isResolved = false;
       let req = null;
       
-      // Timeout más agresivo de 6 segundos
+      // Timeout más generoso - Azure necesita tiempo para procesar
       const timeout = setTimeout(() => {
         if (!isResolved) {
           isResolved = true;
-          logger.error(`❌ [DEBUG-TIMEOUT] ${requestId} - Timeout general de 6 segundos`);
+          logger.error(`❌ [DEBUG-TIMEOUT] ${requestId} - Timeout general de 15 segundos`);
           if (req) {
             logger.info(`🔍 [DEBUG-TIMEOUT] ${requestId} - Destruyendo request por timeout`);
             req.destroy();
           }
-          resolve({ success: false, error: 'Timeout de Azure TTS después de 6 segundos' });
+          resolve({ success: false, error: 'Timeout de Azure TTS después de 15 segundos' });
         }
-      }, 6000);
+      }, 15000);
 
       logger.info(`🔍 [DEBUG-HTTPS] ${requestId} - Creando request HTTPS...`);
       
@@ -130,15 +130,15 @@ class AzureTTSSimple {
         logger.info(`🔍 [DEBUG-RESPONSE] ${requestId} - Status Message: ${res.statusMessage}`);
         logger.info(`🔍 [DEBUG-RESPONSE] ${requestId} - Headers: ${JSON.stringify(res.headers)}`);
         
-        // Timeout para la respuesta también
+        // Timeout para la respuesta también - más generoso
         const responseTimeout = setTimeout(() => {
           if (!isResolved) {
             isResolved = true;
-            logger.error(`❌ [DEBUG-RESPONSE-TIMEOUT] ${requestId} - Timeout en lectura de respuesta (5s)`);
+            logger.error(`❌ [DEBUG-RESPONSE-TIMEOUT] ${requestId} - Timeout en lectura de respuesta (10s)`);
             res.destroy();
             resolve({ success: false, error: 'Timeout en respuesta de Azure TTS' });
           }
-        }, 5000);
+        }, 10000);
         
         if (res.statusCode !== 200) {
           clearTimeout(responseTimeout);
