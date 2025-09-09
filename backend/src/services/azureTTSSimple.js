@@ -48,15 +48,11 @@ class AzureTTSSimple {
       const voice = voiceId || this.defaultVoice;
       logger.info(`🔍 [DEBUG-VOICE] ${requestId} - voz final seleccionada: "${voice}"`);
 
-      // SSML simplificado
-      const ssml = `
-        <speak version='1.0' xml:lang='es-ES'>
-          <voice xml:lang='es-ES' name='${voice}'>
-            ${text}
-          </voice>
-        </speak>
-      `;
+      // SSML corregido con xmlns completo según Microsoft docs
+      const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='es-ES'><voice xml:lang='es-ES' name='${voice}'><![CDATA[${text}]]></voice></speak>`;
 
+      logger.info(`🔧 [FIX-APPLIED] ${requestId} - SSML xmlns corregido: http://www.w3.org/2001/10/synthesis`);
+      logger.info(`🔧 [FIX-APPLIED] ${requestId} - CDATA agregado para texto seguro`);
       logger.info(`🔍 [DEBUG-SSML] ${requestId} - SSML generado length: ${ssml.length}`);
       logger.info(`🔍 [DEBUG-SSML] ${requestId} - SSML content: ${ssml.replace(/\n\s*/g, ' ').trim()}`);
 
@@ -68,22 +64,26 @@ class AzureTTSSimple {
         port: 443,
         path: '/cognitiveservices/v1',
         method: 'POST',
-        timeout: 5000,
+        timeout: 10000,
         headers: {
           'Ocp-Apim-Subscription-Key': this.subscriptionKey,
           'Content-Type': 'application/ssml+xml',
           'X-Microsoft-OutputFormat': this.outputFormat,
-          'User-Agent': 'SaaS-AI-Automation',
-          'Connection': 'close',
+          'User-Agent': 'SaaS-AI-Automation/1.0 (Node.js)',
+          'Connection': 'Keep-Alive',
+          'Accept': 'audio/*',
           'Content-Length': Buffer.byteLength(postData, 'utf8')
         }
       };
 
       // DEBUG EXHAUSTIVO - Request details
+      logger.info(`🔧 [FIX-APPLIED] ${requestId} - User-Agent optimizado: "${options.headers['User-Agent']}"`);
+      logger.info(`🔧 [FIX-APPLIED] ${requestId} - Connection Keep-Alive activado`);
+      logger.info(`🔧 [FIX-APPLIED] ${requestId} - Accept header agregado: "${options.headers['Accept']}"`);
+      logger.info(`🔧 [FIX-APPLIED] ${requestId} - Timeout aumentado a: ${options.timeout}ms`);
       logger.info(`🔍 [DEBUG-REQUEST] ${requestId} - hostname: "${hostname}"`);
       logger.info(`🔍 [DEBUG-REQUEST] ${requestId} - full URL: https://${hostname}${options.path}`);
       logger.info(`🔍 [DEBUG-REQUEST] ${requestId} - method: ${options.method}`);
-      logger.info(`🔍 [DEBUG-REQUEST] ${requestId} - timeout: ${options.timeout}ms`);
       logger.info(`🔍 [DEBUG-REQUEST] ${requestId} - Content-Length: ${options.headers['Content-Length']}`);
       logger.info(`🔍 [DEBUG-REQUEST] ${requestId} - Subscription Key length: ${options.headers['Ocp-Apim-Subscription-Key']?.length}`);
       logger.info(`🔍 [DEBUG-REQUEST] ${requestId} - Output Format: ${options.headers['X-Microsoft-OutputFormat']}`);
