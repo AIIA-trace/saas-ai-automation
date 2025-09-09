@@ -294,10 +294,10 @@ class TwilioStreamHandler {
         logger.info('🎵 PASO 5: Generando audio con Azure TTS Simple...');
         logger.info(`🎵 PASO 5a: Usando voz del usuario: ${voiceId}`);
         
-        // Timeout para TTS de 5 segundos
+        // Timeout para TTS de 3 segundos (más agresivo)
         const ttsPromise = this.ttsSimple.generateSpeech(greeting, voiceId);
         const ttsTimeout = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('TTS timeout after 5 seconds')), 5000);
+          setTimeout(() => reject(new Error('TTS timeout after 3 seconds')), 3000);
         });
 
         const ttsResult = await Promise.race([ttsPromise, ttsTimeout]);
@@ -311,15 +311,13 @@ class TwilioStreamHandler {
           logger.info('🎵 PASO 8: ✅ Audio enviado correctamente');
         } else {
           logger.warn(`⚠️ Azure TTS Simple falló: ${ttsResult?.error || 'Audio buffer vacío'}`);
-          logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto...');
+          logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto inmediatamente...');
           this.sendTextFallback(ws, greeting, streamSid);
         }
       } catch (error) {
         logger.error(`❌ Error en Azure TTS Simple: ${error.message}`);
         logger.error(`❌ Stack: ${error.stack}`);
-        
-        // Fallback: enviar mensaje de texto a través de Twilio
-        logger.info('🔄 FALLBACK: Azure TTS falló, enviando saludo como mensaje de texto...');
+        logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto inmediatamente...');
         this.sendTextFallback(ws, greeting, streamSid);
       }
 
@@ -330,27 +328,91 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Fallback para enviar texto cuando Azure TTS falla
+   * Fallback para enviar audio simple cuando Azure TTS falla
    */
-  sendTextFallback(ws, text, streamSid) {
+  async sendTextFallback(ws, text, streamSid) {
     try {
-      logger.info(`📝 Enviando fallback de texto: "${text}"`);
+      logger.info(`📝 Iniciando fallback para: "${text}"`);
       
-      // Enviar mensaje de texto a través del WebSocket
-      const textMessage = {
+      // Intentar generar un beep simple como audio de fallback
+      const fallbackAudio = this.generateSimpleBeep();
+      
+      if (fallbackAudio && ws.readyState === 1) {
+        logger.info('🔔 Enviando beep de fallback...');
+        await this.sendAudioToTwilio(ws, fallbackAudio, streamSid);
+      }
+      
+      // También enviar un mark para indicar que hubo un problema
+      const markMessage = {
         event: 'mark',
         streamSid: streamSid,
         mark: {
-          name: `fallback_text_${Date.now()}`
+          name: `tts_fallback_${Date.now()}`
         }
       };
       
-      ws.send(JSON.stringify(textMessage));
-      logger.info(`✅ Fallback de texto enviado para ${streamSid}`);
+      if (ws.readyState === 1) {
+        ws.send(JSON.stringify(markMessage));
+      }
+      
+      logger.info(`✅ Fallback enviado para ${streamSid}`);
       
     } catch (error) {
-      logger.error(`❌ Error enviando fallback de texto: ${error.message}`);
+      logger.error(`❌ Error enviando fallback: ${error.message}`);
     }
+  }
+
+  /**
+   * Generar un beep simple como audio de fallback
+   */
+  generateSimpleBeep() {
+    try {
+      // Generar un beep simple de 500ms en formato mulaw 8kHz
+      const sampleRate = 8000;
+      const duration = 0.5; // 500ms
+      const frequency = 800; // 800Hz
+      const samples = Math.floor(sampleRate * duration);
+      
+      const audioBuffer = Buffer.alloc(samples);
+      
+      for (let i = 0; i < samples; i++) {
+        // Generar onda senoidal
+        const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate);
+        // Convertir a mulaw (aproximación simple)
+        const mulaw = this.linearToMulaw(sample * 0.5); // Volumen reducido
+        audioBuffer[i] = mulaw;
+      }
+      
+      logger.info(`🔔 Beep generado: ${audioBuffer.length} bytes`);
+      return audioBuffer;
+      
+    } catch (error) {
+      logger.error(`❌ Error generando beep: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Conversión simple de linear a mulaw
+   */
+  linearToMulaw(sample) {
+    const BIAS = 0x84;
+    const CLIP = 32635;
+    
+    let sign = (sample < 0) ? 0x80 : 0x00;
+    if (sign) sample = -sample;
+    
+    sample = Math.min(sample * 32767, CLIP);
+    
+    if (sample >= 256) {
+      let exponent = Math.floor(Math.log2(sample / 256));
+      let mantissa = Math.floor((sample >> (exponent + 3)) & 0x0F);
+      sample = (exponent << 4) | mantissa;
+    } else {
+      sample = sample >> 4;
+    }
+    
+    return (sample ^ 0x55) | sign;
   }
 
   /**
@@ -448,6 +510,12 @@ class TwilioStreamHandler {
       logger.info(`🎵 sendAudioToTwilio iniciado para ${streamSid}`);
       logger.info(`🎵 Audio buffer size: ${audioBuffer.length} bytes`);
       logger.info(`🎵 WebSocket readyState: ${ws.readyState}`);
+
+      // Verificar estado del WebSocket antes de proceder
+      if (!ws || ws.readyState !== 1) {
+        logger.error(`❌ WebSocket no está listo (readyState: ${ws?.readyState || 'undefined'})`);
+        return;
+      }
 
       const streamData = this.activeStreams.get(streamSid);
       if (!streamData) {
