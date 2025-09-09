@@ -164,52 +164,41 @@ class TwilioStreamHandler {
       let client = null;
       if (clientId) {
         logger.info(`🔍 PASO 2: Buscando cliente con ID: ${clientId}`);
-        try {
-          // Consulta más simple con timeout de 3 segundos
-          logger.info(`🔍 PASO 2a: Ejecutando consulta Prisma...`);
-          
-          const queryPromise = prisma.client.findUnique({
-            where: { id: parseInt(clientId) },
-            select: {
-              id: true,
-              companyName: true,
-              callConfig: true
+        
+        // FALLBACK INMEDIATO: Crear cliente mock primero para evitar bloqueos
+        client = {
+          id: parseInt(clientId),
+          companyName: 'Cliente Mock',
+          callConfig: { greeting: 'Hola, gracias por llamar. ¿En qué puedo ayudarte?' }
+        };
+        logger.info(`🔍 PASO 2a: Cliente mock creado para evitar bloqueos DB`);
+        
+        // Intentar consulta DB en background (sin bloquear)
+        setTimeout(async () => {
+          try {
+            logger.info(`🔍 BACKGROUND: Intentando consulta DB real...`);
+            const realClient = await prisma.client.findUnique({
+              where: { id: parseInt(clientId) },
+              select: {
+                id: true,
+                companyName: true,
+                callConfig: true
+              }
+            });
+            
+            if (realClient) {
+              logger.info(`🔍 BACKGROUND: Cliente real encontrado: ${realClient.companyName}`);
+              // Actualizar el stream con datos reales
+              const currentStream = this.activeStreams.get(streamSid);
+              if (currentStream) {
+                currentStream.client = realClient;
+                logger.info(`🔄 BACKGROUND: Stream actualizado con datos reales`);
+              }
             }
-          });
-
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('DB Query timeout after 1 second')), 1000);
-          });
-
-          client = await Promise.race([queryPromise, timeoutPromise]);
-          logger.info(`🔍 PASO 3: Consulta completada - Cliente: ${client ? client.companyName : 'NO ENCONTRADO'}`);
-          
-        } catch (error) {
-          logger.error(`❌ Error en consulta DB: ${error.message}`);
-          
-          // Si hay timeout, intentar consulta aún más simple
-          if (error.message.includes('timeout')) {
-            logger.info(`🔍 PASO 3b: Intentando consulta de emergencia...`);
-            try {
-              client = await prisma.client.findFirst({
-                where: { id: parseInt(clientId) },
-                select: { id: true, companyName: true, callConfig: true }
-              });
-              logger.info(`🔍 PASO 3c: Consulta de emergencia - Cliente: ${client ? client.companyName : 'NO'}`);
-            } catch (emergencyError) {
-              logger.error(`❌ Consulta de emergencia falló: ${emergencyError.message}`);
-              // Crear cliente mock para continuar
-              client = {
-                id: parseInt(clientId),
-                companyName: 'Cliente Mock',
-                callConfig: { greeting: 'Hola, gracias por llamar. ¿En qué puedo ayudarte?' }
-              };
-              logger.info(`🔍 PASO 3d: Usando cliente mock para continuar`);
-            }
-          } else {
-            throw error;
+          } catch (bgError) {
+            logger.warn(`⚠️ BACKGROUND: Consulta DB falló: ${bgError.message}`);
           }
-        }
+        }, 100); // Ejecutar en 100ms sin bloquear
 
         if (!client) {
           logger.error(`❌ Client not found for clientId: ${clientId}`);
@@ -291,27 +280,43 @@ class TwilioStreamHandler {
         greeting = client.callConfig.greeting;
       }
 
+      // Obtener la voz configurada por el usuario
+      let voiceId = this.ttsSimple.defaultVoice; // Voz por defecto
+      if (client.callConfig && client.callConfig.voiceId) {
+        voiceId = client.callConfig.voiceId;
+      }
+
       logger.info(`🎵 PASO 4: Saludo preparado: "${greeting}"`);
+      logger.info(`🎵 PASO 4a: Voz seleccionada: ${voiceId}`);
 
       // Generar audio con Azure TTS Simple (más confiable)
       try {
         logger.info('🎵 PASO 5: Generando audio con Azure TTS Simple...');
+        logger.info(`🎵 PASO 5a: Usando voz del usuario: ${voiceId}`);
         
-        const ttsResult = await this.ttsSimple.generateSpeech(greeting);
+        // Timeout para TTS de 5 segundos
+        const ttsPromise = this.ttsSimple.generateSpeech(greeting, voiceId);
+        const ttsTimeout = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('TTS timeout after 5 seconds')), 5000);
+        });
+
+        const ttsResult = await Promise.race([ttsPromise, ttsTimeout]);
         
         logger.info(`🎵 PASO 6: Azure TTS Simple completado, success: ${ttsResult?.success}`);
+        logger.info(`🎵 PASO 6a: Audio buffer size: ${ttsResult?.audioBuffer?.length || 0} bytes`);
         
-        if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
+        if (ttsResult && ttsResult.success && ttsResult.audioBuffer && ttsResult.audioBuffer.length > 0) {
           logger.info('🎵 PASO 7: Enviando audio a Twilio...');
           await this.sendAudioToTwilio(ws, ttsResult.audioBuffer, streamSid);
           logger.info('🎵 PASO 8: ✅ Audio enviado correctamente');
         } else {
-          logger.warn(`⚠️ Azure TTS Simple falló: ${ttsResult?.error}`);
+          logger.warn(`⚠️ Azure TTS Simple falló: ${ttsResult?.error || 'Audio buffer vacío'}`);
           logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto...');
           this.sendTextFallback(ws, greeting, streamSid);
         }
       } catch (error) {
         logger.error(`❌ Error en Azure TTS Simple: ${error.message}`);
+        logger.error(`❌ Stack: ${error.stack}`);
         
         // Fallback: enviar mensaje de texto a través de Twilio
         logger.info('🔄 FALLBACK: Azure TTS falló, enviando saludo como mensaje de texto...');
@@ -440,15 +445,35 @@ class TwilioStreamHandler {
    */
   async sendAudioToTwilio(ws, audioBuffer, streamSid) {
     try {
+      logger.info(`🎵 sendAudioToTwilio iniciado para ${streamSid}`);
+      logger.info(`🎵 Audio buffer size: ${audioBuffer.length} bytes`);
+      logger.info(`🎵 WebSocket readyState: ${ws.readyState}`);
+
       const streamData = this.activeStreams.get(streamSid);
-      if (!streamData || streamData.isSendingTTS) {
+      if (!streamData) {
+        logger.error(`❌ No se encontró stream data para ${streamSid}`);
+        return;
+      }
+
+      if (streamData.isSendingTTS) {
+        logger.warn(`⚠️ Ya se está enviando TTS para ${streamSid}, saltando...`);
         return;
       }
 
       streamData.isSendingTTS = true;
 
+      // Verificar que el WebSocket esté abierto
+      if (ws.readyState !== 1) { // WebSocket.OPEN = 1
+        logger.error(`❌ WebSocket no está abierto (readyState: ${ws.readyState})`);
+        streamData.isSendingTTS = false;
+        return;
+      }
+
       // Convertir audio a formato mulaw y enviar en chunks
       const chunkSize = 160; // 20ms de audio a 8kHz
+      const totalChunks = Math.ceil(audioBuffer.length / chunkSize);
+      
+      logger.info(`🎵 Enviando ${totalChunks} chunks de audio...`);
       
       for (let i = 0; i < audioBuffer.length; i += chunkSize) {
         const chunk = audioBuffer.slice(i, i + chunkSize);
@@ -458,23 +483,34 @@ class TwilioStreamHandler {
           event: 'media',
           streamSid: streamSid,
           media: {
+            timestamp: Date.now(),
             payload: base64Chunk
           }
         };
 
-        if (ws.readyState === ws.OPEN) {
-          ws.send(JSON.stringify(mediaMessage));
+        // Verificar WebSocket antes de cada envío
+        if (ws.readyState !== 1) {
+          logger.warn(`⚠️ WebSocket cerrado durante envío en chunk ${Math.floor(i/chunkSize) + 1}`);
+          break;
         }
 
-        // Pequeña pausa entre chunks
+        ws.send(JSON.stringify(mediaMessage));
+        
+        // Log cada 25 chunks
+        if ((Math.floor(i/chunkSize) + 1) % 25 === 0) {
+          logger.info(`🎵 Enviado chunk ${Math.floor(i/chunkSize) + 1}/${totalChunks}`);
+        }
+
+        // Pequeña pausa entre chunks para simular tiempo real
         await new Promise(resolve => setTimeout(resolve, 20));
       }
 
       streamData.isSendingTTS = false;
-      logger.info(`✅ Audio enviado correctamente a ${streamSid}`);
+      logger.info(`✅ Audio enviado correctamente a ${streamSid} (${totalChunks} chunks)`);
 
     } catch (error) {
       logger.error(`❌ Error enviando audio: ${error.message}`);
+      logger.error(`❌ Stack: ${error.stack}`);
       const streamData = this.activeStreams.get(streamSid);
       if (streamData) {
         streamData.isSendingTTS = false;

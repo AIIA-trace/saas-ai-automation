@@ -10,7 +10,7 @@ class AzureTTSSimple {
     logger.info(`🔍 Azure TTS Simple - Región: ${this.region}`);
     
     // Configuración simplificada
-    this.defaultVoice = 'es-ES-DarioNeural';
+    this.defaultVoice = 'es-ES-DarioNeural'; // Voz por defecto, se puede sobrescribir
     this.outputFormat = 'riff-8khz-8bit-mono-mulaw'; // Compatible con Twilio
   }
 
