@@ -15,7 +15,7 @@ class AzureTTSSimple {
     
     // Configuración simplificada
     this.defaultVoice = 'es-ES-DarioNeural';
-    this.outputFormat = 'riff-8khz-8bit-mono-mulaw';
+    this.outputFormat = 'riff-8khz-16bit-mono-pcm';
     
     // DEBUG - Configuración final
     logger.info(`🔍 [DEBUG-CONFIG] defaultVoice: "${this.defaultVoice}"`);
