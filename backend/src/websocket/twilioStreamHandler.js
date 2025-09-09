@@ -537,14 +537,23 @@ class TwilioStreamHandler {
         return;
       }
 
-      // Convertir audio a formato mulaw y enviar en chunks
-      const chunkSize = 160; // 20ms de audio a 8kHz
-      const totalChunks = Math.ceil(audioBuffer.length / chunkSize);
+      // Extraer datos PCM del WAV y convertir a mulaw
+      const wavData = this.extractPCMFromWAV(audioBuffer);
+      if (!wavData) {
+        logger.error(`❌ No se pudo extraer PCM del audio WAV`);
+        streamData.isSendingTTS = false;
+        return;
+      }
       
+      const mulawData = this.convertPCMToMulaw(wavData);
+      const chunkSize = 160; // 20ms de audio a 8kHz mulaw
+      const totalChunks = Math.ceil(mulawData.length / chunkSize);
+      
+      logger.info(`🎵 Audio WAV convertido a mulaw: ${mulawData.length} bytes`);
       logger.info(`🎵 Enviando ${totalChunks} chunks de audio...`);
       
-      for (let i = 0; i < audioBuffer.length; i += chunkSize) {
-        const chunk = audioBuffer.slice(i, i + chunkSize);
+      for (let i = 0; i < mulawData.length; i += chunkSize) {
+        const chunk = mulawData.slice(i, i + chunkSize);
         const base64Chunk = chunk.toString('base64');
         
         const mediaMessage = {
@@ -643,6 +652,108 @@ class TwilioStreamHandler {
     }, 2 * 60 * 1000);
 
     logger.info('💓 Heartbeat iniciado para limpieza de streams inactivos');
+  }
+
+  /**
+   * Extraer datos PCM de un archivo WAV
+   */
+  extractPCMFromWAV(wavBuffer) {
+    try {
+      // Verificar header WAV
+      if (wavBuffer.length < 44) {
+        logger.error('❌ Buffer WAV demasiado pequeño');
+        return null;
+      }
+
+      // Verificar RIFF header
+      const riffHeader = wavBuffer.toString('ascii', 0, 4);
+      if (riffHeader !== 'RIFF') {
+        logger.error('❌ No es un archivo WAV válido (falta RIFF)');
+        return null;
+      }
+
+      // Verificar WAVE header
+      const waveHeader = wavBuffer.toString('ascii', 8, 12);
+      if (waveHeader !== 'WAVE') {
+        logger.error('❌ No es un archivo WAV válido (falta WAVE)');
+        return null;
+      }
+
+      // Buscar chunk de datos
+      let dataOffset = 12;
+      while (dataOffset < wavBuffer.length - 8) {
+        const chunkId = wavBuffer.toString('ascii', dataOffset, dataOffset + 4);
+        const chunkSize = wavBuffer.readUInt32LE(dataOffset + 4);
+        
+        if (chunkId === 'data') {
+          // Encontrado el chunk de datos
+          const pcmData = wavBuffer.slice(dataOffset + 8, dataOffset + 8 + chunkSize);
+          logger.info(`🎵 PCM extraído: ${pcmData.length} bytes`);
+          return pcmData;
+        }
+        
+        dataOffset += 8 + chunkSize;
+      }
+
+      logger.error('❌ No se encontró chunk de datos en WAV');
+      return null;
+    } catch (error) {
+      logger.error(`❌ Error extrayendo PCM: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Convertir PCM 16-bit a mulaw 8-bit
+   */
+  convertPCMToMulaw(pcmBuffer) {
+    try {
+      const mulawBuffer = Buffer.alloc(pcmBuffer.length / 2);
+      
+      for (let i = 0; i < pcmBuffer.length; i += 2) {
+        // Leer sample PCM 16-bit little endian
+        const pcmSample = pcmBuffer.readInt16LE(i);
+        
+        // Convertir a mulaw
+        const mulawSample = this.linearToMulaw(pcmSample);
+        mulawBuffer[i / 2] = mulawSample;
+      }
+      
+      logger.info(`🎵 PCM convertido a mulaw: ${mulawBuffer.length} bytes`);
+      return mulawBuffer;
+    } catch (error) {
+      logger.error(`❌ Error convirtiendo a mulaw: ${error.message}`);
+      return Buffer.alloc(0);
+    }
+  }
+
+  /**
+   * Convertir sample linear PCM a mulaw
+   */
+  linearToMulaw(pcmSample) {
+    // Tabla de conversión mulaw
+    const MULAW_MAX = 0x1FFF;
+    const MULAW_BIAS = 33;
+    
+    let sign = 0;
+    let position = 0;
+    let lsb = 0;
+    
+    if (pcmSample < 0) {
+      pcmSample = -pcmSample;
+      sign = 0x80;
+    }
+    
+    pcmSample += MULAW_BIAS;
+    if (pcmSample > MULAW_MAX) pcmSample = MULAW_MAX;
+    
+    // Encontrar posición del bit más significativo
+    for (position = 12; position >= 5; position--) {
+      if (pcmSample & (1 << position)) break;
+    }
+    
+    lsb = (pcmSample >> (position - 4)) & 0x0F;
+    return (~(sign | ((position - 5) << 4) | lsb)) & 0xFF;
   }
 }
 
