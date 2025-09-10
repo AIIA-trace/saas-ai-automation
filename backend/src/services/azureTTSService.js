@@ -101,8 +101,9 @@ class AzureTTSService {
         audioConfig = sdk.AudioConfig.fromAudioFileOutput(outputPath);
         logger.info(`🔍 DEBUG Azure TTS - AudioConfig configurado para archivo: ${outputPath}`);
       } else {
-        audioConfig = sdk.AudioConfig.fromDefaultSpeakerOutput();
-        logger.info(`🔍 DEBUG Azure TTS - AudioConfig configurado para speaker por defecto`);
+        // Para Twilio, necesitamos audio en memoria, no speaker output
+        audioConfig = null; // Esto hará que Azure TTS devuelva el audio en result.audioData
+        logger.info(`🔍 DEBUG Azure TTS - AudioConfig configurado para salida en memoria (null)`);
       }
       
       const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);

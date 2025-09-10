@@ -21,6 +21,7 @@ const testVoicesRouter = require('./routes/test-voices');
 const setupRouter = require('./routes/setup');
 const twilioRouter = require('./routes/twilio');
 const azureTTSRouter = require('./routes/azure-tts');
+const debugAzureRouter = require('./routes/debug-azure');
 
 // Inicialización de Express
 const app = express();
@@ -75,6 +76,7 @@ app.use('/api/setup', setupRouter);
 app.use('/api/test-voices', testVoicesRouter);
 app.use('/api/twilio', twilioRouter);
 app.use('/api/azure-tts', azureTTSRouter);
+app.use('/api/debug', debugAzureRouter);
 app.use('/webhooks', webhooksRouter);
 
 // Ruta principal
