@@ -65,48 +65,72 @@ class TwilioStreamHandler {
     const event = data.event;
     const streamSid = data.streamSid;
     
-    logger.info(`📨 Evento recibido: ${event} para stream: ${streamSid}`);
+    // LOG DETALLADO PARA DEBUGGING
+    logger.info(`📨 ===== EVENTO TWILIO RECIBIDO =====`);
+    logger.info(`📨 Evento: ${event}`);
+    logger.info(`📨 StreamSid: ${streamSid}`);
+    logger.info(`📨 Datos completos: ${JSON.stringify(data, null, 2)}`);
+    logger.info(`📨 =====================================`);
     
     try {
       // Procesar eventos de forma secuencial y explícita
       switch (event) {
         case "connected":
+          logger.info('🔌 ===== EVENTO CONNECTED =====');
           logger.info('🔌 Media WS: Connected event received');
+          logger.info(`🔌 Datos: ${JSON.stringify(data, null, 2)}`);
           await this.handleStreamConnected(ws, data);
+          logger.info('🔌 ===== FIN EVENTO CONNECTED =====');
           break;
           
         case "start":
+          logger.info('🎤 ===== EVENTO START RECIBIDO =====');
           logger.info('🎤 Media WS: Start event received');
+          logger.info(`🎤 Datos completos del start: ${JSON.stringify(data, null, 2)}`);
+          logger.info(`🎤 CustomParameters: ${JSON.stringify(data.start?.customParameters, null, 2)}`);
           // Asegurar que el start se procese completamente antes de continuar
           await this.handleStreamStart(ws, data);
           logger.info(`✅ Start event procesado completamente para stream: ${streamSid}`);
+          logger.info('🎤 ===== FIN EVENTO START =====');
           break;
           
         case "media":
           // Verificar que el stream esté registrado antes de procesar media
           if (!this.activeStreams.has(streamSid)) {
+            logger.warn(`⚠️ ===== MEDIA SIN STREAM REGISTRADO =====`);
             logger.warn(`⚠️ Media event recibido para stream no registrado: ${streamSid}`);
-            logger.info(`📊 Streams activos: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
+            logger.warn(`📊 Streams activos: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
+            logger.warn(`⚠️ Esto indica que el evento START nunca llegó o falló`);
+            logger.warn(`⚠️ =========================================`);
             return;
           }
           await this.handleMediaChunk(ws, data);
           break;
           
         case "stop":
+          logger.info('🛑 ===== EVENTO STOP =====');
           logger.info('🛑 Media WS: Stop event received');
+          logger.info(`🛑 Datos: ${JSON.stringify(data, null, 2)}`);
           await this.handleStreamStop(ws, data);
+          logger.info('🛑 ===== FIN EVENTO STOP =====');
           break;
           
         default:
+          logger.warn(`⚠️ ===== EVENTO DESCONOCIDO =====`);
           logger.warn(`⚠️ Evento desconocido: ${event}`);
+          logger.warn(`⚠️ Datos: ${JSON.stringify(data, null, 2)}`);
+          logger.warn(`⚠️ ===============================`);
       }
     } catch (error) {
+      logger.error(`❌ ===== ERROR PROCESANDO EVENTO =====`);
       logger.error(`❌ Error procesando evento ${event} para stream ${streamSid}: ${error.message}`);
       logger.error(`❌ Stack: ${error.stack}`);
+      logger.error(`❌ Datos del evento: ${JSON.stringify(data, null, 2)}`);
       
       // Log adicional del estado actual
       logger.error(`📊 Estado actual - Streams activos: ${this.activeStreams.size}`);
       logger.error(`🗂️ Stream IDs: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
+      logger.error(`❌ ====================================`);
     }
   }
 

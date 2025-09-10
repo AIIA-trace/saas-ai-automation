@@ -81,6 +81,14 @@ class WebhookController {
       // GENERAR TWIML CON TODA LA CONFIGURACIÓN
       const twiml = streamingTwiMLService.createStreamTwiML(targetClient, CallSid);
       
+      // LOG DETALLADO DEL TWIML GENERADO
+      logger.info(`📋 ===== TWIML GENERADO PARA LLAMADA =====`);
+      logger.info(`📋 CallSid: ${CallSid}`);
+      logger.info(`📋 Cliente: ${targetClient.companyName} (ID: ${targetClient.id})`);
+      logger.info(`📋 TwiML completo:\n${twiml.toString()}`);
+      logger.info(`📋 Longitud TwiML: ${twiml.toString().length} caracteres`);
+      logger.info(`📋 =========================================`);
+      
       res.type('text/xml');
       return res.send(twiml.toString());
     } catch (error) {
