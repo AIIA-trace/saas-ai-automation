@@ -70,8 +70,8 @@ class WebSocketServer {
     }
 
     // Permitir conexiones locales para desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      logger.info(`🔧 Conexión WebSocket autorizada (desarrollo)`);
+    if (process.env.NODE_ENV !== 'production' || host.includes('localhost')) {
+      logger.info(`🔧 Conexión WebSocket autorizada (desarrollo/local)`);
       return true;
     }
 

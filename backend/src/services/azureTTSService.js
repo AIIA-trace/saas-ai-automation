@@ -98,12 +98,12 @@ class AzureTTSService {
       logger.info(`🔍 DEBUG Azure TTS - SpeechSynthesizer creado, iniciando síntesis...`);
       
       return new Promise((resolve, reject) => {
-        // Timeout de 10 segundos para Azure TTS
+        // Timeout de 30 segundos para Azure TTS
         const timeout = setTimeout(() => {
-          logger.error(`❌ TIMEOUT Azure TTS después de 10 segundos`);
+          logger.error(`❌ TIMEOUT Azure TTS después de 30 segundos`);
           synthesizer.close();
-          reject(new Error('Azure TTS timeout después de 10 segundos'));
-        }, 10000);
+          reject(new Error('Azure TTS timeout después de 30 segundos'));
+        }, 30000);
 
         synthesizer.speakTextAsync(
           text,
@@ -271,12 +271,12 @@ class AzureTTSService {
       const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
       
       return new Promise((resolve, reject) => {
-        // Timeout de 10 segundos para Azure TTS
+        // Timeout de 30 segundos para Azure TTS
         const timeout = setTimeout(() => {
-          logger.error(`❌ TIMEOUT Azure TTS después de 10 segundos`);
+          logger.error(`❌ TIMEOUT Azure TTS después de 30 segundos`);
           synthesizer.close();
-          reject(new Error('Azure TTS timeout después de 10 segundos'));
-        }, 10000);
+          reject(new Error('Azure TTS timeout después de 30 segundos'));
+        }, 30000);
 
         synthesizer.speakSsmlAsync(
           ssml,

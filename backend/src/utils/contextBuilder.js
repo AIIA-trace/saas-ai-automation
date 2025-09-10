@@ -62,7 +62,7 @@ class ContextBuilder {
       }
       
       // Archivos de contexto
-      if (clientConfig.contextFiles && clientConfig.contextFiles.length > 0) {
+      if (clientConfig.contextFiles && Array.isArray(clientConfig.contextFiles) && clientConfig.contextFiles.length > 0) {
         context += `\n=== INFORMACIÓN ADICIONAL ===\n`;
         clientConfig.contextFiles.forEach(file => {
           context += `--- ${file.name} ---\n`;
