@@ -104,6 +104,13 @@ class TwilioStreamHandler {
             logger.warn(`⚠️ =========================================`);
             return;
           }
+          
+          // Debug detallado del evento media
+          logger.debug(`🔍 MEDIA DEBUG - Evento media recibido para ${streamSid}`);
+          logger.debug(`🔍 MEDIA DEBUG - Track: ${data.media?.track}`);
+          logger.debug(`🔍 MEDIA DEBUG - Timestamp: ${data.media?.timestamp}`);
+          logger.debug(`🔍 MEDIA DEBUG - Payload length: ${data.media?.payload?.length || 0}`);
+          
           await this.handleMediaChunk(ws, data);
           break;
           
@@ -310,36 +317,68 @@ class TwilioStreamHandler {
       // Generar audio con Azure TTS - CÓDIGO EXACTO DEL TEST QUE FUNCIONA
       try {
         logger.info('🎵 PASO 5: Generando audio con Azure TTS...');
-        logger.info(`🎵 Texto: "${greeting}"`);
-        logger.info(`🎵 Voz configurada: ${voiceId}`);
+        logger.info(`🔍 AUDIO FLOW DEBUG - Texto completo: "${greeting}"`);
+        logger.info(`🔍 AUDIO FLOW DEBUG - Longitud texto: ${greeting.length} caracteres`);
+        logger.info(`🔍 AUDIO FLOW DEBUG - Voz configurada: ${voiceId}`);
+        logger.info(`🔍 AUDIO FLOW DEBUG - TTS Service disponible: ${!!this.ttsService}`);
         
+        const startTime = Date.now();
         const audioResult = await this.ttsService.generateSpeech(greeting, voiceId);
+        const endTime = Date.now();
+        
+        logger.info(`🔍 AUDIO FLOW DEBUG - Tiempo generación TTS: ${endTime - startTime}ms`);
+        logger.info(`🔍 AUDIO FLOW DEBUG - AudioResult recibido: ${JSON.stringify({
+          success: audioResult?.success,
+          hasAudioBuffer: !!audioResult?.audioBuffer,
+          audioSize: audioResult?.audioBuffer?.byteLength || 0,
+          error: audioResult?.error
+        })}`);
         
         if (!audioResult || !audioResult.success) {
           throw new Error(`Azure TTS falló: ${audioResult?.error || 'Error desconocido'}`);
         }
 
-        logger.info(`✅ Audio generado exitosamente:`);
+        logger.info(`✅ AUDIO FLOW DEBUG - Audio generado exitosamente:`);
         logger.info(`   Resultado: ${audioResult.success ? 'Éxito' : 'Fallo'}`);
         logger.info(`   Datos: ${audioResult.audioBuffer ? audioResult.audioBuffer.byteLength + ' bytes' : 'Sin datos'}`);
+        logger.info(`   Formato reportado: ${audioResult.format || 'No especificado'}`);
         logger.info(`   Voz usada: ${voiceId}`);
         
         if (audioResult.audioBuffer) {
+          logger.info(`🔍 AUDIO FLOW DEBUG - Procesando audioBuffer...`);
+          logger.info(`🔍 AUDIO FLOW DEBUG - AudioBuffer tipo: ${typeof audioResult.audioBuffer}`);
+          logger.info(`🔍 AUDIO FLOW DEBUG - AudioBuffer constructor: ${audioResult.audioBuffer.constructor?.name}`);
+          logger.info(`🔍 AUDIO FLOW DEBUG - AudioBuffer es ArrayBuffer: ${audioResult.audioBuffer instanceof ArrayBuffer}`);
+          
           const audioBuffer = Buffer.from(audioResult.audioBuffer);
-          logger.info(`✅ Audio buffer creado: ${audioBuffer.length} bytes`);
-          logger.info(`✅ Formato: μ-law 8kHz mono (optimizado para Twilio)`);
+          logger.info(`✅ AUDIO FLOW DEBUG - Buffer Node.js creado: ${audioBuffer.length} bytes`);
+          logger.info(`✅ AUDIO FLOW DEBUG - Formato: μ-law 8kHz mono (optimizado para Twilio)`);
+          
+          // Analizar contenido del buffer
+          if (audioBuffer.length > 0) {
+            const firstBytes = Array.from(audioBuffer.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            logger.info(`🔍 AUDIO FLOW DEBUG - Primeros 8 bytes del buffer: ${firstBytes}`);
+            
+            // Verificar que no sea silencio (todos ceros)
+            const nonZeroBytes = Array.from(audioBuffer.slice(0, 100)).filter(b => b !== 0).length;
+            logger.info(`🔍 AUDIO FLOW DEBUG - Bytes no-cero en primeros 100: ${nonZeroBytes}/100`);
+          }
           
           logger.info('🎵 PASO 7: Enviando audio a Twilio...');
+          const sendStartTime = Date.now();
           await this.sendAudioToTwilio(ws, audioBuffer, streamSid);
-          logger.info('🎵 PASO 8: ✅ Audio enviado correctamente');
+          const sendEndTime = Date.now();
+          logger.info(`🎵 PASO 8: ✅ Audio enviado correctamente en ${sendEndTime - sendStartTime}ms`);
         } else {
-          logger.warn('⚠️ Audio generado sin datos de buffer');
+          logger.warn('⚠️ AUDIO FLOW DEBUG - Audio generado sin datos de buffer');
           logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto...');
           this.sendTextFallback(ws, greeting, streamSid);
         }
       } catch (error) {
-        logger.error(`❌ Error en Azure TTS: ${error.message}`);
-        logger.error(`❌ Stack: ${error.stack}`);
+        logger.error(`❌ AUDIO FLOW ERROR - Error en Azure TTS: ${error.message}`);
+        logger.error(`❌ AUDIO FLOW ERROR - Tipo de error: ${error.constructor?.name}`);
+        logger.error(`❌ AUDIO FLOW ERROR - Stack: ${error.stack}`);
+        logger.error(`❌ AUDIO FLOW ERROR - WebSocket state: ${ws ? ws.readyState : 'null'}`);
         logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto...');
         this.sendTextFallback(ws, greeting, streamSid);
       }
@@ -355,13 +394,20 @@ class TwilioStreamHandler {
    */
   async sendAudioToTwilio(ws, audioBuffer, streamSid) {
     try {
+      logger.info(`🔍 TWILIO DEBUG - sendAudioToTwilio iniciado`);
+      logger.info(`🔍 TWILIO DEBUG - WebSocket readyState: ${ws ? ws.readyState : 'null'}`);
+      logger.info(`🔍 TWILIO DEBUG - StreamSid: ${streamSid}`);
+      
       if (!ws || ws.readyState !== 1) {
         logger.error('❌ WebSocket no está disponible para enviar audio');
+        logger.error(`❌ WebSocket state: ${ws ? ws.readyState : 'null'} (esperado: 1)`);
         return;
       }
 
       if (!audioBuffer || audioBuffer.length === 0) {
         logger.error('❌ Buffer de audio vacío');
+        logger.error(`❌ AudioBuffer type: ${typeof audioBuffer}`);
+        logger.error(`❌ AudioBuffer length: ${audioBuffer ? audioBuffer.length : 'null'}`);
         return;
       }
 
@@ -372,19 +418,37 @@ class TwilioStreamHandler {
         return;
       }
 
-      logger.info(`🎵 Enviando audio a Twilio: ${audioBuffer.length} bytes`);
+      // Marcar que estamos enviando audio
+      if (streamData) {
+        streamData.isSendingTTS = true;
+      }
+
+      logger.info(`🎵 TWILIO DEBUG - Enviando audio a Twilio: ${audioBuffer.length} bytes`);
+      logger.info(`🔍 TWILIO DEBUG - Tipo de audioBuffer: ${typeof audioBuffer}`);
+      logger.info(`🔍 TWILIO DEBUG - AudioBuffer es Buffer: ${Buffer.isBuffer(audioBuffer)}`);
+      logger.info(`🔍 TWILIO DEBUG - AudioBuffer constructor: ${audioBuffer.constructor?.name}`);
+      
+      // Analizar formato del audio recibido
+      if (audioBuffer.length > 0) {
+        const firstBytes = Array.from(audioBuffer.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+        logger.info(`🔍 TWILIO DEBUG - Primeros 16 bytes del audio (hex): ${firstBytes}`);
+      }
 
       // Convertir buffer a base64 para Twilio
+      logger.info(`🔍 TWILIO DEBUG - Convirtiendo ${audioBuffer.length} bytes a base64...`);
       const base64Audio = audioBuffer.toString('base64');
+      logger.info(`🔍 TWILIO DEBUG - Base64 generado: ${base64Audio.length} caracteres`);
+      logger.info(`🔍 TWILIO DEBUG - Primeros 100 chars base64: ${base64Audio.substring(0, 100)}`);
       
       // Dividir en chunks de 8KB (recomendado por Twilio)
       const chunkSize = 8192;
       const totalChunks = Math.ceil(base64Audio.length / chunkSize);
       
-      logger.info(`🎵 Dividiendo en ${totalChunks} chunks de ${chunkSize} bytes`);
+      logger.info(`🎵 TWILIO DEBUG - Dividiendo en ${totalChunks} chunks de ${chunkSize} bytes`);
 
       for (let i = 0; i < base64Audio.length; i += chunkSize) {
         const chunk = base64Audio.slice(i, i + chunkSize);
+        const chunkNumber = Math.floor(i/chunkSize) + 1;
         
         const mediaMessage = {
           event: 'media',
@@ -394,19 +458,40 @@ class TwilioStreamHandler {
           }
         };
 
+        // Log detallado del primer chunk
+        if (chunkNumber === 1) {
+          logger.info(`🔍 TWILIO DEBUG - Primer chunk (${chunk.length} chars): ${chunk.substring(0, 50)}...`);
+          logger.info(`🔍 TWILIO DEBUG - Mensaje completo primer chunk: ${JSON.stringify(mediaMessage).substring(0, 200)}...`);
+        }
+
+        // Verificar estado del WebSocket antes de enviar
+        if (ws.readyState !== 1) {
+          logger.error(`❌ TWILIO ERROR - WebSocket cerrado durante envío (chunk ${chunkNumber}), state: ${ws.readyState}`);
+          break;
+        }
+
         // Enviar chunk
-        ws.send(JSON.stringify(mediaMessage));
+        try {
+          ws.send(JSON.stringify(mediaMessage));
+          logger.debug(`🔍 TWILIO DEBUG - Chunk ${chunkNumber} enviado exitosamente`);
+        } catch (sendError) {
+          logger.error(`❌ TWILIO ERROR - Error enviando chunk ${chunkNumber}: ${sendError.message}`);
+          break;
+        }
         
         // Log cada 10 chunks para no saturar
-        if ((Math.floor(i/chunkSize) + 1) % 10 === 0) {
-          logger.info(`🎵 Enviado chunk ${Math.floor(i/chunkSize) + 1}/${totalChunks}`);
+        if (chunkNumber % 10 === 0) {
+          logger.info(`🎵 TWILIO DEBUG - Enviado chunk ${chunkNumber}/${totalChunks}`);
         }
 
         // Pequeña pausa entre chunks para simular tiempo real
         await new Promise(resolve => setTimeout(resolve, 20));
       }
 
-      logger.info(`✅ Audio enviado correctamente: ${totalChunks} chunks`);
+      logger.info(`✅ TWILIO DEBUG - Audio enviado correctamente: ${totalChunks} chunks`);
+      logger.info(`🔍 TWILIO DEBUG - Total bytes originales: ${audioBuffer.length}`);
+      logger.info(`🔍 TWILIO DEBUG - Total caracteres base64: ${base64Audio.length}`);
+      logger.info(`🔍 TWILIO DEBUG - WebSocket final state: ${ws.readyState}`);
 
       // Enviar mark para indicar fin del audio
       const markMessage = {
@@ -417,12 +502,32 @@ class TwilioStreamHandler {
         }
       };
       
-      ws.send(JSON.stringify(markMessage));
-      logger.info('🏁 Mark de fin de audio enviado');
+      logger.info(`🔍 TWILIO DEBUG - Enviando mark de fin: ${JSON.stringify(markMessage)}`);
+      
+      if (ws.readyState === 1) {
+        ws.send(JSON.stringify(markMessage));
+        logger.info('🏁 TWILIO DEBUG - Mark de fin de audio enviado exitosamente');
+      } else {
+        logger.error(`❌ TWILIO ERROR - No se pudo enviar mark, WebSocket state: ${ws.readyState}`);
+      }
+      
+      // Limpiar flag de envío
+      if (streamData) {
+        streamData.isSendingTTS = false;
+        logger.info(`🔍 TWILIO DEBUG - Flag isSendingTTS limpiado para ${streamSid}`);
+      }
 
     } catch (error) {
-      logger.error(`❌ Error enviando audio a Twilio: ${error.message}`);
-      logger.error(`❌ Stack: ${error.stack}`);
+      logger.error(`❌ TWILIO ERROR - Error enviando audio a Twilio: ${error.message}`);
+      logger.error(`❌ TWILIO ERROR - Stack: ${error.stack}`);
+      logger.error(`❌ TWILIO ERROR - WebSocket state al fallar: ${ws ? ws.readyState : 'null'}`);
+      
+      // Limpiar flag de envío en caso de error
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        streamData.isSendingTTS = false;
+        logger.info(`🔍 TWILIO DEBUG - Flag isSendingTTS limpiado por error para ${streamSid}`);
+      }
     }
   }
 
@@ -546,17 +651,30 @@ class TwilioStreamHandler {
 
     // Solo procesar audio entrante (inbound)
     if (data.media.track === 'inbound') {
+      logger.debug(`🔍 MEDIA DEBUG - Procesando audio inbound para ${streamSid}`);
+      
       const audioBuffer = this.audioBuffers.get(streamSid) || [];
+      const payloadLength = data.media.payload ? data.media.payload.length : 0;
+      
+      logger.debug(`🔍 MEDIA DEBUG - Buffer actual: ${audioBuffer.length} chunks`);
+      logger.debug(`🔍 MEDIA DEBUG - Nuevo payload: ${payloadLength} bytes`);
+      
       audioBuffer.push(data.media.payload);
       this.audioBuffers.set(streamSid, audioBuffer);
 
       // Actualizar última actividad
       streamData.lastActivity = Date.now();
+      
+      logger.debug(`🔍 MEDIA DEBUG - Buffer actualizado: ${audioBuffer.length} chunks`);
+      logger.debug(`🔍 MEDIA DEBUG - IsProcessing: ${streamData.isProcessing}`);
 
       // Procesar cuando tengamos suficiente audio (aproximadamente 1 segundo)
       if (audioBuffer.length >= 50 && !streamData.isProcessing) {
+        logger.info(`🎬 MEDIA DEBUG - Iniciando procesamiento de audio (${audioBuffer.length} chunks)`);
         await this.processAudioBuffer(streamSid);
       }
+    } else {
+      logger.debug(`🔍 MEDIA DEBUG - Ignorando audio ${data.media.track} (no es inbound)`);
     }
   }
 
@@ -566,19 +684,24 @@ class TwilioStreamHandler {
   async processAudioBuffer(streamSid) {
     const streamData = this.activeStreams.get(streamSid);
     if (!streamData || streamData.isProcessing) {
+      logger.debug(`🔍 PROCESS DEBUG - No se puede procesar: streamData=${!!streamData}, isProcessing=${streamData?.isProcessing}`);
       return;
     }
 
     streamData.isProcessing = true;
+    logger.info(`🔍 PROCESS DEBUG - Iniciando procesamiento de audio para ${streamSid}`);
     
     try {
       const audioBuffer = this.audioBuffers.get(streamSid) || [];
       if (audioBuffer.length === 0) {
+        logger.debug(`🔍 PROCESS DEBUG - Buffer vacío, terminando procesamiento`);
         streamData.isProcessing = false;
         return;
       }
 
-      logger.info(`🎤 Procesando ${audioBuffer.length} chunks de audio para ${streamSid}`);
+      logger.info(`🎤 PROCESS DEBUG - Procesando ${audioBuffer.length} chunks de audio para ${streamSid}`);
+      logger.info(`🔍 PROCESS DEBUG - Cliente: ${streamData.client?.companyName || 'No configurado'}`);
+      logger.info(`🔍 PROCESS DEBUG - SystemPrompt disponible: ${!!streamData.systemPrompt}`);
 
       // Limpiar buffer
       this.audioBuffers.set(streamSid, []);
@@ -590,16 +713,42 @@ class TwilioStreamHandler {
       const userMessage = "Usuario habló"; // Placeholder para transcripción real
       
       // Generar respuesta usando OpenAI con contexto completo
+      logger.info(`🤖 PROCESS DEBUG - Generando respuesta AI para: "${userMessage}"`);
+      logger.info(`🔍 PROCESS DEBUG - SystemPrompt length: ${systemPrompt.length} chars`);
+      
+      const aiStartTime = Date.now();
       const response = await this.generateAIResponse(userMessage, systemPrompt, streamData);
+      const aiEndTime = Date.now();
+      
+      logger.info(`🤖 PROCESS DEBUG - Respuesta AI generada en ${aiEndTime - aiStartTime}ms: "${response}"`);
       
       // Generar respuesta de audio con Azure TTS usando la voz del usuario
       const voiceId = streamData.client?.callConfig?.voiceId || 'lola';
+      logger.info(`🎵 PROCESS DEBUG - Generando TTS con voz: ${voiceId}`);
+      
+      const ttsStartTime = Date.now();
       const ttsResult = await this.ttsService.generateSpeech(response, voiceId);
+      const ttsEndTime = Date.now();
+      
+      logger.info(`🎵 PROCESS DEBUG - TTS completado en ${ttsEndTime - ttsStartTime}ms`);
+      logger.info(`🔍 PROCESS DEBUG - TTS Result: success=${ttsResult?.success}, hasBuffer=${!!ttsResult?.audioBuffer}, size=${ttsResult?.audioBuffer?.byteLength || 0}`);
       
       if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
+        logger.info(`📤 PROCESS DEBUG - Enviando audio de respuesta a Twilio...`);
         streamData.isSendingTTS = true;
+        
+        const sendStartTime = Date.now();
         await this.sendAudioToTwilio(streamData.ws, ttsResult.audioBuffer, streamSid);
+        const sendEndTime = Date.now();
+        
         streamData.isSendingTTS = false;
+        logger.info(`📤 PROCESS DEBUG - Audio de respuesta enviado en ${sendEndTime - sendStartTime}ms`);
+      } else {
+        logger.error(`❌ PROCESS DEBUG - TTS falló o sin buffer: ${JSON.stringify({
+          success: ttsResult?.success,
+          error: ttsResult?.error,
+          hasBuffer: !!ttsResult?.audioBuffer
+        })}`);
       }
 
       // Verificar que el WebSocket esté abierto

@@ -77,13 +77,17 @@ class AzureTTSService {
       const selectedVoice = this.getVoiceById(voiceId || this.defaultVoice);
       
       logger.info(`🔍 DEBUG Azure TTS - Generando audio con voz: ${selectedVoice.name}`);
-      logger.info(`🔍 DEBUG Azure TTS - Texto: "${text.substring(0, 50)}..."`);
+      logger.info(`🔍 DEBUG Azure TTS - Texto completo: "${text}"`);
+      logger.info(`🔍 DEBUG Azure TTS - Longitud del texto: ${text.length} caracteres`);
       logger.info(`🔍 DEBUG Azure TTS - Azure Voice Name: ${selectedVoice.azureName}`);
+      logger.info(`🔍 DEBUG Azure TTS - Output Path: ${outputPath || 'MEMORIA (no archivo)'}`);
       
       const speechConfig = this.getSpeechConfig();
       speechConfig.speechSynthesisVoiceName = selectedVoice.azureName;
       
       logger.info(`🔍 DEBUG Azure TTS - SpeechConfig configurado con voz: ${selectedVoice.azureName}`);
+      logger.info(`🔍 DEBUG Azure TTS - Formato de salida: ${speechConfig.speechSynthesisOutputFormat}`);
+      logger.info(`🔍 DEBUG Azure TTS - Idioma configurado: ${speechConfig.speechSynthesisLanguage}`);
       
       // Configurar salida
       let audioConfig;
@@ -119,8 +123,22 @@ class AzureTTSService {
             logger.info(`🔍 DEBUG Azure TTS - Callback ejecutado, reason: ${result.reason}`);
             
             if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-              logger.info(`🎵 AZURE TTS SUCCESS - Audio generado: ${result.audioData ? result.audioData.byteLength : 0} bytes`);
+              const audioSize = result.audioData ? result.audioData.byteLength : 0;
+              logger.info(`🎵 AZURE TTS SUCCESS - Audio generado: ${audioSize} bytes`);
               logger.info(`🔍 AZURE TTS SUCCESS - Clave usada: ${this.subscriptionKey?.substring(0, 8)}...`);
+              logger.info(`🔍 AZURE TTS SUCCESS - Tipo de audioData: ${typeof result.audioData}`);
+              logger.info(`🔍 AZURE TTS SUCCESS - AudioData es Buffer: ${Buffer.isBuffer(result.audioData)}`);
+              logger.info(`🔍 AZURE TTS SUCCESS - AudioData constructor: ${result.audioData?.constructor?.name}`);
+              
+              // Analizar primeros bytes del audio para verificar formato
+              if (result.audioData && result.audioData.byteLength > 0) {
+                const firstBytes = Array.from(result.audioData.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                logger.info(`🔍 AZURE TTS SUCCESS - Primeros 16 bytes (hex): ${firstBytes}`);
+                
+                // Verificar si es formato μ-law (valores típicos entre 0x00-0xFF)
+                const isValidMulaw = Array.from(result.audioData.slice(0, 100)).every(b => b >= 0 && b <= 255);
+                logger.info(`🔍 AZURE TTS SUCCESS - Formato parece μ-law válido: ${isValidMulaw}`);
+              }
               
               if (outputPath) {
                 // Verificar que el archivo se creó correctamente
@@ -137,9 +155,12 @@ class AzureTTSService {
                   audioBuffer: result.audioData
                 });
               } else {
+                logger.info(`🔍 AZURE TTS SUCCESS - Retornando buffer en memoria de ${audioSize} bytes`);
                 resolve({
                   success: true,
-                  audioBuffer: result.audioData
+                  audioBuffer: result.audioData,
+                  audioSize: audioSize,
+                  format: 'Raw8Khz8BitMonoMULaw'
                 });
               }
             } else if (result.reason === sdk.ResultReason.Canceled) {
