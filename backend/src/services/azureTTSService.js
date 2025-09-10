@@ -8,8 +8,15 @@ class AzureTTSService {
     this.subscriptionKey = process.env.AZURE_SPEECH_KEY || '123456dummy_key_for_testing';
     this.region = process.env.AZURE_SPEECH_REGION || 'westeurope';
     
-    logger.info(`🔍 DEBUG CONSTRUCTOR Azure TTS - Key configurada: ${this.subscriptionKey ? 'SÍ' : 'NO'} (${this.subscriptionKey?.substring(0, 5)}...)`);  
-    logger.info(`🔍 DEBUG CONSTRUCTOR Azure TTS - Región: ${this.region}`);
+    // LOGS CRÍTICOS PARA PRODUCCIÓN
+    logger.info(`🔍 AZURE TTS INIT - Key: ${this.subscriptionKey ? 'CONFIGURADA' : 'NO CONFIGURADA'} (${this.subscriptionKey?.substring(0, 8)}...)`);  
+    logger.info(`🔍 AZURE TTS INIT - Región: ${this.region}`);
+    logger.info(`🔍 AZURE TTS INIT - NODE_ENV: ${process.env.NODE_ENV}`);
+    
+    // Verificar si es la clave dummy
+    if (this.subscriptionKey === '123456dummy_key_for_testing') {
+      logger.error(`❌ AZURE TTS USANDO CLAVE DUMMY - Variables de entorno no cargadas correctamente`);
+    }
     
     // Voces españolas disponibles (nombres EXACTOS de Azure Speech Studio)
     this.availableVoices = [
@@ -112,8 +119,8 @@ class AzureTTSService {
             logger.info(`🔍 DEBUG Azure TTS - Callback ejecutado, reason: ${result.reason}`);
             
             if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-              logger.info(`🎵 Audio Azure generado exitosamente`);
-              logger.info(`🔍 DEBUG Azure TTS - Audio data length: ${result.audioData ? result.audioData.byteLength : 'undefined'}`);
+              logger.info(`🎵 AZURE TTS SUCCESS - Audio generado: ${result.audioData ? result.audioData.byteLength : 0} bytes`);
+              logger.info(`🔍 AZURE TTS SUCCESS - Clave usada: ${this.subscriptionKey?.substring(0, 8)}...`);
               
               if (outputPath) {
                 // Verificar que el archivo se creó correctamente
@@ -137,9 +144,10 @@ class AzureTTSService {
               }
             } else if (result.reason === sdk.ResultReason.Canceled) {
               const cancellation = sdk.CancellationDetails.fromResult(result);
-              logger.error(`❌ Azure TTS Cancelado - Reason: ${cancellation.reason}`);
-              logger.error(`❌ Azure TTS Error Code: ${cancellation.errorCode}`);
-              logger.error(`❌ Azure TTS Error Details: ${cancellation.errorDetails}`);
+              logger.error(`❌ AZURE TTS CANCELED - Reason: ${cancellation.reason}`);
+              logger.error(`❌ AZURE TTS CANCELED - Error Code: ${cancellation.errorCode}`);
+              logger.error(`❌ AZURE TTS CANCELED - Details: ${cancellation.errorDetails}`);
+              logger.error(`❌ AZURE TTS CANCELED - Clave usada: ${this.subscriptionKey?.substring(0, 8)}...`);
               reject(new Error(`Azure TTS Cancelado: ${cancellation.errorDetails}`));
             } else {
               logger.error(`❌ Error Azure TTS - Reason: ${result.reason}`);
