@@ -31,9 +31,9 @@ async function testAzureProductionVsLocal() {
     console.log(`Audio buffer length: ${result?.audioBuffer?.length || 0} bytes`);
     console.log(`Error: ${result?.error || 'Ninguno'}`);
     
-    // 3. Test con diferentes voces (corregidas)
+    // 3. Test con diferentes voces (usando nombres oficiales Azure)
     console.log('\n3. TEST CON DIFERENTES VOCES:');
-    const voices = ['lola']; // Solo lola por ahora, dario necesita mapeo correcto
+    const voices = ['lola', 'dario']; // Ambas voces oficiales
     
     for (const voice of voices) {
       try {

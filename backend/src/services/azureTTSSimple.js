@@ -30,6 +30,20 @@ class AzureTTSSimple {
     }
   }
 
+  // Mapear voces de usuario a nombres Azure CORRECTOS
+  mapVoiceToAzure(voiceId) {
+    const voiceMap = {
+      'lola': 'en-US-LolaMultilingualNeural',
+      'dario': 'es-ES-DarioNeural',  // CORRECTO según código oficial Azure
+      // Permitir nombres Azure directos también
+      'en-US-LolaMultilingualNeural': 'en-US-LolaMultilingualNeural',
+      'es-ES-DarioNeural': 'es-ES-DarioNeural',
+      'es-ES-LolaNeural': 'es-ES-LolaNeural'
+    };
+    
+    return voiceMap[voiceId] || this.defaultVoice;
+  }
+
   // Generar audio usando REST API de Azure
   async generateSpeech(text, voiceId = null) {
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
@@ -38,15 +52,16 @@ class AzureTTSSimple {
       logger.info(`🔍 [DEBUG-START] ${requestId} - Iniciando generateSpeech`);
       logger.info(`🔍 [DEBUG-INPUT] ${requestId} - text length: ${text?.length || 0}`);
       logger.info(`🔍 [DEBUG-INPUT] ${requestId} - text content: "${text?.substring(0, 100) || 'UNDEFINED'}..."`);
-      logger.info(`🔍 [DEBUG-INPUT] ${requestId} - voiceId: "${voiceId || 'null'}"`);
+      logger.info(`🔍 [DEBUG-INPUT] ${requestId} - voiceId RAW: "${voiceId || 'null'}"`);
       
       if (!this.subscriptionKey) {
         logger.error(`❌ [DEBUG-ERROR] ${requestId} - Azure Speech Key no configurada`);
         return resolve({ success: false, error: 'Azure Speech Key no configurada' });
       }
 
-      const voice = voiceId || this.defaultVoice;
-      logger.info(`🔍 [DEBUG-VOICE] ${requestId} - voz final seleccionada: "${voice}"`);
+      // MAPEAR la voz del usuario a nombre Azure correcto
+      const voice = this.mapVoiceToAzure(voiceId);
+      logger.info(`🔍 [DEBUG-VOICE] ${requestId} - voiceId "${voiceId}" mapeada a: "${voice}"`);
 
       // SSML corregido con xmlns completo según Microsoft docs
       const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='es-ES'><voice xml:lang='es-ES' name='${voice}'><![CDATA[${text}]]></voice></speak>`;

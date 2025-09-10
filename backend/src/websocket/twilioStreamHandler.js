@@ -278,8 +278,14 @@ class TwilioStreamHandler {
       let greeting = 'Hola, gracias por llamar. ¿En qué puedo ayudarte?';
       
       logger.info('🎵 PASO 3: Verificando callConfig');
+      logger.info(`🎵 PASO 3a: client.callConfig existe: ${!!client.callConfig}`);
+      logger.info(`🎵 PASO 3b: client.callConfig completo: ${JSON.stringify(client.callConfig, null, 2)}`);
+      
       if (client.callConfig && client.callConfig.greeting) {
         greeting = client.callConfig.greeting;
+        logger.info(`🎵 PASO 3c: ✅ Usando saludo personalizado de DB: "${greeting}"`);
+      } else {
+        logger.info(`🎵 PASO 3c: ⚠️ Usando saludo por defecto (no hay personalizado en DB)`);
       }
 
       // Obtener la voz configurada por el usuario
