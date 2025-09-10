@@ -167,48 +167,40 @@ class TwilioStreamHandler {
       if (clientId) {
         logger.info(`🔍 PASO 2: Buscando cliente con ID: ${clientId}`);
         
-        // FALLBACK INMEDIATO: Crear cliente mock primero para evitar bloqueos
-        client = {
-          id: parseInt(clientId),
-          companyName: 'Cliente Mock',
-          callConfig: { greeting: 'Hola, gracias por llamar. ¿En qué puedo ayudarte?' }
-        };
-        logger.info(`🔍 PASO 2a: Cliente mock creado para evitar bloqueos DB`);
-        
-        // Intentar consulta DB en background (sin bloquear)
-        setTimeout(async () => {
-          try {
-            logger.info(`🔍 BACKGROUND: Intentando consulta DB real...`);
-            const realClient = await prisma.client.findUnique({
-              where: { id: parseInt(clientId) },
-              select: {
-                id: true,
-                companyName: true,
-                callConfig: true
-              }
-            });
-            
-            if (realClient) {
-              logger.info(`🔍 BACKGROUND: Cliente real encontrado: ${realClient.companyName}`);
-              // Actualizar el stream con datos reales
-              const currentStream = this.activeStreams.get(streamSid);
-              if (currentStream) {
-                currentStream.client = realClient;
-                logger.info(`🔄 BACKGROUND: Stream actualizado con datos reales`);
-              }
+        // CONSULTA DB DIRECTA para obtener configuración real del cliente
+        try {
+          logger.info(`🔍 PASO 2a: Consultando DB para obtener configuración real...`);
+          client = await prisma.client.findUnique({
+            where: { id: parseInt(clientId) },
+            select: {
+              id: true,
+              companyName: true,
+              callConfig: true
             }
-          } catch (bgError) {
-            logger.warn(`⚠️ BACKGROUND: Consulta DB falló: ${bgError.message}`);
+          });
+          
+          if (client) {
+            logger.info(`🔍 PASO 2b: ✅ Cliente encontrado: ${client.companyName}`);
+            logger.info(`🔍 PASO 2c: callConfig: ${JSON.stringify(client.callConfig, null, 2)}`);
+          } else {
+            logger.warn(`⚠️ PASO 2b: Cliente ${clientId} no encontrado en DB`);
           }
-        }, 100); // Ejecutar en 100ms sin bloquear
-
+        } catch (dbError) {
+          logger.error(`❌ PASO 2b: Error consultando DB: ${dbError.message}`);
+          client = null;
+        }
+        
+        // FALLBACK solo si no se pudo obtener de DB
         if (!client) {
-          logger.error(`❌ Client not found for clientId: ${clientId}`);
-          // Remover el stream placeholder si no se encuentra el cliente
-          this.activeStreams.delete(streamSid);
-          this.audioBuffers.delete(streamSid);
-          this.conversationState.delete(streamSid);
-          throw new Error(`Client not found for clientId: ${clientId}`);
+          logger.info(`🔄 PASO 2c: Usando cliente mock como fallback`);
+          client = {
+            id: parseInt(clientId),
+            companyName: 'Cliente Mock',
+            callConfig: { 
+              greeting: 'Hola, gracias por llamar. ¿En qué puedo ayudarte?',
+              voiceId: 'lola'
+            }
+          };
         }
 
         logger.info(`✅ Cliente encontrado: ${client.companyName} (ID: ${client.id})`);
@@ -278,14 +270,8 @@ class TwilioStreamHandler {
       let greeting = 'Hola, gracias por llamar. ¿En qué puedo ayudarte?';
       
       logger.info('🎵 PASO 3: Verificando callConfig');
-      logger.info(`🎵 PASO 3a: client.callConfig existe: ${!!client.callConfig}`);
-      logger.info(`🎵 PASO 3b: client.callConfig completo: ${JSON.stringify(client.callConfig, null, 2)}`);
-      
       if (client.callConfig && client.callConfig.greeting) {
         greeting = client.callConfig.greeting;
-        logger.info(`🎵 PASO 3c: ✅ Usando saludo personalizado de DB: "${greeting}"`);
-      } else {
-        logger.info(`🎵 PASO 3c: ⚠️ Usando saludo por defecto (no hay personalizado en DB)`);
       }
 
       // Obtener la voz configurada por el usuario
