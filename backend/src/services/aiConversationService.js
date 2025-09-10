@@ -165,7 +165,7 @@ async function getClientData(clientId) {
         }
         
         // Añadir FAQs si existen
-        if (client.faqs && client.faqs.length > 0) {
+        if (client.faqs && Array.isArray(client.faqs) && client.faqs.length > 0) {
             contextInfo += `\nPREGUNTAS FRECUENTES:\n`;
             client.faqs.forEach((faq, index) => {
                 contextInfo += `${index + 1}. ${faq.question}\n   ${faq.answer}\n`;

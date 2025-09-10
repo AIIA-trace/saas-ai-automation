@@ -51,12 +51,14 @@ class ContextBuilder {
       }
       
       // Preguntas frecuentes
-      if (clientConfig.faqs && clientConfig.faqs.length > 0) {
+      if (clientConfig.faqs && Array.isArray(clientConfig.faqs) && clientConfig.faqs.length > 0) {
         context += `\n=== PREGUNTAS FRECUENTES ===\n`;
         clientConfig.faqs.forEach((faq, index) => {
           context += `${index + 1}. PREGUNTA: ${faq.question}\n`;
           context += `   RESPUESTA: ${faq.answer}\n\n`;
         });
+      } else if (clientConfig.faqs && !Array.isArray(clientConfig.faqs)) {
+        logger.warn(`⚠️ FAQs no es un array para ${clientConfig.companyName}:`, typeof clientConfig.faqs, clientConfig.faqs);
       }
       
       // Archivos de contexto

@@ -220,10 +220,10 @@ class TwilioStreamHandler {
       logger.info(`🔍 DEBUG STREAM: - contextFiles presente: ${!!customParameters?.contextFiles}`);
       
       logger.info(`🔍 PASO 2: Cliente configurado: ${clientConfig.companyName}`);
-      logger.info(`🔍 PASO 2a: Saludo: "${clientConfig.callConfig.greeting}"`);
-      logger.info(`🔍 PASO 2b: Voz: "${clientConfig.callConfig.voiceId}"`);
-      logger.info(`🔍 PASO 2c: FAQs cargadas: ${clientConfig.faqs.length}`);
-      logger.info(`🔍 PASO 2d: Archivos contexto: ${clientConfig.contextFiles.length}`);
+      logger.info(`🔍 PASO 2a: Saludo: "${clientConfig.callConfig?.greeting || 'Sin saludo configurado'}"`);
+      logger.info(`🔍 PASO 2b: Voz: "${clientConfig.callConfig?.voiceId || 'Sin voz configurada'}"`);
+      logger.info(`🔍 PASO 2c: FAQs cargadas: ${clientConfig.faqs?.length || 0}`);
+      logger.info(`🔍 PASO 2d: Archivos contexto: ${clientConfig.contextFiles?.length || 0}`);
 
       // GENERAR CONTEXTO COMPLETO PARA OPENAI
       const systemPrompt = ContextBuilder.buildSystemPrompt(clientConfig);
@@ -346,6 +346,82 @@ class TwilioStreamHandler {
 
     } catch (error) {
       logger.error(`❌ Error enviando saludo inicial: ${error.message}`);
+      logger.error(`❌ Stack: ${error.stack}`);
+    }
+  }
+
+  /**
+   * Enviar audio a Twilio via WebSocket
+   */
+  async sendAudioToTwilio(ws, audioBuffer, streamSid) {
+    try {
+      if (!ws || ws.readyState !== 1) {
+        logger.error('❌ WebSocket no está disponible para enviar audio');
+        return;
+      }
+
+      if (!audioBuffer || audioBuffer.length === 0) {
+        logger.error('❌ Buffer de audio vacío');
+        return;
+      }
+
+      // Control de concurrencia - evitar múltiples envíos simultáneos
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData && streamData.isSendingTTS) {
+        logger.warn(`⚠️ Ya se está enviando audio para ${streamSid}, omitiendo`);
+        return;
+      }
+
+      logger.info(`🎵 Enviando audio a Twilio: ${audioBuffer.length} bytes`);
+
+      // Convertir buffer a base64 para Twilio
+      const base64Audio = audioBuffer.toString('base64');
+      
+      // Dividir en chunks de 8KB (recomendado por Twilio)
+      const chunkSize = 8192;
+      const totalChunks = Math.ceil(base64Audio.length / chunkSize);
+      
+      logger.info(`🎵 Dividiendo en ${totalChunks} chunks de ${chunkSize} bytes`);
+
+      for (let i = 0; i < base64Audio.length; i += chunkSize) {
+        const chunk = base64Audio.slice(i, i + chunkSize);
+        
+        const mediaMessage = {
+          event: 'media',
+          streamSid: streamSid,
+          media: {
+            payload: chunk
+          }
+        };
+
+        // Enviar chunk
+        ws.send(JSON.stringify(mediaMessage));
+        
+        // Log cada 10 chunks para no saturar
+        if ((Math.floor(i/chunkSize) + 1) % 10 === 0) {
+          logger.info(`🎵 Enviado chunk ${Math.floor(i/chunkSize) + 1}/${totalChunks}`);
+        }
+
+        // Pequeña pausa entre chunks para simular tiempo real
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+
+      logger.info(`✅ Audio enviado correctamente: ${totalChunks} chunks`);
+
+      // Enviar mark para indicar fin del audio
+      const markMessage = {
+        event: 'mark',
+        streamSid: streamSid,
+        mark: {
+          name: `audio_end_${Date.now()}`
+        }
+      };
+      
+      ws.send(JSON.stringify(markMessage));
+      logger.info('🏁 Mark de fin de audio enviado');
+
+    } catch (error) {
+      logger.error(`❌ Error enviando audio a Twilio: ${error.message}`);
       logger.error(`❌ Stack: ${error.stack}`);
     }
   }
@@ -521,10 +597,10 @@ class TwilioStreamHandler {
       const ttsResult = await this.ttsService.generateSpeech(response, voiceId);
       
       if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
+        streamData.isSendingTTS = true;
         await this.sendAudioToTwilio(streamData.ws, ttsResult.audioBuffer, streamSid);
+        streamData.isSendingTTS = false;
       }
-
-      streamData.isSendingTTS = true;
 
       // Verificar que el WebSocket esté abierto
       if (ws.readyState !== 1) { // WebSocket.OPEN = 1
