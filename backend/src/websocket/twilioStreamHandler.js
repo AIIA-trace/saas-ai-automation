@@ -1,8 +1,8 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
-const OpenAI = require('openai');
 const azureTTSService = require('../services/azureTTSService');
-const azureTTSSimple = require('../services/azureTTSSimple');
+const openaiService = require('../services/openaiService');
+const ContextBuilder = require('../utils/contextBuilder');
 
 const prisma = new PrismaClient();
 
@@ -161,79 +161,77 @@ class TwilioStreamHandler {
     logger.info(`📊 Active streams: ${this.activeStreams.size}`);
 
     try {
-      logger.info('🔍 PASO 1: Iniciando búsqueda de cliente...');
+      logger.info('🔍 PASO 1: Obteniendo configuración del cliente desde parámetros...');
       
-      let client = null;
-      if (clientId) {
-        logger.info(`🔍 PASO 2: Buscando cliente con ID: ${clientId}`);
-        
-        // CONSULTA DB DIRECTA para obtener configuración real del cliente
-        try {
-          logger.info(`🔍 PASO 2a: Consultando DB para obtener configuración real...`);
-          client = await prisma.client.findUnique({
-            where: { id: parseInt(clientId) },
-            select: {
-              id: true,
-              companyName: true,
-              callConfig: true
-            }
-          });
-          
-          if (client) {
-            logger.info(`🔍 PASO 2b: ✅ Cliente encontrado: ${client.companyName}`);
-            logger.info(`🔍 PASO 2c: callConfig: ${JSON.stringify(client.callConfig, null, 2)}`);
-          } else {
-            logger.warn(`⚠️ PASO 2b: Cliente ${clientId} no encontrado en DB`);
-          }
-        } catch (dbError) {
-          logger.error(`❌ PASO 2b: Error consultando DB: ${dbError.message}`);
-          client = null;
-        }
-        
-        // FALLBACK solo si no se pudo obtener de DB
-        if (!client) {
-          logger.info(`🔄 PASO 2c: Usando cliente mock como fallback`);
-          client = {
-            id: parseInt(clientId),
-            companyName: 'Cliente Mock',
-            callConfig: { 
-              greeting: 'Hola, gracias por llamar. ¿En qué puedo ayudarte?',
-              voiceId: 'lola'
-            }
-          };
-        }
+      // OBTENER CONFIGURACIÓN COMPLETA DESDE PARÁMETROS (ya consultada en webhook)
+      const clientConfig = {
+        id: clientId ? parseInt(clientId) : 1,
+        companyName: customParameters?.companyName || 'Sistema de Atención',
+        callConfig: {
+          greeting: customParameters?.greeting || 'Hola, gracias por llamar. Soy el asistente virtual. ¿En qué puedo ayudarte?',
+          voiceId: customParameters?.voiceId || 'lola',
+          enabled: customParameters?.enabled !== 'false'
+        },
+        // Información completa de la empresa para contexto
+        companyInfo: customParameters?.companyInfo ? JSON.parse(customParameters.companyInfo) : null,
+        botConfig: customParameters?.botConfig ? JSON.parse(customParameters.botConfig) : null,
+        businessHours: customParameters?.businessHours ? JSON.parse(customParameters.businessHours) : null,
+        notificationConfig: customParameters?.notificationConfig ? JSON.parse(customParameters.notificationConfig) : null,
+        // FAQs y archivos de contexto
+        faqs: customParameters?.faqs ? JSON.parse(customParameters.faqs) : [],
+        contextFiles: customParameters?.contextFiles ? JSON.parse(customParameters.contextFiles) : []
+      };
 
-        logger.info(`✅ Cliente encontrado: ${client.companyName} (ID: ${client.id})`);
+      logger.info(`🔍 DEBUG STREAM: Parámetros recibidos del WebSocket:`);
+      logger.info(`🔍 DEBUG STREAM: - clientId: ${customParameters?.clientId}`);
+      logger.info(`🔍 DEBUG STREAM: - companyName: ${customParameters?.companyName}`);
+      logger.info(`🔍 DEBUG STREAM: - greeting: "${customParameters?.greeting}"`);
+      logger.info(`🔍 DEBUG STREAM: - voiceId: ${customParameters?.voiceId}`);
+      logger.info(`🔍 DEBUG STREAM: - companyInfo presente: ${!!customParameters?.companyInfo}`);
+      logger.info(`🔍 DEBUG STREAM: - botConfig presente: ${!!customParameters?.botConfig}`);
+      logger.info(`🔍 DEBUG STREAM: - businessHours presente: ${!!customParameters?.businessHours}`);
+      logger.info(`🔍 DEBUG STREAM: - faqs presente: ${!!customParameters?.faqs}`);
+      logger.info(`🔍 DEBUG STREAM: - contextFiles presente: ${!!customParameters?.contextFiles}`);
+      
+      logger.info(`🔍 PASO 2: Cliente configurado: ${clientConfig.companyName}`);
+      logger.info(`🔍 PASO 2a: Saludo: "${clientConfig.callConfig.greeting}"`);
+      logger.info(`🔍 PASO 2b: Voz: "${clientConfig.callConfig.voiceId}"`);
+      logger.info(`🔍 PASO 2c: FAQs cargadas: ${clientConfig.faqs.length}`);
+      logger.info(`🔍 PASO 2d: Archivos contexto: ${clientConfig.contextFiles.length}`);
 
-        // ACTUALIZAR EL STREAM CON LOS DATOS DEL CLIENTE
-        logger.info('🔄 PASO 4: ACTUALIZANDO stream con datos del cliente...');
-        const streamData = this.activeStreams.get(streamSid);
-        streamData.client = client;
-        streamData.isInitializing = false;
-        
-        logger.info(`🔄 PASO 5: Stream actualizado con cliente: ${client.companyName}`);
+      // GENERAR CONTEXTO COMPLETO PARA OPENAI
+      const systemPrompt = ContextBuilder.buildSystemPrompt(clientConfig);
+      logger.info(`📋 PASO 2e: Contexto generado: ${systemPrompt.length} caracteres`);
 
-        logger.info('🔍 PASO 6: Enviando saludo inicial...');
-        
-        // Timeout para sendInitialGreeting
-        const greetingPromise = this.sendInitialGreeting(ws, { streamSid, callSid });
-        const greetingTimeout = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('sendInitialGreeting timeout after 10 seconds')), 10000);
-        });
+      // ACTUALIZAR EL STREAM CON CONFIGURACIÓN REAL Y CONTEXTO
+      const streamData = this.activeStreams.get(streamSid);
+      streamData.client = clientConfig;
+      streamData.systemPrompt = systemPrompt; // Contexto completo disponible
+      streamData.isInitializing = false;
+      
+      logger.info(`🔄 PASO 3: Stream actualizado con configuración real y contexto completo`);
 
-        try {
-          await Promise.race([greetingPromise, greetingTimeout]);
-          logger.info('🔍 PASO 7: ✅ Saludo inicial enviado correctamente');
-        } catch (error) {
-          logger.error(`❌ Error en saludo inicial: ${error.message}`);
-          // Continuar sin saludo si hay error
-        }
-        
-        logger.info('🔍 PASO 8: ✅ handleStreamStart COMPLETADO EXITOSAMENTE');
+      logger.info('🔍 PASO 4: Enviando saludo inicial con configuración real...');
+      
+      // Enviar saludo con configuración real
+      const greetingPromise = this.sendInitialGreeting(ws, { streamSid, callSid });
+      
+      const greetingTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('sendInitialGreeting timeout after 10 seconds')), 10000);
+      });
 
-        // Verificación final
-        logger.info(`🔍 VERIFICACIÓN FINAL: Stream ${streamSid} existe: ${this.activeStreams.has(streamSid)}`);
+      try {
+        await Promise.race([greetingPromise, greetingTimeout]);
+        logger.info('🔍 PASO 7: ✅ Saludo inicial enviado correctamente');
+      } catch (error) {
+        logger.error(`❌ Error en saludo inicial: ${error.message}`);
+        // Continuar sin saludo si hay error
       }
+      
+      logger.info('🔍 PASO 8: ✅ handleStreamStart COMPLETADO EXITOSAMENTE');
+
+      // Verificación final
+      logger.info(`🔍 VERIFICACIÓN FINAL: Stream ${streamSid} existe: ${this.activeStreams.has(streamSid)}`);
 
     } catch (error) {
       logger.error(`❌ Error in handleStreamStart: ${error.message}`);
@@ -478,48 +476,20 @@ class TwilioStreamHandler {
       // Limpiar buffer
       this.audioBuffers.set(streamSid, []);
 
-      // Aquí iría la lógica de transcripción y procesamiento con OpenAI
-      // Por ahora, simular una respuesta
-      const response = "Entiendo. ¿Puedes darme más detalles?";
+      // Usar el contexto completo del cliente para generar respuesta con OpenAI
+      const systemPrompt = streamData.systemPrompt || `Eres un asistente virtual para ${streamData.client?.companyName || 'la empresa'}.`;
+      
+      // Aquí iría la transcripción del audio (por ahora simulamos)
+      const userMessage = "Usuario habló"; // Placeholder para transcripción real
+      
+      // Generar respuesta usando OpenAI con contexto completo
+      const response = await this.generateAIResponse(userMessage, systemPrompt, streamData);
       
       // Generar respuesta de audio
       const ttsResult = await this.ttsService.generateSpeech(response);
       
       if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
         await this.sendAudioToTwilio(streamData.ws, ttsResult.audioBuffer, streamSid);
-      }
-
-    } catch (error) {
-      logger.error(`❌ Error procesando audio: ${error.message}`);
-    } finally {
-      streamData.isProcessing = false;
-    }
-  }
-
-  /**
-   * Enviar audio a Twilio
-   */
-  async sendAudioToTwilio(ws, audioBuffer, streamSid) {
-    try {
-      logger.info(`🎵 sendAudioToTwilio iniciado para ${streamSid}`);
-      logger.info(`🎵 Audio buffer size: ${audioBuffer.length} bytes`);
-      logger.info(`🎵 WebSocket readyState: ${ws.readyState}`);
-
-      // Verificar estado del WebSocket antes de proceder
-      if (!ws || ws.readyState !== 1) {
-        logger.error(`❌ WebSocket no está listo (readyState: ${ws?.readyState || 'undefined'})`);
-        return;
-      }
-
-      const streamData = this.activeStreams.get(streamSid);
-      if (!streamData) {
-        logger.error(`❌ No se encontró stream data para ${streamSid}`);
-        return;
-      }
-
-      if (streamData.isSendingTTS) {
-        logger.warn(`⚠️ Ya se está enviando TTS para ${streamSid}, saltando...`);
-        return;
       }
 
       streamData.isSendingTTS = true;

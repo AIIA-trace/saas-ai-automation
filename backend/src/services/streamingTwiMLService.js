@@ -16,6 +16,16 @@ class StreamingTwiMLService {
       // Configurar URL del WebSocket
       const wsUrl = this.getWebSocketUrl();
       
+      logger.info(`🔍 DEBUG TWIML: Creando TwiML Stream para ${clientData.companyName}`);
+      logger.info(`🔍 DEBUG TWIML: Cliente ID: ${clientData.id}`);
+      logger.info(`🔍 DEBUG TWIML: CallSid: ${callSid}`);
+      logger.info(`🔍 DEBUG TWIML: WebSocket URL: ${wsUrl}`);
+      logger.info(`🔍 DEBUG TWIML: Datos del cliente recibidos:`);
+      logger.info(`🔍 DEBUG TWIML: - companyInfo: ${!!clientData.companyInfo}`);
+      logger.info(`🔍 DEBUG TWIML: - botConfig: ${!!clientData.botConfig}`);
+      logger.info(`🔍 DEBUG TWIML: - businessHours: ${clientData.businessHours?.length || 0}`);
+      logger.info(`🔍 DEBUG TWIML: - faqs: ${clientData.faqs?.length || 0}`);
+      logger.info(`🔍 DEBUG TWIML: - contextFiles: ${clientData.contextFiles?.length || 0}`);
       logger.info(`🎵 Creando TwiML Stream para ${clientData.companyName}`);
       logger.info(`🔌 WebSocket URL: ${wsUrl}`);
 
@@ -29,11 +39,101 @@ class StreamingTwiMLService {
         track: 'both_tracks'
       });
       
-      // Parámetros del stream
+      // Parámetros del stream - incluir toda la configuración del cliente
       stream.parameter({
         name: 'clientId',
         value: clientData.id.toString()
       });
+      
+      stream.parameter({
+        name: 'companyName',
+        value: clientData.companyName || 'Sistema de Atención'
+      });
+      
+      // Pasar configuración de llamadas
+      if (clientData.callConfig) {
+        stream.parameter({
+          name: 'greeting',
+          value: clientData.callConfig.greeting || 'Hola, gracias por llamar. Soy el asistente virtual. ¿En qué puedo ayudarte?'
+        });
+        
+        stream.parameter({
+          name: 'voiceId',
+          value: clientData.callConfig.voiceId || 'lola'
+        });
+        
+        stream.parameter({
+          name: 'enabled',
+          value: clientData.callConfig.enabled ? 'true' : 'false'
+        });
+      } else {
+        // Configuración por defecto si no existe
+        stream.parameter({
+          name: 'greeting',
+          value: 'Hola, gracias por llamar. Soy el asistente virtual. ¿En qué puedo ayudarte?'
+        });
+        
+        stream.parameter({
+          name: 'voiceId',
+          value: 'lola'
+        });
+        
+        stream.parameter({
+          name: 'enabled',
+          value: 'true'
+        });
+      }
+
+      // Pasar TODA la información de la empresa como contexto
+      if (clientData.companyInfo) {
+        stream.parameter({
+          name: 'companyInfo',
+          value: JSON.stringify(clientData.companyInfo)
+        });
+      }
+
+      if (clientData.botConfig) {
+        stream.parameter({
+          name: 'botConfig',
+          value: JSON.stringify(clientData.botConfig)
+        });
+      }
+
+      if (clientData.businessHours) {
+        stream.parameter({
+          name: 'businessHours',
+          value: JSON.stringify(clientData.businessHours)
+        });
+      }
+
+      if (clientData.notificationConfig) {
+        stream.parameter({
+          name: 'notificationConfig',
+          value: JSON.stringify(clientData.notificationConfig)
+        });
+      }
+
+      // Pasar FAQs (preguntas frecuentes)
+      if (clientData.faqs && clientData.faqs.length > 0) {
+        logger.info(`🔍 DEBUG TWIML: Agregando ${clientData.faqs.length} FAQs como parámetro`);
+        stream.parameter({
+          name: 'faqs',
+          value: JSON.stringify(clientData.faqs)
+        });
+      } else {
+        logger.info(`🔍 DEBUG TWIML: No hay FAQs para agregar`);
+      }
+
+      // Pasar archivos de contexto con contenido
+      if (clientData.contextFiles && clientData.contextFiles.length > 0) {
+        logger.info(`🔍 DEBUG TWIML: Agregando ${clientData.contextFiles.length} archivos de contexto como parámetro`);
+        stream.parameter({
+          name: 'contextFiles',
+          value: JSON.stringify(clientData.contextFiles)
+        });
+      } else {
+        logger.info(`🔍 DEBUG TWIML: No hay archivos de contexto para agregar`);
+      }
       
       if (callSid) {
         stream.parameter({

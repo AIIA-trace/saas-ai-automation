@@ -13,26 +13,53 @@ class WebhookController {
     try {
       const { CallSid, From, To } = req.body;
       
+      logger.info(`🔍 DEBUG WEBHOOK: Datos recibidos de Twilio`);
+      logger.info(`🔍 DEBUG: CallSid = ${CallSid}`);
+      logger.info(`🔍 DEBUG: From = ${From}`);
+      logger.info(`🔍 DEBUG: To = ${To}`);
+      logger.info(`🔍 DEBUG: Body completo = ${JSON.stringify(req.body, null, 2)}`);
+      
       // Normalizar formato de números (asegurar que tengan +)
       const fromNumber = From.startsWith('+') ? From : `+${From.trim()}`;
       const toNumber = To.startsWith('+') ? To : `+${To.trim()}`;
       
+      logger.info(`🔍 DEBUG: Números normalizados - From: ${fromNumber}, To: ${toNumber}`);
       logger.info(`📞 Llamada entrante desde ${fromNumber} a ${toNumber}, SID: ${CallSid}`);
       
       // Buscar cliente por número Twilio llamado
       let targetClient = null;
       
-      // Primero intentar buscar por número Twilio específico
+      // Primero intentar buscar por número Twilio específico - CARGAR TODA LA INFORMACIÓN
+      logger.info(`🔍 DEBUG DB: Buscando número Twilio en base de datos: ${toNumber}`);
+      
       const twilioNumber = await prisma.twilioNumber.findUnique({
         where: { phoneNumber: toNumber },
         include: { 
           client: {
             include: {
-              twilioNumbers: true
+              twilioNumbers: true,
+              // Cargar TODA la información del cliente para el contexto
+              companyInfo: true,
+              botConfig: true,
+              notificationConfig: true,
+              businessHours: true,
+              // Incluir FAQs y archivos de contexto
+              faqs: true,
+              contextFiles: true
             }
           }
         }
       });
+      
+      logger.info(`🔍 DEBUG DB: Resultado búsqueda - Encontrado: ${!!twilioNumber}`);
+      if (twilioNumber) {
+        logger.info(`🔍 DEBUG DB: Cliente asociado: ${twilioNumber.client?.companyName || 'Sin nombre'}`);
+        logger.info(`🔍 DEBUG DB: Cliente ID: ${twilioNumber.client?.id}`);
+        logger.info(`🔍 DEBUG DB: Bot activo: ${twilioNumber.client?.callConfig?.enabled}`);
+        logger.info(`🔍 DEBUG DB: FAQs: ${twilioNumber.client?.faqs?.length || 0}`);
+        logger.info(`🔍 DEBUG DB: Archivos contexto: ${twilioNumber.client?.contextFiles?.length || 0}`);
+        logger.info(`🔍 DEBUG DB: Horarios comerciales: ${twilioNumber.client?.businessHours?.length || 0}`);
+      }
       
       if (twilioNumber && twilioNumber.client) {
         // Verificar que el cliente tenga bot activo
@@ -45,36 +72,23 @@ class WebhookController {
         }
       }
       
-      // Fallback: buscar cualquier cliente activo (para testing)
+      // Si no se encuentra cliente específico, rechazar la llamada
       if (!targetClient) {
-        logger.warn(`⚠️ No se encontró cliente específico para ${toNumber}, usando fallback`);
-        
-        const activeClients = await prisma.client.findMany({
-          where: {
-            callConfig: {
-              path: ['enabled'],
-              equals: true
-            }
-          },
-          include: {
-            twilioNumbers: true
-          }
-        });
-        
-        if (activeClients.length === 0) {
-          logger.error(`❌ No hay clientes con bot de llamadas activo`);
-          const errorTwiml = twilioService.generateErrorTwiml("Servicio no disponible");
-          res.type('text/xml');
-          return res.status(404).send(errorTwiml.toString());
-        }
-        
-        // Usar el primer cliente activo como fallback
-        targetClient = activeClients[0];
-        logger.info(`🔄 Usando cliente fallback: ${targetClient.companyName}`);
+        logger.error(`❌ DEBUG: No se encontró cliente para número Twilio: ${toNumber}`);
+        logger.error(`❌ DEBUG: Verificar que el número ${toNumber} esté registrado en tabla twilioNumbers`);
+        logger.error(`❌ DEBUG: Verificar que el cliente asociado tenga callConfig.enabled = true`);
+        const errorTwiml = twilioService.generateErrorTwiml("Número no configurado");
+        res.type('text/xml');
+        return res.status(404).send(errorTwiml.toString());
       }
       
+      logger.info(`✅ DEBUG: Cliente identificado correctamente`);
+      logger.info(`✅ DEBUG: Cliente ID: ${targetClient.id}`);
+      logger.info(`✅ DEBUG: Empresa: ${targetClient.companyName || 'Sin nombre'}`);
+      logger.info(`✅ DEBUG: Email: ${targetClient.email}`);
+      logger.info(`✅ DEBUG: Saludo configurado: "${targetClient.callConfig?.greeting || 'No configurado'}"`);
+      logger.info(`✅ DEBUG: Voz configurada: ${targetClient.callConfig?.voiceId || 'No configurada'}`);
       logger.info(`✅ Llamada asignada a cliente: ${targetClient.email} (${targetClient.companyName || 'Sin nombre'})`);
-      logger.info(`🔍 Clientes activos encontrados: ${activeClients.length}`);
       
       // Registrar la llamada en la BD
       const callLog = await prisma.callLog.create({
