@@ -13,8 +13,8 @@ class AzureTTSSimple {
     logger.info(`🔍 [DEBUG-ENV] AZURE_SPEECH_REGION: "${this.region}"`);
     logger.info(`🔍 [DEBUG-ENV] process.env keys relacionados: ${Object.keys(process.env).filter(k => k.includes('AZURE')).join(', ')}`);
     
-    // Configuración simplificada
-    this.defaultVoice = 'es-ES-DarioNeural';
+    // Configuración simplificada - USAR SOLO VOCES VÁLIDAS
+    this.defaultVoice = 'es-ES-LolaNeural';  // Cambiado de DarioNeural a LolaNeural (funciona)
     this.outputFormat = 'riff-8khz-16bit-mono-pcm';
     
     // DEBUG - Configuración final

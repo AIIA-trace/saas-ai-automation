@@ -22,10 +22,10 @@ class AzureTTSService {
       },
       {
         id: 'dario',
-        name: 'es-ES-DarioNeural', 
-        azureName: 'es-ES-DarioNeural',
+        name: 'es-ES-AlvaroNeural', 
+        azureName: 'es-ES-AlvaroNeural',
         locale: 'es-ES',
-        description: 'Voz masculina española con ceceo natural'
+        description: 'Voz masculina española (corregida - DarioNeural no existe)'
       }
     ];
     

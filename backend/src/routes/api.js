@@ -131,7 +131,7 @@ router.get('/azure-tts/voices', authenticate, async (req, res) => {
     // Voces hardcodeadas para compatibilidad
     const voices = [
       { id: 'lola', name: 'Lola (Multilingüe)', azureName: 'en-US-LolaMultilingualNeural' },
-      { id: 'dario', name: 'Dario (Español)', azureName: 'es-ES-DarioNeural' }
+      { id: 'dario', name: 'Alvaro (Español)', azureName: 'es-ES-AlvaroNeural' }
     ];
     
     res.json({
@@ -173,7 +173,7 @@ router.post('/tts/test', authenticate, async (req, res) => {
     // Mapeo de voces hardcodeado para compatibilidad
     const voiceMap = {
       'lola': { id: 'lola', name: 'Lola (Multilingüe)', azureName: 'en-US-LolaMultilingualNeural' },
-      'dario': { id: 'dario', name: 'Dario (Español)', azureName: 'es-ES-DarioNeural' }
+      'dario': { id: 'dario', name: 'Alvaro (Español)', azureName: 'es-ES-AlvaroNeural' }
     };
     
     const voiceData = voiceMap[voice];

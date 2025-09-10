@@ -545,9 +545,9 @@ class TwilioService {
   validateAndGetVoice(requestedVoice) {
     const allowedVoices = {
       'lola': 'en-US-LolaMultilingualNeural',
-      'dario': 'es-ES-DarioNeural',
+      'dario': 'es-ES-AlvaroNeural',
       'en-US-LolaMultilingualNeural': 'en-US-LolaMultilingualNeural',
-      'es-ES-DarioNeural': 'es-ES-DarioNeural'
+      'es-ES-AlvaroNeural': 'es-ES-AlvaroNeural'
     };
     
     // Normalizar entrada a minúsculas
