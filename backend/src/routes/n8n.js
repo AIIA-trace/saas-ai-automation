@@ -57,7 +57,7 @@ router.get('/client/:clientId/config', authenticateN8N, async (req, res) => {
         // Configuraciones JSON
         callConfig: true,
         emailConfig: true,
-        businessHoursConfig: true,
+        businessHours: true,
         notificationConfig: true,
         faqs: true,
         contextFiles: true
@@ -106,7 +106,7 @@ router.get('/client/:clientId/config', authenticateN8N, async (req, res) => {
         autoReply: false,
         signature: ''
       },
-      businessHours: client.businessHoursConfig || {
+      businessHours: client.businessHours || {
         enabled: false,
         workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
         openingTime: '09:00',

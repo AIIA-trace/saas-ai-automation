@@ -1,10 +1,8 @@
 const logger = require('../utils/logger');
-const { PrismaClient } = require('@prisma/client');
 const azureTTSService = require('../services/azureTTSService');
 const openaiService = require('../services/openaiService');
 const ContextBuilder = require('../utils/contextBuilder');
-
-const prisma = new PrismaClient();
+const { OpenAI } = require('openai');
 
 class TwilioStreamHandler {
   constructor() {
@@ -15,7 +13,6 @@ class TwilioStreamHandler {
       apiKey: process.env.OPENAI_API_KEY
     });
     this.ttsService = azureTTSService;
-    this.ttsSimple = azureTTSSimple;
   }
 
   /**
@@ -163,23 +160,28 @@ class TwilioStreamHandler {
     try {
       logger.info('🔍 PASO 1: Obteniendo configuración del cliente desde parámetros...');
       
-      // OBTENER CONFIGURACIÓN COMPLETA DESDE PARÁMETROS (ya consultada en webhook)
+      // OBTENER CONFIGURACIÓN COMPLETA DESDE PARÁMETROS - CÓDIGO EXACTO DEL TEST
       const clientConfig = {
         id: clientId ? parseInt(clientId) : 1,
         companyName: customParameters?.companyName || 'Sistema de Atención',
+        email: customParameters?.email || '',
         callConfig: {
           greeting: customParameters?.greeting || 'Hola, gracias por llamar. Soy el asistente virtual. ¿En qué puedo ayudarte?',
           voiceId: customParameters?.voiceId || 'lola',
           enabled: customParameters?.enabled !== 'false'
         },
-        // Información completa de la empresa para contexto
-        companyInfo: customParameters?.companyInfo ? JSON.parse(customParameters.companyInfo) : null,
-        botConfig: customParameters?.botConfig ? JSON.parse(customParameters.botConfig) : null,
-        businessHours: customParameters?.businessHours ? JSON.parse(customParameters.businessHours) : null,
-        notificationConfig: customParameters?.notificationConfig ? JSON.parse(customParameters.notificationConfig) : null,
-        // FAQs y archivos de contexto
-        faqs: customParameters?.faqs ? JSON.parse(customParameters.faqs) : [],
-        contextFiles: customParameters?.contextFiles ? JSON.parse(customParameters.contextFiles) : []
+        // Campos JSON exactos como en el test
+        companyInfo: customParameters?.companyInfo || null,
+        botConfig: customParameters?.botConfig || null,
+        businessHours: customParameters?.businessHours || null,
+        notificationConfig: customParameters?.notificationConfig || null,
+        faqs: customParameters?.faqs || null,
+        contextFiles: customParameters?.contextFiles || null,
+        // Relación con números Twilio
+        twilioNumbers: [{
+          phoneNumber: customParameters?.phoneNumber || '',
+          status: 'active'
+        }]
       };
 
       logger.info(`🔍 DEBUG STREAM: Parámetros recibidos del WebSocket:`);
@@ -273,7 +275,7 @@ class TwilioStreamHandler {
       }
 
       // Obtener la voz configurada por el usuario
-      let voiceId = this.ttsSimple.defaultVoice; // Voz por defecto
+      let voiceId = 'lola'; // Voz por defecto de Azure TTS
       if (client.callConfig && client.callConfig.voiceId) {
         voiceId = client.callConfig.voiceId;
       }
@@ -281,35 +283,40 @@ class TwilioStreamHandler {
       logger.info(`🎵 PASO 4: Saludo preparado: "${greeting}"`);
       logger.info(`🎵 PASO 4a: Voz seleccionada: ${voiceId}`);
 
-      // Generar audio con Azure TTS Simple (más confiable)
+      // Generar audio con Azure TTS - CÓDIGO EXACTO DEL TEST QUE FUNCIONA
       try {
-        logger.info('🎵 PASO 5: Generando audio con Azure TTS Simple...');
-        logger.info(`🎵 PASO 5a: Usando voz del usuario: ${voiceId}`);
+        logger.info('🎵 PASO 5: Generando audio con Azure TTS...');
+        logger.info(`🎵 Texto: "${greeting}"`);
+        logger.info(`🎵 Voz configurada: ${voiceId}`);
         
-        // Timeout para TTS de 3 segundos (más agresivo)
-        const ttsPromise = this.ttsSimple.generateSpeech(greeting, voiceId);
-        const ttsTimeout = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('TTS timeout after 3 seconds')), 3000);
-        });
+        const audioResult = await this.ttsService.generateSpeech(greeting, voiceId);
+        
+        if (!audioResult || !audioResult.success) {
+          throw new Error(`Azure TTS falló: ${audioResult?.error || 'Error desconocido'}`);
+        }
 
-        const ttsResult = await Promise.race([ttsPromise, ttsTimeout]);
+        logger.info(`✅ Audio generado exitosamente:`);
+        logger.info(`   Resultado: ${audioResult.success ? 'Éxito' : 'Fallo'}`);
+        logger.info(`   Datos: ${audioResult.audioBuffer ? audioResult.audioBuffer.byteLength + ' bytes' : 'Sin datos'}`);
+        logger.info(`   Voz usada: ${voiceId}`);
         
-        logger.info(`🎵 PASO 6: Azure TTS Simple completado, success: ${ttsResult?.success}`);
-        logger.info(`🎵 PASO 6a: Audio buffer size: ${ttsResult?.audioBuffer?.length || 0} bytes`);
-        
-        if (ttsResult && ttsResult.success && ttsResult.audioBuffer && ttsResult.audioBuffer.length > 0) {
+        if (audioResult.audioBuffer) {
+          const audioBuffer = Buffer.from(audioResult.audioBuffer);
+          logger.info(`✅ Audio buffer creado: ${audioBuffer.length} bytes`);
+          logger.info(`✅ Formato: μ-law 8kHz mono (optimizado para Twilio)`);
+          
           logger.info('🎵 PASO 7: Enviando audio a Twilio...');
-          await this.sendAudioToTwilio(ws, ttsResult.audioBuffer, streamSid);
+          await this.sendAudioToTwilio(ws, audioBuffer, streamSid);
           logger.info('🎵 PASO 8: ✅ Audio enviado correctamente');
         } else {
-          logger.warn(`⚠️ Azure TTS Simple falló: ${ttsResult?.error || 'Audio buffer vacío'}`);
-          logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto inmediatamente...');
+          logger.warn('⚠️ Audio generado sin datos de buffer');
+          logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto...');
           this.sendTextFallback(ws, greeting, streamSid);
         }
       } catch (error) {
-        logger.error(`❌ Error en Azure TTS Simple: ${error.message}`);
+        logger.error(`❌ Error en Azure TTS: ${error.message}`);
         logger.error(`❌ Stack: ${error.stack}`);
-        logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto inmediatamente...');
+        logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto...');
         this.sendTextFallback(ws, greeting, streamSid);
       }
 
@@ -485,8 +492,9 @@ class TwilioStreamHandler {
       // Generar respuesta usando OpenAI con contexto completo
       const response = await this.generateAIResponse(userMessage, systemPrompt, streamData);
       
-      // Generar respuesta de audio
-      const ttsResult = await this.ttsService.generateSpeech(response);
+      // Generar respuesta de audio con Azure TTS usando la voz del usuario
+      const voiceId = streamData.client?.callConfig?.voiceId || 'lola';
+      const ttsResult = await this.ttsService.generateSpeech(response, voiceId);
       
       if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
         await this.sendAudioToTwilio(streamData.ws, ttsResult.audioBuffer, streamSid);

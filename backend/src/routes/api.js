@@ -464,7 +464,7 @@ router.put('/client', authenticate, async (req, res) => {
       
       // Configuraciones complejas - campos JSON
       emailConfig,
-      businessHoursConfig,
+      businessHours,
       voiceConfig, // Configuración de voces Azure TTS
 
       
@@ -475,14 +475,14 @@ router.put('/client', authenticate, async (req, res) => {
       files
     } = req.body;
 
-    // FORCE DEBUG - Verificar businessHoursConfig en el endpoint CORRECTO
-    logger.info(`🕐 FORCE DEBUG CORRECTO - Verificando businessHoursConfig en req.body`);
-    const businessHoursFromBody = req.body.businessHoursConfig || req.body.business_hours_config;
-    logger.info(`🕐 FORCE DEBUG CORRECTO - businessHoursConfig encontrado:`, !!businessHoursFromBody);
+    // FORCE DEBUG - Verificar businessHours en el endpoint CORRECTO
+    logger.info(`🕐 FORCE DEBUG CORRECTO - Verificando businessHours en req.body`);
+    const businessHoursFromBody = req.body.businessHours || req.body.business_hours_config;
+    logger.info(`🕐 FORCE DEBUG CORRECTO - businessHours encontrado:`, !!businessHoursFromBody);
     if (businessHoursFromBody) {
-      logger.info(`🕐 FORCE DEBUG CORRECTO - businessHoursConfig contenido:`, JSON.stringify(businessHoursFromBody, null, 2));
+      logger.info(`🕐 FORCE DEBUG CORRECTO - businessHours contenido:`, JSON.stringify(businessHoursFromBody, null, 2));
     } else {
-      logger.warn(`🕐 FORCE DEBUG CORRECTO - NO se encontró businessHoursConfig en req.body`);
+      logger.warn(`🕐 FORCE DEBUG CORRECTO - NO se encontró businessHours en req.body`);
       logger.info(`🕐 FORCE DEBUG CORRECTO - req.body keys disponibles:`, Object.keys(req.body));
       logger.info(`🕐 FORCE DEBUG CORRECTO - req.body completo (primeros 500 chars):`, JSON.stringify(req.body).substring(0, 500));
     }
@@ -508,13 +508,13 @@ router.put('/client', authenticate, async (req, res) => {
     if (companyWebsite !== undefined) updateData.website = companyWebsite; // Mapeo correcto
     // email no se actualiza aquí por seguridad
     
-    // CRÍTICO: Añadir businessHoursConfig al updateData (PRIMERA ASIGNACIÓN)
+    // CRÍTICO: Añadir businessHours al updateData (PRIMERA ASIGNACIÓN)
     if (businessHoursFromBody) {
-      updateData.businessHoursConfig = businessHoursFromBody;
-      logger.info(`🕐 PRIMERA ASIGNACIÓN - businessHoursConfig añadido al updateData para cliente ${req.client.id}`);
-      logger.info(`🕐 businessHoursConfig que se guardará:`, JSON.stringify(businessHoursFromBody, null, 2));
+      updateData.businessHours = businessHoursFromBody;
+      logger.info(`🕐 PRIMERA ASIGNACIÓN - businessHours añadido al updateData para cliente ${req.client.id}`);
+      logger.info(`🕐 businessHours que se guardará:`, JSON.stringify(businessHoursFromBody, null, 2));
     } else {
-      logger.warn(`🕐 businessHoursConfig NO se encontró en req.body (primera verificación)`);
+      logger.warn(`🕐 businessHours NO se encontró en req.body (primera verificación)`);
     }
     
     logger.info('✅ Datos de actualización preparados:', JSON.stringify(updateData, null, 2));
@@ -624,12 +624,12 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`📧 FORCE DEBUG EMAILCONFIG - NO recibido en req.body`);
     }
     
-    // ELIMINADO: Configuración de Horarios Comerciales (businessHoursConfig)
+    // ELIMINADO: Configuración de Horarios Comerciales (businessHours)
     // Esta sección se eliminó para evitar duplicación con la línea 400-406
-    // businessHoursConfig ya se procesa arriba usando businessHoursFromBody
-    if (businessHoursConfig) {
-      logger.warn(`🚨 DUPLICACIÓN DETECTADA - businessHoursConfig procesado dos veces, ignorando segunda asignación`);
-      logger.info(`🕐 businessHoursConfig ya asignado anteriormente, valor actual en updateData:`, JSON.stringify(updateData.businessHoursConfig, null, 2));
+    // businessHours ya se procesa arriba usando businessHoursFromBody
+    if (businessHours) {
+      logger.warn(`🚨 DUPLICACIÓN DETECTADA - businessHours procesado dos veces, ignorando segunda asignación`);
+      logger.info(`🕐 businessHours ya asignado anteriormente, valor actual en updateData:`, JSON.stringify(updateData.businessHours, null, 2));
     }
     
     // Preguntas frecuentes (FAQs)
@@ -717,12 +717,12 @@ router.put('/client', authenticate, async (req, res) => {
       });
     }
     
-    // DEBUG: Verificar que businessHoursConfig se guardó correctamente
-    if (businessHoursConfig) {
-      logger.info(`🕐 DEBUG businessHoursConfig guardado en BD:`, JSON.stringify(updatedClient.businessHoursConfig, null, 2));
+    // DEBUG: Verificar que businessHours se guardó correctamente
+    if (businessHours) {
+      logger.info(`🕐 DEBUG businessHours guardado en BD:`, JSON.stringify(updatedClient.businessHours, null, 2));
       logger.info(`🕐 DEBUG Comparación - Enviado vs Guardado:`);
-      logger.info(`   Enviado:`, JSON.stringify(businessHoursConfig, null, 2));
-      logger.info(`   Guardado:`, JSON.stringify(updatedClient.businessHoursConfig, null, 2));
+      logger.info(`   Enviado:`, JSON.stringify(businessHours, null, 2));
+      logger.info(`   Guardado:`, JSON.stringify(updatedClient.businessHours, null, 2));
     }
     
     // 🗑️ LIMPIAR CACHÉ DEL CLIENTE (datos actualizados)
@@ -749,7 +749,7 @@ router.put('/client', authenticate, async (req, res) => {
         emailConfig: updatedClient.emailConfig,
         
         // Configuración de horarios comerciales
-        businessHoursConfig: updatedClient.businessHoursConfig || {
+        businessHours: updatedClient.businessHours || {
           enabled: false,
           workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
           openingTime: '09:00',
@@ -831,7 +831,7 @@ router.get('/client', authenticate, async (req, res) => {
         emailConfig: true,
         callConfig: true,
         notificationConfig: true,
-        businessHoursConfig: true,
+        businessHours: true,
         
         // FAQs y archivos de contexto
         faqs: true,
@@ -904,7 +904,7 @@ router.get('/client', authenticate, async (req, res) => {
       contextFiles: client.contextFiles || [],
 
       // Configuración de horarios comerciales
-      businessHoursConfig: client.businessHoursConfig || null,
+      businessHours: client.businessHours || null,
       
       // Datos de suscripción
       subscription: {
@@ -1056,7 +1056,7 @@ router.get('/profile', authenticate, async (req, res) => {
           timezone: true,
           language: true,
           companyDescription: true, // Agregar campo nuevo
-          businessHoursConfig: true, // CRÍTICO: Agregar para que el frontend pueda cargar horarios comerciales
+          businessHours: true, // CRÍTICO: Agregar para que el frontend pueda cargar horarios comerciales
           createdAt: true,
           updatedAt: true
           // Excluir password y apiKey por seguridad
@@ -1096,7 +1096,7 @@ router.get('/profile', authenticate, async (req, res) => {
         timezone: client.timezone || 'Europe/Madrid',
         language: client.language || 'es',
         companyDescription: client.companyDescription || '',
-        businessHoursConfig: client.businessHoursConfig || null, // CRÍTICO: Incluir en respuesta
+        businessHours: client.businessHours || null, // CRÍTICO: Incluir en respuesta
         createdAt: client.createdAt,
         updatedAt: client.updatedAt
       };

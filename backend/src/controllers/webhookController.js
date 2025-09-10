@@ -1,6 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger');
 const twilioService = require('../services/twilioService');
+const StreamingTwiMLService = require('../services/streamingTwiMLService');
+const streamingTwiMLService = new StreamingTwiMLService();
 const openaiService = require('../services/openaiService');
 const emailService = require('../services/emailService');
 
@@ -13,84 +15,56 @@ class WebhookController {
     try {
       const { CallSid, From, To } = req.body;
       
-      logger.info(`🔍 DEBUG WEBHOOK: Datos recibidos de Twilio`);
-      logger.info(`🔍 DEBUG: CallSid = ${CallSid}`);
-      logger.info(`🔍 DEBUG: From = ${From}`);
-      logger.info(`🔍 DEBUG: To = ${To}`);
-      logger.info(`🔍 DEBUG: Body completo = ${JSON.stringify(req.body, null, 2)}`);
-      
-      // Normalizar formato de números (asegurar que tengan +)
+      // Normalizar formato de números
       const fromNumber = From.startsWith('+') ? From : `+${From.trim()}`;
       const toNumber = To.startsWith('+') ? To : `+${To.trim()}`;
       
-      logger.info(`🔍 DEBUG: Números normalizados - From: ${fromNumber}, To: ${toNumber}`);
-      logger.info(`📞 Llamada entrante desde ${fromNumber} a ${toNumber}, SID: ${CallSid}`);
+      logger.info(`📞 LLAMADA RECIBIDA: ${fromNumber} → ${toNumber} (${CallSid})`);
       
-      // Buscar cliente por número Twilio llamado
-      let targetClient = null;
-      
-      // Primero intentar buscar por número Twilio específico - CARGAR TODA LA INFORMACIÓN
-      logger.info(`🔍 DEBUG DB: Buscando número Twilio en base de datos: ${toNumber}`);
-      
+      // CONSULTA COMPLETA A LA BASE DE DATOS ANTES DE DESCOLGAR
       const twilioNumber = await prisma.twilioNumber.findUnique({
         where: { phoneNumber: toNumber },
         include: { 
-          client: {
-            include: {
-              twilioNumbers: true,
-              // Cargar TODA la información del cliente para el contexto
-              companyInfo: true,
-              botConfig: true,
-              notificationConfig: true,
-              businessHours: true,
-              // Incluir FAQs y archivos de contexto
-              faqs: true,
-              contextFiles: true
-            }
-          }
+          client: true
         }
       });
       
-      logger.info(`🔍 DEBUG DB: Resultado búsqueda - Encontrado: ${!!twilioNumber}`);
-      if (twilioNumber) {
-        logger.info(`🔍 DEBUG DB: Cliente asociado: ${twilioNumber.client?.companyName || 'Sin nombre'}`);
-        logger.info(`🔍 DEBUG DB: Cliente ID: ${twilioNumber.client?.id}`);
-        logger.info(`🔍 DEBUG DB: Bot activo: ${twilioNumber.client?.callConfig?.enabled}`);
-        logger.info(`🔍 DEBUG DB: FAQs: ${twilioNumber.client?.faqs?.length || 0}`);
-        logger.info(`🔍 DEBUG DB: Archivos contexto: ${twilioNumber.client?.contextFiles?.length || 0}`);
-        logger.info(`🔍 DEBUG DB: Horarios comerciales: ${twilioNumber.client?.businessHours?.length || 0}`);
+      if (!twilioNumber?.client) {
+        logger.error(`❌ Cliente no encontrado para número: ${toNumber}`);
+        const errorTwiml = twilioService.generateErrorTwiML("Número no configurado");
+        res.type('text/xml');
+        return res.status(404).send(errorTwiml.toString());
       }
+
+      // Manejar callConfig como objeto o JSON string
+      const client = twilioNumber.client;
+      let callConfig = null;
       
-      if (twilioNumber && twilioNumber.client) {
-        // Verificar que el cliente tenga bot activo
-        const clientCallConfig = twilioNumber.client.callConfig;
-        if (clientCallConfig && clientCallConfig.enabled) {
-          targetClient = twilioNumber.client;
-          logger.info(`✅ Cliente encontrado por número Twilio: ${toNumber} → ${targetClient.companyName}`);
-        } else {
-          logger.warn(`⚠️ Cliente encontrado pero bot desactivado para número: ${toNumber}`);
+      if (client.callConfig) {
+        if (typeof client.callConfig === 'string') {
+          try {
+            callConfig = JSON.parse(client.callConfig);
+          } catch (error) {
+            logger.error(`❌ Error parsing callConfig JSON: ${error.message}`);
+            callConfig = null;
+          }
+        } else if (typeof client.callConfig === 'object') {
+          callConfig = client.callConfig;
         }
       }
       
-      // Si no se encuentra cliente específico, rechazar la llamada
-      if (!targetClient) {
-        logger.error(`❌ DEBUG: No se encontró cliente para número Twilio: ${toNumber}`);
-        logger.error(`❌ DEBUG: Verificar que el número ${toNumber} esté registrado en tabla twilioNumbers`);
-        logger.error(`❌ DEBUG: Verificar que el cliente asociado tenga callConfig.enabled = true`);
-        const errorTwiml = twilioService.generateErrorTwiml("Número no configurado");
+      if (!callConfig?.enabled) {
+        logger.error(`❌ Bot desactivado para cliente: ${client.companyName}`);
+        const errorTwiml = twilioService.generateErrorTwiML("Bot no disponible");
         res.type('text/xml');
         return res.status(404).send(errorTwiml.toString());
       }
       
-      logger.info(`✅ DEBUG: Cliente identificado correctamente`);
-      logger.info(`✅ DEBUG: Cliente ID: ${targetClient.id}`);
-      logger.info(`✅ DEBUG: Empresa: ${targetClient.companyName || 'Sin nombre'}`);
-      logger.info(`✅ DEBUG: Email: ${targetClient.email}`);
-      logger.info(`✅ DEBUG: Saludo configurado: "${targetClient.callConfig?.greeting || 'No configurado'}"`);
-      logger.info(`✅ DEBUG: Voz configurada: ${targetClient.callConfig?.voiceId || 'No configurada'}`);
-      logger.info(`✅ Llamada asignada a cliente: ${targetClient.email} (${targetClient.companyName || 'Sin nombre'})`);
+      // Agregar callConfig procesado al cliente
+      const targetClient = { ...twilioNumber.client, callConfig };
+      logger.info(`✅ Cliente identificado: ${targetClient.companyName} (ID: ${targetClient.id})`);
       
-      // Registrar la llamada en la BD
+      // Registrar llamada
       const callLog = await prisma.callLog.create({
         data: {
           clientId: targetClient.id,
@@ -100,11 +74,12 @@ class WebhookController {
         }
       });
       
-      logger.info(`📝 Llamada registrada con ID: ${callLog.id}`);
+      logger.info(`📞 [call_${CallSid}] Llamada entrante de ${fromNumber} a ${toNumber}`);
+      logger.info(`✅ [call_${CallSid}] Cliente encontrado: ${targetClient.companyName}`);
+      logger.info(`🎵 [call_${CallSid}] Iniciando conversación con Twilio Streams`);
       
-      // Generar TwiML para contestar la llamada
-      const botConfig = targetClient.callConfig || {};
-      const twiml = await twilioService.generateWelcomeTwiml(botConfig);
+      // GENERAR TWIML CON TODA LA CONFIGURACIÓN
+      const twiml = streamingTwiMLService.createStreamTwiML(targetClient, CallSid);
       
       res.type('text/xml');
       return res.send(twiml.toString());
@@ -112,7 +87,7 @@ class WebhookController {
       logger.error(`❌ Error en handleIncomingCall: ${error.message}`);
       logger.error(`Stack trace: ${error.stack}`);
       
-      const errorTwiml = twilioService.generateErrorTwiml("Se produjo un error. Inténtelo más tarde.");
+      const errorTwiml = twilioService.generateErrorTwiML("Se produjo un error. Inténtelo más tarde.");
       res.type('text/xml');
       return res.send(errorTwiml.toString());
     }
@@ -171,37 +146,8 @@ class WebhookController {
     }
   }
   
-  // Manejar recolección de información mediante teclado (DTMF) o voz
-  async handleGatherInput(req, res) {
-    try {
-      // LEGACY CODE - DEPRECATED: Usar OpenAI Whisper en su lugar
-      logger.warn('⚠️ Webhook controller legacy llamado. Migrar a OpenAI Whisper.');
-      const input = '';
-      
-      // Buscar la llamada en nuestra BD
-      const callLog = await prisma.callLog.findFirst({
-        where: { twilioCallSid: CallSid },
-        include: { client: true }
-      });
-      
-      if (!callLog) {
-        logger.error(`Llamada no encontrada para SID: ${CallSid}`);
-        return res.status(404).send(twilioService.generateErrorTwiml("Error en el procesamiento"));
-      }
-      
-      // Determinar el siguiente paso basado en la configuración del cliente
-      const botConfig = callLog.client.botConfig;
-      const twiml = await twilioService.generateGatherResponse(input, botConfig);
-      
-      res.type('text/xml');
-      return res.send(twiml.toString());
-    } catch (error) {
-      logger.error(`Error en handleGatherInput: ${error.message}`);
-      const twiml = twilioService.generateErrorTwiml("Se produjo un error. Inténtelo más tarde.");
-      res.type('text/xml');
-      return res.send(twiml.toString());
-    }
-  }
+  // DEPRECATED: handleGatherInput - Reemplazado por WebSocket streaming con OpenAI Whisper
+  // Este método ya no se usa con el nuevo sistema de streaming
   
   // Manejar cambios de estado de llamada
   async handleCallStatus(req, res) {
@@ -248,7 +194,7 @@ class WebhookController {
         include: { client: true }
       });
       
-      if (!twilioNumber) {
+      if (!twilioNumber?.client) {
         logger.error(`Número Twilio no encontrado en la base de datos: ${To}`);
         return res.status(404).send("Number not configured");
       }

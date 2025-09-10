@@ -63,15 +63,15 @@ model Client {
   // RELACIONES LEGACY DEL BOT ELIMINADAS:
   // botAiConfigs, botDtmfOptions, botContextFiles, botFAQs
   
-  // JSON configs
-  // botConfig ELIMINADO - Era parte del sistema legacy
+  // JSON configs - NOMENCLATURA UNIFICADA PARA PRODUCCIÓN
   emailConfig          Json?          // Configuración del manejo de emails
   callConfig           Json?          // Configuración de llamadas (activación, grabación, transcripción, voz, idioma, mensaje)
   companyInfo          Json?          // Información de la empresa
+  botConfig            Json?          // Configuración del bot (restaurado para compatibilidad)
   billingInfo          Json?          // Información de facturación
   paymentMethods       Json?          // Métodos de pago
   notificationConfig   Json?          // Configuración de notificaciones
-  businessHoursConfig  Json?          // Configuración de horarios comerciales y días laborables
+  businessHours        Json?          // Configuración de horarios comerciales (renombrado de businessHoursConfig)
   faqs                 Json?          // Preguntas frecuentes del bot
   contextFiles         Json?          // Archivos de contexto del bot
   createdAt            DateTime        @default(now())

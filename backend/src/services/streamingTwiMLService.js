@@ -7,6 +7,13 @@ class StreamingTwiMLService {
   }
 
   /**
+   * Generar TwiML para iniciar Stream con WebSocket
+   */
+  generateStreamTwiml(clientData, callSid = null) {
+    return this.createStreamTwiML(clientData, callSid);
+  }
+
+  /**
    * Crear TwiML para iniciar Stream con WebSocket
    */
   createStreamTwiML(clientData, callSid = null) {
@@ -84,18 +91,18 @@ class StreamingTwiMLService {
         });
       }
 
-      // Pasar TODA la información de la empresa como contexto
+      // Pasar TODA la información como parámetros - CÓDIGO EXACTO DEL TEST
       if (clientData.companyInfo) {
         stream.parameter({
           name: 'companyInfo',
-          value: JSON.stringify(clientData.companyInfo)
+          value: typeof clientData.companyInfo === 'string' ? clientData.companyInfo : JSON.stringify(clientData.companyInfo)
         });
       }
 
       if (clientData.botConfig) {
         stream.parameter({
           name: 'botConfig',
-          value: JSON.stringify(clientData.botConfig)
+          value: typeof clientData.botConfig === 'string' ? clientData.botConfig : JSON.stringify(clientData.botConfig)
         });
       }
 
@@ -113,24 +120,23 @@ class StreamingTwiMLService {
         });
       }
 
-      // Pasar FAQs (preguntas frecuentes)
-      if (clientData.faqs && clientData.faqs.length > 0) {
-        logger.info(`🔍 DEBUG TWIML: Agregando ${clientData.faqs.length} FAQs como parámetro`);
+      // Pasar FAQs y contextFiles - CÓDIGO EXACTO DEL TEST
+      if (clientData.faqs) {
         stream.parameter({
           name: 'faqs',
-          value: JSON.stringify(clientData.faqs)
+          value: typeof clientData.faqs === 'string' ? clientData.faqs : JSON.stringify(clientData.faqs)
         });
+        logger.info(`🔍 DEBUG TWIML: FAQs agregadas como parámetro`);
       } else {
         logger.info(`🔍 DEBUG TWIML: No hay FAQs para agregar`);
       }
 
-      // Pasar archivos de contexto con contenido
-      if (clientData.contextFiles && clientData.contextFiles.length > 0) {
-        logger.info(`🔍 DEBUG TWIML: Agregando ${clientData.contextFiles.length} archivos de contexto como parámetro`);
+      if (clientData.contextFiles) {
         stream.parameter({
           name: 'contextFiles',
-          value: JSON.stringify(clientData.contextFiles)
+          value: typeof clientData.contextFiles === 'string' ? clientData.contextFiles : JSON.stringify(clientData.contextFiles)
         });
+        logger.info(`🔍 DEBUG TWIML: ContextFiles agregados como parámetro`);
       } else {
         logger.info(`🔍 DEBUG TWIML: No hay archivos de contexto para agregar`);
       }
@@ -181,10 +187,8 @@ class StreamingTwiMLService {
       const fallbackMessage = clientData.welcomeMessage || 
         `Has llamado a ${clientData.companyName}. Disculpa, nuestro sistema está temporalmente no disponible. Por favor, inténtalo más tarde.`;
 
-      twiml.say({
-        voice: 'Polly.Conchita',
-        language: 'es-ES'
-      }, fallbackMessage);
+      // Usar mensaje simple sin voz específica
+      twiml.say(fallbackMessage);
 
       // Colgar después del mensaje
       twiml.hangup();
@@ -210,10 +214,8 @@ class StreamingTwiMLService {
   createClientNotFoundTwiML() {
     const twiml = new this.VoiceResponse();
     
-    twiml.say({
-      voice: 'Polly.Conchita',
-      language: 'es-ES'
-    }, 'Lo sentimos, este número no está configurado correctamente. Por favor, contacta al administrador.');
+    // Usar mensaje simple sin voz específica
+    twiml.say('Lo sentimos, este número no está configurado correctamente. Por favor, contacta al administrador.');
     
     twiml.hangup();
     
@@ -227,10 +229,8 @@ class StreamingTwiMLService {
   createMaintenanceTwiML() {
     const twiml = new this.VoiceResponse();
     
-    twiml.say({
-      voice: 'Polly.Conchita',
-      language: 'es-ES'
-    }, 'Nuestro servicio está temporalmente en mantenimiento. Por favor, inténtalo más tarde. Gracias por tu comprensión.');
+    // Usar mensaje simple sin voz específica
+    twiml.say('Nuestro servicio está temporalmente en mantenimiento. Por favor, inténtalo más tarde. Gracias por tu comprensión.');
     
     twiml.hangup();
     

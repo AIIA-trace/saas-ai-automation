@@ -191,7 +191,7 @@ router.post('/webhook', async (req, res) => {
             return res.status(404).send(`
                 <?xml version="1.0" encoding="UTF-8"?>
                 <Response>
-                    <Say voice="Polly.Conchita" language="es-ES">Lo siento, este número no está configurado.</Say>
+                    <Say>Lo siento, este número no está configurado.</Say>
                 </Response>
             `);
         }
@@ -220,7 +220,7 @@ router.post('/webhook', async (req, res) => {
         res.send(`
             <?xml version="1.0" encoding="UTF-8"?>
             <Response>
-                <Say voice="Polly.Conchita" language="es-ES">Lo siento, hay un problema técnico. Inténtalo más tarde.</Say>
+                <Say>Lo siento, hay un problema técnico. Inténtalo más tarde.</Say>
             </Response>
         `);
     }
@@ -345,7 +345,7 @@ router.post('/identify', async (req, res) => {
                         companyName: true,
                         email: true,
                         profile: true,
-                        businessHoursConfig: true
+                        businessHours: true
                     }
                 }
             }

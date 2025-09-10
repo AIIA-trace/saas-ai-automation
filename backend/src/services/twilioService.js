@@ -166,7 +166,7 @@ class TwilioService {
           phone: clientData.phone,
           address: clientData.address,
           website: clientData.website,
-          businessHours: clientData.businessHoursConfig
+          businessHours: clientData.businessHours
         },
         faqs: clientData.faqs || [],
         contextFiles: clientData.contextFiles || [],
@@ -403,7 +403,7 @@ class TwilioService {
         companyName: true,
         email: true,
         industry: true,
-        businessHoursConfig: true,
+        businessHours: true,
         botName: true,
         botPersonality: true,
         welcomeMessage: true,
@@ -433,8 +433,8 @@ class TwilioService {
   /**
    * Verificar horarios comerciales
    */
-  checkBusinessHours(businessHoursConfig) {
-    if (!businessHoursConfig || !businessHoursConfig.enabled) {
+  checkBusinessHours(businessHours) {
+    if (!businessHours || !businessHours.enabled) {
       return true; // Siempre abierto si no hay configuración
     }
     
@@ -442,9 +442,9 @@ class TwilioService {
     const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     const currentTime = now.toTimeString().slice(0, 5);
     
-    const isWorkingDay = businessHoursConfig.workingDays && businessHoursConfig.workingDays[currentDay];
-    const isWithinHours = currentTime >= businessHoursConfig.openingTime && 
-                         currentTime <= businessHoursConfig.closingTime;
+    const isWorkingDay = businessHours.workingDays && businessHours.workingDays[currentDay];
+    const isWithinHours = currentTime >= businessHours.openingTime && 
+                         currentTime <= businessHours.closingTime;
     
     return isWorkingDay && isWithinHours;
   }
@@ -950,19 +950,17 @@ class TwilioService {
       return twiml;
     } catch (error) {
       logger.error(`Error generando Gather Response TwiML: ${error.message}`);
-      return this.generateErrorTwiml('Lo sentimos, ha ocurrido un error en el sistema.');
+      return this.generateErrorTwiML('Lo sentimos, ha ocurrido un error en el sistema.');
     }
   }
   
   // Generar TwiML para errores
-  generateErrorTwiml(message) {
+  generateErrorTwiML(message) {
     const VoiceResponse = twilio.twiml.VoiceResponse;
     const twiml = new VoiceResponse();
     
-    twiml.say({
-      voice: 'Polly.Conchita',
-      language: 'es-ES'
-    }, message || 'Ha ocurrido un error. Por favor, inténtelo de nuevo más tarde.');
+    // Usar mensaje simple sin voz específica para compatibilidad
+    twiml.say(message || 'Ha ocurrido un error. Por favor, inténtelo de nuevo más tarde.');
     
     twiml.hangup();
     return twiml;
@@ -1070,7 +1068,7 @@ class TwilioService {
         where: { id: parseInt(clientId) },
         select: {
           companyName: true,
-          businessHoursConfig: true,
+          businessHours: true,
           voiceSettings: true,
           greetingMessage: true
         }
@@ -1270,15 +1268,10 @@ class TwilioService {
   /**
    * Obtener voz de Polly según el idioma
    */
+  // DEPRECATED: Polly voices - usar Azure TTS en su lugar
   getPollyVoiceForLanguage(language) {
-    const voiceMap = {
-      'es-ES': 'Polly.Conchita',
-      'en-US': 'Polly.Joanna',
-      'fr-FR': 'Polly.Celine',
-      'de-DE': 'Polly.Marlene'
-    };
-    
-    return voiceMap[language] || 'Polly.Conchita';
+    logger.warn('⚠️ getPollyVoiceForLanguage deprecated. Usar Azure TTS.');
+    return null; // Forzar uso de Azure TTS
   }
 
   /**
@@ -1288,10 +1281,8 @@ class TwilioService {
     const twiml = new twilio.twiml.VoiceResponse();
     
     // Mensaje de error con voz natural
-    twiml.say({
-      voice: 'Polly.Conchita',
-      language: 'es-ES'
-    }, errorMessage);
+    // Usar mensaje simple sin voz específica
+    twiml.say(errorMessage);
     
     // Colgar después del mensaje
     twiml.hangup();

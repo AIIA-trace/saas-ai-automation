@@ -131,7 +131,7 @@ async function getClientData(clientId) {
             where: { id: parseInt(clientId) },
             select: {
                 companyName: true,
-                businessHoursConfig: true,
+                businessHours: true,
                 contextFiles: true,
                 faqs: true,
                 email: true,
@@ -174,11 +174,11 @@ async function getClientData(clientId) {
         
         // Procesar horarios comerciales
         let businessHours = 'Consultar disponibilidad';
-        if (client.businessHoursConfig && client.businessHoursConfig.workingDays) {
-            const days = Object.keys(client.businessHoursConfig.workingDays)
-                .filter(day => client.businessHoursConfig.workingDays[day])
+        if (client.businessHours && client.businessHours.workingDays) {
+            const days = Object.keys(client.businessHours.workingDays)
+                .filter(day => client.businessHours.workingDays[day])
                 .join(', ');
-            const hours = client.businessHoursConfig.workingHours || 'Consultar horarios';
+            const hours = client.businessHours.workingHours || 'Consultar horarios';
             businessHours = `${days}: ${hours}`;
         }
         

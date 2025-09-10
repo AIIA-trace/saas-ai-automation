@@ -39,9 +39,11 @@ const validateStripeWebhook = async (req, res, next) => {
 
 // Ruta principal que usa TwilioService (REQUERIDA)
 router.post('/call', validateTwilioWebhook, webhookController.handleIncomingCall);
-router.post('/gather', validateTwilioWebhook, webhookController.handleGatherInput);
 router.post('/recording', validateTwilioWebhook, webhookController.handleRecording);
 router.post('/fallback', validateTwilioWebhook, webhookController.handleIncomingCall);
+
+// DEPRECATED: gather endpoint - usar WebSocket streaming
+// router.post('/gather', validateTwilioWebhook, webhookController.handleGatherInput);
 
 // Rutas que coinciden con la configuración de Twilio
 router.post('/twilio/voice', validateTwilioWebhook, webhookController.handleIncomingCall);
@@ -51,58 +53,27 @@ router.post('/twilio/sms', validateTwilioWebhook, webhookController.handleIncomi
 // Rutas legacy (mantener por compatibilidad)
 router.post('/voice/incoming', validateTwilioWebhook, webhookController.handleIncomingCall);
 router.post('/voice/recording', validateTwilioWebhook, webhookController.handleRecording);
-router.post('/voice/dtmf', validateTwilioWebhook, webhookController.handleGatherInput);
+// DEPRECATED: router.post('/voice/dtmf', validateTwilioWebhook, webhookController.handleGatherInput);
 
 // Webhook para procesamiento de IA
 router.post('/ai/results', webhookController.handleAIProcessingResults);
 
 // === WEBHOOKS DE IA NATURAL ===
 
-// Webhook para llamadas con IA natural
-router.post('/call/natural/:clientId', validateTwilioWebhook, async (req, res) => {
-  try {
-    const { clientId } = req.params;
-    const { CallSid, From, To } = req.body;
-    
-    logger.info(`📞 Llamada natural entrante - Cliente: ${clientId}, From: ${From}`);
-    
-    const twilioService = require('../services/twilioService');
-    const result = await twilioService.handleIncomingCallWithAI(clientId, CallSid, From);
-    
-    if (result.success) {
-      const twiml = await twilioService.generateNaturalTwiML(clientId, result.greeting, {
-        callSid: CallSid,
-        shouldContinue: true
-      });
-      
-      res.type('text/xml');
-      res.send(twiml.toString());
-    } else {
-      const errorTwiml = twilioService.generateErrorTwiML(result.greeting);
-      res.type('text/xml');
-      res.send(errorTwiml.toString());
-    }
-    
-  } catch (error) {
-    logger.error(`❌ Error en webhook de llamada natural: ${error.message}`);
-    const twilioService = require('../services/twilioService');
-    const errorTwiml = twilioService.generateErrorTwiML();
-    res.type('text/xml');
-    res.send(errorTwiml.toString());
-  }
-});
+// DEPRECATED: Webhook obsoleto - usar /webhook/incoming-call en su lugar
+// Este endpoint usa funciones deprecated del twilioService
 
-// ENDPOINT LEGACY - DEPRECATED: Usar /api/twilio/webhook/audio en su lugar
+// DEPRECATED: Endpoint obsoleto - usar WebSocket streaming en su lugar
 router.post('/call/response/:clientId', validateTwilioWebhook, async (req, res) => {
   try {
-    logger.warn('⚠️ Endpoint /call/response/:clientId está deprecated. Usar OpenAI Whisper en su lugar.');
+    logger.warn('⚠️ Endpoint /call/response/:clientId está deprecated. Usar WebSocket streaming.');
     
     // Responder con error para forzar migración
     res.set('Content-Type', 'text/xml');
     res.send(`
       <?xml version="1.0" encoding="UTF-8"?>
       <Response>
-        <Say voice="Polly.Conchita" language="es-ES">Error de configuración. Por favor, contacta con soporte técnico.</Say>
+        <Say>Error de configuración. Por favor, contacta con soporte técnico.</Say>
         <Hangup/>
       </Response>
     `);
