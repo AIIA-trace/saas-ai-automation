@@ -127,8 +127,10 @@ class TwilioStreamHandler {
     const { streamSid, callSid, customParameters } = data.start;
     const clientId = customParameters?.clientId;
 
+    logger.info(`🎤 ===== INICIO handleStreamStart =====`);
     logger.info(`🎤 Processing start event:`);
     logger.info(`🎤 Stream starting: ${streamSid} for call ${callSid}, clientId: ${clientId}`);
+    logger.info(`🎤 Data completa: ${JSON.stringify(data, null, 2)}`);
 
     // Verificar si el stream ya existe
     if (this.activeStreams.has(streamSid)) {
