@@ -90,8 +90,46 @@ class AzureTTSService {
       logger.info(`🔍 [${requestId}] STEP 1: Configurando Speech SDK...`);
       const configStart = Date.now();
       
+      // STEP 1.1: Verificar variables de entorno críticas
+      logger.info(`🔍 [${requestId}] STEP 1.1: Verificando configuración Azure...`);
+      logger.info(`🔍 [${requestId}] - AZURE_SPEECH_KEY: ${this.subscriptionKey ? `${this.subscriptionKey.substring(0, 8)}...` : 'NO CONFIGURADA'}`);
+      logger.info(`🔍 [${requestId}] - AZURE_SPEECH_REGION: ${this.region}`);
+      logger.info(`🔍 [${requestId}] - NODE_ENV: ${process.env.NODE_ENV}`);
+      logger.info(`🔍 [${requestId}] - Process platform: ${process.platform}`);
+      logger.info(`🔍 [${requestId}] - Process version: ${process.version}`);
+      
+      // STEP 1.2: Verificar conectividad de red básica
+      logger.info(`🔍 [${requestId}] STEP 1.2: Verificando conectividad de red...`);
+      try {
+        const dns = require('dns');
+        const azureEndpoint = `${this.region}.tts.speech.microsoft.com`;
+        logger.info(`🔍 [${requestId}] - Resolviendo DNS para: ${azureEndpoint}`);
+        
+        dns.resolve4(azureEndpoint, (err, addresses) => {
+          if (err) {
+            logger.error(`❌ [${requestId}] DNS resolution failed: ${err.message}`);
+          } else {
+            logger.info(`🔍 [${requestId}] DNS resolved: ${addresses.join(', ')}`);
+          }
+        });
+      } catch (dnsError) {
+        logger.error(`❌ [${requestId}] DNS check error: ${dnsError.message}`);
+      }
+      
+      // STEP 1.3: Crear SpeechConfig con logging detallado
+      logger.info(`🔍 [${requestId}] STEP 1.3: Creando SpeechConfig...`);
       const speechConfig = this.getSpeechConfig();
       speechConfig.speechSynthesisVoiceName = selectedVoice.azureName;
+      
+      // STEP 1.4: Verificar propiedades del SpeechConfig
+      logger.info(`🔍 [${requestId}] STEP 1.4: Verificando SpeechConfig properties...`);
+      try {
+        logger.info(`🔍 [${requestId}] - SpeechConfig constructor: ${speechConfig.constructor.name}`);
+        logger.info(`🔍 [${requestId}] - SpeechConfig region: ${speechConfig.region || 'NO DEFINIDA'}`);
+        logger.info(`🔍 [${requestId}] - SpeechConfig endpoint: ${speechConfig.endpointId || 'DEFAULT'}`);
+      } catch (configError) {
+        logger.error(`❌ [${requestId}] Error verificando SpeechConfig: ${configError.message}`);
+      }
       
       const configTime = Date.now() - configStart;
       logger.info(`🔍 [${requestId}] STEP 1 COMPLETADO en ${configTime}ms`);
@@ -131,14 +169,20 @@ class AzureTTSService {
       logger.info(`🔍 [${requestId}] SpeechSynthesizer creado exitosamente`);
       
       return new Promise((resolve, reject) => {
-        // STEP 4: Configurar Timeout
-        logger.info(`🔍 [${requestId}] STEP 4: Configurando timeout de 15 segundos...`);
+        // STEP 4: Configurar Timeout (reducido a 8 segundos para fallar más rápido)
+        logger.info(`🔍 [${requestId}] STEP 4: Configurando timeout de 8 segundos...`);
         
         const timeout = setTimeout(() => {
           const timeoutTime = Date.now() - startTime;
-          logger.error(`❌ [${requestId}] TIMEOUT después de ${timeoutTime}ms (15s configurados)`);
+          logger.error(`❌ [${requestId}] TIMEOUT después de ${timeoutTime}ms (8s configurados)`);
           logger.error(`❌ [${requestId}] CAUSA: Azure TTS no respondió en tiempo esperado`);
-          logger.error(`❌ [${requestId}] SOLUCIÓN: Verificar conectividad Azure o aumentar timeout`);
+          logger.error(`❌ [${requestId}] DIAGNÓSTICO: Cuelgue en llamada a Azure SDK`);
+          logger.error(`❌ [${requestId}] POSIBLES CAUSAS:`);
+          logger.error(`❌ [${requestId}] - 1. Conectividad de red lenta/bloqueada`);
+          logger.error(`❌ [${requestId}] - 2. Límites de rate limiting en Azure`);
+          logger.error(`❌ [${requestId}] - 3. Problema con clave/región Azure`);
+          logger.error(`❌ [${requestId}] - 4. Firewall bloqueando conexión HTTPS`);
+          logger.error(`❌ [${requestId}] - 5. Azure SDK interno colgado`);
           
           try {
             synthesizer.close();
@@ -147,17 +191,56 @@ class AzureTTSService {
             logger.error(`❌ [${requestId}] Error cerrando synthesizer: ${e.message}`);
           }
           
-          reject(new Error(`Azure TTS timeout después de 15 segundos (Request: ${requestId})`));
-        }, 15000);
+          reject(new Error(`Azure TTS timeout después de 8 segundos (Request: ${requestId})`));
+        }, 8000);
 
         // STEP 5: Ejecutar Síntesis
         setImmediate(() => {
           logger.info(`🔍 [${requestId}] STEP 5: Ejecutando síntesis en próximo tick...`);
           const synthesisStart = Date.now();
           
+          // STEP 5.1: Log antes de llamar speakTextAsync
+          logger.info(`🔍 [${requestId}] STEP 5.1: Llamando synthesizer.speakTextAsync...`);
+          logger.info(`🔍 [${requestId}] - Synthesizer state: ${synthesizer ? 'VÁLIDO' : 'NULL'}`);
+          logger.info(`🔍 [${requestId}] - Texto length: ${text.length}`);
+          logger.info(`🔍 [${requestId}] - Timestamp antes de llamada: ${Date.now()}`);
+          
+          // STEP 5.2: Verificar estado del synthesizer antes de usar
+          try {
+            logger.info(`🔍 [${requestId}] STEP 5.2: Verificando synthesizer properties...`);
+            logger.info(`🔍 [${requestId}] - Synthesizer constructor: ${synthesizer.constructor.name}`);
+            logger.info(`🔍 [${requestId}] - Synthesizer toString: ${synthesizer.toString()}`);
+          } catch (synthError) {
+            logger.error(`❌ [${requestId}] Error verificando synthesizer: ${synthError.message}`);
+          }
+          
+          // STEP 5.3: Log inmediatamente antes de la llamada crítica
+          logger.info(`🔍 [${requestId}] STEP 5.3: ⚡ LLAMADA CRÍTICA - Iniciando speakTextAsync AHORA...`);
+          
+          // STEP 5.3.1: Monitorear si la llamada se cuelga inmediatamente
+          const callStartTime = Date.now();
+          logger.info(`🔍 [${requestId}] STEP 5.3.1: Timestamp EXACTO antes de speakTextAsync: ${callStartTime}`);
+          
+          // STEP 5.3.2: Usar un timer para detectar si la llamada nunca retorna
+          const hangDetector = setTimeout(() => {
+            const hangTime = Date.now() - callStartTime;
+            logger.error(`🚨 [${requestId}] HANG DETECTADO: speakTextAsync no retornó después de ${hangTime}ms`);
+            logger.error(`🚨 [${requestId}] CONFIRMADO: Azure SDK se colgó en la llamada interna`);
+            logger.error(`🚨 [${requestId}] ESTADO: Ni callback ni error callback fueron llamados`);
+          }, 3000); // Detectar hang después de 3 segundos
+          
           synthesizer.speakTextAsync(
             text,
             (result) => {
+              // STEP 5.4: Log inmediato al recibir callback
+              clearTimeout(hangDetector); // Limpiar detector de hang
+              logger.info(`🔍 [${requestId}] STEP 5.4: ✅ CALLBACK RECIBIDO - Azure respondió!`);
+              logger.info(`🔍 [${requestId}] - Timestamp callback: ${Date.now()}`);
+              logger.info(`🔍 [${requestId}] - Tiempo desde llamada: ${Date.now() - callStartTime}ms`);
+              logger.info(`🔍 [${requestId}] - Result object: ${result ? 'VÁLIDO' : 'NULL'}`);
+              logger.info(`🔍 [${requestId}] - Result reason: ${result?.reason}`);
+              logger.info(`🔍 [${requestId}] - Result constructor: ${result?.constructor?.name}`);
+              
               const synthesisTime = Date.now() - synthesisStart;
               const totalTime = Date.now() - startTime;
               
@@ -239,6 +322,14 @@ class AzureTTSService {
               }
             },
             (error) => {
+              // STEP 5.5: Log inmediato al recibir error callback
+              clearTimeout(hangDetector); // Limpiar detector de hang
+              logger.error(`❌ [${requestId}] STEP 5.5: ❌ ERROR CALLBACK RECIBIDO - Azure falló!`);
+              logger.error(`❌ [${requestId}] - Timestamp error: ${Date.now()}`);
+              logger.error(`❌ [${requestId}] - Tiempo desde llamada: ${Date.now() - callStartTime}ms`);
+              logger.error(`❌ [${requestId}] - Error object: ${error ? 'VÁLIDO' : 'NULL'}`);
+              logger.error(`❌ [${requestId}] - Error constructor: ${error?.constructor?.name}`);
+              
               const errorTime = Date.now() - startTime;
               
               clearTimeout(timeout);
