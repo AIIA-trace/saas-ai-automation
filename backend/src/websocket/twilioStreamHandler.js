@@ -247,6 +247,8 @@ class TwilioStreamHandler {
       logger.info('🔍 PASO 4: Enviando saludo inicial con configuración real...');
       
       // Enviar saludo con configuración real
+      const greetingStartTime = Date.now();
+      logger.info(`🎵 GREETING START - ${new Date().toISOString()} - StreamSid: ${streamSid}`);
       const greetingPromise = this.sendInitialGreeting(ws, { streamSid, callSid });
       
       const greetingTimeout = new Promise((_, reject) => {
@@ -254,10 +256,16 @@ class TwilioStreamHandler {
       });
 
       try {
-        await Promise.race([greetingPromise, greetingTimeout]);
+        const greetingResult = await Promise.race([greetingPromise, greetingTimeout]);
+        const greetingTime = Date.now() - greetingStartTime;
+        logger.info(`🎵 GREETING SUCCESS - Completado en ${greetingTime}ms`);
         logger.info('🔍 PASO 7: ✅ Saludo inicial enviado correctamente');
       } catch (error) {
-        logger.error(`❌ Error en saludo inicial: ${error.message}`);
+        const greetingTime = Date.now() - greetingStartTime;
+        logger.error(`❌ GREETING FAILED después de ${greetingTime}ms: ${error.message}`);
+        if (error.message.includes('timeout')) {
+          logger.error(`❌ CAUSA: Azure TTS se colgó durante síntesis del saludo`);
+        }
         // Continuar sin saludo si hay error
       }
       
@@ -283,18 +291,22 @@ class TwilioStreamHandler {
    * Enviar saludo inicial con Azure TTS
    */
   async sendInitialGreeting(ws, data) {
+    const greetingId = `GREETING-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    const startTime = Date.now();
+    
     try {
-      logger.info('🎵 INICIO sendInitialGreeting');
+      logger.info(`🎵 [${greetingId}] ===== INICIO sendInitialGreeting =====`);
+      logger.info(`🎵 [${greetingId}] Timestamp: ${new Date().toISOString()}`);
       const { streamSid, callSid } = data;
       
-      logger.info(`🎵 PASO 1: Obteniendo stream data para ${streamSid}`);
+      logger.info(`🎵 [${greetingId}] PASO 1: Obteniendo stream data para ${streamSid}`);
       const streamData = this.activeStreams.get(streamSid);
       if (!streamData) {
-        logger.error(`❌ No se encontró stream data para ${streamSid}`);
-        return;
+        logger.error(`❌ [${greetingId}] No se encontró stream data para ${streamSid}`);
+        return { success: false, error: 'Stream data not found' };
       }
 
-      logger.info('🎵 PASO 2: Obteniendo cliente');
+      logger.info(`🎵 [${greetingId}] PASO 2: Obteniendo cliente`);
       const { client } = streamData;
       
       // Obtener el saludo desde callConfig.greeting
@@ -318,15 +330,17 @@ class TwilioStreamHandler {
       try {
         logger.info('🎵 PASO 5: Generando audio con Azure TTS...');
         logger.info(`🔍 AUDIO FLOW DEBUG - Texto completo: "${greeting}"`);
-        logger.info(`🔍 AUDIO FLOW DEBUG - Longitud texto: ${greeting.length} caracteres`);
-        logger.info(`🔍 AUDIO FLOW DEBUG - Voz configurada: ${voiceId}`);
-        logger.info(`🔍 AUDIO FLOW DEBUG - TTS Service disponible: ${!!this.ttsService}`);
+        logger.info(`🎵 [${greetingId}] PASO 3: Generando audio TTS`);
+        logger.info(`🎵 [${greetingId}] Saludo: "${greeting}"`);
+        logger.info(`🎵 [${greetingId}] Voz: ${voiceId}`);
+        logger.info(`🎵 [${greetingId}] TTS Service disponible: ${!!this.ttsService}`);
         
-        const startTime = Date.now();
+        logger.info(`🎵 [${greetingId}] INICIANDO Azure TTS - ${new Date().toISOString()}`);
+        const ttsStartTime = Date.now();
         const audioResult = await this.ttsService.generateSpeech(greeting, voiceId);
         const endTime = Date.now();
         
-        logger.info(`🔍 AUDIO FLOW DEBUG - Tiempo generación TTS: ${endTime - startTime}ms`);
+        logger.info(`🔍 AUDIO FLOW DEBUG - Tiempo generación TTS: ${endTime - ttsStartTime}ms`);
         logger.info(`🔍 AUDIO FLOW DEBUG - AudioResult recibido: ${JSON.stringify({
           success: audioResult?.success,
           hasAudioBuffer: !!audioResult?.audioBuffer,
