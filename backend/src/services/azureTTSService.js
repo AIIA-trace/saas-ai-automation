@@ -219,27 +219,100 @@ class AzureTTSService {
           
           // STEP 5.3.1: Monitorear si la llamada se cuelga inmediatamente
           const callStartTime = Date.now();
+          const callStartHrTime = process.hrtime.bigint();
           logger.info(`🔍 [${requestId}] STEP 5.3.1: Timestamp EXACTO antes de speakTextAsync: ${callStartTime}`);
+          logger.info(`🔍 [${requestId}] STEP 5.3.1: High-res timestamp: ${callStartHrTime}ns`);
           
-          // STEP 5.3.2: Usar un timer para detectar si la llamada nunca retorna
-          const hangDetector = setTimeout(() => {
-            const hangTime = Date.now() - callStartTime;
-            logger.error(`🚨 [${requestId}] HANG DETECTADO: speakTextAsync no retornó después de ${hangTime}ms`);
-            logger.error(`🚨 [${requestId}] CONFIRMADO: Azure SDK se colgó en la llamada interna`);
-            logger.error(`🚨 [${requestId}] ESTADO: Ni callback ni error callback fueron llamados`);
-          }, 3000); // Detectar hang después de 3 segundos
+          // STEP 5.3.2: Estado del proceso Node.js antes de la llamada
+          const memUsage = process.memoryUsage();
+          logger.info(`🔍 [${requestId}] STEP 5.3.2: Memoria antes - RSS: ${Math.round(memUsage.rss/1024/1024)}MB, Heap: ${Math.round(memUsage.heapUsed/1024/1024)}MB`);
+          logger.info(`🔍 [${requestId}] STEP 5.3.2: Process PID: ${process.pid}, Uptime: ${Math.round(process.uptime())}s`);
+          
+          // STEP 5.3.3: Estado de conexiones de red
+          try {
+            const dns = require('dns');
+            const dnsStart = Date.now();
+            dns.resolve4('speech.platform.bing.com', (err, addresses) => {
+              const dnsTime = Date.now() - dnsStart;
+              if (err) {
+                logger.error(`🔍 [${requestId}] STEP 5.3.3: DNS ERROR - ${err.message} (${dnsTime}ms)`);
+              } else {
+                logger.info(`🔍 [${requestId}] STEP 5.3.3: DNS OK - ${addresses[0]} (${dnsTime}ms)`);
+              }
+            });
+          } catch (dnsError) {
+            logger.error(`🔍 [${requestId}] STEP 5.3.3: DNS check failed: ${dnsError.message}`);
+          }
+          
+          // STEP 5.3.4: Verificar estado interno del synthesizer
+          let synthesizerInternalState = 'UNKNOWN';
+          try {
+            // Intentar acceder a propiedades internas del synthesizer
+            synthesizerInternalState = synthesizer._impl ? 'HAS_IMPL' : 'NO_IMPL';
+            logger.info(`🔍 [${requestId}] STEP 5.3.4: Synthesizer internal state: ${synthesizerInternalState}`);
+            
+            // Verificar si tiene propiedades de configuración
+            if (synthesizer.properties) {
+              logger.info(`🔍 [${requestId}] STEP 5.3.4: Synthesizer has properties object`);
+            }
+          } catch (synthInternalError) {
+            logger.error(`🔍 [${requestId}] STEP 5.3.4: Error checking synthesizer internals: ${synthInternalError.message}`);
+          }
+          
+          // STEP 5.3.5: Detector de hang con múltiples checkpoints
+          let hangDetectorActive = true;
+          const hangCheckpoints = [500, 1000, 2000, 3000, 5000, 8000]; // ms
+          
+          hangCheckpoints.forEach(checkpoint => {
+            setTimeout(() => {
+              if (hangDetectorActive) {
+                const hangTime = Date.now() - callStartTime;
+                const memNow = process.memoryUsage();
+                logger.error(`🚨 [${requestId}] HANG CHECKPOINT ${checkpoint}ms: speakTextAsync aún no retornó (${hangTime}ms total)`);
+                logger.error(`🚨 [${requestId}] Memoria actual - RSS: ${Math.round(memNow.rss/1024/1024)}MB, Heap: ${Math.round(memNow.heapUsed/1024/1024)}MB`);
+                logger.error(`🚨 [${requestId}] Estado synthesizer: ${synthesizerInternalState}`);
+                
+                if (checkpoint === 3000) {
+                  logger.error(`🚨 [${requestId}] CONFIRMADO: Azure SDK se colgó en la llamada interna`);
+                  logger.error(`🚨 [${requestId}] ESTADO: Ni callback ni error callback fueron llamados`);
+                }
+              }
+            }, checkpoint);
+          });
+          
+          // STEP 5.3.6: Log inmediatamente ANTES de la llamada crítica
+          logger.info(`🔍 [${requestId}] STEP 5.3.6: ⚡⚡⚡ EJECUTANDO speakTextAsync AHORA - Thread: ${process.pid}`);
           
           synthesizer.speakTextAsync(
             text,
             (result) => {
-              // STEP 5.4: Log inmediato al recibir callback
-              clearTimeout(hangDetector); // Limpiar detector de hang
+              // STEP 5.4: Log inmediato al recibir callback con precisión milimétrica
+              hangDetectorActive = false; // Desactivar detector de hang
+              const callbackTime = Date.now();
+              const callbackHrTime = process.hrtime.bigint();
+              const exactCallTime = callbackTime - callStartTime;
+              const hrTimeDiff = Number(callbackHrTime - callStartHrTime) / 1000000; // Convert to ms
+              
               logger.info(`🔍 [${requestId}] STEP 5.4: ✅ CALLBACK RECIBIDO - Azure respondió!`);
-              logger.info(`🔍 [${requestId}] - Timestamp callback: ${Date.now()}`);
-              logger.info(`🔍 [${requestId}] - Tiempo desde llamada: ${Date.now() - callStartTime}ms`);
+              logger.info(`🔍 [${requestId}] - Timestamp callback: ${callbackTime}`);
+              logger.info(`🔍 [${requestId}] - Tiempo exacto desde llamada: ${exactCallTime}ms`);
+              logger.info(`🔍 [${requestId}] - High-res tiempo: ${hrTimeDiff.toFixed(3)}ms`);
               logger.info(`🔍 [${requestId}] - Result object: ${result ? 'VÁLIDO' : 'NULL'}`);
               logger.info(`🔍 [${requestId}] - Result reason: ${result?.reason}`);
               logger.info(`🔍 [${requestId}] - Result constructor: ${result?.constructor?.name}`);
+              
+              // STEP 5.4.1: Estado del proceso después del callback
+              const memAfter = process.memoryUsage();
+              logger.info(`🔍 [${requestId}] STEP 5.4.1: Memoria después - RSS: ${Math.round(memAfter.rss/1024/1024)}MB, Heap: ${Math.round(memAfter.heapUsed/1024/1024)}MB`);
+              
+              // STEP 5.4.2: Verificar si el resultado contiene datos válidos
+              if (result && result.audioData) {
+                logger.info(`🔍 [${requestId}] STEP 5.4.2: AudioData presente - ${result.audioData.byteLength} bytes`);
+                logger.info(`🔍 [${requestId}] STEP 5.4.2: AudioData type: ${result.audioData.constructor.name}`);
+                logger.info(`🔍 [${requestId}] STEP 5.4.2: Primeros 4 bytes: [${Array.from(result.audioData.slice(0, 4)).join(', ')}]`);
+              } else {
+                logger.error(`🔍 [${requestId}] STEP 5.4.2: ❌ AudioData ausente o inválido`);
+              }
               
               const synthesisTime = Date.now() - synthesisStart;
               const totalTime = Date.now() - startTime;
@@ -322,18 +395,45 @@ class AzureTTSService {
               }
             },
             (error) => {
-              // STEP 5.5: Log inmediato al recibir error callback
-              clearTimeout(hangDetector); // Limpiar detector de hang
+              // STEP 5.5: Log inmediato al recibir error callback con precisión milimétrica
+              hangDetectorActive = false; // Desactivar detector de hang
+              const errorTime = Date.now();
+              const errorHrTime = process.hrtime.bigint();
+              const exactErrorTime = errorTime - callStartTime;
+              const hrErrorDiff = Number(errorHrTime - callStartHrTime) / 1000000; // Convert to ms
+              
               logger.error(`❌ [${requestId}] STEP 5.5: ❌ ERROR CALLBACK RECIBIDO - Azure falló!`);
-              logger.error(`❌ [${requestId}] - Timestamp error: ${Date.now()}`);
-              logger.error(`❌ [${requestId}] - Tiempo desde llamada: ${Date.now() - callStartTime}ms`);
+              logger.error(`❌ [${requestId}] - Timestamp error: ${errorTime}`);
+              logger.error(`❌ [${requestId}] - Tiempo exacto desde llamada: ${exactErrorTime}ms`);
+              logger.error(`❌ [${requestId}] - High-res tiempo: ${hrErrorDiff.toFixed(3)}ms`);
+              
+              // STEP 5.5.1: Estado del proceso después del error
+              const memAfterError = process.memoryUsage();
+              logger.error(`❌ [${requestId}] STEP 5.5.1: Memoria después error - RSS: ${Math.round(memAfterError.rss/1024/1024)}MB, Heap: ${Math.round(memAfterError.heapUsed/1024/1024)}MB`);
+              
+              // STEP 5.5.2: Detalles del error con máxima precisión
+              logger.error(`❌ [${requestId}] STEP 5.5.2: Error type: ${error?.constructor?.name || 'Unknown'}`);
+              logger.error(`❌ [${requestId}] STEP 5.5.2: Error message: ${error?.message || 'Sin mensaje'}`);
+              logger.error(`❌ [${requestId}] STEP 5.5.2: Error stack: ${error?.stack ? error.stack.split('\n')[0] : 'Sin stack'}`);
+              
+              // STEP 5.5.3: Verificar si es un error de red específico
+              if (error?.code) {
+                logger.error(`❌ [${requestId}] STEP 5.5.3: Error code: ${error.code}`);
+                if (error.code === 'ENOTFOUND') {
+                  logger.error(`❌ [${requestId}] STEP 5.5.3: CAUSA: DNS resolution failed - no se puede conectar a Azure`);
+                } else if (error.code === 'ECONNREFUSED') {
+                  logger.error(`❌ [${requestId}] STEP 5.5.3: CAUSA: Connection refused - Azure rechazó la conexión`);
+                } else if (error.code === 'ETIMEDOUT') {
+                  logger.error(`❌ [${requestId}] STEP 5.5.3: CAUSA: Connection timeout - Azure no respondió a tiempo`);
+                }
+              }
               logger.error(`❌ [${requestId}] - Error object: ${error ? 'VÁLIDO' : 'NULL'}`);
               logger.error(`❌ [${requestId}] - Error constructor: ${error?.constructor?.name}`);
               
-              const errorTime = Date.now() - startTime;
+              const totalErrorTime = Date.now() - startTime;
               
               clearTimeout(timeout);
-              logger.error(`❌ [${requestId}] ❌ EXCEPTION después de ${errorTime}ms`);
+              logger.error(`❌ [${requestId}] ❌ EXCEPTION después de ${totalErrorTime}ms`);
               logger.error(`❌ [${requestId}] Error type: ${error.constructor.name}`);
               logger.error(`❌ [${requestId}] Error message: ${error.message}`);
               logger.error(`❌ [${requestId}] Error stack: ${error.stack}`);
@@ -351,6 +451,31 @@ class AzureTTSService {
               reject(error);
             }
           );
+          
+          // STEP 5.3.7: Log CRÍTICO inmediatamente después de speakTextAsync para verificar si el hilo sigue funcionando
+          const postCallTime = Date.now();
+          const postCallHrTime = process.hrtime.bigint();
+          const callExecutionTime = postCallTime - callStartTime;
+          const hrCallExecution = Number(postCallHrTime - callStartHrTime) / 1000000;
+          
+          logger.info(`🔍 [${requestId}] STEP 5.3.7: ✅ speakTextAsync EJECUTADO - Hilo principal FUNCIONA`);
+          logger.info(`🔍 [${requestId}] STEP 5.3.7: Tiempo ejecución llamada: ${callExecutionTime}ms (${hrCallExecution.toFixed(3)}ms hr)`);
+          logger.info(`🔍 [${requestId}] STEP 5.3.7: Timestamp post-call: ${postCallTime}`);
+          logger.info(`🔍 [${requestId}] STEP 5.3.7: Estado: Esperando callbacks de Azure...`);
+          
+          // STEP 5.3.8: Verificar estado del proceso inmediatamente después
+          const memPostCall = process.memoryUsage();
+          logger.info(`🔍 [${requestId}] STEP 5.3.8: Memoria post-call - RSS: ${Math.round(memPostCall.rss/1024/1024)}MB, Heap: ${Math.round(memPostCall.heapUsed/1024/1024)}MB`);
+          
+          // STEP 5.3.9: Programar verificaciones periódicas del estado del hilo
+          const threadCheckInterval = setInterval(() => {
+            if (hangDetectorActive) {
+              const checkTime = Date.now() - callStartTime;
+              logger.info(`🔍 [${requestId}] STEP 5.3.9: Thread check ${checkTime}ms - Hilo principal ACTIVO, esperando Azure...`);
+            } else {
+              clearInterval(threadCheckInterval);
+            }
+          }, 1000); // Check every second
         });
       });
     } catch (error) {
