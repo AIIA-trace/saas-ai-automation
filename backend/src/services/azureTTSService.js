@@ -73,123 +73,218 @@ class AzureTTSService {
 
   // Generar audio a partir de texto
   async generateSpeech(text, voiceId = null, outputPath = null) {
+    const requestId = `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    const startTime = Date.now();
+    
     try {
-      const selectedVoice = this.getVoiceById(voiceId || this.defaultVoice);
+      logger.info(`🔍 [${requestId}] ===== INICIANDO AZURE TTS SYNTHESIS =====`);
+      logger.info(`🔍 [${requestId}] Texto: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
+      logger.info(`🔍 [${requestId}] Longitud: ${text.length} caracteres`);
+      logger.info(`🔍 [${requestId}] VoiceId solicitado: ${voiceId || 'default'}`);
+      logger.info(`🔍 [${requestId}] OutputPath: ${outputPath || 'MEMORIA'}`);
       
-      logger.info(`🔍 DEBUG Azure TTS - Generando audio con voz: ${selectedVoice.name}`);
-      logger.info(`🔍 DEBUG Azure TTS - Texto completo: "${text}"`);
-      logger.info(`🔍 DEBUG Azure TTS - Longitud del texto: ${text.length} caracteres`);
-      logger.info(`🔍 DEBUG Azure TTS - Azure Voice Name: ${selectedVoice.azureName}`);
-      logger.info(`🔍 DEBUG Azure TTS - Output Path: ${outputPath || 'MEMORIA (no archivo)'}`);
+      const selectedVoice = this.getVoiceById(voiceId || this.defaultVoice);
+      logger.info(`🔍 [${requestId}] Voz seleccionada: ${selectedVoice.name} (${selectedVoice.azureName})`);
+      
+      // STEP 1: Configurar Speech SDK
+      logger.info(`🔍 [${requestId}] STEP 1: Configurando Speech SDK...`);
+      const configStart = Date.now();
       
       const speechConfig = this.getSpeechConfig();
       speechConfig.speechSynthesisVoiceName = selectedVoice.azureName;
       
-      logger.info(`🔍 DEBUG Azure TTS - SpeechConfig configurado con voz: ${selectedVoice.azureName}`);
-      logger.info(`🔍 DEBUG Azure TTS - Formato de salida: ${speechConfig.speechSynthesisOutputFormat}`);
-      logger.info(`🔍 DEBUG Azure TTS - Idioma configurado: ${speechConfig.speechSynthesisLanguage}`);
+      const configTime = Date.now() - configStart;
+      logger.info(`🔍 [${requestId}] STEP 1 COMPLETADO en ${configTime}ms`);
+      logger.info(`🔍 [${requestId}] - Formato: ${speechConfig.speechSynthesisOutputFormat}`);
+      logger.info(`🔍 [${requestId}] - Idioma: ${speechConfig.speechSynthesisLanguage}`);
+      logger.info(`🔍 [${requestId}] - Voz: ${speechConfig.speechSynthesisVoiceName}`);
       
-      // Configurar salida
+      // STEP 2: Configurar Audio Output
+      logger.info(`🔍 [${requestId}] STEP 2: Configurando Audio Output...`);
+      const audioConfigStart = Date.now();
+      
       let audioConfig;
       if (outputPath) {
-        // Asegurar que el directorio existe antes de crear el archivo
         const outputDir = path.dirname(outputPath);
         if (!fs.existsSync(outputDir)) {
           fs.mkdirSync(outputDir, { recursive: true });
-          logger.info(`🔍 DEBUG Azure TTS - Directorio creado: ${outputDir}`);
+          logger.info(`🔍 [${requestId}] Directorio creado: ${outputDir}`);
         }
         audioConfig = sdk.AudioConfig.fromAudioFileOutput(outputPath);
-        logger.info(`🔍 DEBUG Azure TTS - AudioConfig configurado para archivo: ${outputPath}`);
+        logger.info(`🔍 [${requestId}] AudioConfig: ARCHIVO (${outputPath})`);
       } else {
-        // Para Twilio, necesitamos audio en memoria, no speaker output
-        audioConfig = null; // Esto hará que Azure TTS devuelva el audio en result.audioData
-        logger.info(`🔍 DEBUG Azure TTS - AudioConfig configurado para salida en memoria (null)`);
+        audioConfig = null; // Para Twilio - audio en memoria
+        logger.info(`🔍 [${requestId}] AudioConfig: MEMORIA (null para Twilio)`);
       }
       
+      const audioConfigTime = Date.now() - audioConfigStart;
+      logger.info(`🔍 [${requestId}] STEP 2 COMPLETADO en ${audioConfigTime}ms`);
+      
+      // STEP 3: Crear Synthesizer
+      logger.info(`🔍 [${requestId}] STEP 3: Creando SpeechSynthesizer...`);
+      const synthesizerStart = Date.now();
+      
       const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
-      logger.info(`🔍 DEBUG Azure TTS - SpeechSynthesizer creado, iniciando síntesis...`);
+      
+      const synthesizerTime = Date.now() - synthesizerStart;
+      logger.info(`🔍 [${requestId}] STEP 3 COMPLETADO en ${synthesizerTime}ms`);
+      logger.info(`🔍 [${requestId}] SpeechSynthesizer creado exitosamente`);
       
       return new Promise((resolve, reject) => {
-        // Timeout de 15 segundos para Azure TTS
+        // STEP 4: Configurar Timeout
+        logger.info(`🔍 [${requestId}] STEP 4: Configurando timeout de 15 segundos...`);
+        
         const timeout = setTimeout(() => {
-          logger.error(`❌ TIMEOUT Azure TTS después de 15 segundos`);
-          synthesizer.close();
-          reject(new Error('Azure TTS timeout después de 15 segundos'));
+          const timeoutTime = Date.now() - startTime;
+          logger.error(`❌ [${requestId}] TIMEOUT después de ${timeoutTime}ms (15s configurados)`);
+          logger.error(`❌ [${requestId}] CAUSA: Azure TTS no respondió en tiempo esperado`);
+          logger.error(`❌ [${requestId}] SOLUCIÓN: Verificar conectividad Azure o aumentar timeout`);
+          
+          try {
+            synthesizer.close();
+            logger.info(`🔍 [${requestId}] Synthesizer cerrado por timeout`);
+          } catch (e) {
+            logger.error(`❌ [${requestId}] Error cerrando synthesizer: ${e.message}`);
+          }
+          
+          reject(new Error(`Azure TTS timeout después de 15 segundos (Request: ${requestId})`));
         }, 15000);
 
-        // Usar setImmediate para evitar bloqueo del event loop
+        // STEP 5: Ejecutar Síntesis
         setImmediate(() => {
-          logger.info(`🔍 AUDIO FLOW DEBUG - Ejecutando síntesis en próximo tick del event loop`);
+          logger.info(`🔍 [${requestId}] STEP 5: Ejecutando síntesis en próximo tick...`);
+          const synthesisStart = Date.now();
           
           synthesizer.speakTextAsync(
             text,
             (result) => {
+              const synthesisTime = Date.now() - synthesisStart;
+              const totalTime = Date.now() - startTime;
+              
               clearTimeout(timeout);
-              logger.info(`🔍 AUDIO FLOW DEBUG - Síntesis completada, procesando resultado...`);
+              logger.info(`🔍 [${requestId}] CALLBACK RECIBIDO después de ${synthesisTime}ms`);
+              logger.info(`🔍 [${requestId}] Reason: ${result.reason} (${sdk.ResultReason[result.reason] || 'Unknown'})`);
               
               if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-                logger.info(`🎵 AZURE TTS SUCCESS - Audio generado: ${result.audioData ? result.audioData.byteLength : 0} bytes`);
-                logger.info(`🔍 AUDIO FLOW DEBUG - Formato de audio: ${result.audioData ? 'Buffer válido' : 'Buffer inválido'}`);
-                logger.info(`🔍 AUDIO FLOW DEBUG - Primer byte: ${result.audioData && result.audioData.length > 0 ? result.audioData[0] : 'N/A'}`);
-                
                 const audioSize = result.audioData ? result.audioData.byteLength : 0;
+                logger.info(`🎵 [${requestId}] ✅ SUCCESS - Audio generado: ${audioSize} bytes`);
+                logger.info(`🎵 [${requestId}] Tiempo total: ${totalTime}ms`);
+                logger.info(`🎵 [${requestId}] - Config: ${configTime}ms`);
+                logger.info(`🎵 [${requestId}] - AudioConfig: ${audioConfigTime}ms`);
+                logger.info(`🎵 [${requestId}] - Synthesizer: ${synthesizerTime}ms`);
+                logger.info(`🎵 [${requestId}] - Síntesis: ${synthesisTime}ms`);
+                
+                if (result.audioData && result.audioData.length > 0) {
+                  logger.info(`🎵 [${requestId}] Audio válido - Primer byte: ${result.audioData[0]}`);
+                } else {
+                  logger.warn(`⚠️ [${requestId}] Audio buffer vacío o inválido`);
+                }
                 
                 if (outputPath) {
-                  // Verificar que el archivo se creó correctamente
                   if (fs.existsSync(outputPath)) {
                     const stats = fs.statSync(outputPath);
-                    logger.info(`🎵 Audio Azure guardado en ${outputPath} (${stats.size} bytes)`);
+                    logger.info(`🎵 [${requestId}] Archivo guardado: ${outputPath} (${stats.size} bytes)`);
                   } else {
-                    logger.warn(`⚠️ Archivo de audio no encontrado en ${outputPath}`);
+                    logger.warn(`⚠️ [${requestId}] Archivo no encontrado: ${outputPath}`);
                   }
                   
                   synthesizer.close();
                   resolve({
                     success: true,
                     outputPath,
-                    audioBuffer: result.audioData
+                    audioBuffer: result.audioData,
+                    requestId,
+                    timing: { total: totalTime, synthesis: synthesisTime }
                   });
                 } else {
-                  logger.info(`🔍 AZURE TTS SUCCESS - Retornando buffer en memoria de ${audioSize} bytes`);
                   synthesizer.close();
                   resolve({
                     success: true,
                     audioBuffer: result.audioData,
                     audioSize: audioSize,
-                    format: 'Raw8Khz8BitMonoMULaw'
+                    format: 'Raw8Khz8BitMonoMULaw',
+                    requestId,
+                    timing: { total: totalTime, synthesis: synthesisTime }
                   });
                 }
               } else if (result.reason === sdk.ResultReason.Canceled) {
                 const cancellation = sdk.CancellationDetails.fromResult(result);
-                logger.error(`❌ AZURE TTS CANCELED - Reason: ${cancellation.reason}`);
-                logger.error(`❌ AZURE TTS CANCELED - Error Code: ${cancellation.errorCode}`);
-                logger.error(`❌ AZURE TTS CANCELED - Details: ${cancellation.errorDetails}`);
-                logger.error(`❌ AZURE TTS CANCELED - Clave usada: ${this.subscriptionKey?.substring(0, 8)}...`);
+                logger.error(`❌ [${requestId}] ❌ CANCELED después de ${totalTime}ms`);
+                logger.error(`❌ [${requestId}] Reason: ${cancellation.reason} (${sdk.CancellationReason[cancellation.reason] || 'Unknown'})`);
+                logger.error(`❌ [${requestId}] ErrorCode: ${cancellation.errorCode} (${sdk.CancellationErrorCode[cancellation.errorCode] || 'Unknown'})`);
+                logger.error(`❌ [${requestId}] Details: ${cancellation.errorDetails}`);
+                logger.error(`❌ [${requestId}] Clave Azure: ${this.subscriptionKey?.substring(0, 8)}...`);
+                logger.error(`❌ [${requestId}] Región Azure: ${this.region}`);
+                
+                // Diagnosticar causa específica
+                if (cancellation.errorCode === sdk.CancellationErrorCode.AuthenticationFailure) {
+                  logger.error(`❌ [${requestId}] CAUSA: Clave de Azure inválida o expirada`);
+                } else if (cancellation.errorCode === sdk.CancellationErrorCode.ConnectionFailure) {
+                  logger.error(`❌ [${requestId}] CAUSA: Fallo de conexión con Azure`);
+                } else if (cancellation.errorCode === sdk.CancellationErrorCode.ServiceTimeout) {
+                  logger.error(`❌ [${requestId}] CAUSA: Timeout del servicio Azure`);
+                } else {
+                  logger.error(`❌ [${requestId}] CAUSA: Error desconocido de Azure`);
+                }
+                
                 synthesizer.close();
-                reject(new Error(`Azure TTS Cancelado: ${cancellation.errorDetails}`));
+                reject(new Error(`Azure TTS Cancelado (${requestId}): ${cancellation.errorDetails}`));
               } else {
-                logger.error(`❌ Error Azure TTS - Reason: ${result.reason}`);
-                logger.error(`❌ Error Azure TTS - Details: ${result.errorDetails || 'Sin detalles'}`);
+                logger.error(`❌ [${requestId}] ❌ ERROR después de ${totalTime}ms`);
+                logger.error(`❌ [${requestId}] Reason: ${result.reason} (${sdk.ResultReason[result.reason] || 'Unknown'})`);
+                logger.error(`❌ [${requestId}] Details: ${result.errorDetails || 'Sin detalles'}`);
+                
                 synthesizer.close();
-                reject(new Error(result.errorDetails || `Error desconocido: ${result.reason}`));
+                reject(new Error(`Azure TTS Error (${requestId}): ${result.errorDetails || result.reason}`));
               }
             },
-          (error) => {
-            clearTimeout(timeout);
-            logger.error(`❌ Error Azure TTS en callback: ${error}`);
-            logger.error(`❌ Error type: ${typeof error}`);
-            logger.error(`❌ Error message: ${error.message || error}`);
-            synthesizer.close();
-            reject(error);
-          }
+            (error) => {
+              const errorTime = Date.now() - startTime;
+              
+              clearTimeout(timeout);
+              logger.error(`❌ [${requestId}] ❌ EXCEPTION después de ${errorTime}ms`);
+              logger.error(`❌ [${requestId}] Error type: ${error.constructor.name}`);
+              logger.error(`❌ [${requestId}] Error message: ${error.message}`);
+              logger.error(`❌ [${requestId}] Error stack: ${error.stack}`);
+              
+              // Diagnosticar tipo de error
+              if (error.message.includes('network') || error.message.includes('connection')) {
+                logger.error(`❌ [${requestId}] CAUSA: Problema de red/conexión`);
+              } else if (error.message.includes('auth') || error.message.includes('key')) {
+                logger.error(`❌ [${requestId}] CAUSA: Problema de autenticación`);
+              } else {
+                logger.error(`❌ [${requestId}] CAUSA: Error interno del SDK`);
+              }
+              
+              synthesizer.close();
+              reject(error);
+            }
           );
         });
       });
     } catch (error) {
-      logger.error(`❌ Error generando audio Azure TTS: ${error.message}`);
+      const totalTime = Date.now() - startTime;
+      logger.error(`❌ [${requestId}] ❌ EXCEPTION GENERAL después de ${totalTime}ms`);
+      logger.error(`❌ [${requestId}] Error type: ${error.constructor.name}`);
+      logger.error(`❌ [${requestId}] Error message: ${error.message}`);
+      logger.error(`❌ [${requestId}] Error stack: ${error.stack}`);
+      
+      // Diagnosticar causa del error
+      if (error.message.includes('subscription') || error.message.includes('key')) {
+        logger.error(`❌ [${requestId}] CAUSA: Problema con clave de Azure`);
+      } else if (error.message.includes('region')) {
+        logger.error(`❌ [${requestId}] CAUSA: Problema con región de Azure`);
+      } else if (error.message.includes('SpeechConfig') || error.message.includes('AudioConfig')) {
+        logger.error(`❌ [${requestId}] CAUSA: Error de configuración del SDK`);
+      } else {
+        logger.error(`❌ [${requestId}] CAUSA: Error desconocido en setup`);
+      }
+      
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        requestId,
+        timing: { total: totalTime }
       };
     }
   }
@@ -278,12 +373,11 @@ class AzureTTSService {
       
       logger.info(`🎵 SSML generado: ${ssml.substring(0, 200)}...`);
       
-      // Configurar Azure Speech SDK
-      const speechConfig = sdk.SpeechConfig.fromSubscription(
-        process.env.AZURE_SPEECH_KEY,
-        process.env.AZURE_SPEECH_REGION
-      );
+      // Configurar Azure Speech SDK con configuración consistente
+      const speechConfig = this.getSpeechConfig();
+      speechConfig.speechSynthesisVoiceName = voice.azureName;
       
+      // Configurar salida de audio de manera consistente
       let audioConfig;
       if (outputPath) {
         const outputDir = path.dirname(outputPath);
@@ -291,54 +385,83 @@ class AzureTTSService {
           fs.mkdirSync(outputDir, { recursive: true });
         }
         audioConfig = sdk.AudioConfig.fromAudioFileOutput(outputPath);
+        logger.info(`🔍 DEBUG Azure TTS SSML - AudioConfig configurado para archivo: ${outputPath}`);
       } else {
-        audioConfig = sdk.AudioConfig.fromDefaultSpeakerOutput();
+        // Para Twilio, necesitamos audio en memoria, no speaker output
+        audioConfig = null; // Esto hará que Azure TTS devuelva el audio en result.audioData
+        logger.info(`🔍 DEBUG Azure TTS SSML - AudioConfig configurado para salida en memoria (null)`);
       }
       
       const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
+      logger.info(`🔍 DEBUG Azure TTS SSML - SpeechSynthesizer creado, iniciando síntesis...`);
       
       return new Promise((resolve, reject) => {
-        // Timeout de 30 segundos para Azure TTS
+        // Timeout consistente de 15 segundos para Azure TTS
         const timeout = setTimeout(() => {
-          logger.error(`❌ TIMEOUT Azure TTS después de 30 segundos`);
-          synthesizer.close();
-          reject(new Error('Azure TTS timeout después de 30 segundos'));
-        }, 30000);
-
-        synthesizer.speakSsmlAsync(
-          ssml,
-          (result) => {
-            clearTimeout(timeout);
-            if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-              logger.info(`🎵 Audio Azure con SSML generado exitosamente`);
-              
-              if (outputPath && fs.existsSync(outputPath)) {
-                const stats = fs.statSync(outputPath);
-                logger.info(`🎵 Audio guardado: ${outputPath} (${stats.size} bytes)`);
-              }
-              
-              resolve({
-                success: true,
-                outputPath,
-                audioBuffer: result.audioData,
-                voiceSettings: settings
-              });
-            } else {
-              logger.error(`❌ Error en síntesis SSML: ${result.reason}`);
-              logger.error(`❌ Detalles del error: ${result.errorDetails || 'No hay detalles'}`);
-              logger.error(`❌ Código de resultado: ${result.reason} (${sdk.ResultReason[result.reason] || 'Desconocido'})`);
-              logger.error(`❌ SSML problemático: ${ssml.substring(0, 500)}`);
-              reject(new Error(`Error en síntesis SSML: ${result.reason} - ${result.errorDetails || 'Sin detalles'}`));
-            }
+          logger.error(`❌ TIMEOUT Azure TTS SSML después de 15 segundos`);
+          try {
             synthesizer.close();
-          },
-          (error) => {
-            clearTimeout(timeout);
-            logger.error(`❌ Error SSML Azure TTS: ${error}`);
-            synthesizer.close();
-            reject(error);
+          } catch (e) {
+            logger.error(`❌ Error cerrando synthesizer: ${e.message}`);
           }
-        );
+          reject(new Error('Azure TTS SSML timeout después de 15 segundos'));
+        }, 15000);
+
+        // Usar setImmediate para evitar bloqueo del event loop
+        setImmediate(() => {
+          logger.info(`🔍 AUDIO FLOW DEBUG SSML - Ejecutando síntesis en próximo tick del event loop`);
+          
+          synthesizer.speakSsmlAsync(
+            ssml,
+            (result) => {
+              clearTimeout(timeout);
+              logger.info(`🔍 AUDIO FLOW DEBUG SSML - Síntesis completada, procesando resultado...`);
+              
+              if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+                logger.info(`🎵 AZURE TTS SSML SUCCESS - Audio generado: ${result.audioData ? result.audioData.byteLength : 0} bytes`);
+                
+                const audioSize = result.audioData ? result.audioData.byteLength : 0;
+                
+                if (outputPath && fs.existsSync(outputPath)) {
+                  const stats = fs.statSync(outputPath);
+                  logger.info(`🎵 Audio Azure SSML guardado: ${outputPath} (${stats.size} bytes)`);
+                }
+                
+                synthesizer.close();
+                resolve({
+                  success: true,
+                  outputPath,
+                  audioBuffer: result.audioData,
+                  audioSize: audioSize,
+                  format: 'Raw8Khz8BitMonoMULaw',
+                  voiceSettings: settings
+                });
+              } else if (result.reason === sdk.ResultReason.Canceled) {
+                const cancellation = sdk.CancellationDetails.fromResult(result);
+                logger.error(`❌ AZURE TTS SSML CANCELED - Reason: ${cancellation.reason}`);
+                logger.error(`❌ AZURE TTS SSML CANCELED - Error Code: ${cancellation.errorCode}`);
+                logger.error(`❌ AZURE TTS SSML CANCELED - Details: ${cancellation.errorDetails}`);
+                synthesizer.close();
+                reject(new Error(`Azure TTS SSML Cancelado: ${cancellation.errorDetails}`));
+              } else {
+                logger.error(`❌ Error en síntesis SSML: ${result.reason}`);
+                logger.error(`❌ Detalles del error: ${result.errorDetails || 'No hay detalles'}`);
+                logger.error(`❌ Código de resultado: ${result.reason} (${sdk.ResultReason[result.reason] || 'Desconocido'})`);
+                logger.error(`❌ SSML problemático: ${ssml.substring(0, 500)}`);
+                synthesizer.close();
+                reject(new Error(`Error en síntesis SSML: ${result.reason} - ${result.errorDetails || 'Sin detalles'}`));
+              }
+            },
+            (error) => {
+              clearTimeout(timeout);
+              logger.error(`❌ Error SSML Azure TTS en callback: ${error}`);
+              logger.error(`❌ Error type: ${typeof error}`);
+              logger.error(`❌ Error message: ${error.message || error}`);
+              synthesizer.close();
+              reject(error);
+            }
+          );
+        });
       });
     } catch (error) {
       logger.error(`❌ Error generando audio SSML Azure TTS: ${error.message}`);
@@ -367,12 +490,22 @@ class AzureTTSService {
         fs.mkdirSync(outputDir, { recursive: true });
       }
       
-      logger.info(`🔍 DEBUG Azure TTS - Llamando a generateSpeech con outputPath: ${outputPath}`);
+      logger.info(`🔍 DEBUG Azure TTS - Llamando a generateSpeechWithSSML con outputPath: ${outputPath}`);
       
-      // Generar el audio con configuración de voz
-      const result = await this.generateSpeechWithSSML(responseText, voiceId, outputPath, voiceSettings);
+      // Timeout wrapper para generateBotResponse
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('generateBotResponse timeout después de 20 segundos'));
+        }, 20000);
+      });
       
-      logger.info(`🔍 DEBUG Azure TTS - generateSpeech completado, result.success: ${result?.success}`);
+      // Generar el audio con configuración de voz usando Promise.race para timeout
+      const result = await Promise.race([
+        this.generateSpeechWithSSML(responseText, voiceId, outputPath, voiceSettings),
+        timeoutPromise
+      ]);
+      
+      logger.info(`🔍 DEBUG Azure TTS - generateSpeechWithSSML completado, result.success: ${result?.success}`);
       
       if (!result.success) {
         throw new Error(result.error);
