@@ -1,5 +1,5 @@
 const logger = require('../utils/logger');
-const azureTTSService = require('../services/azureTTSService');
+const azureTTSService = require('../services/azureTTSRestService');
 const openaiService = require('../services/openaiService');
 const ContextBuilder = require('../utils/contextBuilder');
 const { OpenAI } = require('openai');
@@ -12,7 +12,7 @@ class TwilioStreamHandler {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
-    this.ttsService = azureTTSService;
+    this.ttsService = azureTTSRestService;
   }
 
   /**
