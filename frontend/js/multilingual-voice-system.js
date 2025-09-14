@@ -101,13 +101,25 @@ function showLanguageChangeNotification(language) {
 }
 
 /**
- * Actualizar texto de saludo según el idioma
+ * Actualizar texto de saludo según el idioma (SOLO si está vacío)
  */
 function updateGreetingText(language) {
     const greetingTextarea = document.getElementById('call_greeting');
     if (greetingTextarea && multilingualTexts[language]) {
-        greetingTextarea.value = multilingualTexts[language].greeting;
-        console.log('📝 Texto de saludo actualizado para:', language);
+        // SOLO actualizar si el campo está vacío o contiene un saludo genérico
+        const currentValue = greetingTextarea.value.trim();
+        const isEmptyOrGeneric = !currentValue || 
+            currentValue === 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?' ||
+            currentValue === 'Hello, you have reached our company. I am the virtual assistant, how can I help you today?' ||
+            currentValue === 'Bonjour, vous avez contacté notre entreprise. Je suis l\'assistant virtuel, comment puis-je vous aider aujourd\'hui?' ||
+            currentValue === 'Hallo, Sie haben unser Unternehmen erreicht. Ich bin der virtuelle Assistent, wie kann ich Ihnen heute helfen?';
+            
+        if (isEmptyOrGeneric) {
+            greetingTextarea.value = multilingualTexts[language].greeting;
+            console.log('📝 Texto de saludo actualizado para:', language);
+        } else {
+            console.log('📝 Saludo personalizado preservado, no se sobrescribe');
+        }
     }
 }
 

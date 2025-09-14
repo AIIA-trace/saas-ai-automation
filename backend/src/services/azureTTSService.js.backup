@@ -1,0 +1,524 @@
+const sdk = require('microsoft-cognitiveservices-speech-sdk');
+const fs = require('fs');
+const path = require('path');
+const logger = require('../utils/logger');
+
+class AzureTTSService {
+  constructor() {
+    this.subscriptionKey = process.env.AZURE_SPEECH_KEY || '123456dummy_key_for_testing';
+    this.region = process.env.AZURE_SPEECH_REGION || 'westeurope';
+    
+    logger.info(`🔍 DEBUG CONSTRUCTOR Azure TTS - Key configurada: ${this.subscriptionKey ? 'SÍ' : 'NO'} (${this.subscriptionKey?.substring(0, 5)}...)`);  
+    logger.info(`🔍 DEBUG CONSTRUCTOR Azure TTS - Región: ${this.region}`);
+    
+    // Voces españolas disponibles (nombres EXACTOS de Azure Speech Studio)
+    this.availableVoices = [
+      {
+        id: 'lola',
+        name: 'en-US-LolaMultilingualNeural',
+        azureName: 'en-US-LolaMultilingualNeural',
+        locale: 'es-ES',
+        description: 'Voz Lola multilingüe (funciona en español)'
+      },
+      {
+        id: 'dario',
+        name: 'es-ES-DarioNeural', 
+        azureName: 'es-ES-DarioNeural',
+        locale: 'es-ES',
+        description: 'Voz masculina española oficial'
+      }
+    ];
+    
+    this.defaultVoice = 'lola'; // Voz por defecto
+    
+    if (!this.subscriptionKey) {
+      logger.warn('⚠️ AZURE_SPEECH_KEY no configurada. Azure TTS no funcionará.');
+    }
+  }
+
+  // Obtener configuración de Azure Speech
+  getSpeechConfig() {
+    if (!this.subscriptionKey) {
+      throw new Error('Azure Speech Key no configurada');
+    }
+    
+    logger.info(`🔍 DEBUG Azure TTS - Configurando con región: ${this.region}`);
+    logger.info(`🔍 DEBUG Azure TTS - Clave configurada: ${this.subscriptionKey ? 'SÍ' : 'NO'}`);
+    
+    // CONFIGURACIÓN OFICIAL SEGÚN DOCUMENTACIÓN DE MICROSOFT
+    const speechConfig = sdk.SpeechConfig.fromSubscription(this.subscriptionKey, this.region);
+    
+    // Configurar idioma español
+    speechConfig.speechSynthesisLanguage = "es-ES";
+    
+    // Configurar formato de salida para Twilio (μ-law 8kHz mono)
+    speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Raw8Khz8BitMonoMULaw;
+    
+    logger.info(`🔍 DEBUG Azure TTS - SpeechConfig creado correctamente con fromSubscription`);
+    
+    return speechConfig;
+  }
+
+  // Obtener voz por ID
+  getVoiceById(voiceId) {
+    return this.availableVoices.find(v => v.id === voiceId) || this.availableVoices[0];
+  }
+
+  // Generar audio a partir de texto
+  async generateSpeech(text, voice = 'lola', outputPath = null) {
+    const generateId = `GENERATE_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const generateStartTime = Date.now();
+    
+    logger.info(`🔍 [${generateId}] ===== GENERATESPEECH ENTRY POINT =====`);
+    logger.info(`🔍 [${generateId}] Parámetros recibidos:`);
+    logger.info(`🔍 [${generateId}]   - text: "${text}" (tipo: ${typeof text}, length: ${text?.length || 0})`);
+    logger.info(`🔍 [${generateId}]   - voice: "${voice}" (tipo: ${typeof voice})`);
+    logger.info(`🔍 [${generateId}]   - outputPath: ${outputPath || 'null'} (tipo: ${typeof outputPath})`);
+    
+    // Validaciones de entrada
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      logger.error(`❌ [${generateId}] Texto inválido: "${text}"`);
+      return { success: false, error: 'Texto vacío o inválido' };
+    }
+    
+    if (!voice || typeof voice !== 'string') {
+      logger.warn(`⚠️ [${generateId}] Voz inválida: "${voice}", usando 'lola'`);
+      voice = 'lola';
+    }
+    try {
+      const selectedVoice = this.getVoiceById(voice);
+      
+      logger.info(`🔍 DEBUG Azure TTS - Generando audio con voz: ${selectedVoice.name}`);
+      logger.info(`🔍 DEBUG Azure TTS - Texto: "${text.substring(0, 50)}..."`);
+      logger.info(`🔍 DEBUG Azure TTS - Azure Voice Name: ${selectedVoice.azureName}`);
+      
+      const speechConfig = this.getSpeechConfig();
+      speechConfig.speechSynthesisVoiceName = selectedVoice.azureName;
+      
+      logger.info(`🔍 DEBUG Azure TTS - SpeechConfig configurado con voz: ${selectedVoice.azureName}`);
+      
+      // Configurar salida
+      let audioConfig;
+      if (outputPath) {
+        // Asegurar que el directorio existe antes de crear el archivo
+        const outputDir = path.dirname(outputPath);
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+          logger.info(`🔍 DEBUG Azure TTS - Directorio creado: ${outputDir}`);
+        }
+        audioConfig = sdk.AudioConfig.fromAudioFileOutput(outputPath);
+        logger.info(`🔍 DEBUG Azure TTS - AudioConfig configurado para archivo: ${outputPath}`);
+      } else {
+        audioConfig = sdk.AudioConfig.fromDefaultSpeakerOutput();
+        logger.info(`🔍 DEBUG Azure TTS - AudioConfig configurado para speaker por defecto`);
+      }
+      
+      const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
+      logger.info(`🔍 DEBUG Azure TTS - SpeechSynthesizer creado, iniciando síntesis...`);
+      
+      return new Promise((resolve, reject) => {
+        const ttsDebugId = `TTS_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        const ttsStartTime = Date.now();
+        
+        logger.info(`🔍 [${ttsDebugId}] ===== AZURE TTS SÍNTESIS INICIADA =====`);
+        logger.info(`🔍 [${ttsDebugId}] Texto: "${text}" (${text.length} chars)`);
+        logger.info(`🔍 [${ttsDebugId}] Voz: ${voice}`);
+        logger.info(`🔍 [${ttsDebugId}] OutputPath: ${outputPath || 'ninguno'}`);
+        logger.info(`🔍 [${ttsDebugId}] Synthesizer creado: ${!!synthesizer}`);
+        
+        // Timeout de 15 segundos para Azure TTS (aumentado para debug)
+        const timeout = setTimeout(() => {
+          const timeoutDuration = Date.now() - ttsStartTime;
+          logger.error(`❌ [${ttsDebugId}] TIMEOUT después de ${timeoutDuration}ms (límite: 15s)`);
+          logger.error(`❌ [${ttsDebugId}] Synthesizer state antes del timeout: ${synthesizer ? 'exists' : 'null'}`);
+          synthesizer?.close();
+          reject(new Error(`Azure TTS timeout después de ${timeoutDuration}ms`));
+        }, 15000);
+
+        logger.info(`🔍 [${ttsDebugId}] Llamando synthesizer.speakTextAsync...`);
+        
+        synthesizer.speakTextAsync(
+          text,
+          (result) => {
+            const callbackTime = Date.now();
+            const callbackDuration = callbackTime - ttsStartTime;
+            
+            clearTimeout(timeout);
+            logger.info(`🔍 [${ttsDebugId}] ===== CALLBACK ÉXITO después de ${callbackDuration}ms =====`);
+            logger.info(`🔍 [${ttsDebugId}] Result reason: ${result.reason}`);
+            logger.info(`🔍 [${ttsDebugId}] Result reason code: ${sdk.ResultReason.SynthesizingAudioCompleted}`);
+            logger.info(`🔍 [${ttsDebugId}] Reasons match: ${result.reason === sdk.ResultReason.SynthesizingAudioCompleted}`);
+            
+            if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+              logger.info(`✅ [${ttsDebugId}] SÍNTESIS COMPLETADA EXITOSAMENTE`);
+              
+              // Análisis detallado del audioData
+              logger.info(`🔍 [${ttsDebugId}] Analizando audioData...`);
+              logger.info(`🔍 [${ttsDebugId}]   - audioData existe: ${!!result.audioData}`);
+              logger.info(`🔍 [${ttsDebugId}]   - audioData tipo: ${typeof result.audioData}`);
+              
+              if (result.audioData) {
+                logger.info(`🔍 [${ttsDebugId}]   - audioData constructor: ${result.audioData.constructor.name}`);
+                logger.info(`🔍 [${ttsDebugId}]   - audioData byteLength: ${result.audioData.byteLength}`);
+                logger.info(`🔍 [${ttsDebugId}]   - audioData length: ${result.audioData.length}`);
+                
+                // Verificar contenido del buffer
+                if (result.audioData.byteLength > 0) {
+                  const firstBytes = new Uint8Array(result.audioData.slice(0, Math.min(10, result.audioData.byteLength)));
+                  const lastBytes = new Uint8Array(result.audioData.slice(-Math.min(10, result.audioData.byteLength)));
+                  logger.info(`🔍 [${ttsDebugId}]   - Primeros bytes: [${Array.from(firstBytes).join(', ')}]`);
+                  logger.info(`🔍 [${ttsDebugId}]   - Últimos bytes: [${Array.from(lastBytes).join(', ')}]`);
+                  
+                  // Verificar si es WAV válido
+                  if (result.audioData.byteLength >= 4) {
+                    const header = new Uint8Array(result.audioData.slice(0, 4));
+                    const headerStr = String.fromCharCode(...header);
+                    logger.info(`🔍 [${ttsDebugId}]   - Header detectado: "${headerStr}"`);
+                    logger.info(`🔍 [${ttsDebugId}]   - Es WAV válido: ${headerStr === 'RIFF'}`);
+                  }
+                } else {
+                  logger.error(`❌ [${ttsDebugId}] audioData tiene 0 bytes!`);
+                }
+              } else {
+                logger.error(`❌ [${ttsDebugId}] audioData es null/undefined!`);
+              }
+              
+              // Manejo de archivo de salida
+              if (outputPath) {
+                logger.info(`🔍 [${ttsDebugId}] Verificando archivo de salida...`);
+                if (fs.existsSync(outputPath)) {
+                  const stats = fs.statSync(outputPath);
+                  logger.info(`✅ [${ttsDebugId}] Archivo guardado: ${outputPath} (${stats.size} bytes)`);
+                  
+                  // Verificar que el tamaño del archivo coincide con audioData
+                  if (result.audioData && stats.size !== result.audioData.byteLength) {
+                    logger.warn(`⚠️ [${ttsDebugId}] Tamaño inconsistente: archivo=${stats.size}, buffer=${result.audioData.byteLength}`);
+                  }
+                } else {
+                  logger.error(`❌ [${ttsDebugId}] Archivo no encontrado: ${outputPath}`);
+                }
+                
+                logger.info(`🔍 [${ttsDebugId}] Resolviendo con outputPath...`);
+                resolve({
+                  success: true,
+                  outputPath,
+                  audioBuffer: result.audioData
+                });
+              } else {
+                logger.info(`🔍 [${ttsDebugId}] Resolviendo solo con audioBuffer...`);
+                resolve({
+                  success: true,
+                  audioBuffer: result.audioData
+                });
+              }
+              
+            } else if (result.reason === sdk.ResultReason.Canceled) {
+              const cancellation = sdk.CancellationDetails.fromResult(result);
+              logger.error(`❌ [${ttsDebugId}] SÍNTESIS CANCELADA después de ${callbackDuration}ms:`);
+              logger.error(`❌ [${ttsDebugId}]   - Cancellation reason: ${cancellation.reason}`);
+              logger.error(`❌ [${ttsDebugId}]   - Error code: ${cancellation.errorCode}`);
+              logger.error(`❌ [${ttsDebugId}]   - Error details: ${cancellation.errorDetails}`);
+              
+              // Análisis detallado de la cancelación
+              if (cancellation.reason === sdk.CancellationReason.Error) {
+                logger.error(`❌ [${ttsDebugId}] TIPO DE ERROR ESPECÍFICO:`);
+                logger.error(`❌ [${ttsDebugId}]   - Error code enum: ${cancellation.errorCode}`);
+                logger.error(`❌ [${ttsDebugId}]   - Es AuthenticationFailure: ${cancellation.errorCode === sdk.CancellationErrorCode.AuthenticationFailure}`);
+                logger.error(`❌ [${ttsDebugId}]   - Es ConnectionFailure: ${cancellation.errorCode === sdk.CancellationErrorCode.ConnectionFailure}`);
+                logger.error(`❌ [${ttsDebugId}]   - Es ServiceTimeout: ${cancellation.errorCode === sdk.CancellationErrorCode.ServiceTimeout}`);
+              }
+              
+              reject(new Error(`Azure TTS Cancelado [${cancellation.reason}/${cancellation.errorCode}]: ${cancellation.errorDetails}`));
+            } else {
+              logger.error(`❌ [${ttsDebugId}] RAZÓN DESCONOCIDA después de ${callbackDuration}ms:`);
+              logger.error(`❌ [${ttsDebugId}]   - Reason: ${result.reason}`);
+              logger.error(`❌ [${ttsDebugId}]   - Error details: ${result.errorDetails || 'Sin detalles'}`);
+              logger.error(`❌ [${ttsDebugId}]   - Todas las razones disponibles: ${Object.keys(sdk.ResultReason)}`);
+              
+              reject(new Error(result.errorDetails || `Azure TTS razón desconocida: ${result.reason}`));
+            }
+            
+            logger.info(`🔍 [${ttsDebugId}] Cerrando synthesizer...`);
+            synthesizer.close();
+            logger.info(`🔍 [${ttsDebugId}] ===== FIN CALLBACK =====`);
+          },
+          (error) => {
+            const errorTime = Date.now();
+            const errorDuration = errorTime - ttsStartTime;
+            
+            clearTimeout(timeout);
+            logger.error(`❌ [${ttsDebugId}] ===== ERROR CALLBACK después de ${errorDuration}ms =====`);
+            logger.error(`❌ [${ttsDebugId}] Error tipo: ${typeof error}`);
+            logger.error(`❌ [${ttsDebugId}] Error string: ${error}`);
+            logger.error(`❌ [${ttsDebugId}] Error objeto: ${JSON.stringify(error, null, 2)}`);
+            
+            if (error && typeof error === 'object') {
+              logger.error(`❌ [${ttsDebugId}] Error properties: ${Object.keys(error)}`);
+              if (error.message) logger.error(`❌ [${ttsDebugId}] Error message: ${error.message}`);
+              if (error.code) logger.error(`❌ [${ttsDebugId}] Error code: ${error.code}`);
+              if (error.stack) logger.error(`❌ [${ttsDebugId}] Error stack: ${error.stack}`);
+            }
+            
+            synthesizer?.close();
+            reject(new Error(`Azure TTS Error en callback: ${error}`));
+          }
+        );
+        
+        logger.info(`🔍 [${ttsDebugId}] speakTextAsync llamado, esperando callback...`);
+      });
+    } catch (error) {
+      const generateEndTime = Date.now();
+      const generateDuration = generateEndTime - generateStartTime;
+      
+      logger.error(`❌ [${generateId}] ===== ERROR GENERAL después de ${generateDuration}ms =====`);
+      logger.error(`❌ [${generateId}] Error tipo: ${typeof error}`);
+      logger.error(`❌ [${generateId}] Error name: ${error.name}`);
+      logger.error(`❌ [${generateId}] Error message: ${error.message}`);
+      logger.error(`❌ [${generateId}] Error stack: ${error.stack}`);
+      
+      if (error.code) {
+        logger.error(`❌ [${generateId}] Error code: ${error.code}`);
+      }
+      
+      // Análisis específico de errores comunes
+      if (error.message.includes('authentication')) {
+        logger.error(`❌ [${generateId}] PROBLEMA DE AUTENTICACIÓN - Verificar AZURE_SPEECH_KEY`);
+      } else if (error.message.includes('network') || error.message.includes('connection')) {
+        logger.error(`❌ [${generateId}] PROBLEMA DE RED - Verificar conectividad`);
+      } else if (error.message.includes('timeout')) {
+        logger.error(`❌ [${generateId}] TIMEOUT - Azure TTS tardó demasiado`);
+      }
+      
+      return {
+        success: false,
+        error: error.message,
+        errorCode: error.code,
+        duration: generateDuration
+      };
+    }
+  }
+
+  // Añadir naturalidad universal al texto (funciona para Lola y Daría)
+  addUniversalNaturalness(text) {
+    let naturalText = text;
+    
+    // 🎭 PAUSAS NATURALES UNIVERSALES
+    naturalText = naturalText
+      // Pausas después de saludos
+      .replace(/^(hola|buenas|buenos días|buenas tardes)/gi, '$1<break time="300ms"/>')
+      // Pausas antes de preguntas
+      .replace(/(\?)/g, '<break time="200ms"/>$1')
+      // Pausas después de comas (respiración natural)
+      .replace(/(,)/g, '$1<break time="150ms"/>')
+      // Pausas en transiciones
+      .replace(/\b(entonces|bueno|pues|vale)\b/gi, '<break time="200ms"/>$1<break time="150ms"/>');
+    
+    // 🎵 VARIACIONES DE VELOCIDAD UNIVERSALES
+    naturalText = naturalText
+      // Nombre de empresa más lento (énfasis)
+      .replace(/\b([A-Z][a-záéíóúñ]+\s+[A-Z][a-záéíóúñ]+)\b/g, '<prosody rate="slow"><emphasis level="moderate">$1</emphasis></prosody>')
+      // Números de teléfono más lentos
+      .replace(/\b(\d{3}[\s-]?\d{3}[\s-]?\d{3})\b/g, '<prosody rate="slow">$1</prosody>')
+      // Palabras importantes con énfasis
+      .replace(/\b(importante|urgente|necesario|ayuda)\b/gi, '<emphasis level="strong">$1</emphasis>');
+    
+    // 🎪 MULETILLAS NATURALES UNIVERSALES (ocasionales)
+    if (Math.random() < 0.3) { // 30% de probabilidad
+      const muletillas = ['eee', 'mmm', 'pues'];
+      const muletilla = muletillas[Math.floor(Math.random() * muletillas.length)];
+      naturalText = `<break time="200ms"/>${muletilla}<break time="150ms"/> ${naturalText}`;
+    }
+    
+    // 🎯 ALARGAMIENTO OCASIONAL DE PALABRAS (universal)
+    if (Math.random() < 0.2) { // 20% de probabilidad
+      naturalText = naturalText
+        .replace(/\bvale\b/gi, 'vaaale')
+        .replace(/\bbueno\b/gi, 'bueeeno')
+        .replace(/\bsí\b/gi, 'sííí');
+    }
+    
+    // 🔄 PAUSAS DE CONSULTA UNIVERSALES
+    naturalText = naturalText
+      .replace(/\b(déjame ver|un momento|espera)\b/gi, '<break time="250ms"/>$1<break time="400ms"/>')
+      .replace(/\b(consultando|revisando|mirando)\b/gi, '<break time="200ms"/>$1<break time="300ms"/>');
+    
+    return naturalText;
+  }
+
+  // Generar audio con SSML para configuración avanzada de voz
+  async generateSpeechWithSSML(text, voiceId = null, outputPath = null, voiceSettings = null) {
+    try {
+      const voice = this.getVoiceById(voiceId || this.defaultVoice);
+      logger.info(`🎵 Generando audio Azure TTS con SSML - Voz: ${voice.name}`);
+      
+      // Configuración por defecto si no se proporciona
+      const settings = {
+        rate: voiceSettings?.rate || 'medium',           // slow, medium, fast, +20%, -10%
+        pitch: voiceSettings?.pitch || 'medium',         // low, medium, high, +2st, -50Hz
+        volume: voiceSettings?.volume || 'medium',       // silent, x-soft, soft, medium, loud, x-loud
+        style: voiceSettings?.style || 'friendly',       // cheerful, sad, angry, excited, friendly, etc.
+        emphasis: voiceSettings?.emphasis || 'moderate'   // strong, moderate, reduced
+      };
+      
+      logger.info(`🎵 Configuración SSML: ${JSON.stringify(settings)}`);
+      
+      // Añadir naturalidad universal al texto (funciona para Lola y Daría)
+      const naturalText = this.addUniversalNaturalness(text);
+      logger.info(`🎭 Texto con naturalidad aplicada: ${naturalText.substring(0, 100)}...`);
+      
+      // Crear SSML con configuración avanzada
+      const ssml = `
+        <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" 
+               xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${voice.locale}">
+          <voice name="${voice.name}">
+            <mstts:express-as style="${settings.style}">
+              <prosody rate="${settings.rate}" pitch="${settings.pitch}" volume="${settings.volume}">
+                ${naturalText}
+              </prosody>
+            </mstts:express-as>
+          </voice>
+        </speak>
+      `;
+      
+      logger.info(`🎵 SSML generado: ${ssml.substring(0, 200)}...`);
+      
+      // Configurar Azure Speech SDK
+      const speechConfig = sdk.SpeechConfig.fromSubscription(
+        process.env.AZURE_SPEECH_KEY,
+        process.env.AZURE_SPEECH_REGION
+      );
+      
+      let audioConfig;
+      if (outputPath) {
+        const outputDir = path.dirname(outputPath);
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+        audioConfig = sdk.AudioConfig.fromAudioFileOutput(outputPath);
+      } else {
+        audioConfig = sdk.AudioConfig.fromDefaultSpeakerOutput();
+      }
+      
+      const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
+      
+      return new Promise((resolve, reject) => {
+        // Timeout de 10 segundos para Azure TTS
+        const timeout = setTimeout(() => {
+          logger.error(`❌ TIMEOUT Azure TTS después de 10 segundos`);
+          synthesizer.close();
+          reject(new Error('Azure TTS timeout después de 10 segundos'));
+        }, 10000);
+
+        synthesizer.speakSsmlAsync(
+          ssml,
+          (result) => {
+            clearTimeout(timeout);
+            if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+              logger.info(`🎵 Audio Azure con SSML generado exitosamente`);
+              
+              if (outputPath && fs.existsSync(outputPath)) {
+                const stats = fs.statSync(outputPath);
+                logger.info(`🎵 Audio guardado: ${outputPath} (${stats.size} bytes)`);
+              }
+              
+              resolve({
+                success: true,
+                outputPath,
+                audioBuffer: result.audioData,
+                voiceSettings: settings
+              });
+            } else {
+              logger.error(`❌ Error en síntesis SSML: ${result.reason}`);
+              logger.error(`❌ Detalles del error: ${result.errorDetails || 'No hay detalles'}`);
+              logger.error(`❌ Código de resultado: ${result.reason} (${sdk.ResultReason[result.reason] || 'Desconocido'})`);
+              logger.error(`❌ SSML problemático: ${ssml.substring(0, 500)}`);
+              reject(new Error(`Error en síntesis SSML: ${result.reason} - ${result.errorDetails || 'Sin detalles'}`));
+            }
+            synthesizer.close();
+          },
+          (error) => {
+            clearTimeout(timeout);
+            logger.error(`❌ Error SSML Azure TTS: ${error}`);
+            synthesizer.close();
+            reject(error);
+          }
+        );
+      });
+    } catch (error) {
+      logger.error(`❌ Error generando audio SSML Azure TTS: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Generar audio para una respuesta del bot de llamadas
+  async generateBotResponse(responseText, voiceId = null, voiceSettings = null) {
+    try {
+      logger.info(`🔍 DEBUG Azure TTS - generateBotResponse iniciado con texto: "${responseText.substring(0, 50)}..."`);  
+      logger.info(`🔍 DEBUG Azure TTS - voz recibida: ${voiceId || this.defaultVoice}`);
+      logger.info(`🔍 DEBUG Azure TTS - configuración de voz: ${JSON.stringify(voiceSettings)}`);
+      
+      // Crear nombre de archivo único
+      const timestamp = Date.now();
+      const fileName = `bot_response_azure_${timestamp}.mp3`;
+      const outputDir = path.join(__dirname, '../../public/audio');
+      const outputPath = path.join(outputDir, fileName);
+      
+      // Crear directorio si no existe
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      
+      logger.info(`🔍 DEBUG Azure TTS - Llamando a generateSpeech con outputPath: ${outputPath}`);
+      
+      // Generar el audio con configuración de voz
+      const result = await this.generateSpeechWithSSML(responseText, voiceId, outputPath, voiceSettings);
+      
+      logger.info(`🔍 DEBUG Azure TTS - generateSpeech completado, result.success: ${result?.success}`);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      // Calcular la URL pública
+      const baseUrl = process.env.BASE_URL || 'https://saas-ai-automation.onrender.com';
+      const publicUrl = `${baseUrl}/audio/${fileName}`;
+      
+      return {
+        success: true,
+        audioUrl: publicUrl,
+        audioPath: outputPath,
+        durationEstimate: this.estimateAudioDuration(responseText),
+        voiceUsed: this.getVoiceById(voiceId || this.defaultVoice)
+      };
+    } catch (error) {
+      logger.error(`❌ Error generando respuesta de bot Azure TTS: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Estimar duración del audio (aproximado)
+  estimateAudioDuration(text) {
+    // Aproximadamente 150 palabras por minuto en español
+    const words = text.split(' ').length;
+    const minutes = words / 150;
+    return Math.ceil(minutes * 60); // Devolver en segundos
+  }
+
+  // Obtener lista de voces disponibles
+  getAvailableVoices() {
+    return this.availableVoices;
+  }
+
+  // Validar configuración
+  isConfigured() {
+    return !!this.subscriptionKey;
+  }
+}
+
+module.exports = new AzureTTSService();

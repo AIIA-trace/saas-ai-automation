@@ -1,10 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 async function createTwilioNumber() {
-  const prisma = new PrismaClient();
-  
   try {
-    console.log('🔍 Creando número Twilio para cliente ID=1...');
+    console.log('🔍 Buscando cliente ID=1...');
     
     // Verificar cliente ID=1
     const client = await prisma.client.findFirst({

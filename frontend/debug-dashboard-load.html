@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Dashboard Load</title>
+</head>
+<body>
+    <h1>🔍 Debug Dashboard Load</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        async function debugDashboardLoad() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                // 1. Verificar token JWT
+                const token = localStorage.getItem('jwt_token');
+                console.log('🔑 JWT Token:', token ? 'EXISTS' : 'MISSING');
+                
+                if (!token) {
+                    resultsDiv.innerHTML = '<p style="color: red;">❌ No hay token JWT. Necesitas hacer login.</p>';
+                    return;
+                }
+                
+                // 2. Hacer petición al endpoint
+                console.log('📡 Haciendo petición a /api/client...');
+                
+                const response = await fetch('/api/client', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('📥 Data received:', data);
+                
+                // 3. Verificar estructura de datos
+                let html = '<h2>✅ Respuesta del servidor:</h2>';
+                html += `<p><strong>Success:</strong> ${data.success}</p>`;
+                html += `<p><strong>Message:</strong> ${data.message}</p>`;
+                
+                if (data.data) {
+                    html += '<h3>📞 CallConfig:</h3>';
+                    const callConfig = data.data.callConfig;
+                    
+                    if (callConfig) {
+                        html += `<p><strong>Enabled:</strong> ${callConfig.enabled}</p>`;
+                        html += `<p><strong>Greeting:</strong> "${callConfig.greeting}"</p>`;
+                        html += `<p><strong>VoiceId:</strong> "${callConfig.voiceId}"</p>`;
+                        html += `<p><strong>Language:</strong> "${callConfig.language}"</p>`;
+                        
+                        html += '<h4>🔍 CallConfig completo:</h4>';
+                        html += `<pre>${JSON.stringify(callConfig, null, 2)}</pre>`;
+                    } else {
+                        html += '<p style="color: red;">❌ callConfig es null/undefined</p>';
+                    }
+                    
+                    // 4. Simular carga en elementos del DOM
+                    html += '<h3>🎯 Simulación de carga en DOM:</h3>';
+                    
+                    // Crear elementos temporales para probar
+                    const tempGreeting = document.createElement('textarea');
+                    tempGreeting.id = 'call_greeting';
+                    document.body.appendChild(tempGreeting);
+                    
+                    const tempVoice = document.createElement('select');
+                    tempVoice.id = 'azureVoiceSelect';
+                    document.body.appendChild(tempVoice);
+                    
+                    const tempLanguage = document.createElement('select');
+                    tempLanguage.id = 'call_language';
+                    document.body.appendChild(tempLanguage);
+                    
+                    // Simular la lógica de carga del dashboard
+                    if (callConfig && callConfig.greeting) {
+                        const greetingElement = document.getElementById('call_greeting');
+                        if (greetingElement) {
+                            greetingElement.value = callConfig.greeting;
+                            html += `<p>✅ Greeting cargado: "${greetingElement.value}"</p>`;
+                        } else {
+                            html += '<p style="color: red;">❌ Elemento call_greeting no encontrado</p>';
+                        }
+                    }
+                    
+                    if (callConfig && callConfig.voiceId) {
+                        const voiceElement = document.getElementById('azureVoiceSelect');
+                        if (voiceElement) {
+                            voiceElement.value = callConfig.voiceId;
+                            html += `<p>✅ Voice cargada: "${voiceElement.value}"</p>`;
+                        } else {
+                            html += '<p style="color: red;">❌ Elemento azureVoiceSelect no encontrado</p>';
+                        }
+                    }
+                    
+                    if (callConfig && callConfig.language) {
+                        const languageElement = document.getElementById('call_language');
+                        if (languageElement) {
+                            languageElement.value = callConfig.language;
+                            html += `<p>✅ Language cargado: "${languageElement.value}"</p>`;
+                        } else {
+                            html += '<p style="color: red;">❌ Elemento call_language no encontrado</p>';
+                        }
+                    }
+                    
+                    // Limpiar elementos temporales
+                    document.body.removeChild(tempGreeting);
+                    document.body.removeChild(tempVoice);
+                    document.body.removeChild(tempLanguage);
+                    
+                } else {
+                    html += '<p style="color: red;">❌ No hay data en la respuesta</p>';
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                resultsDiv.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Ejecutar al cargar la página
+        debugDashboardLoad();
+    </script>
+</body>
+</html>

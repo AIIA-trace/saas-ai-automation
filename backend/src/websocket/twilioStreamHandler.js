@@ -249,96 +249,218 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Enviar saludo inicial con Azure TTS
+   * Enviar saludo inicial con Azure TTS - DEBUG ULTRA-DETALLADO
    */
   async sendInitialGreeting(ws, data) {
+    const debugId = `DEBUG_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = Date.now();
+    
     try {
-      logger.info('🎵 INICIO sendInitialGreeting');
-      const { streamSid, callSid } = data;
+      logger.info(`🔍 [${debugId}] ===== INICIO SALUDO INICIAL ULTRA-DEBUG =====`);
+      logger.info(`🔍 [${debugId}] Timestamp: ${new Date().toISOString()}`);
+      logger.info(`🔍 [${debugId}] WebSocket state: ${ws.readyState} (1=OPEN, 0=CONNECTING, 2=CLOSING, 3=CLOSED)`);
       
-      logger.info(`🎵 PASO 1: Obteniendo stream data para ${streamSid}`);
+      const { streamSid, callSid } = data;
+      logger.info(`🔍 [${debugId}] StreamSid: ${streamSid}`);
+      logger.info(`🔍 [${debugId}] CallSid: ${callSid}`);
+      
+      // PASO 1: Verificar stream data
+      logger.info(`🔍 [${debugId}] PASO 1: Verificando stream data...`);
       const streamData = this.activeStreams.get(streamSid);
       if (!streamData) {
-        logger.error(`❌ No se encontró stream data para ${streamSid}`);
+        logger.error(`❌ [${debugId}] FALLO CRÍTICO: No se encontró stream data para ${streamSid}`);
+        logger.error(`❌ [${debugId}] Active streams disponibles: ${Array.from(this.activeStreams.keys())}`);
         return;
       }
+      logger.info(`✅ [${debugId}] Stream data encontrado`);
 
-      logger.info('🎵 PASO 2: Obteniendo cliente');
+      // PASO 2: Verificar cliente
+      logger.info(`🔍 [${debugId}] PASO 2: Verificando cliente...`);
       const { client } = streamData;
+      if (!client) {
+        logger.error(`❌ [${debugId}] FALLO CRÍTICO: No hay cliente en stream data`);
+        return;
+      }
+      logger.info(`✅ [${debugId}] Cliente encontrado: ID=${client.id}, Email=${client.email}`);
       
-      // Obtener el saludo desde callConfig.greeting
+      // PASO 3: Analizar callConfig en detalle
+      logger.info(`🔍 [${debugId}] PASO 3: Analizando callConfig...`);
+      logger.info(`🔍 [${debugId}] client.callConfig existe: ${!!client.callConfig}`);
+      
+      if (client.callConfig) {
+        logger.info(`🔍 [${debugId}] callConfig tipo: ${typeof client.callConfig}`);
+        logger.info(`🔍 [${debugId}] callConfig keys: ${Object.keys(client.callConfig)}`);
+        logger.info(`🔍 [${debugId}] callConfig completo: ${JSON.stringify(client.callConfig, null, 2)}`);
+      } else {
+        logger.warn(`⚠️ [${debugId}] callConfig es null/undefined`);
+      }
+      
+      // Obtener saludo
       let greeting = 'Hola, gracias por llamar. ¿En qué puedo ayudarte?';
-      
-      logger.info('🎵 PASO 3: Verificando callConfig');
       if (client.callConfig && client.callConfig.greeting) {
         greeting = client.callConfig.greeting;
+        logger.info(`✅ [${debugId}] Saludo personalizado obtenido: "${greeting}"`);
+      } else {
+        logger.warn(`⚠️ [${debugId}] Usando saludo por defecto: "${greeting}"`);
       }
 
-      // Obtener la voz configurada por el usuario
-      let voiceId = 'lola'; // Voz por defecto de Azure TTS
+      // Obtener voz
+      let voiceId = 'lola';
       if (client.callConfig && client.callConfig.voiceId) {
         voiceId = client.callConfig.voiceId;
+        logger.info(`✅ [${debugId}] Voz personalizada obtenida: ${voiceId}`);
+      } else {
+        logger.warn(`⚠️ [${debugId}] Usando voz por defecto: ${voiceId}`);
       }
 
-      logger.info(`🎵 PASO 4: Saludo preparado: "${greeting}"`);
-      logger.info(`🎵 PASO 4a: Voz seleccionada: ${voiceId}`);
+      // PASO 4: Verificar variables de entorno Azure
+      logger.info(`🔍 [${debugId}] PASO 4: Verificando configuración Azure...`);
+      const azureKey = process.env.AZURE_SPEECH_KEY;
+      const azureRegion = process.env.AZURE_SPEECH_REGION;
+      logger.info(`🔍 [${debugId}] AZURE_SPEECH_KEY existe: ${!!azureKey} (length: ${azureKey?.length || 0})`);
+      logger.info(`🔍 [${debugId}] AZURE_SPEECH_REGION: ${azureRegion}`);
+      
+      if (!azureKey || !azureRegion) {
+        logger.error(`❌ [${debugId}] FALLO CRÍTICO: Variables Azure no configuradas`);
+        throw new Error('Variables de entorno Azure TTS no configuradas');
+      }
 
-      // Generar audio con Azure TTS - CÓDIGO EXACTO DEL TEST QUE FUNCIONA
+      // PASO 5: Generar audio con timing detallado
+      logger.info(`🔍 [${debugId}] PASO 5: Iniciando generación de audio...`);
+      logger.info(`🔍 [${debugId}] Texto a sintetizar: "${greeting}" (${greeting.length} caracteres)`);
+      logger.info(`🔍 [${debugId}] Voz Azure: ${voiceId}`);
+      
+      const ttsStartTime = Date.now();
+      
       try {
-        logger.info('🎵 PASO 5: Generando audio con Azure TTS...');
-        logger.info(`🎵 Texto: "${greeting}"`);
-        logger.info(`🎵 Voz configurada: ${voiceId}`);
-        
+        logger.info(`🔍 [${debugId}] Llamando a ttsService.generateSpeech...`);
         const audioResult = await this.ttsService.generateSpeech(greeting, voiceId);
+        const ttsEndTime = Date.now();
+        const ttsDuration = ttsEndTime - ttsStartTime;
+        
+        logger.info(`🔍 [${debugId}] TTS completado en ${ttsDuration}ms`);
+        logger.info(`🔍 [${debugId}] Resultado TTS:`);
+        logger.info(`🔍 [${debugId}]   - success: ${audioResult?.success}`);
+        logger.info(`🔍 [${debugId}]   - error: ${audioResult?.error || 'ninguno'}`);
+        logger.info(`🔍 [${debugId}]   - audioBuffer existe: ${!!audioResult?.audioBuffer}`);
+        
+        if (audioResult?.audioBuffer) {
+          logger.info(`🔍 [${debugId}]   - audioBuffer tipo: ${typeof audioResult.audioBuffer}`);
+          logger.info(`🔍 [${debugId}]   - audioBuffer constructor: ${audioResult.audioBuffer.constructor.name}`);
+          logger.info(`🔍 [${debugId}]   - audioBuffer length: ${audioResult.audioBuffer.byteLength || audioResult.audioBuffer.length}`);
+        }
         
         if (!audioResult || !audioResult.success) {
-          throw new Error(`Azure TTS falló: ${audioResult?.error || 'Error desconocido'}`);
+          const errorMsg = `Azure TTS falló: ${audioResult?.error || 'Error desconocido'}`;
+          logger.error(`❌ [${debugId}] ${errorMsg}`);
+          throw new Error(errorMsg);
         }
 
-        logger.info(`✅ Audio generado exitosamente:`);
-        logger.info(`   Resultado: ${audioResult.success ? 'Éxito' : 'Fallo'}`);
-        logger.info(`   Datos: ${audioResult.audioBuffer ? audioResult.audioBuffer.byteLength + ' bytes' : 'Sin datos'}`);
-        logger.info(`   Voz usada: ${voiceId}`);
+        // PASO 6: Procesar buffer de audio
+        logger.info(`🔍 [${debugId}] PASO 6: Procesando buffer de audio...`);
         
-        if (audioResult.audioBuffer) {
-          const audioBuffer = Buffer.from(audioResult.audioBuffer);
-          logger.info(`✅ Audio buffer creado: ${audioBuffer.length} bytes`);
-          logger.info(`✅ Formato: μ-law 8kHz mono (optimizado para Twilio)`);
-          
-          logger.info('🎵 PASO 7: Enviando audio a Twilio...');
-          await this.sendAudioToTwilio(ws, audioBuffer, streamSid);
-          logger.info('🎵 PASO 8: ✅ Audio enviado correctamente');
-        } else {
-          logger.warn('⚠️ Audio generado sin datos de buffer');
-          logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto...');
-          this.sendTextFallback(ws, greeting, streamSid);
+        if (!audioResult.audioBuffer) {
+          logger.error(`❌ [${debugId}] FALLO: audioBuffer es null/undefined`);
+          throw new Error('Audio buffer vacío');
         }
-      } catch (error) {
-        logger.error(`❌ Error en Azure TTS: ${error.message}`);
-        logger.error(`❌ Stack: ${error.stack}`);
-        logger.info('🔄 FALLBACK: Enviando saludo como mensaje de texto...');
-        this.sendTextFallback(ws, greeting, streamSid);
+        
+        const audioBuffer = Buffer.from(audioResult.audioBuffer);
+        logger.info(`✅ [${debugId}] Buffer creado exitosamente:`);
+        logger.info(`🔍 [${debugId}]   - Tamaño original: ${audioResult.audioBuffer.byteLength} bytes`);
+        logger.info(`🔍 [${debugId}]   - Buffer Node.js: ${audioBuffer.length} bytes`);
+        logger.info(`🔍 [${debugId}]   - Primeros 10 bytes: [${Array.from(audioBuffer.slice(0, 10)).join(', ')}]`);
+        logger.info(`🔍 [${debugId}]   - Últimos 10 bytes: [${Array.from(audioBuffer.slice(-10)).join(', ')}]`);
+        
+        // Verificar formato de audio
+        const isValidAudio = audioBuffer.length > 44; // Mínimo para WAV header
+        logger.info(`🔍 [${debugId}]   - Audio válido (>44 bytes): ${isValidAudio}`);
+        
+        if (audioBuffer.length > 4) {
+          const header = audioBuffer.slice(0, 4).toString('ascii');
+          logger.info(`🔍 [${debugId}]   - Header detectado: "${header}"`);
+        }
+
+        // PASO 7: Verificar WebSocket antes de enviar
+        logger.info(`🔍 [${debugId}] PASO 7: Verificando WebSocket...`);
+        logger.info(`🔍 [${debugId}] WebSocket readyState: ${ws.readyState}`);
+        logger.info(`🔍 [${debugId}] WebSocket bufferedAmount: ${ws.bufferedAmount}`);
+        
+        if (ws.readyState !== 1) {
+          logger.error(`❌ [${debugId}] FALLO: WebSocket no está abierto (state: ${ws.readyState})`);
+          throw new Error(`WebSocket no disponible (state: ${ws.readyState})`);
+        }
+
+        // PASO 8: Enviar audio a Twilio con timing
+        logger.info(`🔍 [${debugId}] PASO 8: Enviando audio a Twilio...`);
+        const sendStartTime = Date.now();
+        
+        await this.sendAudioToTwilio(ws, audioBuffer, streamSid);
+        
+        const sendEndTime = Date.now();
+        const sendDuration = sendEndTime - sendStartTime;
+        const totalDuration = sendEndTime - startTime;
+        
+        logger.info(`✅ [${debugId}] ÉXITO COMPLETO:`);
+        logger.info(`🔍 [${debugId}]   - TTS generación: ${ttsDuration}ms`);
+        logger.info(`🔍 [${debugId}]   - Envío a Twilio: ${sendDuration}ms`);
+        logger.info(`🔍 [${debugId}]   - Tiempo total: ${totalDuration}ms`);
+        logger.info(`🔍 [${debugId}]   - Audio enviado: ${audioBuffer.length} bytes`);
+        
+      } catch (ttsError) {
+        const ttsEndTime = Date.now();
+        const ttsDuration = ttsEndTime - ttsStartTime;
+        
+        logger.error(`❌ [${debugId}] ERROR EN TTS después de ${ttsDuration}ms:`);
+        logger.error(`❌ [${debugId}] Error message: ${ttsError.message}`);
+        logger.error(`❌ [${debugId}] Error stack: ${ttsError.stack}`);
+        logger.error(`❌ [${debugId}] Error name: ${ttsError.name}`);
+        
+        if (ttsError.code) {
+          logger.error(`❌ [${debugId}] Error code: ${ttsError.code}`);
+        }
+        
+        logger.info(`🔄 [${debugId}] Activando fallback...`);
+        await this.sendTextFallback(ws, greeting, streamSid);
+        throw ttsError;
       }
 
     } catch (error) {
-      logger.error(`❌ Error enviando saludo inicial: ${error.message}`);
-      logger.error(`❌ Stack: ${error.stack}`);
+      const totalDuration = Date.now() - startTime;
+      logger.error(`❌ [${debugId}] ERROR GENERAL después de ${totalDuration}ms:`);
+      logger.error(`❌ [${debugId}] Error: ${error.message}`);
+      logger.error(`❌ [${debugId}] Stack: ${error.stack}`);
+      logger.error(`❌ [${debugId}] ===== FIN SALUDO INICIAL (CON ERROR) =====`);
     }
   }
 
   /**
-   * Fallback para enviar audio simple cuando Azure TTS falla
+   * Fallback para enviar audio simple cuando Azure TTS falla - DEBUG DETALLADO
    */
   async sendTextFallback(ws, text, streamSid) {
+    const fallbackId = `FALLBACK_${Date.now()}`;
+    
     try {
-      logger.info(`📝 Iniciando fallback para: "${text}"`);
+      logger.info(`🔄 [${fallbackId}] ===== INICIANDO FALLBACK =====`);
+      logger.info(`🔄 [${fallbackId}] Texto original: "${text}"`);
+      logger.info(`🔄 [${fallbackId}] StreamSid: ${streamSid}`);
+      logger.info(`🔄 [${fallbackId}] WebSocket state: ${ws.readyState}`);
       
       // Intentar generar un beep simple como audio de fallback
+      logger.info(`🔄 [${fallbackId}] Generando beep de fallback...`);
       const fallbackAudio = this.generateSimpleBeep();
       
-      if (fallbackAudio && ws.readyState === 1) {
-        logger.info('🔔 Enviando beep de fallback...');
-        await this.sendAudioToTwilio(ws, fallbackAudio, streamSid);
+      if (fallbackAudio) {
+        logger.info(`🔄 [${fallbackId}] Beep generado: ${fallbackAudio.length} bytes`);
+        
+        if (ws.readyState === 1) {
+          logger.info(`🔄 [${fallbackId}] Enviando beep a Twilio...`);
+          await this.sendAudioToTwilio(ws, fallbackAudio, streamSid);
+          logger.info(`✅ [${fallbackId}] Beep enviado exitosamente`);
+        } else {
+          logger.error(`❌ [${fallbackId}] WebSocket no disponible para beep (state: ${ws.readyState})`);
+        }
+      } else {
+        logger.error(`❌ [${fallbackId}] No se pudo generar beep de fallback`);
       }
       
       // También enviar un mark para indicar que hubo un problema
