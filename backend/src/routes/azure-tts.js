@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const azureTTSService = require('../services/azureTTSService');
+const azureTTSRestService = require('../services/azureTTSRestService');
 const logger = require('../utils/logger');
 
 // Cache para audios generados (evita regenerar el mismo texto)
@@ -41,7 +41,7 @@ router.post('/generate', async (req, res) => {
         // Usar voz por defecto si no se especifica
         const selectedVoice = voice || 'en-US-LolaMultilingualNeural';
         
-        const result = await azureTTSService.generateBotResponse(text, selectedVoice);
+        const result = await azureTTSRestService.generateBotResponse(text, selectedVoice);
         
         if (result.success) {
             // Guardar en caché
@@ -141,7 +141,7 @@ router.delete('/cache', async (req, res) => {
  */
 router.get('/status', async (req, res) => {
     try {
-        const isConfigured = azureTTSService.isConfigured();
+        const isConfigured = azureTTSRestService.isConfigured();
         
         res.json({
             success: true,
