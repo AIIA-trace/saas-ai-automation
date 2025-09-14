@@ -3,8 +3,9 @@ const logger = require('../utils/logger');
 
 class AzureTTSRestService {
   constructor() {
-    this.subscriptionKey = process.env.AZURE_SPEECH_KEY || '123456dummy_key_for_testing';
-    this.region = process.env.AZURE_SPEECH_REGION || 'westeurope';
+    // DEBUG: Credenciales hardcodeadas
+    this.subscriptionKey = '3iouAt5oVcf6Nu91XSU9Igrpfjy6iLhD4W9YgKxZArDjS8Fhdnb7JQQJ99BIAC5RqLJXJ3w3AAAYACOGorTt';
+    this.region = 'westeurope';
     this.token = null;
     this.tokenExpiration = 0;
   }
@@ -48,6 +49,8 @@ class AzureTTSRestService {
         </speak>
       `;
 
+      console.log("🔍 URL:", `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`);
+      console.log("🔍 Longitud SSML:", ssml.length);
       const response = await axios.post(
         `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
         ssml,
