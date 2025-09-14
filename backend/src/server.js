@@ -1,4 +1,5 @@
 // Cargar variables de entorno PRIMERO
+const azureTTSRestService = require('./services/azureTTSRestService');
 
 const express = require('express');
 const cors = require('cors');
@@ -164,4 +165,3 @@ process.on('SIGTERM', async () => {
 });
 
 module.exports = app;
-
