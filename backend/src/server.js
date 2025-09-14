@@ -1,5 +1,4 @@
 // Cargar variables de entorno PRIMERO
-const azureTTSRestService = require('./services/azureTTSRestService');require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
