@@ -123,17 +123,29 @@ const authenticate = async (req, res, next) => {
 
 // === ENDPOINTS AZURE TTS ===
 
-// Ruta para obtener voces Azure TTS disponibles - OBSOLETA (usando streaming TTS)
-router.get('/azure-tts/voices', authenticate, async (req, res) => {
+// Ruta para obtener voces Azure TTS disponibles
+router.get('/voices/azure', authenticate, async (req, res) => {
   try {
     logger.info(`🎵 Cliente ${req.client.id} solicitando voces Azure TTS disponibles`);
     
-    // Voces hardcodeadas para compatibilidad
+    // Voces Azure TTS disponibles
     const voices = [
-      { id: 'lola', name: 'Lola (Multilingüe)', azureName: 'en-US-LolaMultilingualNeural' },
-      { id: 'dario', name: 'Dario (Español)', azureName: 'es-ES-DarioNeural' }
+      { 
+        id: 'lola', 
+        name: 'Lola (Multilingüe)', 
+        gender: 'Female',
+        locale: 'es-ES',
+        azureName: 'en-US-LolaMultilingualNeural' 
+      },
+      { 
+        id: 'dario', 
+        name: 'Dario (Español)', 
+        gender: 'Male',
+        locale: 'es-ES',
+        azureName: 'es-ES-DarioNeural' 
+      }
     ];
-    
+
     res.json({
       success: true,
       configured: true,

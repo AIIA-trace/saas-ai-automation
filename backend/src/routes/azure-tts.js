@@ -81,16 +81,18 @@ router.get('/voices', async (req, res) => {
     try {
         const voices = [
             {
-                name: 'en-US-LolaMultilingualNeural',
-                displayName: 'Lola (Multilingüe)',
+                id: 'lola',
+                name: 'Lola (Multilingüe)',
                 gender: 'Female',
-                locale: 'es-ES'
+                locale: 'es-ES',
+                azureName: 'en-US-LolaMultilingualNeural'
             },
             {
-                name: 'es-ES-DarioNeural',
-                displayName: 'Dario (Español)',
+                id: 'dario',
+                name: 'Dario (Español)',
                 gender: 'Male',
-                locale: 'es-ES'
+                locale: 'es-ES',
+                azureName: 'es-ES-DarioNeural'
             }
         ];
         
