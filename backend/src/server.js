@@ -166,4 +166,3 @@ process.on('SIGTERM', async () => {
 
 module.exports = app;
 
-const azureTTSRestService = require('./services/azureTTSRestService');
