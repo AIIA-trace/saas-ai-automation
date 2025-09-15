@@ -513,54 +513,35 @@ class TwilioStreamHandler {
       try {
         logger.info(`🔍 [${debugId}] ⚡ LLAMANDO A AZURE TTS - INICIO`);
         logger.info(`🔍 [${debugId}] ⚡ Parámetros: texto="${greeting.substring(0, 50)}...", voz="${voiceId}"`);
-        const audioResult = await this.ttsService.generateSpeech(greeting, voiceId);
-        logger.info(`🔍 [${debugId}] ⚡ AZURE TTS COMPLETADO - resultado recibido`);
-        logger.info(`🔍 [${debugId}] ⚡ Tipo de resultado: ${typeof audioResult}`);
-        logger.info(`🔍 [${debugId}] ⚡ Resultado es objeto: ${audioResult !== null && typeof audioResult === 'object'}`);
-        logger.info(`🔍 [${debugId}] ⚡ Keys del resultado: ${audioResult ? Object.keys(audioResult).join(', ') : 'N/A'}`);
-        logger.info(`🔍 [${debugId}] ⚡ Success property: ${audioResult?.success}`);
-        logger.info(`🔍 [${debugId}] ⚡ AudioBuffer exists: ${!!audioResult?.audioBuffer}`);
-        logger.info(`🔍 [${debugId}] ⚡ AudioBuffer length: ${audioResult?.audioBuffer?.length || 0}`);
-        logger.info(`🔍 [${debugId}] ⚡ Error property: ${audioResult?.error || 'none'}`);
-        logger.info(`🔍 [${debugId}] ⚡ AZURE TTS ANÁLISIS COMPLETO`);
         
-        if (audioResult?.audioBuffer && audioResult.audioBuffer.length > 0) {
-          logger.info(`🔍 [${debugId}] ⚡ AUDIO VÁLIDO DETECTADO - ${audioResult.audioBuffer.length} bytes`);
-        } else {
-          logger.error(`🔍 [${debugId}] ⚡ AUDIO INVÁLIDO O VACÍO DETECTADO`);
-        }
+        const ttsResult = await this.ttsService.generateSpeech(greeting, voiceId);
+        
         const ttsEndTime = Date.now();
         const ttsDuration = ttsEndTime - ttsStartTime;
         
-        logger.info(`🔍 [${debugId}] TTS completado en ${ttsDuration}ms`);
-        logger.info(`🔍 [${debugId}] Resultado TTS:`);
-        logger.info(`🔍 [${debugId}]   - success: ${audioResult?.success}`);
-        logger.info(`🔍 [${debugId}]   - error: ${audioResult?.error || 'ninguno'}`);
-        logger.info(`🔍 [${debugId}]   - audioBuffer existe: ${!!audioResult?.audioBuffer}`);
+        logger.info(`🔍 [${debugId}] ⚡ AZURE TTS COMPLETADO en ${ttsDuration}ms`);
+        logger.info(`🔍 [${debugId}] TTS Result type: ${typeof ttsResult}`);
+        logger.info(`🔍 [${debugId}] TTS Result keys: ${ttsResult ? Object.keys(ttsResult) : 'null'}`);
         
-        if (audioResult?.audioBuffer) {
-          logger.info(`🔍 [${debugId}]   - audioBuffer tipo: ${typeof audioResult.audioBuffer}`);
-          logger.info(`🔍 [${debugId}]   - audioBuffer constructor: ${audioResult.audioBuffer.constructor.name}`);
-          logger.info(`🔍 [${debugId}]   - audioBuffer length: ${audioResult.audioBuffer.byteLength || audioResult.audioBuffer.length}`);
+        if (!ttsResult || !ttsResult.success || !ttsResult.audioBuffer) {
+          logger.error(`❌ [${debugId}] FALLO: Azure TTS no generó audio válido`);
+          logger.error(`❌ [${debugId}] TTS Result: ${JSON.stringify(ttsResult, null, 2)}`);
+          throw new Error('Azure TTS no generó audio válido');
         }
         
-        if (!audioResult || !audioResult.success) {
-          const errorMsg = `Azure TTS falló: ${audioResult?.error || 'Error desconocido'}`;
-          logger.error(`❌ [${debugId}] ${errorMsg}`);
-          throw new Error(errorMsg);
-        }
-
-        // PASO 6: Procesar buffer de audio
+        const rawAudioBuffer = ttsResult.audioBuffer;
+        logger.info(`🔍 [${debugId}] Audio buffer extraído: ${rawAudioBuffer.length} bytes`);
+        
         logger.info(`🔍 [${debugId}] PASO 6: Procesando buffer de audio...`);
         
-        if (!audioResult.audioBuffer) {
+        if (!rawAudioBuffer) {
           logger.error(`❌ [${debugId}] FALLO: audioBuffer es null/undefined`);
           throw new Error('Audio buffer vacío');
         }
         
-        const audioBuffer = Buffer.from(audioResult.audioBuffer);
+        const audioBuffer = Buffer.from(rawAudioBuffer);
         logger.info(`✅ [${debugId}] Buffer creado exitosamente:`);
-        logger.info(`🔍 [${debugId}]   - Tamaño original: ${audioResult.audioBuffer.byteLength} bytes`);
+        logger.info(`🔍 [${debugId}]   - Tamaño original: ${rawAudioBuffer.byteLength || rawAudioBuffer.length} bytes`);
         logger.info(`🔍 [${debugId}]   - Buffer Node.js: ${audioBuffer.length} bytes`);
         logger.info(`🔍 [${debugId}]   - Primeros 10 bytes: [${Array.from(audioBuffer.slice(0, 10)).join(', ')}]`);
         logger.info(`🔍 [${debugId}]   - Últimos 10 bytes: [${Array.from(audioBuffer.slice(-10)).join(', ')}]`);
