@@ -5,6 +5,7 @@ const OpenAI = require('openai');
 const StreamingTwiMLService = require('./streamingTwiMLService');
 const openaiWhisperService = require('./openaiWhisperService');
 const { makeTextNatural, getVoiceSettings } = require('./naturalPersonalityService');
+const azureTTSService = require('./azureTTSRestService');
 
 const prisma = new PrismaClient();
 const streamingTwiML = new StreamingTwiMLService();
