@@ -39,6 +39,7 @@ class AzureTTSRestService {
 
   async generateSpeech(text, voice = 'es-ES-DarioNeural', format = 'audio-16khz-128kbitrate-mono-mp3') {
     try {
+      console.log(`🔊 Llamada a Azure TTS para: ${text.substring(0, 50)}...`);
       const token = await this.getToken();
       
       const ssml = `
@@ -65,6 +66,7 @@ class AzureTTSRestService {
         }
       );
 
+      console.log(`✅ Audio generado: ${response.data.length} bytes`);
       return {
         success: true,
         audioBuffer: response.data,

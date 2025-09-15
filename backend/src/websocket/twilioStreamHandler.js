@@ -568,6 +568,7 @@ class TwilioStreamHandler {
 
     // Solo procesar audio entrante (inbound)
     if (data.media.track === 'inbound') {
+      logger.info(`🔊 Procesando chunk de audio inbound: ${data.media.payload.length} bytes`);
       const audioBuffer = this.audioBuffers.get(streamSid) || [];
       audioBuffer.push(data.media.payload);
       this.audioBuffers.set(streamSid, audioBuffer);
@@ -616,6 +617,7 @@ class TwilioStreamHandler {
       
       // Generar respuesta de audio con Azure TTS usando la voz del usuario
       const voiceId = streamData.client?.callConfig?.voiceId || 'lola';
+      logger.info(`🔊 Generando audio para texto: ${response}`);
       const ttsResult = await this.ttsService.generateSpeech(response, voiceId);
       
       if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
