@@ -4,6 +4,7 @@ const OpenAI = require('openai');
 const azureTTSRestService = require('../services/azureTTSRestService');
 const fallbackAudioService = require('../services/fallbackAudioService');
 const ContextBuilder = require('../utils/contextBuilder');
+const azureTTSService = azureTTSRestService;
 
 class TwilioStreamHandler {
   constructor() {
