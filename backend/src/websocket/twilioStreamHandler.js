@@ -175,8 +175,8 @@ class TwilioStreamHandler {
         botConfig: customParameters?.botConfig || null,
         businessHours: customParameters?.businessHours || null,
         notificationConfig: customParameters?.notificationConfig || null,
-        faqs: customParameters?.faqs || null,
-        contextFiles: customParameters?.contextFiles || null,
+        faqs: JSON.parse(customParameters?.faqs || '[]'), // Parsear como arreglo JSON
+        contextFiles: JSON.parse(customParameters?.contextFiles || '[]'), // Parsear como arreglo JSON
         // Relación con números Twilio
         twilioNumbers: [{
           phoneNumber: customParameters?.phoneNumber || '',

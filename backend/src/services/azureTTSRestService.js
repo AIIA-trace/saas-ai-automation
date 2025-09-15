@@ -74,6 +74,7 @@ class AzureTTSRestService {
       };
 
     } catch (error) {
+      console.error('❌ TTS Error:', error.response?.data || error.message);
       logger.error('❌ Error generando audio con Azure REST API:', error.message);
       return {
         success: false,
