@@ -61,6 +61,7 @@ class AzureTTSRestService {
       console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
       console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
       console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
+      console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
       const response = await axios.post(
         `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
         ssml,
