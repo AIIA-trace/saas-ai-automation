@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Audio Azure TTS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .audio-player {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .audio-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .preset-btn {
+            background-color: #28a745;
+            font-size: 14px;
+            padding: 8px 16px;
+        }
+        .preset-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Prueba de Audio Azure TTS</h1>
+        
+        <div class="form-group">
+            <label>Textos de prueba rápidos:</label>
+            <div class="preset-buttons">
+                <button class="preset-btn" onclick="setPresetText('greeting')">Saludo Inicial</button>
+                <button class="preset-btn" onclick="setPresetText('short')">Texto Corto</button>
+                <button class="preset-btn" onclick="setPresetText('long')">Texto Largo</button>
+                <button class="preset-btn" onclick="setPresetText('numbers')">Números</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="text">Texto a sintetizar:</label>
+            <textarea id="text" placeholder="Escribe aquí el texto que quieres convertir a audio...">Hola, ha llamado a Tech Solutions. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="voice">Voz:</label>
+            <select id="voice">
+                <option value="es-ES-DarioNeural">Dario (Español - Masculino)</option>
+                <option value="es-ES-ElviraNeural">Elvira (Español - Femenino)</option>
+                <option value="es-ES-AlvaroNeural">Alvaro (Español - Masculino)</option>
+                <option value="en-US-LolaMultilingualNeural">Lola (Inglés/Multilingüe - Femenino)</option>
+                <option value="es-ES-ArabellaMultilingualNeural">Arabella (Español/Multilingüe - Femenino)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="format">Formato de audio:</label>
+            <select id="format">
+                <option value="riff-16khz-16bit-mono-pcm">WAV PCM 16kHz 16-bit Mono</option>
+                <option value="audio-16khz-128kbitrate-mono-mp3">MP3 16kHz 128kbps Mono</option>
+                <option value="ogg-16khz-16bit-mono-opus">OGG Opus 16kHz 16-bit Mono</option>
+                <option value="riff-24khz-16bit-mono-pcm">WAV PCM 24kHz 16-bit Mono</option>
+            </select>
+        </div>
+
+        <button onclick="generateAudio()" id="generateBtn">🎵 Generar Audio</button>
+        <button onclick="downloadAudio()" id="downloadBtn" disabled>📥 Descargar Audio</button>
+
+        <div id="status" class="status"></div>
+
+        <div id="audioPlayer" class="audio-player" style="display: none;">
+            <h3>🔊 Reproducir Audio:</h3>
+            <audio controls style="width: 100%;">
+                Tu navegador no soporta el elemento de audio.
+            </audio>
+        </div>
+
+        <div id="audioInfo" class="audio-info" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentAudioUrl = null;
+        let currentTestId = null;
+
+        const presetTexts = {
+            greeting: 'Hola, ha llamado a Tech Solutions. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
+            short: 'Hola, ¿cómo está usted?',
+            long: 'Buenos días y gracias por llamar a nuestra empresa. Mi nombre es el asistente virtual y estaré encantado de ayudarle con cualquier consulta que pueda tener sobre nuestros productos y servicios. Por favor, dígame en qué puedo asistirle el día de hoy.',
+            numbers: 'Su número de referencia es: 1-2-3-4-5-6-7-8-9-0. El precio total es de 299 euros con 50 céntimos.'
+        };
+
+        function setPresetText(preset) {
+            document.getElementById('text').value = presetTexts[preset];
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        async function generateAudio() {
+            const text = document.getElementById('text').value.trim();
+            const voice = document.getElementById('voice').value;
+            const format = document.getElementById('format').value;
+            const generateBtn = document.getElementById('generateBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            if (!text) {
+                showStatus('Por favor, ingresa un texto para sintetizar.', 'error');
+                return;
+            }
+
+            // Limpiar audio anterior
+            if (currentAudioUrl) {
+                URL.revokeObjectURL(currentAudioUrl);
+                currentAudioUrl = null;
+            }
+
+            // UI feedback
+            generateBtn.disabled = true;
+            generateBtn.textContent = '🔄 Generando...';
+            downloadBtn.disabled = true;
+            document.getElementById('audioPlayer').style.display = 'none';
+            document.getElementById('audioInfo').style.display = 'none';
+            
+            showStatus('Conectando con Azure TTS...', 'info');
+
+            try {
+                const startTime = Date.now();
+                
+                // Construir URL con parámetros
+                const params = new URLSearchParams({
+                    text: text,
+                    voice: voice,
+                    format: format
+                });
+
+                const response = await fetch(`/api/test-audio?${params}`);
+                const duration = Date.now() - startTime;
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+
+                // Obtener headers de información
+                const testId = response.headers.get('X-Test-ID');
+                const generationTime = response.headers.get('X-Generation-Time');
+                const audioSize = response.headers.get('X-Audio-Size');
+                const voiceUsed = response.headers.get('X-Voice-Used');
+
+                currentTestId = testId;
+
+                // Obtener audio como blob
+                const audioBlob = await response.blob();
+                currentAudioUrl = URL.createObjectURL(audioBlob);
+
+                // Configurar reproductor de audio
+                const audioPlayer = document.getElementById('audioPlayer');
+                const audioElement = audioPlayer.querySelector('audio');
+                audioElement.src = currentAudioUrl;
+                audioPlayer.style.display = 'block';
+
+                // Mostrar información del audio
+                const audioInfo = document.getElementById('audioInfo');
+                audioInfo.innerHTML = `
+                    <strong>Información del Audio Generado:</strong><br>
+                    • Test ID: ${testId}<br>
+                    • Tiempo de generación: ${generationTime}<br>
+                    • Tamaño del audio: ${audioSize}<br>
+                    • Voz utilizada: ${voiceUsed}<br>
+                    • Tiempo total de descarga: ${duration}ms<br>
+                    • Formato: ${format}<br>
+                    • Tipo MIME: ${audioBlob.type}
+                `;
+                audioInfo.style.display = 'block';
+
+                // Habilitar descarga
+                downloadBtn.disabled = false;
+
+                showStatus(`✅ Audio generado exitosamente en ${duration}ms`, 'success');
+
+                // Auto-reproducir
+                setTimeout(() => {
+                    audioElement.play().catch(e => {
+                        console.log('Auto-play bloqueado por el navegador:', e);
+                    });
+                }, 500);
+
+            } catch (error) {
+                console.error('Error generando audio:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🎵 Generar Audio';
+            }
+        }
+
+        function downloadAudio() {
+            if (!currentAudioUrl || !currentTestId) {
+                showStatus('No hay audio para descargar.', 'error');
+                return;
+            }
+
+            const format = document.getElementById('format').value;
+            let extension = 'wav';
+            
+            if (format.includes('mp3')) extension = 'mp3';
+            else if (format.includes('ogg')) extension = 'ogg';
+
+            const link = document.createElement('a');
+            link.href = currentAudioUrl;
+            link.download = `azure-tts-test-${currentTestId}.${extension}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showStatus('📥 Descarga iniciada', 'success');
+        }
+
+        // Limpiar URLs al cerrar la página
+        window.addEventListener('beforeunload', () => {
+            if (currentAudioUrl) {
+                URL.revokeObjectURL(currentAudioUrl);
+            }
+        });
+    </script>
+</body>
+</html>

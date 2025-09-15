@@ -19,6 +19,7 @@ const testVoicesRouter = require('./routes/test-voices');
 const setupRouter = require('./routes/setup');
 const twilioRouter = require('./routes/twilio');
 const azureTTSRouter = require('./routes/azure-tts');
+const testAudioRouter = require('./routes/testAudio');
 
 // Inicializar servicios
 azureTTSRestService.initialize();
@@ -75,6 +76,7 @@ app.use('/api/setup', setupRouter);
 app.use('/api/test-voices', testVoicesRouter);
 app.use('/api/twilio', twilioRouter);
 app.use('/api/azure-tts', azureTTSRouter);
+app.use('/api/test-audio', testAudioRouter);
 app.use('/webhooks', webhooksRouter);
 
 // Ruta principal
