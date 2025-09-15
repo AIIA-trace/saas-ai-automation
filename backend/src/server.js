@@ -21,6 +21,9 @@ const setupRouter = require('./routes/setup');
 const twilioRouter = require('./routes/twilio');
 const azureTTSRouter = require('./routes/azure-tts');
 
+// Inicializar servicios
+azureTTSRestService.initialize();
+
 // Inicialización de Express
 const app = express();
 const PORT = process.env.PORT || 10000; // Render usa PORT internamente

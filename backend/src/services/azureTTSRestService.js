@@ -81,4 +81,12 @@ class AzureTTSRestService {
   }
 }
 
-module.exports = new AzureTTSRestService();
+const azureTTSRestService = new AzureTTSRestService();
+
+module.exports = azureTTSRestService;
+
+// Inicializar el servicio
+module.exports.initialize = function() {
+  console.log('✅ Azure TTS REST Service initialized');
+  // Configuración inicial si es necesaria
+};
