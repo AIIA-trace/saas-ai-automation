@@ -586,8 +586,9 @@ class TwilioStreamHandler {
         logger.info(`🔍 [${debugId}] PASO 8: Enviando audio a Twilio...`);
         const sendStartTime = Date.now();
         
-        // En lugar de enviar directamente, preparar chunks para la cola
-        await this.prepareAudioForQueue(ws, audioBuffer, streamSid);
+        // SALUDO INICIAL: Enviar directamente, NO usar cola (Twilio aún no solicita chunks)
+        logger.info(`🔍 [${debugId}] SALUDO INICIAL: Enviando directamente a Twilio (no usar cola)`);
+        await this.sendAudioToTwilio(ws, audioBuffer, streamSid);
         
         const sendEndTime = Date.now();
         const sendDuration = sendEndTime - sendStartTime;
