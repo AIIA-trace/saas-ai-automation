@@ -1,4 +1,5 @@
 // Cargar variables de entorno PRIMERO
+const azureTTSRestService = require('./services/azureTTSRestService');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
