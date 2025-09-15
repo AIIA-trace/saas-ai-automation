@@ -52,6 +52,7 @@ class AzureTTSRestService {
 
       console.log(`🔊 Llamada a Azure TTS para: ${text.substring(0, 50)}...`);
       console.log(`🔍 SSML Payload: ${ssml}`);
+      console.log(`🔍 SSML Payload: ${ssml}`);
       console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
       const response = await axios.post(
         `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
