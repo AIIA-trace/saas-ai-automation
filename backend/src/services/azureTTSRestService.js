@@ -261,6 +261,23 @@ class AzureTTSRestService {
       };
       
       console.log(`🔍 Request Headers:`, JSON.stringify(requestConfig.headers, null, 2));
+      
+      // HACER LA PETICIÓN HTTP CON TIMEOUT
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('AGGRESSIVE_TIMEOUT: Speech request hung after 8000ms'));
+        }, 8000);
+      });
+      
+      const requestPromise = axios.post(
+        `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
+        ssml,
+        requestConfig
+      );
+      
+      console.log(`🚀 Starting Azure TTS request with 8s timeout...`);
+      const response = await Promise.race([requestPromise, timeoutPromise]);
+      
       const requestEndTime = Date.now();
       const requestDuration = requestEndTime - speechStartTime;
       

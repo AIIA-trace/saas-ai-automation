@@ -22,7 +22,9 @@ const azureTTSRouter = require('./routes/azure-tts');
 const testAudioRouter = require('./routes/testAudio');
 
 // Inicializar servicios
+const fallbackAudioService = require('./services/fallbackAudioService');
 azureTTSRestService.initialize();
+fallbackAudioService.initialize();
 
 // Inicialización de Express
 const app = express();
