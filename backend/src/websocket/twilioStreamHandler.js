@@ -1259,68 +1259,14 @@ class TwilioStreamHandler {
       
       if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
         logger.info(`🔍 [${processId}] Enviando audio a Twilio...`);
-        await this.sendAudioToTwilio(streamData.ws, ttsResult.audioBuffer, streamSid);
+        const ws = streamData.ws;
+        await this.sendAudioToTwilio(ws, ttsResult.audioBuffer, streamSid);
         logger.info(`✅ [${processId}] Audio enviado exitosamente`);
       } else {
         logger.error(`❌ [${processId}] TTS falló: ${ttsResult?.error || 'Error desconocido'}`);
       }
 
-      streamData.isSendingTTS = true;
-
-      // Verificar que el WebSocket esté abierto
-      if (ws.readyState !== 1) { // WebSocket.OPEN = 1
-        logger.error(`❌ WebSocket no está abierto (readyState: ${ws.readyState})`);
-        streamData.isSendingTTS = false;
-        return;
-      }
-
-      // Extraer datos PCM del WAV y convertir a mulaw
-      const wavData = this.extractPCMFromWAV(audioBuffer);
-      if (!wavData) {
-        logger.error(`❌ No se pudo extraer PCM del audio WAV`);
-        streamData.isSendingTTS = false;
-        return;
-      }
-      
-      const mulawData = this.convertPCMToMulaw(wavData);
-      const chunkSize = 160; // 20ms de audio a 8kHz mulaw
-      const totalChunks = Math.ceil(mulawData.length / chunkSize);
-      
-      logger.info(`🎵 Audio WAV convertido a mulaw: ${mulawData.length} bytes`);
-      logger.info(`🎵 Enviando ${totalChunks} chunks de audio...`);
-      
-      for (let i = 0; i < mulawData.length; i += chunkSize) {
-        const chunk = mulawData.slice(i, i + chunkSize);
-        const base64Chunk = chunk.toString('base64');
-        
-        const mediaMessage = {
-          event: 'media',
-          streamSid: streamSid,
-          media: {
-            timestamp: Date.now(),
-            payload: base64Chunk
-          }
-        };
-
-        // Verificar WebSocket antes de cada envío
-        if (ws.readyState !== 1) {
-          logger.warn(`⚠️ WebSocket cerrado durante envío en chunk ${Math.floor(i/chunkSize) + 1}`);
-          break;
-        }
-
-        ws.send(JSON.stringify(mediaMessage));
-        
-        // Log cada 25 chunks
-        if ((Math.floor(i/chunkSize) + 1) % 25 === 0) {
-          logger.info(`🎵 Enviado chunk ${Math.floor(i/chunkSize) + 1}/${totalChunks}`);
-        }
-
-        // Pequeña pausa entre chunks para simular tiempo real
-        await new Promise(resolve => setTimeout(resolve, 20));
-      }
-
-      streamData.isSendingTTS = false;
-      logger.info(`✅ Audio enviado correctamente a ${streamSid} (${totalChunks} chunks)`);
+      logger.info(`✅ [${processId}] Procesamiento de audio completado`);
 
     } catch (error) {
       logger.error(`❌ [${processId}] Error en processAudioBuffer: ${error.message}`);

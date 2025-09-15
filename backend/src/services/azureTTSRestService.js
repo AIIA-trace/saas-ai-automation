@@ -181,7 +181,8 @@ class AzureTTSRestService {
   }
 
   async generateSpeech(text, voice = 'es-ES-DarioNeural', format = 'riff-16khz-16bit-mono-pcm') {
-    const startTime = Date.now();
+    const speechStartTime = Date.now();
+    const startTime = speechStartTime;
     console.log(`🔊 ===== AZURE TTS AUDIO GENERATION START =====`);
     console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
     
