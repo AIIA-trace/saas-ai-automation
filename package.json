@@ -4,9 +4,10 @@
   "description": "SaaS AI Call & Email Automation System",
   "main": "backend/src/server.js",
   "scripts": {
-    "start": "cd backend && npm start",
+    "start": "node backend/src/server.js",
+    "dev": "nodemon backend/src/server.js",
+    "test:azure": "node backend/scripts/azure-connectivity-test.js",
     "build": "cd backend && npm run build",
-    "dev": "cd backend && npm run dev",
     "postinstall": "cd backend && npm install && npx prisma generate"
   },
   "keywords": ["saas", "ai", "automation", "calls", "emails"],
