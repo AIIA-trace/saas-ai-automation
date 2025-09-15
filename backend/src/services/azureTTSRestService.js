@@ -51,21 +51,28 @@ class AzureTTSRestService {
       `;
 
       console.log(`🔊 Llamada a Azure TTS para: ${text.substring(0, 50)}...`);
-      console.log(`🔍 SSML Payload: ${ssml}`);
-      console.log(`🔍 SSML Payload: ${ssml}`);
-      console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
+      console.log(`🔍 SSML Payload:`, ssml);
+      console.log(`🔍 SSML Length:`, ssml.length);
+      console.log(`🔍 Token exists:`, !!token);
+      console.log(`🔍 Token length:`, token ? token.length : 0);
+      console.log(`🔍 Request URL:`, `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`);
+      
+      const requestConfig = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/ssml+xml',
+          'X-Microsoft-OutputFormat': format,
+          'User-Agent': 'TTS-Service'
+        },
+        responseType: 'arraybuffer'
+      };
+      
+      console.log(`🔍 Request Headers:`, JSON.stringify(requestConfig.headers, null, 2));
+      
       const response = await axios.post(
         `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
         ssml,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/ssml+xml',
-            'X-Microsoft-OutputFormat': format,
-            'User-Agent': 'ai-call-email-bot'
-          },
-          responseType: 'arraybuffer'
-        }
+        requestConfig
       );
 
       console.log(`✅ Audio generado: ${response.data.length} bytes`);
@@ -76,11 +83,36 @@ class AzureTTSRestService {
       };
 
     } catch (error) {
-      console.error('❌ TTS Error:', error.response?.data || error.message);
+      console.error('❌ TTS Error Details:');
+      console.error('  Status:', error.response?.status);
+      console.error('  Status Text:', error.response?.statusText);
+      console.error('  Response Data:', error.response?.data);
+      console.error('  Response Headers:', error.response?.headers);
+      console.error('  Request URL:', error.config?.url);
+      console.error('  Request Method:', error.config?.method);
+      console.error('  Request Headers:', error.config?.headers);
+      console.error('  Request Data Length:', error.config?.data?.length);
+      console.error('  Error Message:', error.message);
+      console.error('  Error Code:', error.code);
+      
+      // Si hay response data, intentar parsearlo
+      if (error.response?.data) {
+        try {
+          const errorText = Buffer.isBuffer(error.response.data) 
+            ? error.response.data.toString('utf8')
+            : error.response.data;
+          console.error('  Parsed Error Response:', errorText);
+        } catch (parseError) {
+          console.error('  Could not parse error response:', parseError.message);
+        }
+      }
+      
       logger.error('❌ Error generando audio con Azure REST API:', error.message);
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        statusCode: error.response?.status,
+        azureError: error.response?.data
       };
     }
   }
