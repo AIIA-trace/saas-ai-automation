@@ -484,6 +484,76 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Enviar audio a Twilio via WebSocket
+   */
+  async sendAudioToTwilio(ws, audioBuffer, streamSid) {
+    try {
+      if (!audioBuffer || audioBuffer.length === 0) {
+        logger.error('❌ Buffer de audio vacío');
+        return;
+      }
+
+      if (ws.readyState !== 1) {
+        logger.error(`❌ WebSocket no disponible (state: ${ws.readyState})`);
+        return;
+      }
+
+      // Convertir audio a formato adecuado para Twilio
+      let processedAudio;
+      
+      // Si es MP3, extraer PCM y convertir a mulaw
+      if (audioBuffer[0] === 0xFF && audioBuffer[1] === 0xFB) {
+        // Es MP3, necesitamos convertirlo
+        logger.info('🎵 Detectado formato MP3, convirtiendo...');
+        // Para MP3, necesitaríamos una librería de conversión
+        // Por ahora, enviamos como está y dejamos que Twilio lo maneje
+        processedAudio = audioBuffer;
+      } else if (audioBuffer.toString('ascii', 0, 4) === 'RIFF') {
+        // Es WAV, extraer PCM y convertir a mulaw
+        logger.info('🎵 Detectado formato WAV, extrayendo PCM...');
+        const pcmData = this.extractPCMFromWAV(audioBuffer);
+        if (pcmData) {
+          processedAudio = this.convertPCMToMulaw(pcmData);
+        } else {
+          processedAudio = audioBuffer;
+        }
+      } else {
+        // Asumir que ya está en formato correcto
+        processedAudio = audioBuffer;
+      }
+
+      // Enviar audio en chunks
+      const chunkSize = 1024; // 1KB chunks
+      const base64Audio = processedAudio.toString('base64');
+      
+      for (let i = 0; i < base64Audio.length; i += chunkSize) {
+        const chunk = base64Audio.slice(i, i + chunkSize);
+        
+        const mediaMessage = {
+          event: 'media',
+          streamSid: streamSid,
+          media: {
+            payload: chunk
+          }
+        };
+
+        if (ws.readyState === 1) {
+          ws.send(JSON.stringify(mediaMessage));
+        } else {
+          logger.error(`❌ WebSocket cerrado durante envío de chunk ${i / chunkSize + 1}`);
+          break;
+        }
+      }
+
+      logger.info(`✅ Audio enviado: ${processedAudio.length} bytes en ${Math.ceil(base64Audio.length / chunkSize)} chunks`);
+      
+    } catch (error) {
+      logger.error(`❌ Error enviando audio a Twilio: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Generar un beep simple como audio de fallback
    */
   generateSimpleBeep() {

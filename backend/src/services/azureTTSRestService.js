@@ -50,18 +50,8 @@ class AzureTTSRestService {
         </speak>
       `;
 
-      console.log("🔍 URL:", `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`);
-      console.log("🔍 Longitud SSML:", ssml.length);
+      console.log(`🔊 Llamada a Azure TTS para: ${text.substring(0, 50)}...`);
       console.log(`🔍 SSML Payload: ${ssml}`);
-      console.log(`🔍 SSML Payload (debug): ${JSON.stringify(ssml)}`);
-      console.log(`🔍 SSML Payload (debug): ${ssml}`);
-      console.log(`🔍 SSML Payload: ${ssml}`); 
-      console.log(`🔍 SSML Payload: ${ssml}`); 
-      console.log(`🔍 SSML Payload: ${ssml}`); 
-      console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
-      console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
-      console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
-      console.log(`🔍 SSML Payload: ${ssml}`); // Added this line
       const response = await axios.post(
         `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
         ssml,
