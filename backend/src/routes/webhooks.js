@@ -86,7 +86,7 @@ router.post('/call/response/:clientId', validateTwilioWebhook, async (req, res) 
 
 // === WEBHOOKS DE EMAIL ===
 
-// Webhook para emails entrantes (desde n8n o servicio de email)
+// Webhook para emails entrantes
 router.post('/email/incoming', webhookController.handleIncomingEmail);
 
 // === WEBHOOKS DE PROCESAMIENTO IA ===

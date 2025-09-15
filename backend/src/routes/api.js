@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const N8NService = require('../services/n8nService');
 
 // Health check endpoint para Render
 router.get('/health', (req, res) => {

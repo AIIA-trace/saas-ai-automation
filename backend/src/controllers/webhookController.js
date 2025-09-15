@@ -118,26 +118,7 @@ class WebhookController {
         }
       });
       
-      // Procesamiento asíncrono (enviar a n8n)
-      const n8nWebhook = process.env.N8N_WEBHOOK_CALL;
-      
-      // Enviar los datos al flujo de n8n para procesamiento
-      const n8nPayload = {
-        callId: callLog.id,
-        clientId: callLog.clientId,
-        recordingUrl: RecordingUrl,
-        callerNumber: callLog.callerNumber,
-        companyInfo: callLog.client.companyInfo,
-        botConfig: callLog.client.botConfig,
-        notificationConfig: callLog.client.notificationConfig
-      };
-      
-      // Iniciar procesamiento asíncrono (no esperamos respuesta)
-      fetch(n8nWebhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(n8nPayload)
-      }).catch(err => logger.error(`Error enviando a n8n: ${err.message}`));
+      // Procesamiento completado - grabación guardada
       
       return res.status(200).send("Processing recording");
     } catch (error) {
@@ -145,9 +126,6 @@ class WebhookController {
       return res.status(500).send("Error processing recording");
     }
   }
-  
-  // DEPRECATED: handleGatherInput - Reemplazado por WebSocket streaming con OpenAI Whisper
-  // Este método ya no se usa con el nuevo sistema de streaming
   
   // Manejar cambios de estado de llamada
   async handleCallStatus(req, res) {
@@ -212,25 +190,7 @@ class WebhookController {
         }
       });
       
-      // Enviar a N8N para procesamiento
-      const n8nWebhook = process.env.N8N_WEBHOOK_EMAIL; // Usar el mismo webhook de email
-      
-      const n8nPayload = {
-        type: 'sms',
-        smsId: smsLog.id,
-        clientId: twilioNumber.clientId,
-        fromNumber: From,
-        message: Body,
-        emailConfig: twilioNumber.client.emailConfig,
-        companyInfo: twilioNumber.client.companyInfo
-      };
-      
-      // Enviar a N8N de forma asíncrona
-      fetch(n8nWebhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(n8nPayload)
-      }).catch(err => logger.error(`Error enviando SMS a n8n: ${err.message}`));
+      // SMS procesado y guardado
       
       return res.status(200).send("SMS processed");
     } catch (error) {
@@ -277,27 +237,7 @@ class WebhookController {
         }
       });
       
-      // Procesamiento asíncrono (enviar a n8n)
-      const n8nWebhook = process.env.N8N_WEBHOOK_EMAIL;
-      
-      // Enviar los datos al flujo de n8n para procesamiento
-      const n8nPayload = {
-        emailId: emailLog.id,
-        clientId: client.id,
-        fromAddress: from,
-        subject,
-        body: textBody,
-        emailConfig: client.emailConfig,
-        companyInfo: client.companyInfo,
-        notificationConfig: client.notificationConfig
-      };
-      
-      // Iniciar procesamiento asíncrono (no esperamos respuesta)
-      fetch(n8nWebhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(n8nPayload)
-      }).catch(err => logger.error(`Error enviando a n8n: ${err.message}`));
+      // Email procesado y guardado
       
       return res.status(200).send("Processing email");
     } catch (error) {
@@ -306,7 +246,7 @@ class WebhookController {
     }
   }
   
-  // Recibir y procesar los resultados del análisis de IA de n8n
+  // Procesar resultados de análisis de IA
   async handleAIProcessingResults(req, res) {
     try {
       const { type, id, aiSummary, aiClassification, contactInfo, urgencyLevel, callPurpose, forwardedTo, notifiedTo } = req.body;

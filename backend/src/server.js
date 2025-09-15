@@ -15,7 +15,6 @@ const WebSocketServer = require('./websocket/websocketServer');
 const { router: authRouter } = require('./routes/auth');
 const apiRouter = require('./routes/api');
 const webhooksRouter = require('./routes/webhooks');
-const n8nRouter = require('./routes/n8n');
 const testVoicesRouter = require('./routes/test-voices');
 const setupRouter = require('./routes/setup');
 const twilioRouter = require('./routes/twilio');
@@ -72,7 +71,6 @@ logger.info(`Sirviendo frontend desde: ${frontendDir}`);
 // Rutas principales
 app.use('/api/auth', authRouter);
 app.use('/api', apiRouter);
-app.use('/api/n8n', n8nRouter);
 app.use('/api/setup', setupRouter);
 app.use('/api/test-voices', testVoicesRouter);
 app.use('/api/twilio', twilioRouter);

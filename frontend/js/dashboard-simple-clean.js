@@ -6990,7 +6990,7 @@ function saveUnifiedConfig() {
             // Configuración de voz Azure TTS se guarda en callConfig.voiceId (línea 6944)
             // azureVoice: document.getElementById('azureVoiceSelect')?.value || '', // ELIMINADO: duplicado
             
-            // Configuración de emails - Optimizada para n8n/OpenAI
+            // Configuración de emails - Optimizada para OpenAI
             emailConfig: (() => {
                 console.log('📧 ===== DEBUG EMAILCONFIG RECOPILACIÓN =====');
                 
