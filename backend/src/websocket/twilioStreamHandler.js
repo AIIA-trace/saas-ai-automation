@@ -499,12 +499,30 @@ class TwilioStreamHandler {
       logger.info(`🔍 [${debugId}] PASO 5: Iniciando generación de audio...`);
       logger.info(`🔍 [${debugId}] Texto a sintetizar: "${greeting}" (${greeting.length} caracteres)`);
       logger.info(`🔍 [${debugId}] Voz Azure: ${voiceId}`);
+      logger.info(`🔍 [${debugId}] TTS Service disponible: ${!!this.ttsService}`);
+      logger.info(`🔍 [${debugId}] Método generateSpeech disponible: ${typeof this.ttsService?.generateSpeech}`);
       
       const ttsStartTime = Date.now();
       
       try {
-        logger.info(`🔍 [${debugId}] Llamando a ttsService.generateSpeech...`);
+        logger.info(`🔍 [${debugId}] ⚡ LLAMANDO A AZURE TTS - INICIO`);
+        logger.info(`🔍 [${debugId}] ⚡ Parámetros: texto="${greeting.substring(0, 50)}...", voz="${voiceId}"`);
         const audioResult = await this.ttsService.generateSpeech(greeting, voiceId);
+        logger.info(`🔍 [${debugId}] ⚡ AZURE TTS COMPLETADO - resultado recibido`);
+        logger.info(`🔍 [${debugId}] ⚡ Tipo de resultado: ${typeof audioResult}`);
+        logger.info(`🔍 [${debugId}] ⚡ Resultado es objeto: ${audioResult !== null && typeof audioResult === 'object'}`);
+        logger.info(`🔍 [${debugId}] ⚡ Keys del resultado: ${audioResult ? Object.keys(audioResult).join(', ') : 'N/A'}`);
+        logger.info(`🔍 [${debugId}] ⚡ Success property: ${audioResult?.success}`);
+        logger.info(`🔍 [${debugId}] ⚡ AudioBuffer exists: ${!!audioResult?.audioBuffer}`);
+        logger.info(`🔍 [${debugId}] ⚡ AudioBuffer length: ${audioResult?.audioBuffer?.length || 0}`);
+        logger.info(`🔍 [${debugId}] ⚡ Error property: ${audioResult?.error || 'none'}`);
+        logger.info(`🔍 [${debugId}] ⚡ AZURE TTS ANÁLISIS COMPLETO`);
+        
+        if (audioResult?.audioBuffer && audioResult.audioBuffer.length > 0) {
+          logger.info(`🔍 [${debugId}] ⚡ AUDIO VÁLIDO DETECTADO - ${audioResult.audioBuffer.length} bytes`);
+        } else {
+          logger.error(`🔍 [${debugId}] ⚡ AUDIO INVÁLIDO O VACÍO DETECTADO`);
+        }
         const ttsEndTime = Date.now();
         const ttsDuration = ttsEndTime - ttsStartTime;
         

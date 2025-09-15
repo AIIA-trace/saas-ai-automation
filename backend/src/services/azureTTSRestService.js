@@ -15,6 +15,14 @@ class AzureTTSRestService {
       return this.token;
     }
 
+    const authId = `AUTH_${Date.now()}`;
+    logger.info(`🔐 [${authId}] ===== AZURE AUTHENTICATION START =====`);
+    logger.info(`🔐 [${authId}] Región: ${this.region}`);
+    logger.info(`🔐 [${authId}] Key presente: ${!!this.subscriptionKey}`);
+    logger.info(`🔐 [${authId}] Key length: ${this.subscriptionKey ? this.subscriptionKey.length : 0}`);
+    logger.info(`🔐 [${authId}] Key preview: ${this.subscriptionKey ? this.subscriptionKey.substring(0, 8) + '...' : 'MISSING'}`);
+    logger.info(`🔐 [${authId}] Token URL: https://${this.region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`);
+
     try {
       const response = await axios.post(
         `https://${this.region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`,
@@ -27,17 +35,52 @@ class AzureTTSRestService {
         }
       );
 
+      logger.info(`🔐 [${authId}] ✅ Token obtenido exitosamente`);
+      logger.info(`🔐 [${authId}] Status: ${response.status}`);
+      logger.info(`🔐 [${authId}] Token length: ${response.data ? response.data.length : 0}`);
+      
       this.token = response.data;
       this.tokenExpiration = Date.now() + 9 * 60 * 1000; // 9 minutos de validez
       return this.token;
 
     } catch (error) {
-      logger.error('❌ Error obteniendo token Azure:', error.message);
+      logger.error(`🔐 [${authId}] ❌ ERROR DE AUTENTICACIÓN AZURE:`);
+      logger.error(`🔐 [${authId}]   ├── Status: ${error.response?.status || 'NO_RESPONSE'}`);
+      logger.error(`🔐 [${authId}]   ├── Status Text: ${error.response?.statusText || 'NO_STATUS_TEXT'}`);
+      logger.error(`🔐 [${authId}]   ├── Error Message: ${error.message}`);
+      logger.error(`🔐 [${authId}]   ├── Error Code: ${error.code || 'NO_CODE'}`);
+      logger.error(`🔐 [${authId}]   ├── Request URL: ${error.config?.url || 'NO_URL'}`);
+      logger.error(`🔐 [${authId}]   ├── Key Used: ${this.subscriptionKey ? this.subscriptionKey.substring(0, 8) + '...' : 'MISSING'}`);
+      logger.error(`🔐 [${authId}]   ├── Region Used: ${this.region}`);
+      
+      if (error.response?.status === 401) {
+        logger.error(`🔐 [${authId}]   ├── 🎯 UNAUTHORIZED - Key inválida o expirada`);
+        logger.error(`🔐 [${authId}]   ├── 🔧 SOLUCIÓN: Verificar Azure subscription key`);
+        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Verificar que la key tenga permisos TTS`);
+      } else if (error.response?.status === 403) {
+        logger.error(`🔐 [${authId}]   ├── 🎯 FORBIDDEN - Sin permisos para TTS`);
+        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Verificar permisos de Speech Services`);
+      } else if (error.response?.status === 429) {
+        logger.error(`🔐 [${authId}]   ├── 🎯 RATE LIMIT - Demasiadas peticiones`);
+        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Esperar antes de reintentar`);
+      } else if (!error.response) {
+        logger.error(`🔐 [${authId}]   ├── 🎯 NETWORK ERROR - Sin respuesta del servidor`);
+        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Verificar conectividad a Azure`);
+      }
+      
+      if (error.response?.data) {
+        const errorData = Buffer.isBuffer(error.response.data) 
+          ? error.response.data.toString('utf8') 
+          : error.response.data;
+        logger.error(`🔐 [${authId}]   └── Azure Response: ${errorData}`);
+      }
+      
+      logger.error(`🔐 [${authId}] ===== AZURE AUTHENTICATION FAILED =====`);
       throw error;
     }
   }
 
-  async generateSpeech(text, voice = 'es-ES-DarioNeural', format = 'audio-16khz-128kbitrate-mono-mp3') {
+  async generateSpeech(text, voice = 'es-ES-DarioNeural', format = 'riff-16khz-16bit-mono-pcm') {
     const startTime = Date.now();
     console.log(`🔊 ===== AZURE TTS AUDIO GENERATION START =====`);
     console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
@@ -51,7 +94,7 @@ class AzureTTSRestService {
       console.log(`  ├── Text is empty: ${!text || text.trim().length === 0}`);
       console.log(`  ├── Voice requested: "${voice}"`);
       console.log(`  ├── Voice type: ${typeof voice}`);
-      console.log(`  ├── Format: "${format}"`);
+      console.log(`  ├── Format: "${format}" (PCM para conversión a mulaw)`);
       console.log(`  └── Region: "${this.region}"`);
       
       // Validar que el texto no esté vacío
@@ -72,7 +115,8 @@ class AzureTTSRestService {
       console.log(`🔊 ===== AZURE TTS DEBUG START =====`);
       console.log(`🔊 Texto: "${text.substring(0, 100)}..."`);
       console.log(`🔊 Voz solicitada: "${voice}"`);
-      console.log(`🔊 Formato: "${format}"`);
+      console.log(`🔊 Formato: "${format}" (PCM 16kHz 16-bit mono)`);
+      console.log(`🔊 Razón del formato: PCM es fácil de convertir a mulaw para Twilio`);
       
       // Validar voz antes de usar
       const validVoices = [
