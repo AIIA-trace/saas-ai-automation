@@ -1138,36 +1138,48 @@ class TwilioStreamHandler {
    * Procesar buffer de audio acumulado
    */
   async processAudioBuffer(streamSid) {
+    const processId = `PROCESS_${Date.now()}_${streamSid.substring(0, 8)}`;
+    logger.info(`🔍 [${processId}] ===== INICIO PROCESAMIENTO AUDIO BUFFER =====`);
+    
     const streamData = this.activeStreams.get(streamSid);
     if (!streamData || streamData.isProcessing) {
+      logger.warn(`⚠️ [${processId}] Stream no disponible o ya procesando: streamData=${!!streamData}, isProcessing=${streamData?.isProcessing}`);
       return;
     }
 
     streamData.isProcessing = true;
+    logger.info(`🔍 [${processId}] Stream marcado como procesando`);
     
     try {
       const audioBuffer = this.audioBuffers.get(streamSid) || [];
       if (audioBuffer.length === 0) {
+        logger.warn(`⚠️ [${processId}] Buffer de audio vacío, abortando procesamiento`);
         streamData.isProcessing = false;
         return;
       }
 
-      logger.info(`🎤 Procesando ${audioBuffer.length} chunks de audio para ${streamSid}`);
+      logger.info(`🎤 [${processId}] Procesando ${audioBuffer.length} chunks de audio para ${streamSid}`);
 
       // Limpiar buffer
       this.audioBuffers.set(streamSid, []);
+      logger.info(`🔍 [${processId}] Buffer limpiado`);
 
       // Usar el contexto completo del cliente para generar respuesta con OpenAI
       const systemPrompt = streamData.systemPrompt || `Eres un asistente virtual para ${streamData.client?.companyName || 'la empresa'}.`;
+      logger.info(`🔍 [${processId}] System prompt preparado: ${systemPrompt.length} caracteres`);
       
       // Aquí iría la transcripción del audio (por ahora simulamos)
       const userMessage = "Usuario habló"; // Placeholder para transcripción real
+      logger.info(`🔍 [${processId}] Mensaje de usuario (simulado): "${userMessage}"`);
       
       // Generar respuesta usando OpenAI con contexto completo
+      logger.info(`🔍 [${processId}] Llamando a generateAIResponse...`);
       const response = await this.generateAIResponse(userMessage, systemPrompt, streamData);
+      logger.info(`🔍 [${processId}] Respuesta AI generada: "${response}"`);
       
       // Generar respuesta de audio con Azure TTS usando la voz del usuario
       // Mapear voz del usuario con el mismo sistema que en handleStreamStart
+      logger.info(`🔍 [${processId}] Preparando Azure TTS...`);
       const voiceMapping = {
         'neutral': 'es-ES-DarioNeural',
         'lola': 'es-ES-ElviraNeural', 
@@ -1179,11 +1191,22 @@ class TwilioStreamHandler {
       
       const userVoice = streamData.client?.callConfig?.voiceId;
       const voiceId = userVoice ? (voiceMapping[userVoice] || userVoice) : 'es-ES-DarioNeural';
-      logger.info(`🔊 Generando audio para texto: ${response}`);
+      logger.info(`🔍 [${processId}] Voz seleccionada: ${voiceId} (original: ${userVoice})`);
+      logger.info(`🔊 [${processId}] ⚡ LLAMANDO A AZURE TTS - Generando audio para texto: "${response}"`);
+      
+      const ttsStartTime = Date.now();
       const ttsResult = await this.ttsService.generateSpeech(response, voiceId);
+      const ttsEndTime = Date.now();
+      
+      logger.info(`🔍 [${processId}] ⚡ AZURE TTS COMPLETADO en ${ttsEndTime - ttsStartTime}ms`);
+      logger.info(`🔍 [${processId}] TTS Result: success=${ttsResult?.success}, hasBuffer=${!!ttsResult?.audioBuffer}`);
       
       if (ttsResult && ttsResult.success && ttsResult.audioBuffer) {
+        logger.info(`🔍 [${processId}] Enviando audio a Twilio...`);
         await this.sendAudioToTwilio(streamData.ws, ttsResult.audioBuffer, streamSid);
+        logger.info(`✅ [${processId}] Audio enviado exitosamente`);
+      } else {
+        logger.error(`❌ [${processId}] TTS falló: ${ttsResult?.error || 'Error desconocido'}`);
       }
 
       streamData.isSendingTTS = true;
@@ -1244,12 +1267,20 @@ class TwilioStreamHandler {
       logger.info(`✅ Audio enviado correctamente a ${streamSid} (${totalChunks} chunks)`);
 
     } catch (error) {
-      logger.error(`❌ Error enviando audio: ${error.message}`);
-      logger.error(`❌ Stack: ${error.stack}`);
+      logger.error(`❌ [${processId}] Error en processAudioBuffer: ${error.message}`);
+      logger.error(`❌ [${processId}] Stack: ${error.stack}`);
       const streamData = this.activeStreams.get(streamSid);
       if (streamData) {
+        streamData.isProcessing = false;
         streamData.isSendingTTS = false;
       }
+    } finally {
+      // Asegurar que siempre se libere el flag de procesamiento
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        streamData.isProcessing = false;
+      }
+      logger.info(`🔍 [${processId}] ===== FIN PROCESAMIENTO AUDIO BUFFER =====`);
     }
   }
 
@@ -1384,6 +1415,66 @@ class TwilioStreamHandler {
     } catch (error) {
       logger.error(`❌ Error convirtiendo a mulaw: ${error.message}`);
       return Buffer.alloc(0);
+    }
+  }
+
+  /**
+   * Generar respuesta AI usando OpenAI con contexto completo
+   */
+  async generateAIResponse(userMessage, systemPrompt, streamData) {
+    const aiId = `AI_${Date.now()}`;
+    
+    try {
+      logger.info(`🤖 [${aiId}] ===== GENERANDO RESPUESTA AI =====`);
+      logger.info(`🤖 [${aiId}] User message: "${userMessage}"`);
+      logger.info(`🤖 [${aiId}] System prompt: ${systemPrompt.substring(0, 100)}...`);
+      
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ];
+      
+      // Agregar historial de conversación si existe
+      if (streamData.conversationHistory && streamData.conversationHistory.length > 0) {
+        logger.info(`🤖 [${aiId}] Agregando ${streamData.conversationHistory.length} mensajes del historial`);
+        messages.splice(1, 0, ...streamData.conversationHistory.slice(-10)); // Últimos 10 mensajes
+      }
+      
+      logger.info(`🤖 [${aiId}] Llamando a OpenAI con ${messages.length} mensajes...`);
+      const aiStartTime = Date.now();
+      
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: messages,
+        max_tokens: 150,
+        temperature: 0.7
+      });
+      
+      const aiEndTime = Date.now();
+      const response = completion.choices[0].message.content.trim();
+      
+      logger.info(`🤖 [${aiId}] Respuesta generada en ${aiEndTime - aiStartTime}ms: "${response}"`);
+      
+      // Actualizar historial de conversación
+      if (!streamData.conversationHistory) {
+        streamData.conversationHistory = [];
+      }
+      streamData.conversationHistory.push(
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: response }
+      );
+      
+      logger.info(`✅ [${aiId}] Historial actualizado, total mensajes: ${streamData.conversationHistory.length}`);
+      return response;
+      
+    } catch (error) {
+      logger.error(`❌ [${aiId}] Error generando respuesta AI: ${error.message}`);
+      logger.error(`❌ [${aiId}] Stack: ${error.stack}`);
+      
+      // Respuesta de fallback
+      const fallbackResponse = "Disculpa, no pude procesar tu mensaje. ¿Podrías repetirlo?";
+      logger.info(`🔄 [${aiId}] Usando respuesta de fallback: "${fallbackResponse}"`);
+      return fallbackResponse;
     }
   }
 
