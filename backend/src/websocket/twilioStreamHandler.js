@@ -9,6 +9,8 @@ class TwilioStreamHandler {
     this.activeStreams = new Map();
     this.audioBuffers = new Map();
     this.conversationState = new Map();
+    this.outboundAudioQueue = new Map();
+    this.ttsInProgress = new Map();
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
