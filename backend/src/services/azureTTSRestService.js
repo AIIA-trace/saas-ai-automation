@@ -31,14 +31,83 @@ class AzureTTSRestService {
     logger.info(`🔐 [${authId}] Token URL: ${tokenUrl}`);
 
     try {
-      logger.info(`🔐 [${authId}] 🚀 Iniciando petición de token...`);
-      const response = await axios.post(tokenUrl, null, {
+      const hrtimeStart = process.hrtime();
+      const memBefore = process.memoryUsage();
+      
+      logger.info(`🔐 [${authId}] 🚀 PASO 1: Iniciando petición de token`);
+      logger.info(`🔐 [${authId}] 📊 Memoria inicial: RSS=${Math.round(memBefore.rss/1024/1024)}MB, Heap=${Math.round(memBefore.heapUsed/1024/1024)}MB`);
+      
+      // Monitorear event loop lag
+      const eventLoopStart = process.hrtime();
+      setImmediate(() => {
+        const [seconds, nanoseconds] = process.hrtime(eventLoopStart);
+        const lagMs = Math.round(seconds * 1000 + nanoseconds / 1000000);
+        if (lagMs > 10) {
+          logger.warn(`🔐 [${authId}] ⚠️ Event loop lag detectado: ${lagMs}ms`);
+        }
+      });
+      
+      logger.info(`🔐 [${authId}] 🚀 PASO 2: Creando timeout promise`);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          const [seconds, nanoseconds] = process.hrtime(hrtimeStart);
+          const elapsedMs = Math.round(seconds * 1000 + nanoseconds / 1000000);
+          const memAfter = process.memoryUsage();
+          logger.error(`🔐 [${authId}] ❌ TIMEOUT TRIGGERED después de ${elapsedMs}ms`);
+          logger.error(`🔐 [${authId}] 📊 Memoria al timeout: RSS=${Math.round(memAfter.rss/1024/1024)}MB, Heap=${Math.round(memAfter.heapUsed/1024/1024)}MB`);
+          reject(new Error(`AGGRESSIVE_TIMEOUT: Auth request hung after ${elapsedMs}ms`));
+        }, 3000);
+      });
+      
+      logger.info(`🔐 [${authId}] 🚀 PASO 3: Creando axios request`);
+      const axiosStart = process.hrtime();
+      
+      // Interceptar eventos de axios para debugging
+      const axiosInstance = axios.create({
+        timeout: 5000,
         headers: {
           'Ocp-Apim-Subscription-Key': this.subscriptionKey,
           'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        timeout: 5000 // 5 segundos timeout para auth
+        }
       });
+      
+      // Interceptor de request
+      axiosInstance.interceptors.request.use(config => {
+        const [seconds, nanoseconds] = process.hrtime(axiosStart);
+        const setupTime = Math.round(seconds * 1000 + nanoseconds / 1000000);
+        logger.info(`🔐 [${authId}] 📤 Request interceptor: setup tomó ${setupTime}ms`);
+        logger.info(`🔐 [${authId}] 📤 URL: ${config.url}`);
+        return config;
+      });
+      
+      // Interceptor de response
+      axiosInstance.interceptors.response.use(
+        response => {
+          const [seconds, nanoseconds] = process.hrtime(axiosStart);
+          const totalTime = Math.round(seconds * 1000 + nanoseconds / 1000000);
+          logger.info(`🔐 [${authId}] 📥 Response recibida en ${totalTime}ms`);
+          logger.info(`🔐 [${authId}] 📥 Status: ${response.status}`);
+          return response;
+        },
+        error => {
+          const [seconds, nanoseconds] = process.hrtime(axiosStart);
+          const totalTime = Math.round(seconds * 1000 + nanoseconds / 1000000);
+          logger.error(`🔐 [${authId}] ❌ Error en axios después de ${totalTime}ms: ${error.message}`);
+          if (error.code) logger.error(`🔐 [${authId}] ❌ Error code: ${error.code}`);
+          return Promise.reject(error);
+        }
+      );
+      
+      logger.info(`🔐 [${authId}] 🚀 PASO 4: Ejecutando POST request`);
+      const requestPromise = axiosInstance.post(tokenUrl, null);
+      
+      logger.info(`🔐 [${authId}] 🚀 PASO 5: Iniciando Promise.race`);
+      const raceStart = process.hrtime();
+      const response = await Promise.race([requestPromise, timeoutPromise]);
+      
+      const [raceSeconds, raceNanoseconds] = process.hrtime(raceStart);
+      const raceDuration = Math.round(raceSeconds * 1000 + raceNanoseconds / 1000000);
+      logger.info(`🔐 [${authId}] ✅ Promise.race completado en ${raceDuration}ms`);
 
       const authDuration = Date.now() - authStartTime;
       logger.info(`🔐 [${authId}] ✅ Token obtenido exitosamente en ${authDuration}ms`);
@@ -50,22 +119,44 @@ class AzureTTSRestService {
       return this.token;
 
     } catch (error) {
+      const [totalSeconds, totalNanoseconds] = process.hrtime(hrtimeStart);
+      const totalDuration = Math.round(totalSeconds * 1000 + totalNanoseconds / 1000000);
+      const memFinal = process.memoryUsage();
       const authDuration = Date.now() - authStartTime;
-      logger.error(`🔐 [${authId}] ❌ ERROR DE AUTENTICACIÓN AZURE (${authDuration}ms):`);
-      logger.error(`🔐 [${authId}]   ├── Status: ${error.response?.status || 'NO_RESPONSE'}`);
-      logger.error(`🔐 [${authId}]   ├── Status Text: ${error.response?.statusText || 'NO_STATUS_TEXT'}`);
-      logger.error(`🔐 [${authId}]   ├── Error Message: ${error.message}`);
-      logger.error(`🔐 [${authId}]   ├── Error Code: ${error.code || 'NO_CODE'}`);
-      logger.error(`🔐 [${authId}]   ├── Request URL: ${error.config?.url || 'NO_URL'}`);
-      logger.error(`🔐 [${authId}]   ├── Key Used: ${this.subscriptionKey ? this.subscriptionKey.substring(0, 8) + '...' : 'MISSING'}`);
-      logger.error(`🔐 [${authId}]   ├── Region Used: ${this.region}`);
       
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        logger.error(`🔐 [${authId}]   ├── 🎯 TIMEOUT ERROR - Auth tardó más de 5s`);
-        logger.error(`🔐 [${authId}]   └── 🔧 POSIBLE CAUSA: Latencia de red a Azure`);
+      logger.error(`❌ [${authId}] Error después de ${totalDuration}ms: ${error.message}`);
+      logger.error(`❌ [${authId}] 📊 Memoria final: RSS=${Math.round(memFinal.rss/1024/1024)}MB, Heap=${Math.round(memFinal.heapUsed/1024/1024)}MB`);
+      
+      // Análisis detallado del error
+      if (error.code) {
+        logger.error(`❌ [${authId}] Error code: ${error.code}`);
+      }
+      if (error.errno) {
+        logger.error(`❌ [${authId}] Error errno: ${error.errno}`);
+      }
+      if (error.syscall) {
+        logger.error(`❌ [${authId}] Error syscall: ${error.syscall}`);
+      }
+      if (error.hostname) {
+        logger.error(`❌ [${authId}] Error hostname: ${error.hostname}`);
+      }
+      
+      // Detectar tipo específico de error
+      if (error.message && error.message.includes('AGGRESSIVE_TIMEOUT')) {
+        logger.error(`❌ [${authId}] 🚨 AZURE TTS HANGING DETECTADO - Timeout agresivo tras ${totalDuration}ms`);
+        logger.error(`❌ [${authId}] 🚨 Request nunca completó - posible bloqueo en red o event loop`);
+        error.isAzureHanging = true;
+      } else if (error.code === 'ECONNRESET') {
+        logger.error(`❌ [${authId}] 🚨 Conexión reseteada por Azure`);
+      } else if (error.code === 'ENOTFOUND') {
+        logger.error(`❌ [${authId}] 🚨 Error de DNS - no se pudo resolver hostname`);
+      } else if (error.code === 'ECONNREFUSED') {
+        logger.error(`❌ [${authId}] 🚨 Conexión rechazada por Azure`);
+      } else if (error.code === 'ETIMEDOUT') {
+        logger.error(`❌ [${authId}] 🚨 Timeout de conexión TCP`);
       } else if (error.response?.status === 401) {
         logger.error(`🔐 [${authId}]   ├── 🎯 UNAUTHORIZED - Key inválida o expirada`);
-        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Verificar Azure subscription key`);
+        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Verificar AZURE_SPEECH_KEY`);
       } else if (error.response?.status === 403) {
         logger.error(`🔐 [${authId}]   ├── 🎯 FORBIDDEN - Sin permisos para TTS`);
         logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Verificar permisos de Speech Services`);
@@ -169,27 +260,8 @@ class AzureTTSRestService {
       };
       
       console.log(`🔍 Request Headers:`, JSON.stringify(requestConfig.headers, null, 2));
-      
-      console.log(`🚀 SENDING REQUEST TO AZURE...`);
-      const requestStartTime = Date.now();
-      
-      // AGREGAR TIMEOUT Y MEDICIÓN DE LATENCIA DETALLADA
-      requestConfig.timeout = 10000; // 10 segundos timeout
-      
-      console.log(`⏱️ LATENCY TRACKING:`);
-      console.log(`  ├── Auth Duration: ${Date.now() - startTime}ms`);
-      console.log(`  ├── Request Start: ${new Date().toISOString()}`);
-      console.log(`  ├── Timeout Set: 10000ms`);
-      console.log(`  └── Target Region: ${this.region} (westeurope)`);
-      
-      const response = await axios.post(
-        `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
-        ssml,
-        requestConfig
-      );
-
       const requestEndTime = Date.now();
-      const requestDuration = requestEndTime - requestStartTime;
+      const requestDuration = requestEndTime - speechStartTime;
       
       console.log(`✅ AZURE RESPONSE ANALYSIS:`);
       console.log(`  ├── Status Code: ${response.status}`);
@@ -198,7 +270,7 @@ class AzureTTSRestService {
       console.log(`  ├── Audio Buffer Type: ${response.data ? typeof response.data : 'undefined'}`);
       console.log(`  ├── Audio Buffer Empty: ${!response.data || response.data.length === 0}`);
       console.log(`  ├── Request Duration: ${requestDuration}ms`);
-      console.log(`  ├── Total Process Time: ${Date.now() - startTime}ms`);
+      console.log(`  ├── Total Process Time: ${Date.now() - speechStartTime}ms`);
       
       // 🔍 ANÁLISIS DETALLADO DEL AUDIO BUFFER
       console.log(`  └── 🎵 AUDIO BUFFER DEEP ANALYSIS:`);
@@ -385,9 +457,37 @@ class AzureTTSRestService {
       console.error('❌ REGIÓN AZURE:', this.region);
       console.error('❌ ERROR DURATION:', errorDuration + 'ms');
       
-      // DETECTAR TIMEOUT ESPECÍFICAMENTE
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        console.error('🔊 ===== TIMEOUT ERROR DETECTED =====');
+      // DETECTAR TIMEOUT ESPECÍFICAMENTE (incluyendo el agresivo)
+      if (error.message?.includes('TTS_AGGRESSIVE_TIMEOUT')) {
+        console.error('🔊 ===== AGGRESSIVE TTS TIMEOUT DETECTED =====');
+        console.error('⏰ AGGRESSIVE TIMEOUT ANALYSIS:');
+        console.error(`  ├── Duration: ${errorDuration}ms`);
+        console.error(`  ├── Aggressive Timeout Limit: 7000ms`);
+        console.error(`  ├── Region: ${this.region}`);
+        console.error(`  ├── Text Length: ${text?.length || 0} chars`);
+        console.error('  └── 🎯 ROOT CAUSE: TTS se colgó en producción (Render issue)');
+        console.error('      ├── Azure TTS hanging in containerized environment');
+        console.error('      ├── Render resource limits causing process hang');
+        console.error('      ├── Event loop blocking in production');
+        console.error('      └── Network/DNS resolution issues');
+        
+        return {
+          success: false,
+          error: 'Azure TTS colgado en producción - usando fallback',
+          cause: 'TTS_HANGING_IN_PRODUCTION',
+          duration: errorDuration,
+          timeout: 7000,
+          region: this.region,
+          isProductionHang: true,
+          recommendations: [
+            'Usar audio de fallback inmediatamente',
+            'Implementar cache de audio pre-generado',
+            'Considerar servicio TTS alternativo',
+            'Monitorear recursos de Render'
+          ]
+        };
+      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.error('🔊 ===== STANDARD TIMEOUT ERROR DETECTED =====');
         console.error('⏰ TIMEOUT ANALYSIS:');
         console.error(`  ├── Duration: ${errorDuration}ms`);
         console.error(`  ├── Timeout Limit: 10000ms`);

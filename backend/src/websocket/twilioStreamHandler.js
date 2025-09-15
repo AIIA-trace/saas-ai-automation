@@ -1,6 +1,8 @@
 const logger = require('../utils/logger');
-const azureTTSService = require('../services/azureTTSRestService');
-const openaiService = require('../services/openaiService');
+const { PrismaClient } = require('@prisma/client');
+const OpenAI = require('openai');
+const azureTTSRestService = require('../services/azureTTSRestService');
+const fallbackAudioService = require('../services/fallbackAudioService');
 const ContextBuilder = require('../utils/contextBuilder');
 const { OpenAI } = require('openai');
 
@@ -613,9 +615,21 @@ class TwilioStreamHandler {
           logger.error(`❌ [${debugId}] Error code: ${ttsError.code}`);
         }
         
-        logger.info(`🔄 [${debugId}] Activando fallback...`);
-        await this.sendTextFallback(ws, greeting, streamSid);
-        throw ttsError;
+        // Detectar si es un timeout/hanging específico de Azure TTS
+        const isAzureHanging = ttsError.message?.includes('AGGRESSIVE_TIMEOUT') || 
+                              ttsError.message?.includes('TTS_AGGRESSIVE_TIMEOUT') ||
+                              ttsError.message?.includes('HANGING_IN_PRODUCTION');
+        
+        if (isAzureHanging) {
+          logger.error(`🚨 [${debugId}] AZURE TTS HANGING DETECTADO - Usando fallback audio`);
+          await this.sendFallbackGreeting(ws, streamSid, debugId);
+        } else {
+          logger.info(`🔄 [${debugId}] Activando fallback de texto...`);
+          await this.sendTextFallback(ws, greeting, streamSid);
+        }
+        
+        // No re-lanzar el error para que la llamada continúe
+        logger.info(`✅ [${debugId}] Fallback completado - llamada puede continuar`);
       }
 
     } catch (error) {
@@ -628,95 +642,136 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Envía audio de fallback usando el servicio de fallback cuando Azure TTS falla
+   */
+  async sendFallbackGreeting(ws, streamSid, debugId) {
+    const fallbackId = `FALLBACK_GREETING_${Date.now()}`;
+    const startTime = Date.now();
+    
+    try {
+      logger.info(`🔔 [${fallbackId}] ===== INICIANDO FALLBACK GREETING =====`);
+      logger.info(`🔔 [${fallbackId}] StreamSid: ${streamSid}`);
+      logger.info(`🔔 [${fallbackId}] WebSocket state: ${ws.readyState}`);
+      logger.info(`🔔 [${fallbackId}] Parent debug ID: ${debugId}`);
+      
+      // Generar audio de fallback usando el servicio
+      logger.info(`🔔 [${fallbackId}] Generando audio de fallback...`);
+      const fallbackResult = fallbackAudioService.generateFallbackGreeting();
+      
+      if (!fallbackResult.success) {
+        logger.error(`❌ [${fallbackId}] Error generando fallback audio: ${fallbackResult.error}`);
+        await this.sendSilentMark(ws, streamSid, 'fallback_generation_failed');
+        return;
+      }
+      
+      const audioBuffer = fallbackResult.audioBuffer;
+      logger.info(`🔔 [${fallbackId}] Fallback audio generado:`);
+      logger.info(`🔔 [${fallbackId}]   ├── Buffer size: ${audioBuffer.length} bytes`);
+      logger.info(`🔔 [${fallbackId}]   ├── Format: ${fallbackResult.audioAnalysis.format}`);
+      logger.info(`🔔 [${fallbackId}]   ├── Duration: ${fallbackResult.audioAnalysis.duration}s`);
+      logger.info(`🔔 [${fallbackId}]   └── Sample rate: ${fallbackResult.audioAnalysis.sampleRate}Hz`);
+      
+      // Enviar el audio de fallback a Twilio
+      logger.info(`🔔 [${fallbackId}] Enviando fallback audio a Twilio...`);
+      await this.sendAudioToTwilio(ws, audioBuffer, streamSid);
+      
+      const totalDuration = Date.now() - startTime;
+      logger.info(`✅ [${fallbackId}] Fallback greeting enviado exitosamente en ${totalDuration}ms`);
+      logger.info(`🔔 [${fallbackId}] ===== FALLBACK GREETING COMPLETADO =====`);
+      
+    } catch (error) {
+      const totalDuration = Date.now() - startTime;
+      logger.error(`❌ [${fallbackId}] Error en fallback greeting (${totalDuration}ms):`);
+      logger.error(`❌ [${fallbackId}] Error: ${error.message}`);
+      logger.error(`❌ [${fallbackId}] Stack: ${error.stack}`);
+      
+      // Último recurso: enviar solo un mark
+      await this.sendSilentMark(ws, streamSid, 'fallback_audio_failed');
+    }
+  }
+
+  /**
+   * Envía un mark silencioso cuando todo falla
+   */
+  async sendSilentMark(ws, streamSid, reason) {
+    try {
+      const markMessage = {
+        event: 'mark',
+        streamSid: streamSid,
+        mark: {
+          name: `silent_fallback_${reason}_${Date.now()}`
+        }
+      };
+      
+      if (ws.readyState === 1) {
+        ws.send(JSON.stringify(markMessage));
+        logger.info(`🔇 Mark silencioso enviado: ${reason}`);
+      }
+    } catch (error) {
+      logger.error(`❌ Error enviando mark silencioso: ${error.message}`);
+    }
+  }
+
+  /**
    * Fallback para enviar audio simple cuando Azure TTS falla - DEBUG DETALLADO
    */
   async sendTextFallback(ws, text, streamSid) {
     const fallbackId = `FALLBACK_${Date.now()}`;
     
     try {
-      logger.info(`🔄 [${fallbackId}] ===== INICIANDO FALLBACK =====`);
+      logger.info(`🔄 [${fallbackId}] ===== INICIANDO TEXT FALLBACK =====`);
       logger.info(`🔄 [${fallbackId}] Texto original: "${text}"`);
       logger.info(`🔄 [${fallbackId}] StreamSid: ${streamSid}`);
       logger.info(`🔄 [${fallbackId}] WebSocket state: ${ws.readyState}`);
       
-      // DIAGNÓSTICO COMPLETO DEL MÉTODO sendAudioToTwilio
-      logger.info(`🔍 [${fallbackId}] VERIFICANDO MÉTODO sendAudioToTwilio:`);
-      logger.info(`🔍 [${fallbackId}]   ├── this existe: ${!!this}`);
-      logger.info(`🔍 [${fallbackId}]   ├── this.sendAudioToTwilio existe: ${!!this.sendAudioToTwilio}`);
-      logger.info(`🔍 [${fallbackId}]   ├── Tipo de sendAudioToTwilio: ${typeof this.sendAudioToTwilio}`);
-      logger.info(`🔍 [${fallbackId}]   └── Es función: ${typeof this.sendAudioToTwilio === 'function'}`);
+      // Usar el servicio de fallback para generar audio
+      logger.info(`🔄 [${fallbackId}] Generando audio de respuesta fallback...`);
+      const fallbackResult = fallbackAudioService.generateFallbackResponse();
       
-      if (typeof this.sendAudioToTwilio !== 'function') {
-        logger.error(`❌ [${fallbackId}] MÉTODO sendAudioToTwilio NO DISPONIBLE:`);
-        logger.error(`❌ [${fallbackId}]   ├── PROBLEMA: this.sendAudioToTwilio no es una función`);
-        logger.error(`❌ [${fallbackId}]   ├── TIPO ACTUAL: ${typeof this.sendAudioToTwilio}`);
-        logger.error(`❌ [${fallbackId}]   ├── ESPERADO: function`);
-        logger.error(`❌ [${fallbackId}]   ├── CAUSA RAÍZ: Método no definido o contexto 'this' incorrecto`);
-        logger.error(`❌ [${fallbackId}]   ├── SOLUCIÓN: Verificar definición de clase y binding`);
-        logger.error(`❌ [${fallbackId}]   └── ACCIÓN: Saltando envío de beep, solo enviando mark`);
-        
-        // Solo enviar mark sin audio
-        const markMessage = {
-          event: 'mark',
-          streamSid: streamSid,
-          mark: {
-            name: `tts_fallback_no_audio_${Date.now()}`
-          }
-        };
-        
-        if (ws.readyState === 1) {
-          ws.send(JSON.stringify(markMessage));
-          logger.info(`✅ [${fallbackId}] Mark enviado sin audio debido a método faltante`);
-        }
+      if (!fallbackResult.success) {
+        logger.error(`❌ [${fallbackId}] Error generando fallback: ${fallbackResult.error}`);
+        await this.sendSilentMark(ws, streamSid, 'text_fallback_failed');
         return;
       }
       
-      // Intentar generar un beep simple como audio de fallback
-      logger.info(`🔄 [${fallbackId}] Generando beep de fallback...`);
-      const fallbackAudio = this.generateSimpleBeep();
+      const fallbackAudio = fallbackResult.audioBuffer;
+      logger.info(`🔄 [${fallbackId}] Fallback audio generado: ${fallbackAudio.length} bytes`);
       
-      if (fallbackAudio) {
-        logger.info(`🔄 [${fallbackId}] Beep generado: ${fallbackAudio.length} bytes`);
-        
-        if (ws.readyState === 1) {
-          logger.info(`🔄 [${fallbackId}] Enviando beep a Twilio...`);
-          try {
-            await this.sendAudioToTwilio(ws, fallbackAudio, streamSid);
-            logger.info(`✅ [${fallbackId}] Beep enviado exitosamente`);
-          } catch (sendError) {
-            logger.error(`❌ [${fallbackId}] ERROR EN sendAudioToTwilio:`);
-            logger.error(`❌ [${fallbackId}]   ├── Error: ${sendError.message}`);
-            logger.error(`❌ [${fallbackId}]   ├── Stack: ${sendError.stack?.substring(0, 100)}...`);
-            logger.error(`❌ [${fallbackId}]   ├── CAUSA RAÍZ: Excepción en método sendAudioToTwilio`);
-            logger.error(`❌ [${fallbackId}]   └── ACCIÓN: Continuando con mark solamente`);
-          }
-        } else {
-          logger.error(`❌ [${fallbackId}] WebSocket no disponible para beep (state: ${ws.readyState})`);
+      if (ws.readyState === 1) {
+        logger.info(`🔄 [${fallbackId}] Enviando audio fallback a Twilio...`);
+        try {
+          await this.sendAudioToTwilio(ws, fallbackAudio, streamSid);
+          logger.info(`✅ [${fallbackId}] Audio fallback enviado exitosamente`);
+        } catch (sendError) {
+          logger.error(`❌ [${fallbackId}] ERROR EN sendAudioToTwilio:`);
+          logger.error(`❌ [${fallbackId}]   ├── Error: ${sendError.message}`);
+          logger.error(`❌ [${fallbackId}]   ├── Stack: ${sendError.stack?.substring(0, 100)}...`);
+          logger.error(`❌ [${fallbackId}]   ├── CAUSA RAÍZ: Excepción en método sendAudioToTwilio`);
+          logger.error(`❌ [${fallbackId}]   └── ACCIÓN: Continuando con mark solamente`);
         }
       } else {
-        logger.error(`❌ [${fallbackId}] BEEP NO GENERADO:`);
-        logger.error(`❌ [${fallbackId}]   ├── PROBLEMA: generateSimpleBeep() devolvió null/undefined`);
-        logger.error(`❌ [${fallbackId}]   ├── CAUSA RAÍZ: Error en generación de audio sintético`);
-        logger.error(`❌ [${fallbackId}]   └── ACCIÓN: Continuando sin audio de fallback`);
+        logger.error(`❌ [${fallbackId}] WebSocket no disponible para audio (state: ${ws.readyState})`);
       }
       
-      // También enviar un mark para indicar que hubo un problema
+      // Enviar un mark para indicar que se usó fallback
       const markMessage = {
         event: 'mark',
         streamSid: streamSid,
         mark: {
-          name: `tts_fallback_${Date.now()}`
+          name: `text_fallback_completed_${Date.now()}`
         }
       };
       
       if (ws.readyState === 1) {
         ws.send(JSON.stringify(markMessage));
+        logger.info(`✅ [${fallbackId}] Mark de fallback enviado`);
       }
       
-      logger.info(`✅ Fallback enviado para ${streamSid}`);
+      logger.info(`🔄 [${fallbackId}] ===== TEXT FALLBACK COMPLETADO =====`);
       
     } catch (error) {
-      logger.error(`❌ Error enviando fallback: ${error.message}`);
+      logger.error(`❌ [${fallbackId}] Error en text fallback: ${error.message}`);
+      await this.sendSilentMark(ws, streamSid, 'text_fallback_error');
     }
   }
 
