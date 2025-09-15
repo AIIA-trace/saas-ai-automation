@@ -255,6 +255,8 @@ class TwilioStreamHandler {
       this.activeStreams.delete(streamSid);
       this.audioBuffers.delete(streamSid);
       this.conversationState.delete(streamSid);
+      this.outboundAudioQueue.delete(streamSid);
+      this.ttsInProgress.delete(streamSid);
       
       throw error; // Re-lanzar el error para que se capture en el nivel superior
     }
@@ -582,7 +584,8 @@ class TwilioStreamHandler {
         logger.info(`🔍 [${debugId}] PASO 8: Enviando audio a Twilio...`);
         const sendStartTime = Date.now();
         
-        await this.sendAudioToTwilio(ws, audioBuffer, streamSid);
+        // En lugar de enviar directamente, preparar chunks para la cola
+        await this.prepareAudioForQueue(ws, audioBuffer, streamSid);
         
         const sendEndTime = Date.now();
         const sendDuration = sendEndTime - sendStartTime;
@@ -715,7 +718,81 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Enviar audio a Twilio via WebSocket
+   * Preparar audio para la cola de outbound
+   */
+  async prepareAudioForQueue(ws, audioBuffer, streamSid) {
+    const prepareId = `PREPARE_${Date.now()}`;
+    
+    try {
+      logger.info(`🔍 [${prepareId}] ===== PREPARANDO AUDIO PARA COLA =====`);
+      logger.info(`🔍 [${prepareId}] StreamSid: ${streamSid}`);
+      logger.info(`🔍 [${prepareId}] Audio buffer: ${audioBuffer ? audioBuffer.length : 0} bytes`);
+      
+      if (!audioBuffer || audioBuffer.length === 0) {
+        logger.error(`❌ [${prepareId}] Buffer vacío, no se puede preparar audio`);
+        return;
+      }
+      
+      // Procesar audio igual que antes
+      let detectedFormat = 'DESCONOCIDO';
+      let processedAudio;
+      
+      // Detectar formato
+      if (audioBuffer.length >= 2) {
+        const byte1 = audioBuffer[0];
+        const byte2 = audioBuffer[1];
+        
+        if (byte1 === 0xFF && (byte2 & 0xE0) === 0xE0) {
+          detectedFormat = 'MP3';
+        } else if (audioBuffer.length >= 4 && audioBuffer.toString('ascii', 0, 4) === 'RIFF') {
+          detectedFormat = 'WAV';
+        } else {
+          detectedFormat = 'PCM_O_MULAW';
+        }
+      }
+      
+      logger.info(`🎵 [${prepareId}] Formato detectado: ${detectedFormat}`);
+      
+      // Procesar según formato
+      if (detectedFormat === 'WAV') {
+        const pcmData = this.extractPCMFromWAV(audioBuffer);
+        if (pcmData) {
+          processedAudio = this.convertPCMToMulaw(pcmData);
+          logger.info(`🎵 [${prepareId}] WAV→PCM→mulaw: ${processedAudio.length} bytes`);
+        } else {
+          processedAudio = audioBuffer;
+        }
+      } else {
+        processedAudio = audioBuffer;
+      }
+      
+      // Dividir en chunks para la cola
+      const base64Audio = processedAudio.toString('base64');
+      const chunkSize = 1024;
+      const chunks = [];
+      
+      for (let i = 0; i < base64Audio.length; i += chunkSize) {
+        chunks.push(base64Audio.substring(i, i + chunkSize));
+      }
+      
+      logger.info(`📦 [${prepareId}] Audio dividido en ${chunks.length} chunks`);
+      
+      // Agregar chunks a la cola
+      const currentQueue = this.outboundAudioQueue.get(streamSid) || [];
+      currentQueue.push(...chunks);
+      this.outboundAudioQueue.set(streamSid, currentQueue);
+      
+      logger.info(`✅ [${prepareId}] ${chunks.length} chunks agregados a la cola`);
+      logger.info(`📊 [${prepareId}] Cola actual: ${currentQueue.length} chunks`);
+      
+    } catch (error) {
+      logger.error(`❌ [${prepareId}] Error preparando audio: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Enviar audio a Twilio via WebSocket (método original mantenido para compatibilidad)
    */
   async sendAudioToTwilio(ws, audioBuffer, streamSid) {
     const sendId = `SEND_${Date.now()}`;
@@ -1007,6 +1084,37 @@ class TwilioStreamHandler {
       return;
     }
 
+    // Manejar audio outbound (chunks vacíos mientras Azure TTS procesa)
+    if (data.media.track === 'outbound') {
+      logger.info(`📤 Chunk outbound recibido: ${data.media.chunk}, timestamp: ${data.media.timestamp}`);
+      logger.info(`📤 Payload preview: ${data.media.payload.substring(0, 20)}...`);
+      
+      // Si tenemos audio en cola, enviarlo
+      const audioQueue = this.outboundAudioQueue.get(streamSid) || [];
+      if (audioQueue.length > 0) {
+        const audioChunk = audioQueue.shift();
+        this.outboundAudioQueue.set(streamSid, audioQueue);
+        
+        // Enviar chunk de audio real
+        const mediaMessage = {
+          event: 'media',
+          streamSid: streamSid,
+          media: {
+            track: 'outbound',
+            chunk: data.media.chunk,
+            timestamp: data.media.timestamp,
+            payload: audioChunk
+          }
+        };
+        
+        if (ws.readyState === 1) {
+          ws.send(JSON.stringify(mediaMessage));
+          logger.info(`📤 Audio chunk enviado: ${audioChunk.length} bytes`);
+        }
+      }
+      return;
+    }
+
     // Solo procesar audio entrante (inbound)
     if (data.media.track === 'inbound') {
       logger.info(`🔊 Procesando chunk de audio inbound: ${data.media.payload.length} bytes`);
@@ -1171,6 +1279,8 @@ class TwilioStreamHandler {
       this.activeStreams.delete(streamSidToClean);
       this.audioBuffers.delete(streamSidToClean);
       this.conversationState.delete(streamSidToClean);
+      this.outboundAudioQueue.delete(streamSidToClean);
+      this.ttsInProgress.delete(streamSidToClean);
       logger.info(`🧹 Stream limpiado: ${streamSidToClean}`);
     }
   }
