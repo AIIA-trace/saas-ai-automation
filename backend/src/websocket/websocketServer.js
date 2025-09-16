@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
 const http = require('http');
 const url = require('url');
+const twilio = require('twilio');
 const logger = require('../utils/logger');
 const TwilioStreamHandler = require('./twilioStreamHandler');
 const azureTTSRestService = require('../services/azureTTSRestService');
@@ -65,6 +66,31 @@ class WebSocketServer {
     const { origin, req } = info;
     const userAgent = req.headers['user-agent'] || '';
     const host = req.headers['host'] || '';
+    
+    // Validar X-Twilio-Signature para autenticación segura
+    const twilioSignature = req.headers['x-twilio-signature'];
+    if (twilioSignature && process.env.TWILIO_AUTH_TOKEN) {
+      try {
+        const url = `wss://${req.headers.host}${req.url}`;
+        const params = {}; // WebSocket no tiene body params como HTTP
+        
+        const isValidSignature = twilio.validateRequest(
+          process.env.TWILIO_AUTH_TOKEN,
+          twilioSignature,
+          url,
+          params
+        );
+        
+        if (isValidSignature) {
+          logger.info(`✅ Conexión WebSocket autorizada con X-Twilio-Signature válida`);
+          return true;
+        } else {
+          logger.warn(`❌ X-Twilio-Signature inválida para WebSocket`);
+        }
+      } catch (error) {
+        logger.error(`❌ Error validando X-Twilio-Signature: ${error.message}`);
+      }
+    }
     
     // Verificar que viene de Twilio (múltiples patrones)
     if (userAgent.includes('TwilioProxy') || 

@@ -80,167 +80,49 @@ class AzureTTSRestService {
 
   async getAuthToken() {
     const authId = `AUTH_${Date.now()}`;
-    const authStartTime = Date.now();
-    logger.info(`🔐 [${authId}] ===== AZURE AUTHENTICATION START =====`);
-    logger.info(`🔐 [${authId}] Región: ${this.region}`);
-    logger.info(`🔐 [${authId}] Key presente: ${!!this.subscriptionKey}`);
-    logger.info(`🔐 [${authId}] Key length: ${this.subscriptionKey ? this.subscriptionKey.length : 0}`);
-    logger.info(`🔐 [${authId}] Key preview: ${this.subscriptionKey ? this.subscriptionKey.substring(0, 8) + '...' : 'MISSING'}`);
+    logger.info(`🔐 [${authId}] Solicitando NUEVO token de Azure...`);
     
-    const tokenUrl = `https://${this.region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`;
-    logger.info(`🔐 [${authId}] Token URL: ${tokenUrl}`);
-
     try {
-      const hrtimeStart = process.hrtime();
-      const memBefore = process.memoryUsage();
-      
-      logger.info(`🔐 [${authId}] 🚀 PASO 1: Iniciando petición de token`);
-      logger.info(`🔐 [${authId}] 📊 Memoria inicial: RSS=${Math.round(memBefore.rss/1024/1024)}MB, Heap=${Math.round(memBefore.heapUsed/1024/1024)}MB`);
-      
-      // Monitorear event loop lag
-      const eventLoopStart = process.hrtime();
-      setImmediate(() => {
-        const [seconds, nanoseconds] = process.hrtime(eventLoopStart);
-        const lagMs = Math.round(seconds * 1000 + nanoseconds / 1000000);
-        if (lagMs > 10) {
-          logger.warn(`🔐 [${authId}] ⚠️ Event loop lag detectado: ${lagMs}ms`);
-        }
-      });
-      
-      logger.info(`🔐 [${authId}] 🚀 PASO 2: Creando timeout promise`);
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          const [seconds, nanoseconds] = process.hrtime(hrtimeStart);
-          const elapsedMs = Math.round(seconds * 1000 + nanoseconds / 1000000);
-          const memAfter = process.memoryUsage();
-          logger.error(`🔐 [${authId}] ❌ TIMEOUT TRIGGERED después de ${elapsedMs}ms`);
-          logger.error(`🔐 [${authId}] 📊 Memoria al timeout: RSS=${Math.round(memAfter.rss/1024/1024)}MB, Heap=${Math.round(memAfter.heapUsed/1024/1024)}MB`);
-          reject(new Error(`AGGRESSIVE_TIMEOUT: Auth request hung after ${elapsedMs}ms`));
-        }, 3000);
-      });
-      
-      logger.info(`🔐 [${authId}] 🚀 PASO 3: Creando axios request`);
-      const axiosStart = process.hrtime();
-      
-      // Interceptar eventos de axios para debugging
-      const axiosInstance = axios.create({
-        timeout: 5000,
-        headers: {
-          'Ocp-Apim-Subscription-Key': this.subscriptionKey,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-      
-      // Interceptor de request
-      axiosInstance.interceptors.request.use(config => {
-        const [seconds, nanoseconds] = process.hrtime(axiosStart);
-        const setupTime = Math.round(seconds * 1000 + nanoseconds / 1000000);
-        logger.info(`🔐 [${authId}] 📤 Request interceptor: setup tomó ${setupTime}ms`);
-        logger.info(`🔐 [${authId}] 📤 URL: ${config.url}`);
-        return config;
-      });
-      
-      // Interceptor de response
-      axiosInstance.interceptors.response.use(
-        response => {
-          const [seconds, nanoseconds] = process.hrtime(axiosStart);
-          const totalTime = Math.round(seconds * 1000 + nanoseconds / 1000000);
-          logger.info(`🔐 [${authId}] 📥 Response recibida en ${totalTime}ms`);
-          logger.info(`🔐 [${authId}] 📥 Status: ${response.status}`);
-          return response;
-        },
-        error => {
-          const [seconds, nanoseconds] = process.hrtime(axiosStart);
-          const totalTime = Math.round(seconds * 1000 + nanoseconds / 1000000);
-          logger.error(`🔐 [${authId}] ❌ Error en axios después de ${totalTime}ms: ${error.message}`);
-          if (error.code) logger.error(`🔐 [${authId}] ❌ Error code: ${error.code}`);
-          return Promise.reject(error);
+      const response = await axios.post(
+        `https://${this.region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`,
+        null,
+        {
+          headers: {
+            'Ocp-Apim-Subscription-Key': this.subscriptionKey,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          timeout: 10000
         }
       );
       
-      logger.info(`🔐 [${authId}] 🚀 PASO 4: Ejecutando POST request`);
-      const requestPromise = axiosInstance.post(tokenUrl, null);
-      
-      logger.info(`🔐 [${authId}] 🚀 PASO 5: Iniciando Promise.race`);
-      const raceStart = process.hrtime();
-      const response = await Promise.race([requestPromise, timeoutPromise]);
-      
-      const [raceSeconds, raceNanoseconds] = process.hrtime(raceStart);
-      const raceDuration = Math.round(raceSeconds * 1000 + raceNanoseconds / 1000000);
-      logger.info(`🔐 [${authId}] ✅ Promise.race completado en ${raceDuration}ms`);
-
-      const authDuration = Date.now() - authStartTime;
-      logger.info(`🔐 [${authId}] ✅ Token obtenido exitosamente en ${authDuration}ms`);
-      logger.info(`🔐 [${authId}] Response status: ${response.status}`);
-      logger.info(`🔐 [${authId}] Token length: ${response.data ? response.data.length : 0}`);
-      
       this.token = response.data;
       this.tokenExpiration = Date.now() + 9 * 60 * 1000; // 9 minutos de validez
+      
+      logger.info(`🔐 [${authId}] ✅ Token obtenido y cacheado por 9 minutos`);
       return this.token;
 
     } catch (error) {
-      const [totalSeconds, totalNanoseconds] = process.hrtime(hrtimeStart);
-      const totalDuration = Math.round(totalSeconds * 1000 + totalNanoseconds / 1000000);
-      const memFinal = process.memoryUsage();
-      const authDuration = Date.now() - authStartTime;
+      logger.error(`❌ [${authId}] Error obteniendo token: ${error.message}`);
       
-      logger.error(`❌ [${authId}] Error después de ${totalDuration}ms: ${error.message}`);
-      logger.error(`❌ [${authId}] 📊 Memoria final: RSS=${Math.round(memFinal.rss/1024/1024)}MB, Heap=${Math.round(memFinal.heapUsed/1024/1024)}MB`);
-      
-      // Análisis detallado del error
-      if (error.code) {
-        logger.error(`❌ [${authId}] Error code: ${error.code}`);
-      }
-      if (error.errno) {
-        logger.error(`❌ [${authId}] Error errno: ${error.errno}`);
-      }
-      if (error.syscall) {
-        logger.error(`❌ [${authId}] Error syscall: ${error.syscall}`);
-      }
-      if (error.hostname) {
-        logger.error(`❌ [${authId}] Error hostname: ${error.hostname}`);
-      }
-      
-      // Detectar tipo específico de error
-      if (error.message && error.message.includes('AGGRESSIVE_TIMEOUT')) {
-        logger.error(`❌ [${authId}] 🚨 AZURE TTS HANGING DETECTADO - Timeout agresivo tras ${totalDuration}ms`);
-        logger.error(`❌ [${authId}] 🚨 Request nunca completó - posible bloqueo en red o event loop`);
-        error.isAzureHanging = true;
-      } else if (error.code === 'ECONNRESET') {
-        logger.error(`❌ [${authId}] 🚨 Conexión reseteada por Azure`);
-      } else if (error.code === 'ENOTFOUND') {
-        logger.error(`❌ [${authId}] 🚨 Error de DNS - no se pudo resolver hostname`);
-      } else if (error.code === 'ECONNREFUSED') {
-        logger.error(`❌ [${authId}] 🚨 Conexión rechazada por Azure`);
-      } else if (error.code === 'ETIMEDOUT') {
-        logger.error(`❌ [${authId}] 🚨 Timeout de conexión TCP`);
-      } else if (error.response?.status === 401) {
-        logger.error(`🔐 [${authId}]   ├── 🎯 UNAUTHORIZED - Key inválida o expirada`);
-        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Verificar AZURE_SPEECH_KEY`);
+      if (error.response?.status === 401) {
+        logger.error(`🔐 [${authId}] UNAUTHORIZED - Key inválida`);
       } else if (error.response?.status === 403) {
-        logger.error(`🔐 [${authId}]   ├── 🎯 FORBIDDEN - Sin permisos para TTS`);
-        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Verificar permisos de Speech Services`);
+        logger.error(`🔐 [${authId}] FORBIDDEN - Sin permisos`);
       } else if (error.response?.status === 429) {
-        logger.error(`🔐 [${authId}]   ├── 🎯 RATE LIMIT - Demasiadas peticiones`);
-        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Esperar antes de reintentar`);
-      } else if (!error.response) {
-        logger.error(`🔐 [${authId}]   ├── 🎯 NETWORK ERROR - Sin respuesta del servidor`);
-        logger.error(`🔐 [${authId}]   └── 🔧 SOLUCIÓN: Verificar conectividad a Azure`);
+        logger.error(`🔐 [${authId}] RATE LIMIT - Demasiadas peticiones`);
       }
       
-      if (error.response?.data) {
-        const errorData = Buffer.isBuffer(error.response.data) 
-          ? error.response.data.toString('utf8') 
-          : error.response.data;
-        logger.error(`🔐 [${authId}]   └── Azure Response: ${errorData}`);
-      }
-      
-      logger.error(`🔐 [${authId}] ===== AZURE AUTHENTICATION FAILED =====`);
       throw error;
     }
   }
 
   async generateSpeech(text, voice = 'es-ES-DarioNeural', format = 'riff-16khz-16bit-mono-pcm') {
+    // MAPEAR FORMATO PARA TWILIO COMPATIBILITY
+    let azureFormat = format;
+    if (format === 'raw-8khz-8bit-mono-mulaw') {
+      azureFormat = 'raw-8khz-8bit-mono-mulaw';
+      logger.info(`🎵 Usando formato mulaw directo para Twilio: ${azureFormat}`);
+    }
     const speechStartTime = Date.now();
     const startTime = speechStartTime;
     console.log(`🔊 ===== AZURE TTS AUDIO GENERATION START =====`);
@@ -314,7 +196,7 @@ class AzureTTSRestService {
         headers: {
           'Ocp-Apim-Subscription-Key': this.subscriptionKey,
           'Content-Type': 'application/ssml+xml',
-          'X-Microsoft-OutputFormat': format,
+          'X-Microsoft-OutputFormat': azureFormat,
           'User-Agent': 'Mozilla/5.0 (compatible; TTS-Service/1.0)',
           'Accept': 'audio/wav, audio/*',
           'Cache-Control': 'no-cache',
@@ -482,33 +364,59 @@ class AzureTTSRestService {
       const buffer = Buffer.from(response.data);
       const header = buffer.subarray(0, 4).toString('ascii');
       
-      if (header !== 'RIFF') {
-        console.error(`❌ INVALID AUDIO FORMAT DETECTED:`);
-        console.error(`  ├── Expected: "RIFF" header for PCM audio`);
-        console.error(`  ├── Received: "${header}" (${buffer.subarray(0, 4).toString('hex')})`);
-        console.error(`  ├── Buffer length: ${buffer.length} bytes`);
-        console.error(`  ├── First 32 bytes: ${buffer.subarray(0, 32).toString('hex')}`);
-        console.error(`  └── 🎯 ROOT CAUSE: Azure returned invalid audio format`);
-        
-        return {
-          success: false,
-          error: 'Formato de audio inválido desde Azure',
-          cause: 'INVALID_AUDIO_FORMAT',
-          expectedHeader: 'RIFF',
-          receivedHeader: header,
-          bufferLength: buffer.length,
-          diagnosis: 'Azure TTS returned data but not in expected PCM format'
-        };
+      // Validar formato según lo solicitado
+      if (azureFormat === 'raw-8khz-8bit-mono-mulaw') {
+        // Para mulaw, no esperamos header RIFF
+        console.log(`🎵 MULAW FORMAT VALIDATION:`);
+        console.log(`  ├── Format requested: ${azureFormat}`);
+        console.log(`  ├── Buffer length: ${buffer.length} bytes`);
+        console.log(`  ├── First 16 bytes: ${buffer.subarray(0, 16).toString('hex')}`);
+        console.log(`  └── ✅ Raw mulaw format - no RIFF header expected`);
+      } else {
+        // Para PCM, esperamos header RIFF
+        if (header !== 'RIFF') {
+          console.error(`❌ INVALID AUDIO FORMAT DETECTED:`);
+          console.error(`  ├── Expected: "RIFF" header for PCM audio`);
+          console.error(`  ├── Received: "${header}" (${buffer.subarray(0, 4).toString('hex')})`);
+          console.error(`  ├── Buffer length: ${buffer.length} bytes`);
+          console.error(`  ├── First 32 bytes: ${buffer.subarray(0, 32).toString('hex')}`);
+          console.error(`  └── 🎯 ROOT CAUSE: Azure returned invalid audio format`);
+          
+          return {
+            success: false,
+            error: 'Formato de audio inválido desde Azure',
+            cause: 'INVALID_AUDIO_FORMAT',
+            expectedHeader: 'RIFF',
+            receivedHeader: header,
+            bufferLength: buffer.length,
+            diagnosis: 'Azure TTS returned data but not in expected PCM format'
+          };
+        }
       }
       
       // 🔍 VALIDACIÓN DE CONTENIDO DE AUDIO (SILENCIO)
-      const nonZeroBytes = buffer.filter(byte => byte !== 0).length;
-      const zeroPercentage = ((buffer.length - nonZeroBytes) / buffer.length * 100);
+      let nonZeroBytes, zeroPercentage;
+      
+      if (azureFormat === 'raw-8khz-8bit-mono-mulaw') {
+        // Para mulaw, el silencio es 0xFF (255), no 0x00
+        const silentBytes = buffer.filter(byte => byte === 0xFF).length;
+        nonZeroBytes = buffer.length - silentBytes;
+        zeroPercentage = (silentBytes / buffer.length * 100);
+        
+        console.log(`🎵 MULAW SILENCE ANALYSIS:`);
+        console.log(`  ├── Silent bytes (0xFF): ${silentBytes}/${buffer.length}`);
+        console.log(`  ├── Audio bytes: ${nonZeroBytes}/${buffer.length}`);
+        console.log(`  └── Silence percentage: ${zeroPercentage.toFixed(1)}%`);
+      } else {
+        // Para PCM, el silencio es 0x00
+        nonZeroBytes = buffer.filter(byte => byte !== 0).length;
+        zeroPercentage = ((buffer.length - nonZeroBytes) / buffer.length * 100);
+      }
       
       if (zeroPercentage > 95) {
         console.error(`❌ SILENT AUDIO DETECTED:`);
-        console.error(`  ├── Audio buffer is ${zeroPercentage.toFixed(1)}% zeros`);
-        console.error(`  ├── Non-zero bytes: ${nonZeroBytes}/${buffer.length}`);
+        console.error(`  ├── Audio buffer is ${zeroPercentage.toFixed(1)}% silent`);
+        console.error(`  ├── Non-silent bytes: ${nonZeroBytes}/${buffer.length}`);
         console.error(`  ├── This will result in no audible sound`);
         console.error(`  └── 🎯 ROOT CAUSE: Azure generated silent/empty audio`);
         
@@ -525,17 +433,25 @@ class AzureTTSRestService {
       
       console.log(`🔊 ===== AZURE TTS DEBUG SUCCESS =====`);
       console.log(`✅ AUDIO VALIDATION PASSED:`);
-      console.log(`  ├── Valid RIFF/PCM format: ✓`);
-      console.log(`  ├── Audio content present: ✓ (${zeroPercentage.toFixed(1)}% zeros)`);
-      console.log(`  ├── Buffer size: ${buffer.length} bytes`);
-      console.log(`  └── Ready for mulaw conversion and Twilio streaming`);
+      
+      if (azureFormat === 'raw-8khz-8bit-mono-mulaw') {
+        console.log(`  ├── Valid RAW mulaw format: ✓`);
+        console.log(`  ├── Audio content present: ✓ (${zeroPercentage.toFixed(1)}% silent)`);
+        console.log(`  ├── Buffer size: ${buffer.length} bytes`);
+        console.log(`  └── Ready for direct Twilio streaming (no conversion needed)`);
+      } else {
+        console.log(`  ├── Valid RIFF/PCM format: ✓`);
+        console.log(`  ├── Audio content present: ✓ (${zeroPercentage.toFixed(1)}% zeros)`);
+        console.log(`  ├── Buffer size: ${buffer.length} bytes`);
+        console.log(`  └── Ready for mulaw conversion and Twilio streaming`);
+      }
       
       return {
         success: true,
         audioBuffer: response.data,
         contentType: response.headers['content-type'],
         audioAnalysis: {
-          format: 'RIFF/PCM',
+          format: azureFormat === 'raw-8khz-8bit-mono-mulaw' ? 'RAW_MULAW' : 'RIFF/PCM',
           bufferSize: buffer.length,
           zeroPercentage: zeroPercentage,
           nonZeroBytes: nonZeroBytes,
