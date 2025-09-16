@@ -3,12 +3,24 @@ const http = require('http');
 const url = require('url');
 const logger = require('../utils/logger');
 const TwilioStreamHandler = require('./twilioStreamHandler');
+const azureTTSRestService = require('../services/azureTTSRestService');
+const OpenAI = require('openai');
+const { PrismaClient } = require('@prisma/client');
 
 class WebSocketServer {
   constructor(server) {
     this.server = server;
     this.wss = null;
-    this.streamHandler = new TwilioStreamHandler();
+    
+    // Initialize required services for TwilioStreamHandler
+    this.ttsService = azureTTSRestService;
+    this.openaiService = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+    this.prisma = new PrismaClient();
+    
+    // Initialize TwilioStreamHandler with required services
+    this.streamHandler = new TwilioStreamHandler(this.ttsService, this.openaiService, this.prisma);
     this.activeConnections = new Map();
   }
 
@@ -148,7 +160,7 @@ class WebSocketServer {
   /**
    * Cerrar servidor WebSocket
    */
-  close() {
+  async close() {
     try {
       if (this.wss) {
         // Cerrar todas las conexiones activas
@@ -162,6 +174,12 @@ class WebSocketServer {
         this.wss.close(() => {
           logger.info('✅ Servidor WebSocket cerrado');
         });
+      }
+
+      // Cerrar conexión Prisma
+      if (this.prisma) {
+        await this.prisma.$disconnect();
+        logger.info('✅ Conexión Prisma cerrada');
       }
     } catch (error) {
       logger.error(`❌ Error cerrando WebSocket server: ${error.message}`);
