@@ -106,7 +106,7 @@ class TwilioStreamHandler {
       
       try {
         logger.info(`🔊 [${streamSid}] Generando ÚNICO saludo...`);
-        await this.sendInitialGreeting(ws, { streamSid, callSid });
+        await this.sendInitialGreeting(ws, { streamSid, callSid, clientConfig });
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
@@ -122,7 +122,7 @@ class TwilioStreamHandler {
   /**
    * Generar saludo inicial - SOLO UNA VEZ POR STREAM
    */
-  async sendInitialGreeting(ws, { streamSid, callSid }) {
+  async sendInitialGreeting(ws, { streamSid, callSid, clientConfig }) {
     const streamData = this.activeStreams.get(streamSid);
     if (!streamData?.client) {
       logger.error(`❌ [${streamSid}] Sin configuración de cliente`);
@@ -142,9 +142,17 @@ class TwilioStreamHandler {
     });
 
     const greeting = clientConfig.callConfig.greeting;
+    logger.info(`🔊 [${streamSid}] Using greeting from DB: "${greeting}"`);
+    
     const voiceId = streamData.client.callConfig?.voiceId || 'es-ES-DarioNeural';
     
     logger.info(`🔊 [${streamSid}] Generando saludo: "${greeting.substring(0, 50)}..."`);
+    
+    // Verificar longitud mínima (10 caracteres)
+    if (greeting.length < 10) {
+      logger.warn(`⚠️ [${streamSid}] Saludo muy corto (${greeting.length} chars). Usando saludo extendido.`);
+      return await this.sendExtendedGreeting(ws, streamSid, clientConfig);
+    }
     
     try {
       // 1. Reutilizar token o obtener nuevo
@@ -173,10 +181,32 @@ class TwilioStreamHandler {
     }
   }
 
+  async sendExtendedGreeting(ws, streamSid, clientConfig) {
+    const fallbackGreeting = "Gracias por llamar. Estamos conectándote con un asistente. Por favor, espera un momento.";
+    const voiceId = clientConfig.callConfig?.voiceId || 'es-ES-DarioNeural';
+  
+    logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con voz: ${voiceId}`);
+  
+    const ttsResult = await this.ttsService.generateSpeech(
+      fallbackGreeting,
+      voiceId,
+      'raw-8khz-8bit-mono-mulaw'
+    );
+  
+    if (ttsResult.success) {
+      await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
+      logger.debug(`🔊 [${streamSid}] Llamada a sendRawMulawToTwilio completada (fallback)`);
+    }
+  }
+
   async sendRawMulawToTwilio(ws, mulawBuffer, streamSid) {
     const chunkSize = 160;
     let offset = 0;
-
+    let chunkCount = 0;
+    const startTime = Date.now();
+    
+    logger.debug(`🎵 [${streamSid}] Iniciando envío de audio (${mulawBuffer.length} bytes)`);
+    
     while (offset < mulawBuffer.length) {
       const chunk = mulawBuffer.subarray(offset, offset + chunkSize);
       const base64Chunk = chunk.toString('base64');
@@ -187,8 +217,12 @@ class TwilioStreamHandler {
         media: { payload: base64Chunk }
       }));
       
+      chunkCount++;
       offset += chunkSize;
     }
+    
+    const duration = Date.now() - startTime;
+    logger.info(`✅ [${streamSid}] Audio enviado: ${chunkCount} chunks en ${duration}ms`);
   }
 
   generateFallbackAudio() {
