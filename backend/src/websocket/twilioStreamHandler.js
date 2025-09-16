@@ -1,7 +1,6 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const azureTTSRestService = require('../services/azureTTSRestService');
-const speechToTextService = require('../services/speechToTextService');
 
 class TwilioStreamHandler {
   constructor() {
@@ -294,22 +293,8 @@ class TwilioStreamHandler {
     const streamSid = data.streamSid;
     const payload = data.media.payload;
     
-    // Decodificar audio del caller
-    const audioBuffer = Buffer.from(payload, 'base64');
-    
-    // Transcripción en tiempo real
-    const transcription = await this.speechToTextService.transcribe(
-      audioBuffer, 
-      'mulaw', 
-      8000
-    );
-    
-    logger.info(`🗣️ [${streamSid}] Transcripción: ${transcription.text}`);
-    this.saveTranscriptionToDB(streamSid, transcription.text);
-  }
-
-  async saveTranscriptionToDB(streamSid, transcription) {
-    // Implementar lógica para guardar transcripción en base de datos
+    // TODO: Implementar transcripción en el futuro
+    logger.debug(`🎤 [${streamSid}] Audio recibido - Transcripción pendiente de implementación`);
   }
 
   /**
