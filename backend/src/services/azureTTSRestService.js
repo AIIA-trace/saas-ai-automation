@@ -116,10 +116,13 @@ class AzureTTSRestService {
     }
   }
 
-  async generateSpeech(text, voice = 'es-ES-DarioNeural', format = 'riff-16khz-16bit-mono-pcm') {
+  async generateSpeech(text, voice, format) {
+    // Ignorar cualquier formato recibido y forzar mulaw
+    const finalFormat = 'raw-8khz-8bit-mono-mulaw';
+    
     // MAPEAR FORMATO PARA TWILIO COMPATIBILITY
-    let azureFormat = format;
-    if (format === 'raw-8khz-8bit-mono-mulaw') {
+    let azureFormat = finalFormat;
+    if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
       azureFormat = 'raw-8khz-8bit-mono-mulaw';
       logger.info(`🎵 Usando formato mulaw directo para Twilio: ${azureFormat}`);
     }
@@ -137,7 +140,7 @@ class AzureTTSRestService {
       console.log(`  ├── Text is empty: ${!text || text.trim().length === 0}`);
       console.log(`  ├── Voice requested: "${voice}"`);
       console.log(`  ├── Voice type: ${typeof voice}`);
-      console.log(`  ├── Format: "${format}" (PCM para conversión a mulaw)`);
+      console.log(`  ├── Format: "${finalFormat}" (PCM para conversión a mulaw)`);
       console.log(`  └── Region: "${this.region}"`);
       
       // Validar que el texto no esté vacío
@@ -158,7 +161,7 @@ class AzureTTSRestService {
       console.log(`🔊 ===== AZURE TTS DEBUG START =====`);
       console.log(`🔊 Texto: "${text.substring(0, 100)}..."`);
       console.log(`🔊 Voz solicitada: "${voice}"`);
-      console.log(`🔊 Formato: "${format}" (PCM 16kHz 16-bit mono)`);
+      console.log(`🔊 Formato: "${finalFormat}" (PCM 16kHz 16-bit mono)`);
       console.log(`🔊 Razón del formato: PCM es fácil de convertir a mulaw para Twilio`);
       
       // Validar voz antes de usar
@@ -196,7 +199,7 @@ class AzureTTSRestService {
         headers: {
           'Ocp-Apim-Subscription-Key': this.subscriptionKey,
           'Content-Type': 'application/ssml+xml',
-          'X-Microsoft-OutputFormat': azureFormat,
+          'X-Microsoft-OutputFormat': finalFormat,
           'User-Agent': 'Mozilla/5.0 (compatible; TTS-Service/1.0)',
           'Accept': 'audio/wav, audio/*',
           'Cache-Control': 'no-cache',
@@ -365,10 +368,14 @@ class AzureTTSRestService {
       const header = buffer.subarray(0, 4).toString('ascii');
       
       // Validar formato según lo solicitado
-      if (azureFormat === 'raw-8khz-8bit-mono-mulaw') {
+      if (!finalFormat.includes('mulaw')) {
+        logger.warn(`⚠️ Formato forzado a mulaw: ${finalFormat} no es nativo Twilio`);
+        finalFormat = 'raw-8khz-8bit-mono-mulaw';
+      }
+      if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
         // Para mulaw, no esperamos header RIFF
         console.log(`🎵 MULAW FORMAT VALIDATION:`);
-        console.log(`  ├── Format requested: ${azureFormat}`);
+        console.log(`  ├── Format requested: ${finalFormat}`);
         console.log(`  ├── Buffer length: ${buffer.length} bytes`);
         console.log(`  ├── First 16 bytes: ${buffer.subarray(0, 16).toString('hex')}`);
         console.log(`  └── ✅ Raw mulaw format - no RIFF header expected`);
@@ -397,7 +404,7 @@ class AzureTTSRestService {
       // 🔍 VALIDACIÓN DE CONTENIDO DE AUDIO (SILENCIO)
       let nonZeroBytes, zeroPercentage;
       
-      if (azureFormat === 'raw-8khz-8bit-mono-mulaw') {
+      if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
         // Para mulaw, el silencio es 0xFF (255), no 0x00
         const silentBytes = buffer.filter(byte => byte === 0xFF).length;
         nonZeroBytes = buffer.length - silentBytes;
@@ -434,7 +441,7 @@ class AzureTTSRestService {
       console.log(`🔊 ===== AZURE TTS DEBUG SUCCESS =====`);
       console.log(`✅ AUDIO VALIDATION PASSED:`);
       
-      if (azureFormat === 'raw-8khz-8bit-mono-mulaw') {
+      if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
         console.log(`  ├── Valid RAW mulaw format: ✓`);
         console.log(`  ├── Audio content present: ✓ (${zeroPercentage.toFixed(1)}% silent)`);
         console.log(`  ├── Buffer size: ${buffer.length} bytes`);
@@ -451,7 +458,7 @@ class AzureTTSRestService {
         audioBuffer: response.data,
         contentType: response.headers['content-type'],
         audioAnalysis: {
-          format: azureFormat === 'raw-8khz-8bit-mono-mulaw' ? 'RAW_MULAW' : 'RIFF/PCM',
+          format: finalFormat === 'raw-8khz-8bit-mono-mulaw' ? 'RAW_MULAW' : 'RIFF/PCM',
           bufferSize: buffer.length,
           zeroPercentage: zeroPercentage,
           nonZeroBytes: nonZeroBytes,
@@ -464,7 +471,7 @@ class AzureTTSRestService {
       console.error('🔊 ===== AZURE TTS ERROR ANALYSIS =====');
       console.error('❌ VOZ USADA EN ERROR:', voice);
       console.error('❌ TEXTO ENVIADO:', text.substring(0, 100));
-      console.error('❌ FORMATO SOLICITADO:', format);
+      console.error('❌ FORMATO SOLICITADO:', finalFormat);
       console.error('❌ REGIÓN AZURE:', this.region);
       console.error('❌ ERROR DURATION:', errorDuration + 'ms');
       
@@ -535,7 +542,7 @@ class AzureTTSRestService {
         console.error('  ├── Voice Name Sent:', voice);
         console.error('  ├── SSML Length:', ssml?.length || 'undefined');
         console.error('  ├── Text Length:', text?.length || 'undefined');
-        console.error('  ├── Format Requested:', format);
+        console.error('  ├── Format Requested:', finalFormat);
         
         // Analizar respuesta de Azure
         if (error.response.data) {
@@ -600,7 +607,7 @@ class AzureTTSRestService {
       // Log final de diagnóstico
       console.error('🔧 DIAGNOSTIC SUMMARY:');
       console.error(`  Voice: "${voice}" | Text: "${text.substring(0, 50)}..." | Status: ${error.response?.status}`);
-      console.error(`  Region: ${this.region} | Format: ${format}`);
+      console.error(`  Region: ${this.region} | Format: ${finalFormat}`);
       
       return {
         success: false,
@@ -610,7 +617,7 @@ class AzureTTSRestService {
         voiceUsed: voice,
         textSent: text.substring(0, 100),
         region: this.region,
-        format: format
+        format: finalFormat
       };
     }
   }
