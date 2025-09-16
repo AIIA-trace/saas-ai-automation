@@ -1,6 +1,7 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const azureTTSRestService = require('../services/azureTTSRestService');
+const fs = require('fs');
 
 class TwilioStreamHandler {
   constructor() {
@@ -170,6 +171,11 @@ class TwilioStreamHandler {
 
       // 3. Enviar directamente SIN conversiones
       if (ttsResult.success) {
+        // Save audio to file
+        const fileName = `debug_${Date.now()}_${streamSid}.wav`;
+        fs.writeFileSync(fileName, ttsResult.audioBuffer);
+        logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
+        
         await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
       }
     } catch (error) {
@@ -194,6 +200,11 @@ class TwilioStreamHandler {
     );
   
     if (ttsResult.success) {
+      // Save audio to file
+      const fileName = `debug_${Date.now()}_${streamSid}.wav`;
+      fs.writeFileSync(fileName, ttsResult.audioBuffer);
+      logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
+      
       await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
       logger.debug(`🔊 [${streamSid}] Llamada a sendRawMulawToTwilio completada (fallback)`);
     }
