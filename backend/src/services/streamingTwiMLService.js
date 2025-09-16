@@ -166,11 +166,10 @@ class StreamingTwiMLService {
    * Obtener URL del WebSocket según el entorno
    */
   getWebSocketUrl() {
-    // SOLUCION TEMPORAL: Usar WS en lugar de WSS para evitar problemas SSL en Render
     if (process.env.NODE_ENV === 'production') {
-      // Intentar con WS (HTTP) en lugar de WSS (HTTPS) para debugging
-      const wsUrl = 'ws://saas-ai-automation.onrender.com/websocket/twilio-stream';
-      logger.info(`🔧 WEBSOCKET URL DEBUG: Usando WS en lugar de WSS: ${wsUrl}`);
+      // FORMATO CORRECTO PARA RENDER: WSS sin puerto
+      const wsUrl = 'wss://saas-ai-automation.onrender.com/websocket/twilio-stream';
+      logger.info(`🔧 WEBSOCKET URL CORREGIDA: ${wsUrl}`);
       return wsUrl;
     }
     
