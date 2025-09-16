@@ -215,6 +215,7 @@ class TwilioStreamHandler {
   async sendRawMulawToTwilio(ws, mulawBuffer, streamSid) {
     logger.info("🔊 Enviando audio al WebSocket");
     logger.info(`🔊 Tamaño del buffer de audio: ${mulawBuffer.length} bytes`);
+    logger.info(`🔊 Primeros bytes: ${mulawBuffer.slice(0, 16).toString('hex')}`);
     
     // Ensure minimum audio length (1 second = 8000 bytes)
     if (mulawBuffer.length < 8000) {
@@ -283,6 +284,7 @@ class TwilioStreamHandler {
 
       logger.info("🔊 Enviando audio al WebSocket");
       logger.info(`🔊 Tamaño del buffer de audio: ${processedBuffer.length} bytes`);
+      logger.info(`🔊 Primeros bytes: ${processedBuffer.slice(0, 16).toString('hex')}`);
       
       // Enviar en chunks de 160 bytes (20ms de audio mulaw)
       const chunkSize = 160;
