@@ -197,6 +197,8 @@ class AzureTTSRestService {
       console.log(`🔍 Token length:`, token ? token.length : 0);
       console.log(`🔍 Request URL:`, `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`);
       
+      console.log(`🔊 Texto enviado a Azure TTS: ${text}`);
+      
       const requestConfig = {
         headers: {
           'Ocp-Apim-Subscription-Key': this.subscriptionKey,
@@ -457,8 +459,12 @@ class AzureTTSRestService {
       
       // Save audio to file
       const fileName = `/tmp/debug_${Date.now()}.wav`;
-      fs.writeFileSync(fileName, response.data);
-      logger.info(`🔧 Audio guardado en ${fileName}`);
+      try {
+        fs.writeFileSync(fileName, response.data);
+        logger.info(`🔧 Audio guardado en ${fileName}`);
+      } catch (error) {
+        logger.error(`❌ Error guardando audio: ${error.message}`);
+      }
       
       return {
         success: true,
