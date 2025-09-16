@@ -22,9 +22,24 @@ const azureTTSRouter = require('./routes/azure-tts');
 const testAudioRouter = require('./routes/testAudio');
 
 // Inicializar servicios
+console.log(' Inicializando servicios...');
 const fallbackAudioService = require('./services/fallbackAudioService');
 azureTTSRestService.initialize();
 fallbackAudioService.initialize();
+
+// CRÍTICO: Pre-calentar Azure TTS para evitar cuelgues en llamadas reales
+console.log(' Iniciando warmup de Azure TTS...');
+azureTTSRestService.warmup().then(success => {
+  if (success) {
+    console.log(' Azure TTS warmup completado - Listo para llamadas');
+  } else {
+    console.error(' Azure TTS warmup falló - Llamadas pueden tener problemas');
+  }
+}).catch(error => {
+  console.error(' Error durante Azure TTS warmup:', error.message);
+});
+
+console.log(' Servicios inicializados');
 
 // Inicialización de Express
 const app = express();

@@ -8,6 +8,8 @@ class AzureTTSRestService {
     this.region = 'westeurope';
     this.token = null;
     this.tokenExpiration = 0;
+    this.isWarmedUp = false;
+    this.warmupPromise = null;
   }
 
   async getToken() {
@@ -16,6 +18,64 @@ class AzureTTSRestService {
     }
 
     return await this.getAuthToken();
+  }
+
+  /**
+   * Pre-autentica Azure TTS para evitar cuelgues durante llamadas reales
+   */
+  async warmup() {
+    if (this.isWarmedUp && this.warmupPromise) {
+      logger.info('🔥 AZURE WARMUP: Ya está en progreso, esperando...');
+      return await this.warmupPromise;
+    }
+
+    if (this.isWarmedUp) {
+      logger.info('✅ AZURE WARMUP: Ya completado previamente');
+      return true;
+    }
+
+    logger.info('🔥 AZURE WARMUP: Iniciando pre-autenticación...');
+    
+    this.warmupPromise = this._performWarmup();
+    const result = await this.warmupPromise;
+    
+    if (result) {
+      this.isWarmedUp = true;
+      logger.info('✅ AZURE WARMUP: Completado exitosamente');
+    } else {
+      logger.error('❌ AZURE WARMUP: Falló');
+    }
+    
+    return result;
+  }
+
+  async _performWarmup() {
+    try {
+      // Pre-autenticar para obtener token
+      logger.info('🔥 WARMUP: Obteniendo token de autenticación...');
+      const token = await this.getAuthToken();
+      
+      if (!token) {
+        logger.error('❌ WARMUP: No se pudo obtener token');
+        return false;
+      }
+
+      // Generar audio de prueba muy corto para calentar el pipeline
+      logger.info('🔥 WARMUP: Generando audio de prueba...');
+      const testResult = await this.generateSpeech('Hola', 'es-ES-DarioNeural');
+      
+      if (!testResult.success) {
+        logger.error('❌ WARMUP: Audio de prueba falló');
+        return false;
+      }
+
+      logger.info('✅ WARMUP: Pipeline completo verificado');
+      return true;
+      
+    } catch (error) {
+      logger.error(`❌ WARMUP: Error durante warmup: ${error.message}`);
+      return false;
+    }
   }
 
   async getAuthToken() {
@@ -252,12 +312,21 @@ class AzureTTSRestService {
       
       const requestConfig = {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Ocp-Apim-Subscription-Key': this.subscriptionKey,
           'Content-Type': 'application/ssml+xml',
           'X-Microsoft-OutputFormat': format,
-          'User-Agent': 'TTS-Service'
+          'User-Agent': 'Mozilla/5.0 (compatible; TTS-Service/1.0)',
+          'Accept': 'audio/wav, audio/*',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          // Headers adicionales para identificarse como aplicación legítima
+          'X-Forwarded-For': '127.0.0.1',
+          'X-Real-IP': '127.0.0.1',
+          'Origin': 'https://speech.microsoft.com'
         },
-        responseType: 'arraybuffer'
+        responseType: 'arraybuffer',
+        timeout: 15000, // 15 segundos timeout explícito
+        maxRedirects: 0 // No seguir redirects
       };
       
       console.log(`🔍 Request Headers:`, JSON.stringify(requestConfig.headers, null, 2));
@@ -265,8 +334,8 @@ class AzureTTSRestService {
       // HACER LA PETICIÓN HTTP CON TIMEOUT
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
-          reject(new Error('AGGRESSIVE_TIMEOUT: Speech request hung after 8000ms'));
-        }, 8000);
+          reject(new Error('AGGRESSIVE_TIMEOUT: Auth request hung after 1000ms'));
+        }, 1000);
       });
       
       const requestPromise = axios.post(
@@ -275,7 +344,15 @@ class AzureTTSRestService {
         requestConfig
       );
       
-      console.log(`🚀 Starting Azure TTS request with 8s timeout...`);
+      // DETECTAR CONTEXTO DE LLAMADA
+      const isInCall = process.env.TWILIO_CALL_ACTIVE === 'true' || global.activeTwilioStreams > 0;
+      console.log(`🚀 Starting Azure TTS request with 1s timeout...`);
+      console.log(`📞 CONTEXTO DE LLAMADA:`);
+      console.log(`  ├── En llamada activa: ${isInCall}`);
+      console.log(`  ├── Streams activos: ${global.activeTwilioStreams || 0}`);
+      console.log(`  ├── Variables entorno Twilio: ${Object.keys(process.env).filter(k => k.includes('TWILIO')).length}`);
+      console.log(`  └── Timestamp: ${new Date().toISOString()}`);
+      
       const response = await Promise.race([requestPromise, timeoutPromise]);
       
       const requestEndTime = Date.now();

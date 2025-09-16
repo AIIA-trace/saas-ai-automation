@@ -7,16 +7,18 @@ const ContextBuilder = require('../utils/contextBuilder');
 const azureTTSService = azureTTSRestService;
 
 class TwilioStreamHandler {
-  constructor() {
+  constructor(ttsService, openaiService, prisma) {
+    this.ttsService = ttsService;
+    this.openaiService = openaiService;
+    this.prisma = prisma;
     this.activeStreams = new Map();
     this.audioBuffers = new Map();
     this.conversationState = new Map();
     this.outboundAudioQueue = new Map();
     this.ttsInProgress = new Map();
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
-    this.ttsService = azureTTSService;
+    
+    // Contador global para Azure TTS
+    global.activeTwilioStreams = 0;
   }
 
   /**
@@ -1263,6 +1265,17 @@ class TwilioStreamHandler {
       if (streamData) {
         streamData.isProcessing = false;
       }
+      // Almacenar información del stream
+      this.activeStreams.set(streamSid, {
+        callSid: streamData.callSid,
+        client: streamData.client,
+        startTime: streamData.startTime,
+        lastActivity: Date.now()
+      });
+      
+      // Incrementar contador global para Azure TTS
+      global.activeTwilioStreams = this.activeStreams.size;
+      logger.info(`📊 Streams activos: ${global.activeTwilioStreams}`);
       logger.info(`🔍 [${processId}] ===== FIN PROCESAMIENTO AUDIO BUFFER =====`);
     }
   }
@@ -1297,7 +1310,11 @@ class TwilioStreamHandler {
       this.conversationState.delete(streamSidToClean);
       this.outboundAudioQueue.delete(streamSidToClean);
       this.ttsInProgress.delete(streamSidToClean);
+      
+      // Actualizar contador global para Azure TTS
+      global.activeTwilioStreams = this.activeStreams.size;
       logger.info(`🧹 Stream limpiado: ${streamSidToClean}`);
+      logger.info(`📊 Streams activos después de limpieza: ${global.activeTwilioStreams}`);
     }
   }
 
