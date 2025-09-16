@@ -457,10 +457,29 @@ class AzureTTSRestService {
         console.log(`  └── Ready for mulaw conversion and Twilio streaming`);
       }
       
+      // Function to trim leading silence from raw mulaw buffer
+      function trimLeadingSilence(audioBuffer) {
+        // Mulaw silence is represented by 0xFF (or 0x7F in some encodings)
+        // We'll skip all 0xFF bytes at the start
+        let i = 0;
+        const maxSilence = 16000; // Max 2 seconds of silence (8000 samples per second)
+        
+        while (i < audioBuffer.length && i < maxSilence) {
+          if (audioBuffer[i] !== 0xFF) {
+            break;
+          }
+          i++;
+        }
+        
+        return audioBuffer.slice(i);
+      }
+
+      const trimmedBuffer = trimLeadingSilence(buffer);
+
       // Save audio to file
       const fileName = `/tmp/debug_${Date.now()}.wav`;
       try {
-        fs.writeFileSync(fileName, response.data);
+        fs.writeFileSync(fileName, trimmedBuffer);
         logger.info(`🔧 Audio guardado en ${fileName}`);
       } catch (error) {
         logger.error(`❌ Error guardando audio: ${error.message}`);
@@ -468,7 +487,7 @@ class AzureTTSRestService {
       
       return {
         success: true,
-        audioBuffer: response.data,
+        audioBuffer: trimmedBuffer,
         contentType: response.headers['content-type'],
         audioAnalysis: {
           format: finalFormat === 'raw-8khz-8bit-mono-mulaw' ? 'RAW_MULAW' : 'RIFF/PCM',
