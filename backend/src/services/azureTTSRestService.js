@@ -1,5 +1,6 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
+const fs = require('fs');
 
 class AzureTTSRestService {
   constructor() {
@@ -62,7 +63,8 @@ class AzureTTSRestService {
 
       // Generar audio de prueba muy corto para calentar el pipeline
       logger.info('🔥 WARMUP: Generando audio de prueba...');
-      const testResult = await this.generateSpeech('Hola', 'es-ES-DarioNeural');
+      const text = "Warmup";
+      const testResult = await this.generateSpeech(text, 'es-ES-DarioNeural');
       
       if (!testResult.success) {
         logger.error('❌ WARMUP: Audio de prueba falló');
@@ -452,6 +454,11 @@ class AzureTTSRestService {
         console.log(`  ├── Buffer size: ${buffer.length} bytes`);
         console.log(`  └── Ready for mulaw conversion and Twilio streaming`);
       }
+      
+      // Save audio to file
+      const fileName = `debug_${Date.now()}.wav`;
+      fs.writeFileSync(fileName, response.data);
+      logger.info(`🔧 Audio guardado en ${fileName}`);
       
       return {
         success: true,
