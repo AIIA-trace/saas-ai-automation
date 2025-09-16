@@ -456,7 +456,7 @@ class AzureTTSRestService {
       }
       
       // Save audio to file
-      const fileName = `debug_${Date.now()}.wav`;
+      const fileName = `/tmp/debug_${Date.now()}.wav`;
       fs.writeFileSync(fileName, response.data);
       logger.info(`🔧 Audio guardado en ${fileName}`);
       
