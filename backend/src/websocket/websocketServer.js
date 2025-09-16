@@ -42,9 +42,6 @@ class WebSocketServer {
         this.handleNewConnection(ws, req);
       });
 
-      // Iniciar heartbeat para mantener conexiones
-      this.streamHandler.startHeartbeat();
-
       // Iniciar limpieza automática de transcripciones
       const transcriptionService = require('../services/realtimeTranscription');
       const transcription = new transcriptionService();
@@ -153,7 +150,7 @@ class WebSocketServer {
 
     // Delegar manejo a TwilioStreamHandler
     logger.info(`🔄 Delegando conexión ${connectionId} a TwilioStreamHandler`);
-    this.streamHandler.handleConnection(ws, req);
+    this.streamHandler.handleConnection(ws);
 
     // Manejar cierre de conexión
     ws.on('close', (code, reason) => {

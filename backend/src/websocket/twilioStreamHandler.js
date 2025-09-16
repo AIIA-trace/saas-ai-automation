@@ -314,6 +314,14 @@ class TwilioStreamHandler {
     logger.info(`✅ [${streamSid}] Recursos limpiados`);
   }
 
+  /**
+   * Manejar nueva conexión
+   */
+  handleConnection(ws, req) {
+    logger.info(`🔌 Nueva conexión WebSocket desde ${req.socket.remoteAddress}`);
+    // Lógica básica de conexión
+  }
+
   // Validar variables Azure
   validateAzureConfig() {
     const requiredVars = [
