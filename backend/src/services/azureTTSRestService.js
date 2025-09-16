@@ -462,7 +462,7 @@ class AzureTTSRestService {
         // Mulaw silence is represented by 0xFF (or 0x7F in some encodings)
         // We'll skip all 0xFF bytes at the start
         let i = 0;
-        const maxSilence = 16000; // Max 2 seconds of silence (8000 samples per second)
+        const maxSilence = 24000; // Max 3 seconds of silence (8000 samples per second)
         
         while (i < audioBuffer.length && i < maxSilence) {
           if (audioBuffer[i] !== 0xFF) {
