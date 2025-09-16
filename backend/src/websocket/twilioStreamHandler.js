@@ -106,7 +106,7 @@ class TwilioStreamHandler {
       
       try {
         logger.info(`🔊 [${streamSid}] Generando ÚNICO saludo...`);
-        await this.sendInitialGreeting(ws, { streamSid, callSid, clientConfig });
+        await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
@@ -122,14 +122,14 @@ class TwilioStreamHandler {
   /**
    * Generar saludo inicial - SOLO UNA VEZ POR STREAM
    */
-  async sendInitialGreeting(ws, { streamSid, callSid, clientConfig }) {
+  async sendInitialGreeting(ws, { streamSid, callSid }) {
     const streamData = this.activeStreams.get(streamSid);
     if (!streamData?.client) {
       logger.error(`❌ [${streamSid}] Sin configuración de cliente`);
       return;
     }
 
-    const clientConfig = await this.prisma.client.findUnique({
+    const clientConfigData = await this.prisma.client.findUnique({
       where: { id: parseInt(streamData.client.id) },
       select: {
         callConfig: {
@@ -141,7 +141,7 @@ class TwilioStreamHandler {
       }
     });
 
-    const greeting = clientConfig.callConfig.greeting;
+    const greeting = clientConfigData.callConfig.greeting;
     logger.info(`🔊 [${streamSid}] Using greeting from DB: "${greeting}"`);
     
     const voiceId = streamData.client.callConfig?.voiceId || 'es-ES-DarioNeural';
@@ -151,7 +151,7 @@ class TwilioStreamHandler {
     // Verificar longitud mínima (10 caracteres)
     if (greeting.length < 10) {
       logger.warn(`⚠️ [${streamSid}] Saludo muy corto (${greeting.length} chars). Usando saludo extendido.`);
-      return await this.sendExtendedGreeting(ws, streamSid, clientConfig);
+      return await this.sendExtendedGreeting(ws, streamSid, clientConfigData);
     }
     
     try {
@@ -181,9 +181,9 @@ class TwilioStreamHandler {
     }
   }
 
-  async sendExtendedGreeting(ws, streamSid, clientConfig) {
+  async sendExtendedGreeting(ws, streamSid, clientConfigData) {
     const fallbackGreeting = "Gracias por llamar. Estamos conectándote con un asistente. Por favor, espera un momento.";
-    const voiceId = clientConfig.callConfig?.voiceId || 'es-ES-DarioNeural';
+    const voiceId = clientConfigData.callConfig?.voiceId || 'es-ES-DarioNeural';
   
     logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con voz: ${voiceId}`);
   
