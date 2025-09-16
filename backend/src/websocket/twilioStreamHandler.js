@@ -225,7 +225,7 @@ class TwilioStreamHandler {
     let chunkCount = 0;
     const startTime = Date.now();
     
-    logger.debug(`🎵 [${streamSid}] Iniciando envío de audio (${mulawBuffer.length} bytes)`);
+    logger.info(`🎵 [${streamSid}] Starting audio transmission (${mulawBuffer.length} bytes)`);
     
     while (offset < mulawBuffer.length) {
       const chunk = mulawBuffer.subarray(offset, offset + chunkSize);
@@ -242,7 +242,7 @@ class TwilioStreamHandler {
     }
     
     const duration = Date.now() - startTime;
-    logger.info(`✅ [${streamSid}] Audio enviado: ${chunkCount} chunks en ${duration}ms`);
+    logger.info(`✅ [${streamSid}] Audio transmission completed: ${chunkCount} chunks sent`);
   }
 
   generateFallbackAudio() {
