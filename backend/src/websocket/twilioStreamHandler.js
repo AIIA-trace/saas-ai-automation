@@ -93,7 +93,18 @@ class TwilioStreamHandler {
           if (!this.activeStreams.has(streamSid)) {
             logger.warn(`⚠️ Media event recibido para stream no registrado: ${streamSid}`);
             logger.info(`📊 Streams activos: [${Array.from(this.activeStreams.keys()).join(', ')}]`);
-            return;
+            
+            // CREAR STREAM TEMPORAL Y GENERAR SALUDO INICIAL
+            logger.info(`🔊 Creando stream temporal y generando saludo inicial para ${streamSid}`);
+            this.activeStreams.set(streamSid, {
+              ws,
+              streamSid,
+              greetingSent: false,
+              client: null
+            });
+            
+            // Generar saludo inicial inmediatamente
+            await this.generateInitialGreetingSimple(ws, streamSid);
           }
           await this.handleMediaChunk(ws, data);
           break;
@@ -117,10 +128,71 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Stream conectado - inicializar
+   * Generar saludo inicial simple
+   */
+  async generateInitialGreetingSimple(ws, streamSid) {
+    try {
+      const greeting = "Hola, bienvenido. ¿En qué puedo ayudarte?";
+      logger.info(`🔊 [${streamSid}] Generando saludo inicial: "${greeting}"`);
+      
+      // Generar audio con Azure TTS
+      const ttsResult = await this.ttsService.generateSpeech(greeting, 'es-ES-DarioNeural', 'riff-16khz-16bit-mono-pcm');
+      
+      if (ttsResult.success && ttsResult.audioBuffer) {
+        logger.info(`✅ [${streamSid}] Audio saludo generado: ${ttsResult.audioBuffer.length} bytes`);
+        await this.sendAudioToTwilio(ws, ttsResult.audioBuffer, streamSid);
+        logger.info(`🔊 [${streamSid}] Saludo inicial enviado a Twilio`);
+        
+        // Marcar saludo como enviado
+        const streamData = this.activeStreams.get(streamSid);
+        if (streamData) {
+          streamData.greetingSent = true;
+        }
+      } else {
+        logger.error(`❌ [${streamSid}] Error generando audio saludo: ${ttsResult.error}`);
+      }
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error en generateInitialGreetingSimple: ${error.message}`);
+    }
+  }
+
+  /**
+   * Stream conectado - inicializar y generar saludo inicial
    */
   async handleStreamConnected(ws, data) {
-    logger.info(`✅ Stream conectado, esperando evento start para parámetros completos`);
+    logger.info(`✅ Stream conectado, generando saludo inicial inmediatamente`);
+    
+    // Generar saludo inicial sin esperar evento 'start'
+    const streamSid = data.streamSid || 'unknown';
+    
+    try {
+      // Obtener cliente desde parámetros del stream si están disponibles
+      const customParameters = data.customParameters || {};
+      const clientId = customParameters.clientId;
+      
+      logger.info(`🔊 Iniciando saludo para streamSid: ${streamSid}, clientId: ${clientId}`);
+      
+      // Generar saludo simple inmediatamente
+      const greeting = "Hola, bienvenido. ¿En qué puedo ayudarte?";
+      logger.info(`🔊 Generando saludo: "${greeting}"`);
+      
+      // Generar audio con Azure TTS
+      const debugId = `CONNECTED_GREETING_${Date.now()}`;
+      const ttsResult = await this.ttsService.generateSpeech(greeting, 'es-ES-DarioNeural', 'riff-16khz-16bit-mono-pcm');
+      
+      if (ttsResult.success && ttsResult.audioBuffer) {
+        logger.info(`✅ Audio generado exitosamente: ${ttsResult.audioBuffer.length} bytes`);
+        await this.sendAudioToTwilio(ws, ttsResult.audioBuffer, streamSid);
+        logger.info(`🔊 Saludo inicial enviado a Twilio`);
+      } else {
+        logger.error(`❌ Error generando audio: ${ttsResult.error}`);
+      }
+      
+    } catch (error) {
+      logger.error(`❌ Error generando saludo inicial: ${error.message}`);
+      // Continuar sin saludo si hay error
+    }
   }
 
   /**
