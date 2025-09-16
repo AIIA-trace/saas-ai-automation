@@ -244,6 +244,9 @@ class AzureTTSRestService {
       
       const response = await Promise.race([requestPromise, timeoutPromise]);
       
+      console.log(`🔊 Azure TTS Response Status: ${response.status}`);
+      console.log(`🔊 Azure TTS Response Headers: ${JSON.stringify(response.headers)}`);
+      
       const requestEndTime = Date.now();
       const requestDuration = requestEndTime - speechStartTime;
       
