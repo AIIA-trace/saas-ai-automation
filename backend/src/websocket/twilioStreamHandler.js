@@ -318,8 +318,10 @@ class TwilioStreamHandler {
    * Manejar nueva conexión
    */
   handleConnection(ws, req) {
-    // Obtener IP de forma segura
-    const ip = req.socket?.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+    let ip = 'unknown';
+    if (req) {
+      ip = req.socket?.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+    }
     logger.info(`🔌 Nueva conexión WebSocket desde ${ip}`);
     // Lógica básica de conexión
   }
