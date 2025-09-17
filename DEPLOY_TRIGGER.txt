@@ -1,4 +1,4 @@
-Deploy trigger - 2025-01-17 21:35:00 - Fix streamSid handling in WebSocket events
-DEPLOY_TRIGGER=2025-01-17_21-35-00_streamsid_websocket_fix
-Fixed undefined streamSid in connected event - now using temp ID migration pattern
-Commit: fix_streamsid_websocket_events
+Deploy trigger - 2025-01-17 21:40:00 - Fix sendInitialGreeting client config access
+DEPLOY_TRIGGER=2025-01-17_21-40-00_greeting_client_config_fix
+Fixed sendInitialGreeting using wrong streamSid reference after migration
+Commit: fix_sendInitialGreeting_client_access

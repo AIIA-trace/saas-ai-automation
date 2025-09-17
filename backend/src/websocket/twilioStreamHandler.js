@@ -149,7 +149,7 @@ class TwilioStreamHandler {
    * Generar saludo inicial - SOLO UNA VEZ POR STREAM
    */
   async sendInitialGreeting(ws, { streamSid, callSid }) {
-    const streamData = this.activeStreams.get(ws.tempStreamId);
+    const streamData = this.activeStreams.get(streamSid);
     if (!streamData?.client) {
       logger.error(`❌ [${streamSid}] Sin configuración de cliente`);
       return;
@@ -158,45 +158,34 @@ class TwilioStreamHandler {
     const clientConfigData = await this.prisma.client.findUnique({
       where: { id: parseInt(streamData.client.id) },
       select: {
-        callConfig: {
-          select: {
-            greeting: true,
-            lastUpdated: true
-          }
-        }
+        callConfig: true
       }
     });
 
-    const greeting = clientConfigData.callConfig.greeting;
+    const greeting = clientConfigData.callConfig?.greeting;
     logger.info(`🔊 [${streamSid}] Using greeting from DB: "${greeting}"`);
     logger.info(`🔊 [${streamSid}] Greeting text: ${greeting}`);
     logger.info(`🔊 [${streamSid}] Greeting text: ${greeting}`);
-    
+  
     const voiceId = streamData.client.callConfig?.voiceId || 'es-ES-DarioNeural';
-    
-    logger.info(`🔊 [${streamSid}] Generando saludo: "${greeting.substring(0, 50)}..."`);
-    
+  
+    logger.info(`🔊 [${streamSid}] Generando saludo: "${greeting?.substring(0, 50)}..."`);
+  
     // Verificar longitud mínima (10 caracteres)
-    if (greeting.length < 10) {
-      logger.warn(`⚠️ [${streamSid}] Saludo muy corto (${greeting.length} chars). Usando saludo extendido.`);
-      return await this.sendExtendedGreeting(ws, streamSid, clientConfigData);
+    if (!greeting || greeting.length < 10) {
+      logger.warn(`⚠️ [${streamSid}] Saludo muy corto o vacío: "${greeting}" - usando fallback`);
+      await this.sendExtendedGreeting(ws, streamSid, streamData.client);
+      return;
     }
-    
+
     try {
-      // 1. Reutilizar token o obtener nuevo
-      if (!this.azureToken || this.azureToken.expiry < Date.now()) {
-        this.azureToken = await this.ttsService.getToken();
-      }
+      // 3. Generar audio con Azure TTS
+      const ttsResult = await this.ttsService.generateSpeech(
+        greeting,
+        voiceId,
+        'raw-8khz-8bit-mono-mulaw'
+      );
 
-      // 2. Generar TTS con timeout de 5s
-      const ttsResult = await Promise.race([
-        this.ttsService.generateSpeech(greeting, voiceId, 'raw-8khz-8bit-mono-mulaw', this.azureToken),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('TTS timeout')), 5000)
-        )
-      ]);
-
-      // 3. Enviar directamente SIN conversiones
       if (ttsResult.success) {
         // Save audio to file
         const fileName = `debug_${Date.now()}_${streamSid}.wav`;
