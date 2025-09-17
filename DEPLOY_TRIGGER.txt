@@ -1,4 +1,4 @@
-Deploy trigger - 2025-01-10 19:44:00 - Server restart after Azure TTS fixes
-DEPLOY_TRIGGER=2025-01-10_19-44-00_server_restart
-Servidor en producción no responde - forzando redeploy
-Commit: restart_production
+Deploy trigger - 2025-01-17 21:30:00 - Fix Prisma callConfig query error
+DEPLOY_TRIGGER=2025-01-17_21-30-00_prisma_callconfig_fix
+Fixed invalid include statement for JSON field callConfig - now using select
+Commit: fix_prisma_callconfig_query

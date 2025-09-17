@@ -81,7 +81,12 @@ class TwilioStreamHandler {
       // Obtener configuración del cliente
       const clientConfig = await this.prisma.client.findUnique({
         where: { id: parseInt(clientId) },
-        include: { callConfig: true }
+        select: {
+          id: true,
+          callConfig: true,
+          companyName: true,
+          botLanguage: true
+        }
       });
 
       if (!clientConfig) {
@@ -94,7 +99,7 @@ class TwilioStreamHandler {
       streamData.client = clientConfig;
       streamData.isInitializing = false;
       
-      logger.info(`✅ [${streamSid}] Cliente configurado: ${clientConfig.company_name}`);
+      logger.info(`✅ [${streamSid}] Cliente configurado: ${clientConfig.companyName}`);
 
       // VERIFICACIÓN ESTRICTA: Solo generar saludo UNA VEZ
       if (streamData.greetingSent) {
