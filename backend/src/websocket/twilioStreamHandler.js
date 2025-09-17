@@ -4,18 +4,79 @@ const azureTTSRestService = require('../services/azureTTSRestService');
 const fs = require('fs');
 
 class TwilioStreamHandler {
-  constructor() {
+  constructor(prisma, ttsService) {
+    this.prisma = prisma;
+    this.ttsService = ttsService;
     this.activeStreams = new Map();
     this.audioBuffers = new Map();
     this.conversationState = new Map();
     this.outboundAudioQueue = new Map();
     this.ttsInProgress = new Map();
-    this.prisma = new PrismaClient();
-    this.ttsService = azureTTSRestService;
-    this.fallbackAudio = this.generateFallbackAudio(); // Audio pregenerado
     this.preConvertedAudio = new Map(); // Cache de conversiones
     this.azureToken = null; // Token reutilizable
     this.validateAzureConfig(); // Validación crítica al iniciar
+
+    // Voice mapping from user-friendly names to Azure TTS voice identifiers
+    this.voiceMapping = {
+      // Spanish voices
+      'lola': 'es-ES-LaiaNeural',
+      'female': 'es-ES-EstrellaNeural',
+      'male': 'es-ES-DarioNeural',
+      'dario': 'es-ES-DarioNeural',
+      'estrella': 'es-ES-EstrellaNeural',
+      'laia': 'es-ES-LaiaNeural',
+      'irene': 'es-ES-IreneNeural',
+      'vera': 'es-ES-VeraNeural',
+      'triana': 'es-ES-TrianaNeural',
+      
+      // English voices (for future use)
+      'aria': 'en-US-AriaNeural',
+      'guy': 'en-US-GuyNeural',
+      'jenny': 'en-US-JennyNeural',
+      
+      // French voices (for future use)
+      'denise': 'fr-FR-DeniseNeural',
+      'henri': 'fr-FR-HenriNeural'
+    };
+  }
+
+  /**
+   * Maps a user-friendly voice name to a valid Azure TTS voice identifier
+   * @param {string} voiceId - User-friendly voice name
+   * @param {string} language - Language code (e.g., 'es-ES', 'en-US')
+   * @returns {string} Valid Azure TTS voice identifier
+   */
+  mapVoiceToAzure(voiceId, language = 'es-ES') {
+    if (!voiceId) {
+      return 'es-ES-DarioNeural'; // Default fallback
+    }
+
+    // Convert to lowercase for case-insensitive matching
+    const normalizedVoiceId = voiceId.toLowerCase();
+    
+    // Check if it's already a valid Azure voice format (contains language code)
+    if (normalizedVoiceId.includes('-') && normalizedVoiceId.includes('neural')) {
+      logger.info(`🎵 Voice already in Azure format: ${voiceId}`);
+      return voiceId;
+    }
+    
+    // Map user-friendly name to Azure voice
+    const mappedVoice = this.voiceMapping[normalizedVoiceId];
+    if (mappedVoice) {
+      logger.info(`🎵 Voice mapped: "${voiceId}" → "${mappedVoice}"`);
+      return mappedVoice;
+    }
+    
+    // If no mapping found, try to construct based on language
+    const languageDefaults = {
+      'es-ES': 'es-ES-DarioNeural',
+      'en-US': 'en-US-AriaNeural',
+      'fr-FR': 'fr-FR-DeniseNeural'
+    };
+    
+    const defaultVoice = languageDefaults[language] || 'es-ES-DarioNeural';
+    logger.warn(`⚠️ No mapping found for voice "${voiceId}", using default: ${defaultVoice}`);
+    return defaultVoice;
   }
 
   /**
@@ -164,10 +225,20 @@ class TwilioStreamHandler {
 
     const greeting = clientConfigData.callConfig?.greeting;
     logger.info(`🔊 [${streamSid}] Using greeting from DB: "${greeting}"`);
-    logger.info(`🔊 [${streamSid}] Greeting text: ${greeting}`);
-    logger.info(`🔊 [${streamSid}] Greeting text: ${greeting}`);
-  
-    const voiceId = streamData.client.callConfig?.voiceId || 'es-ES-DarioNeural';
+    
+    // Get voice configuration and map to valid Azure voice
+    const rawVoiceId = streamData.client.callConfig?.voiceId || 
+                      clientConfigData.callConfig?.voiceId || 
+                      'lola';
+    const language = streamData.client.callConfig?.language || 
+                    clientConfigData.callConfig?.language || 
+                    'es-ES';
+    
+    const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
+    
+    logger.info(`🎵 [${streamSid}] Raw voice from DB: "${rawVoiceId}"`);
+    logger.info(`🎵 [${streamSid}] Mapped Azure voice: "${voiceId}"`);
+    logger.info(`🌍 [${streamSid}] Language: "${language}"`);
   
     logger.info(`🔊 [${streamSid}] Generando saludo: "${greeting?.substring(0, 50)}..."`);
   
@@ -205,7 +276,14 @@ class TwilioStreamHandler {
 
   async sendExtendedGreeting(ws, streamSid, clientConfigData) {
     const fallbackGreeting = "Gracias por llamar. Estamos conectándote con un asistente. Por favor, espera un momento.";
-    const voiceId = clientConfigData.callConfig?.voiceId || 'es-ES-DarioNeural';
+    
+    // Get voice configuration and map to valid Azure voice
+    const rawVoiceId = clientConfigData.callConfig?.voiceId || 'lola';
+    const language = clientConfigData.callConfig?.language || 'es-ES';
+    const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
+    
+    logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback`);
+    logger.info(`🎵 [${streamSid}] Raw voice: "${rawVoiceId}" → Mapped: "${voiceId}"`);
   
     logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con voz: ${voiceId}`);
   

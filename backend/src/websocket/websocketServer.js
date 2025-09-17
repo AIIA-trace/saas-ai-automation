@@ -21,7 +21,7 @@ class WebSocketServer {
     this.prisma = new PrismaClient();
     
     // Initialize TwilioStreamHandler with required services
-    this.streamHandler = new TwilioStreamHandler(this.ttsService, this.openaiService, this.prisma);
+    this.streamHandler = new TwilioStreamHandler(this.prisma, this.ttsService, this.openaiService);
     this.activeConnections = new Map();
   }
 
