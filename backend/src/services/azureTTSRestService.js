@@ -199,6 +199,8 @@ class AzureTTSRestService {
       
       console.log(`🔊 Texto enviado a Azure TTS: ${text}`);
       
+      console.log(`🔊 Parámetros Azure TTS: voz=${voice}, formato=${format}, texto=${text.substring(0, 50)}...`);
+      
       const requestConfig = {
         headers: {
           'Ocp-Apim-Subscription-Key': this.subscriptionKey,
@@ -246,6 +248,7 @@ class AzureTTSRestService {
       
       console.log(`🔊 Azure TTS Response Status: ${response.status}`);
       console.log(`🔊 Azure TTS Response Headers: ${JSON.stringify(response.headers)}`);
+      console.log(`🔊 Audio Buffer First 16 Bytes: ${response.data.slice(0, 16).toString('hex')}`);
       
       const requestEndTime = Date.now();
       const requestDuration = requestEndTime - speechStartTime;
