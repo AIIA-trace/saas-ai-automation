@@ -141,7 +141,9 @@ class WebSocketServer {
       ws,
       req,
       connectionTime: Date.now(),
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
+      messageCount: 0,
+      connectionStartTime: Date.now()
     });
 
     // Configurar WebSocket
@@ -155,13 +157,21 @@ class WebSocketServer {
     // Manejar cierre de conexión
     ws.on('close', (code, reason) => {
       logger.info(`🔌 Conexión WebSocket cerrada: ${connectionId} (${code}: ${reason})`);
+      logger.info(`🔌 Duración de la conexión: ${Date.now() - this.activeConnections.get(connectionId).connectionStartTime}ms`);
+      logger.info(`🔌 Mensajes recibidos: ${this.activeConnections.get(connectionId).messageCount}`);
       this.activeConnections.delete(connectionId);
     });
 
     // Manejar errores
     ws.on('error', (error) => {
-      logger.error(`❌ Error WebSocket ${connectionId}: ${error.message}`);
+      logger.error(`🚨 Error WebSocket ${connectionId}: ${error.message}`);
       this.activeConnections.delete(connectionId);
+    });
+
+    // Manejar mensajes
+    ws.on('message', (message) => {
+      this.activeConnections.get(connectionId).messageCount++;
+      this.activeConnections.get(connectionId).lastActivity = Date.now();
     });
   }
 

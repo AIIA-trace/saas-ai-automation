@@ -36,8 +36,8 @@ class StreamingTwiMLService {
       logger.info(`🎵 Creando TwiML Stream para ${clientData.companyName}`);
       logger.info(`🔌 WebSocket URL: ${wsUrl}`);
 
-      // Contestar la llamada inmediatamente (sin audio audible)
-      twiml.say('');
+      // Contestar la llamada inmediatamente
+      twiml.pause({ length: 1 });
       
       // Conectar stream bidireccional para Azure TTS
       const connect = twiml.connect();
