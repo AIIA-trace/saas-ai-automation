@@ -235,21 +235,18 @@ class TwilioStreamHandler {
       const chunk = mulawBuffer.subarray(offset, offset + chunkSize);
       const base64Chunk = chunk.toString('base64');
       
-      logger.info(`🔌 Sending audio chunk: ${chunk.length} bytes`);
-      logger.info(`🔌 First 16 bytes: ${chunk.slice(0, 16).toString('hex')}`);
-      logger.info('🔌 WebSocket message structure:', {
-        event: 'media',
-        streamSid: streamSid,
-        media: {
-          payload: base64Chunk
-        }
-      });
-      
       ws.send(JSON.stringify({
         event: 'media',
         streamSid: streamSid,
         media: { payload: base64Chunk }
       }));
+      
+      console.log('🔌 WebSocket transmission debug:', {
+        timestamp: Date.now(),
+        chunkSize: chunk.length,
+        streamSid: streamSid,
+        isConnected: ws.readyState === ws.OPEN
+      });
       
       chunkCount++;
       offset += chunkSize;
@@ -304,16 +301,6 @@ class TwilioStreamHandler {
         const chunk = processedBuffer.subarray(offset, offset + chunkSize);
         const base64Chunk = chunk.toString('base64');
         
-        logger.info(`🔌 Sending audio chunk: ${chunk.length} bytes`);
-        logger.info(`🔌 First 16 bytes: ${chunk.slice(0, 16).toString('hex')}`);
-        logger.info('🔌 WebSocket message structure:', {
-          event: 'media',
-          streamSid: streamSid,
-          media: {
-            payload: base64Chunk
-          }
-        });
-        
         const mediaMessage = {
           event: 'media',
           streamSid: streamSid,
@@ -321,6 +308,13 @@ class TwilioStreamHandler {
             payload: base64Chunk
           }
         };
+
+        console.log('🔌 WebSocket transmission debug:', {
+          timestamp: Date.now(),
+          chunkSize: chunk.length,
+          streamSid: streamSid,
+          isConnected: ws.readyState === ws.OPEN
+        });
 
         if (ws.readyState === 1) { // WebSocket.OPEN
           ws.send(JSON.stringify(mediaMessage));
