@@ -169,9 +169,20 @@ class WebSocketServer {
     });
 
     // Manejar mensajes
-    ws.on('message', (message) => {
-      this.activeConnections.get(connectionId).messageCount++;
-      this.activeConnections.get(connectionId).lastActivity = Date.now();
+    ws.on('message', async (message) => {
+      const connectionData = this.activeConnections.get(ws.connectionId);
+      if (connectionData) {
+        connectionData.messageCount++;
+        connectionData.lastActivity = Date.now();
+      }
+      
+      try {
+        // Parse and process Twilio Stream messages
+        const data = JSON.parse(message.toString());
+        await this.streamHandler.processStreamEvent(ws, data);
+      } catch (error) {
+        logger.error(`🚨 Error processing message ${ws.connectionId}: ${error.message}`);
+      }
     });
   }
 
