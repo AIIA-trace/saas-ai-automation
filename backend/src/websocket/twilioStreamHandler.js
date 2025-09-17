@@ -53,19 +53,25 @@ class TwilioStreamHandler {
    * Stream conectado - SOLO registrar conexión
    */
   async handleStreamConnected(ws, data) {
-    const streamSid = data.streamSid;
-    logger.info(`✅ [${streamSid}] Stream conectado - registrando`);
+    // En el evento 'connected', streamSid no está disponible aún
+    // Registramos la conexión con un ID temporal
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // SOLO registrar el stream - NO hacer nada más
-    this.activeStreams.set(streamSid, {
+    logger.info(`✅ [${tempId}] Stream conectado - registrando temporalmente`);
+    
+    // Registrar con ID temporal - se actualizará en 'start'
+    this.activeStreams.set(tempId, {
       ws: ws,
-      streamSid: streamSid,
+      tempId: tempId,
       isConnected: true,
       greetingSent: false,
       isInitializing: true
     });
     
-    logger.info(`✅ [${streamSid}] Stream registrado - esperando 'start'`);
+    // También guardar referencia por WebSocket para poder encontrarlo en 'start'
+    ws.tempStreamId = tempId;
+    
+    logger.info(`✅ [${tempId}] Stream registrado temporalmente - esperando 'start'`);
   }
 
   /**
@@ -95,12 +101,26 @@ class TwilioStreamHandler {
       }
 
       // Actualizar stream con configuración
-      const streamData = this.activeStreams.get(streamSid);
+      const tempId = ws.tempStreamId;
+      const streamData = this.activeStreams.get(tempId);
+      
+      if (!streamData) {
+        logger.error(`❌ [${streamSid}] No se encontró stream temporal: ${tempId}`);
+        return;
+      }
+      
+      // Migrar de ID temporal a streamSid real
+      streamData.streamSid = streamSid;
       streamData.client = clientConfig;
       streamData.isInitializing = false;
       
+      // Actualizar en el Map con la clave real
+      this.activeStreams.delete(tempId);
+      this.activeStreams.set(streamSid, streamData);
+      
       logger.info(`✅ [${streamSid}] Cliente configurado: ${clientConfig.companyName}`);
-
+      logger.info(`🔄 [${streamSid}] Migrado desde ID temporal: ${tempId}`);
+      
       // VERIFICACIÓN ESTRICTA: Solo generar saludo UNA VEZ
       if (streamData.greetingSent) {
         logger.warn(`⚠️ [${streamSid}] DUPLICADO DETECTADO - Saludo ya enviado, OMITIENDO`);
@@ -129,7 +149,7 @@ class TwilioStreamHandler {
    * Generar saludo inicial - SOLO UNA VEZ POR STREAM
    */
   async sendInitialGreeting(ws, { streamSid, callSid }) {
-    const streamData = this.activeStreams.get(streamSid);
+    const streamData = this.activeStreams.get(ws.tempStreamId);
     if (!streamData?.client) {
       logger.error(`❌ [${streamSid}] Sin configuración de cliente`);
       return;
