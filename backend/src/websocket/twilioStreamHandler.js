@@ -289,6 +289,10 @@ class TwilioStreamHandler {
         }
       }
 
+      console.log('🔊 Audio transmission started for stream:', streamSid);
+      console.log('🔊 Chunk size:', 160, 'bytes');
+      console.log('🔊 Total audio length:', processedBuffer.length, 'bytes');
+
       logger.info("🔊 Sending audio to WebSocket");
       logger.info(`🔊 Tamaño del buffer de audio: ${processedBuffer.length} bytes`);
       logger.info(`🔊 Primeros bytes: ${processedBuffer.slice(0, 16).toString('hex')}`);
@@ -308,6 +312,13 @@ class TwilioStreamHandler {
             payload: base64Chunk
           }
         };
+
+        console.log('🔌 Sending chunk:', {
+          size: chunk.length,
+          position: offset,
+          streamSid: streamSid,
+          timestamp: Date.now()
+        });
 
         console.log('🔌 WebSocket transmission debug:', {
           timestamp: Date.now(),
