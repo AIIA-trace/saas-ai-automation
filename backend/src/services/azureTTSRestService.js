@@ -183,13 +183,27 @@ class AzureTTSRestService {
       
       const token = await this.getToken();
       
-      const ssml = `
+      // Detectar si el texto ya es SSML completo o solo contenido interno
+      let ssml;
+      if (text.includes('<mstts:express-as') || text.includes('<prosody')) {
+        // Es contenido SSML interno, envolver con estructura básica
+        ssml = `
         <speak version='1.0' xml:lang='es-ES'>
           <voice name='${voice}'>
             ${text}
           </voice>
         </speak>
       `;
+      } else {
+        // Es texto plano, usar estructura SSML básica
+        ssml = `
+        <speak version='1.0' xml:lang='es-ES'>
+          <voice name='${voice}'>
+            ${text}
+          </voice>
+        </speak>
+      `;
+      }
 
       console.log(`🔍 SSML Final:`, ssml);
       console.log(`🔍 SSML Length:`, ssml.length);

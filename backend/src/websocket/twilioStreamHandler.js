@@ -36,7 +36,7 @@ class TwilioStreamHandler {
   /**
    * Humanizar texto con SSML para que Elvira suene más natural
    * @param {string} text - Texto a humanizar
-   * @returns {string} Texto con SSML aplicado
+   * @returns {string} Texto con SSML aplicado (solo contenido interno)
    */
   humanizeTextWithSSML(text) {
     // Limpiar texto de posibles caracteres problemáticos
@@ -45,22 +45,18 @@ class TwilioStreamHandler {
       return entities[match];
     });
 
-    // Aplicar SSML humanizado para Elvira
-    const ssmlText = `
-      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" 
-             xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="es-ES">
-        <voice name="es-ES-ElviraNeural">
+    // Solo devolver el contenido SSML interno (sin <speak> wrapper)
+    // El servicio TTS ya agrega el wrapper completo
+    const ssmlContent = `
           <mstts:express-as style="friendly">
             <prosody rate="0.9" pitch="-3%" volume="85%">
               ${cleanText.replace(/\./g, '.<break time="300ms"/>')}
             </prosody>
           </mstts:express-as>
-        </voice>
-      </speak>
     `.trim();
 
-    logger.info(`🎭 SSML humanizado aplicado: ${ssmlText.substring(0, 100)}...`);
-    return ssmlText;
+    logger.info(`🎭 SSML humanizado aplicado: ${ssmlContent.substring(0, 100)}...`);
+    return ssmlContent;
   }
 
   /**
