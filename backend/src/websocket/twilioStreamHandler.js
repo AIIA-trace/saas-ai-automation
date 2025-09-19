@@ -183,7 +183,7 @@ class TwilioStreamHandler {
     // Get voice configuration and map to valid Azure voice
     const rawVoiceId = streamData.client.callConfig?.voiceId || 
                       clientConfigData.callConfig?.voiceId || 
-                      'lola';
+                      'elvira';
     const language = streamData.client.callConfig?.language || 
                     clientConfigData.callConfig?.language || 
                     'es-ES';
@@ -236,7 +236,7 @@ class TwilioStreamHandler {
     const fallbackGreeting = "Gracias por llamar. Estamos conectándote con un asistente. Por favor, espera un momento.";
     
     // Get voice configuration and map to valid Azure voice
-    const rawVoiceId = clientConfigData.callConfig?.voiceId || 'lola';
+    const rawVoiceId = clientConfigData.callConfig?.voiceId || 'elvira';
     const language = clientConfigData.callConfig?.language || 'es-ES';
     const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
     
