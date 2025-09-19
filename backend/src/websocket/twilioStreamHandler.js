@@ -34,6 +34,36 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Humanizar texto con SSML para que Elvira suene más natural
+   * @param {string} text - Texto a humanizar
+   * @returns {string} Texto con SSML aplicado
+   */
+  humanizeTextWithSSML(text) {
+    // Limpiar texto de posibles caracteres problemáticos
+    const cleanText = text.replace(/[<>&"']/g, (match) => {
+      const entities = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' };
+      return entities[match];
+    });
+
+    // Aplicar SSML humanizado para Elvira
+    const ssmlText = `
+      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" 
+             xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="es-ES">
+        <voice name="es-ES-ElviraNeural">
+          <mstts:express-as style="friendly">
+            <prosody rate="0.9" pitch="-3%" volume="85%">
+              ${cleanText.replace(/\./g, '.<break time="300ms"/>')}
+            </prosody>
+          </mstts:express-as>
+        </voice>
+      </speak>
+    `.trim();
+
+    logger.info(`🎭 SSML humanizado aplicado: ${ssmlText.substring(0, 100)}...`);
+    return ssmlText;
+  }
+
+  /**
    * Procesar eventos de Twilio Stream - FLUJO LIMPIO
    */
   async processStreamEvent(ws, data) {
@@ -208,9 +238,12 @@ class TwilioStreamHandler {
     }
 
     try {
-      // 3. Generar audio con Azure TTS
+      // 3. Humanizar el saludo con SSML
+      const humanizedGreeting = this.humanizeTextWithSSML(greeting);
+      
+      // 4. Generar audio con Azure TTS usando SSML humanizado
       const ttsResult = await this.ttsService.generateSpeech(
-        greeting,
+        humanizedGreeting,
         voiceId,
         'raw-8khz-8bit-mono-mulaw'
       );
@@ -245,8 +278,11 @@ class TwilioStreamHandler {
   
     logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con voz: ${voiceId}`);
   
+    // Humanizar el saludo de fallback con SSML
+    const humanizedFallback = this.humanizeTextWithSSML(fallbackGreeting);
+    
     const ttsResult = await this.ttsService.generateSpeech(
-      fallbackGreeting,
+      humanizedFallback,
       voiceId,
       'raw-8khz-8bit-mono-mulaw'
     );
