@@ -18,25 +18,8 @@ class TwilioStreamHandler {
 
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
     this.voiceMapping = {
-      // Spanish voices
-      'lola': 'es-ES-LaiaNeural',
-      'female': 'es-ES-EstrellaNeural',
-      'male': 'es-ES-DarioNeural',
-      'dario': 'es-ES-DarioNeural',
-      'estrella': 'es-ES-EstrellaNeural',
-      'laia': 'es-ES-LaiaNeural',
-      'irene': 'es-ES-IreneNeural',
-      'vera': 'es-ES-VeraNeural',
-      'triana': 'es-ES-TrianaNeural',
-      
-      // English voices (for future use)
-      'aria': 'en-US-AriaNeural',
-      'guy': 'en-US-GuyNeural',
-      'jenny': 'en-US-JennyNeural',
-      
-      // French voices (for future use)
-      'denise': 'fr-FR-DeniseNeural',
-      'henri': 'fr-FR-HenriNeural'
+      'lola': 'en-US-LolaMultilingualNeural',
+      'dario': 'es-ES-DarioNeural'
     };
   }
 
@@ -67,16 +50,9 @@ class TwilioStreamHandler {
       return mappedVoice;
     }
     
-    // If no mapping found, try to construct based on language
-    const languageDefaults = {
-      'es-ES': 'es-ES-DarioNeural',
-      'en-US': 'en-US-AriaNeural',
-      'fr-FR': 'fr-FR-DeniseNeural'
-    };
-    
-    const defaultVoice = languageDefaults[language] || 'es-ES-DarioNeural';
-    logger.warn(`⚠️ No mapping found for voice "${voiceId}", using default: ${defaultVoice}`);
-    return defaultVoice;
+    // If no mapping found, default to Dario
+    logger.warn(`⚠️ No mapping found for voice "${voiceId}", using default: es-ES-DarioNeural`);
+    return 'es-ES-DarioNeural';
   }
 
   /**
