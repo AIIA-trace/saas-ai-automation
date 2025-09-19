@@ -573,40 +573,21 @@ router.put('/client', authenticate, async (req, res) => {
       } else {
         logger.info(`⏸️ N8N INTEGRATION - Desactivando bot de llamadas para cliente ${req.client.id}`);
       }
+      
+      // 🎵 Log específico para configuración de voz
+      if (req.body.callConfig.voiceId) {
+        logger.info(`🎵 VOICE CONFIG - Voz configurada: "${req.body.callConfig.voiceId}"`);
+      }
+      if (req.body.callConfig.language) {
+        logger.info(`🌍 LANGUAGE CONFIG - Idioma configurado: "${req.body.callConfig.language}"`);
+      }
     } else {
       logger.info(`📞 FORCE DEBUG CALLCONFIG - NO recibido en req.body`);
     }
     
     // Configuración de voces Azure TTS
-    if (voiceConfig || req.body.voiceConfig) {
-      const voiceConfigData = voiceConfig || req.body.voiceConfig;
-      
-      // Validar que la voz seleccionada existe - usando mapeo hardcodeado
-      const availableVoices = ['lola', 'dario'];
-      const selectedVoice = voiceConfigData.azureVoice || voiceConfigData.voice;
-      
-      if (selectedVoice && !availableVoices.includes(selectedVoice)) {
-        logger.warn(`⚠️ Voz Azure seleccionada no válida: ${selectedVoice}. Usando voz por defecto.`);
-        voiceConfigData.azureVoice = 'lola';
-      }
-      
-      // Actualizar o crear callConfig con configuración de voz
-      const currentCallConfig = currentClient.callConfig || {};
-      const updatedCallConfig = {
-        ...currentCallConfig,
-        voiceSettings: {
-          ...currentCallConfig.voiceSettings,
-          provider: 'azure-tts',
-          azureVoice: voiceConfigData.azureVoice || selectedVoice || 'lola'
-        }
-      };
-      
-      updateData.callConfig = updatedCallConfig;
-      
-      logger.info(`🎵 AZURE VOICE CONFIG - Configuración de voz actualizada para cliente ${req.client.id}`);
-      logger.info(`🎵 AZURE VOICE CONFIG - Voz seleccionada: ${updatedCallConfig.voiceSettings.azureVoice}`);
-      logger.info(`🎵 AZURE VOICE CONFIG - Configuración completa:`, JSON.stringify(updatedCallConfig.voiceSettings, null, 2));
-    }
+    // REMOVED: Configuración de voces Azure TTS - CONFLICTO CON callConfig.voiceId
+    // Este flujo sobrescribía la configuración de voz enviada desde el frontend
     
     if (req.body.transferConfig) {
       // transferConfig NO existe en Prisma - solo log

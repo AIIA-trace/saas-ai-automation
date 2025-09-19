@@ -3560,12 +3560,11 @@ function loadBotConfiguration() {
         }
         
         if (callConfig.voiceId) {
-            // Guardar el valor para restaurar después de cargar las voces
-            window.savedAzureVoice = callConfig.voiceId;
-            console.log('🎤 Voz Azure TTS guardada para restaurar:', callConfig.voiceId);
-            
-            // NO establecer el valor aquí porque las opciones aún no están cargadas
-            // La restauración se hará en restoreSavedAzureVoice() después de loadAzureVoices()
+            const azureVoiceSelect = document.getElementById('azureVoiceSelect');
+            if (azureVoiceSelect) {
+                azureVoiceSelect.value = callConfig.voiceId;
+                console.log('🎤 Voz Azure TTS cargada:', callConfig.voiceId);
+            }
         }
         
         if (callConfig.greeting) {
