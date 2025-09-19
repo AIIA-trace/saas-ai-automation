@@ -186,9 +186,10 @@ class AzureTTSRestService {
       // Detectar si el texto ya es SSML completo o solo contenido interno
       let ssml;
       if (text.includes('<mstts:express-as') || text.includes('<prosody')) {
-        // Es contenido SSML interno, envolver con estructura básica
+        // Es contenido SSML interno, envolver con estructura completa incluyendo namespace mstts
         ssml = `
-        <speak version='1.0' xml:lang='es-ES'>
+        <speak version='1.0' xmlns="http://www.w3.org/2001/10/synthesis" 
+               xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang='es-ES'>
           <voice name='${voice}'>
             ${text}
           </voice>
