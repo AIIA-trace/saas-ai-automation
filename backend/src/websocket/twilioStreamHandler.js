@@ -210,6 +210,10 @@ class TwilioStreamHandler {
                     clientConfigData.callConfig?.language || 
                     'es-ES';
     
+    // DEBUG: Log complete callConfig structure
+    logger.info(`🔍 [${streamSid}] Complete callConfig from streamData: ${JSON.stringify(streamData.client.callConfig, null, 2)}`);
+    logger.info(`🔍 [${streamSid}] Complete callConfig from DB: ${JSON.stringify(clientConfigData.callConfig, null, 2)}`);
+    
     const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
     
     logger.info(`🎵 [${streamSid}] Raw voice from DB: "${rawVoiceId}"`);

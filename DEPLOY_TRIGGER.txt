@@ -25,4 +25,11 @@ DEPLOY_TRIGGER=2025-01-17_21-40-00_voice_mapping_system_implementation
 - Fallback system based on language preferences
 - Case-insensitive voice name matching
 
+✅ Debug: Agregar logs detallados para diagnosticar configuración de voz
+- Agregados logs completos de callConfig desde streamData y DB
+- Esto ayudará a identificar si el problema es en el guardado o en la carga
+- Los logs mostrarán la estructura completa de callConfig para debug
+
+Timestamp: 2025-09-19T20:21:58+02:00
+
 Ready for deployment and testing with client voice configurations.
