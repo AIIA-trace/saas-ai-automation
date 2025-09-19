@@ -17,10 +17,8 @@ class TwilioStreamHandler {
     this.validateAzureConfig(); // Validación crítica al iniciar
 
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
-    this.voiceMapping = {
-      'lola': 'en-US-LolaMultilingualNeural',
-      'dario': 'es-ES-DarioNeural'
-    };
+    // Voz única para todos los usuarios: Elvira (optimizada para conversaciones)
+    this.defaultVoice = 'es-ES-ElviraNeural';
   }
 
   /**
@@ -30,29 +28,9 @@ class TwilioStreamHandler {
    * @returns {string} Valid Azure TTS voice identifier
    */
   mapVoiceToAzure(voiceId, language = 'es-ES') {
-    if (!voiceId) {
-      return 'es-ES-DarioNeural'; // Default fallback
-    }
-
-    // Convert to lowercase for case-insensitive matching
-    const normalizedVoiceId = voiceId.toLowerCase();
-    
-    // Check if it's already a valid Azure voice format (contains language code)
-    if (normalizedVoiceId.includes('-') && normalizedVoiceId.includes('neural')) {
-      logger.info(`🎵 Voice already in Azure format: ${voiceId}`);
-      return voiceId;
-    }
-    
-    // Map user-friendly name to Azure voice
-    const mappedVoice = this.voiceMapping[normalizedVoiceId];
-    if (mappedVoice) {
-      logger.info(`🎵 Voice mapped: "${voiceId}" → "${mappedVoice}"`);
-      return mappedVoice;
-    }
-    
-    // If no mapping found, default to Dario
-    logger.warn(`⚠️ No mapping found for voice "${voiceId}", using default: es-ES-DarioNeural`);
-    return 'es-ES-DarioNeural';
+    // Siempre usar Elvira para todos los usuarios
+    logger.info(`🎵 Using Elvira voice for all users: ${this.defaultVoice}`);
+    return this.defaultVoice;
   }
 
   /**

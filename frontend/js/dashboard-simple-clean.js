@@ -1446,24 +1446,20 @@ function createBotConfigTabContent() {
                                                 <div class="card-body p-3">
                                                     <h6 class="card-subtitle mb-3 text-muted">Configuración de Voz</h6>
                                                     <div class="mb-3">
-                                                        <label for="call_language" class="form-label">Idioma Principal</label>
-                                                        <select class="form-select" id="call_language" name="call_language" required onchange="handleLanguageChange()">
-                                                            <option value="es-ES" selected>Español (España)</option>
-                                                            <option value="en-US">Inglés (EEUU)</option>
-                                                            <option value="fr-FR">Francés</option>
-                                                            <option value="de-DE">Alemán</option>
-                                                        </select>
+                                                        <label class="form-label">Idioma del Bot</label>
+                                                        <div class="alert alert-success mb-0" role="alert">
+                                                            <strong>🇪🇸 Español (España)</strong><br>
+                                                            <small class="text-muted">Idioma optimizado para usuarios hispanohablantes</small>
+                                                        </div>
                                                     </div>
                                                     <div>
-                                                        <label for="azureVoiceSelect" class="form-label">
+                                                        <label class="form-label">
                                                             <i class="fas fa-microphone me-1"></i>
-                                                            Voz Azure TTS
+                                                            Voz del Bot
                                                         </label>
-                                                        <select class="form-select" id="azureVoiceSelect" name="azureVoice" required>
-                                                            <option value="">Cargando voces disponibles...</option>
-                                                        </select>
-                                                        <div class="form-text">
-                                                            Voces españolas con ceceo peninsular auténtico
+                                                        <div class="alert alert-info mb-0" role="alert">
+                                                            <strong>Elvira (Conversacional)</strong><br>
+                                                            <small class="text-muted">Voz española optimizada para conversaciones naturales con pausas y entonación humana</small>
                                                         </div>
                                                     </div>
                                                     <div class="mt-2">
@@ -3550,22 +3546,11 @@ function loadBotConfiguration() {
         console.log('🎥 Grabación automática habilitada para N8N');
         console.log('📝 Transcripción automática habilitada para N8N');
         
-        // Cargar selectores de configuración de llamadas
-        if (callConfig.language) {
-            const languageSelect = document.getElementById('call_language');
-            if (languageSelect) {
-                languageSelect.value = callConfig.language;
-                console.log('🌍 Idioma de llamadas cargado:', callConfig.language);
-            }
-        }
+        // Idioma fijo: Español para todos los usuarios
+        console.log('🌍 Idioma configurado: Español (es-ES)');
         
-        if (callConfig.voiceId) {
-            const azureVoiceSelect = document.getElementById('azureVoiceSelect');
-            if (azureVoiceSelect) {
-                azureVoiceSelect.value = callConfig.voiceId;
-                console.log('🎤 Voz Azure TTS cargada:', callConfig.voiceId);
-            }
-        }
+        // Voz fija: Elvira para todos los usuarios
+        console.log('🎤 Voz configurada: Elvira (es-ES-ElviraNeural)');
         
         if (callConfig.greeting) {
             const greetingTextarea = document.getElementById('call_greeting');
@@ -6965,8 +6950,8 @@ function saveUnifiedConfig() {
                 const config = {
                     // Campos que SÍ existen en el HTML
                     enabled: document.getElementById('call_bot_active')?.checked || false,
-                    voiceId: document.getElementById('azureVoiceSelect')?.value || '',
-                    language: document.getElementById('call_language')?.value || 'es-ES',
+                    voiceId: 'elvira', // Voz fija para todos los usuarios
+                    language: 'es-ES', // Idioma fijo español
                     greeting: document.getElementById('call_greeting')?.value || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
                     // Configuración automática para N8N
                     recordCalls: true,  // Siempre grabar para análisis
@@ -9659,66 +9644,9 @@ function markEmailAsRead(emailId) {
  * Cargar voces disponibles de Azure TTS
  */
 async function loadAzureVoices() {
-    try {
-        console.log('🎵 === DEBUG AZURE TTS - INICIO ===');
-        console.log('🔍 Verificando elementos DOM...');
-        
-        const azureVoiceSelect = document.getElementById('azureVoiceSelect');
-        console.log('📋 Elemento azureVoiceSelect encontrado:', !!azureVoiceSelect);
-        
-        if (!azureVoiceSelect) {
-            console.error('❌ CRÍTICO: Elemento azureVoiceSelect NO encontrado en DOM');
-            return;
-        }
-        
-        console.log('🔑 Obteniendo token de autenticación...');
-        const token = localStorage.getItem('authToken');
-        console.log('🔑 Token encontrado:', !!token);
-        console.log('🔑 Token length:', token ? token.length : 0);
-        
-        // Usar la URL base del API_CONFIG
-        const baseUrl = window.API_CONFIG?.baseUrl || 'https://saas-ai-automation.onrender.com';
-        console.log('🌐 Preparando petición a:', `${baseUrl}/api/voices/azure`);
-        console.log('🌐 Base URL utilizada:', baseUrl);
-        
-        const response = await fetch(`${baseUrl}/api/voices/azure`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        console.log('📡 Respuesta recibida - Status:', response.status);
-        console.log('📡 Respuesta recibida - OK:', response.ok);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Error en respuesta:', errorText);
-            throw new Error(`Error ${response.status}: ${response.statusText} - ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log('✅ Respuesta JSON parseada:', result);
-        console.log('🎤 Voces recibidas:', result.voices);
-        console.log('🎤 Número de voces:', result.voices ? result.voices.length : 0);
-        console.log('🎯 Voz por defecto:', result.defaultVoice);
-
-        populateVoiceSelect(result.voices, result.defaultVoice);
-        
-        // Después de cargar las voces, restaurar el valor guardado si existe
-        restoreSavedAzureVoice();
-        
-        console.log('🎵 === DEBUG AZURE TTS - FIN EXITOSO ===');
-
-    } catch (error) {
-        console.error('❌ === DEBUG AZURE TTS - ERROR ===');
-        console.error('❌ Error completo:', error);
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Error stack:', error.stack);
-        populateVoiceSelect([], null, true);
-        console.log('❌ === DEBUG AZURE TTS - FIN CON ERROR ===');
-    }
+    // Voz fija configurada: Elvira
+    console.log('🎵 Voz configurada: Elvira (es-ES-ElviraNeural)');
+    console.log('✅ Configuración de voz simplificada - no requiere carga dinámica');
 }
 
 /**
