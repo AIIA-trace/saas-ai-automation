@@ -507,10 +507,10 @@ class TwilioStreamHandler {
       speechCount: 0,
       lastActivity: Date.now(),
       energyHistory: [],
-      minSpeechDuration: 8, // chunks mínimos para considerar habla (160ms)
-      maxSilenceDuration: 15, // chunks máximos de silencio antes de procesar (300ms)
-      energyThreshold: 8, // umbral de energía para detectar habla
-      adaptiveThreshold: 8 // umbral adaptativo basado en historial
+      minSpeechDuration: 3, // chunks mínimos para considerar habla (60ms) - MÁS SENSIBLE
+      maxSilenceDuration: 8, // chunks máximos de silencio antes de procesar (160ms) - MÁS RÁPIDO
+      energyThreshold: 5, // umbral de energía para detectar habla - MÁS BAJO
+      adaptiveThreshold: 5 // umbral adaptativo basado en historial - MÁS BAJO
     });
   }
 
@@ -545,10 +545,10 @@ class TwilioStreamHandler {
     
     // Calcular umbral adaptativo basado en promedio del ruido de fondo
     const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
-    detection.adaptiveThreshold = Math.max(6, avgEnergy * 2.5); // al menos 6, o 2.5x el promedio
+    detection.adaptiveThreshold = Math.max(3, avgEnergy * 1.8); // al menos 3, o 1.8x el promedio - MÁS SENSIBLE
     
-    // Detectar si hay actividad de voz
-    const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 10;
+    // Detectar si hay actividad de voz - UMBRAL MÁS BAJO
+    const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 5;
     
     if (isSpeech) {
       detection.speechCount++;
@@ -570,10 +570,11 @@ class TwilioStreamHandler {
                          (Date.now() - detection.lastActivity) > 200; // mínimo 200ms de silencio
     
     if (shouldProcess) {
+      const silenceChunks = detection.silenceCount; // Guardar antes de resetear
       detection.isActive = false;
       detection.silenceCount = 0;
       detection.speechCount = 0;
-      logger.info(`🔇 [${streamSid}] Final de habla detectado (silencio: ${detection.silenceCount} chunks)`);
+      logger.info(`🔇 [${streamSid}] Final de habla detectado (silencio: ${silenceChunks} chunks)`);
       return { shouldProcess: true, reason: 'speech_end_detected' };
     }
     
@@ -691,12 +692,16 @@ class TwilioStreamHandler {
       // Detectar actividad de voz usando VAD avanzado
       const vadResult = this.detectVoiceActivity(audioChunk, streamSid);
       
+      // DEBUG CRÍTICO: Logs detallados del VAD
+      logger.info(`🎤 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
+      
       // Acumular chunks de audio en buffer solo si hay actividad o estamos en una sesión activa
       let audioBuffer = this.audioBuffers.get(streamSid) || [];
       
       if (vadResult.isActive || vadResult.shouldProcess) {
         audioBuffer.push(audioChunk);
         this.audioBuffers.set(streamSid, audioBuffer);
+        logger.info(`🎤 [${streamSid}] Audio acumulado: ${audioBuffer.length} chunks`);
       }
       
       logger.debug(`🎤 [${streamSid}] Audio chunk: energía=${vadResult.energy}, umbral=${vadResult.threshold}, activo=${vadResult.isActive}, buffer=${audioBuffer.length} chunks`);
