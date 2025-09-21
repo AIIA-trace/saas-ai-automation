@@ -24,6 +24,9 @@ class TwilioStreamHandler {
     this.openaiService = new OpenAIService();
     this.transcriptionService = new RealtimeTranscription();
 
+    // Sistema avanzado de detección de habla
+    this.speechDetection = new Map(); // Estado de detección por stream
+
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
     // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
     this.defaultVoice = 'es-ES-IsidoraMultilingualNeural';
@@ -480,6 +483,106 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Inicializar sistema de detección de habla para un stream
+   */
+  initializeSpeechDetection(streamSid) {
+    this.speechDetection.set(streamSid, {
+      isActive: false,
+      silenceCount: 0,
+      speechCount: 0,
+      lastActivity: Date.now(),
+      energyHistory: [],
+      minSpeechDuration: 8, // chunks mínimos para considerar habla (160ms)
+      maxSilenceDuration: 15, // chunks máximos de silencio antes de procesar (300ms)
+      energyThreshold: 8, // umbral de energía para detectar habla
+      adaptiveThreshold: 8 // umbral adaptativo basado en historial
+    });
+  }
+
+  /**
+   * Detectar actividad de voz en tiempo real usando VAD (Voice Activity Detection)
+   */
+  detectVoiceActivity(audioChunk, streamSid) {
+    let detection = this.speechDetection.get(streamSid);
+    if (!detection) {
+      this.initializeSpeechDetection(streamSid);
+      detection = this.speechDetection.get(streamSid);
+    }
+
+    // Calcular energía del chunk actual
+    const samples = new Uint8Array(audioChunk);
+    let energy = 0;
+    let maxAmplitude = 0;
+    
+    for (const sample of samples) {
+      const amplitude = Math.abs(sample - 127); // mulaw center is 127
+      energy += amplitude * amplitude; // energía cuadrática
+      maxAmplitude = Math.max(maxAmplitude, amplitude);
+    }
+    
+    energy = Math.sqrt(energy / samples.length); // RMS energy
+    
+    // Mantener historial de energía para umbral adaptativo
+    detection.energyHistory.push(energy);
+    if (detection.energyHistory.length > 50) { // mantener últimos 50 chunks (1 segundo)
+      detection.energyHistory.shift();
+    }
+    
+    // Calcular umbral adaptativo basado en promedio del ruido de fondo
+    const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
+    detection.adaptiveThreshold = Math.max(6, avgEnergy * 2.5); // al menos 6, o 2.5x el promedio
+    
+    // Detectar si hay actividad de voz
+    const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 10;
+    
+    if (isSpeech) {
+      detection.speechCount++;
+      detection.silenceCount = 0;
+      detection.lastActivity = Date.now();
+      
+      if (!detection.isActive && detection.speechCount >= detection.minSpeechDuration) {
+        detection.isActive = true;
+        logger.info(`🎙️ [${streamSid}] Inicio de habla detectado (energía: ${energy.toFixed(1)}, umbral: ${detection.adaptiveThreshold.toFixed(1)})`);
+      }
+    } else {
+      detection.silenceCount++;
+      detection.speechCount = Math.max(0, detection.speechCount - 1); // decaimiento gradual
+    }
+    
+    // Detectar final de habla
+    const shouldProcess = detection.isActive && 
+                         detection.silenceCount >= detection.maxSilenceDuration &&
+                         (Date.now() - detection.lastActivity) > 200; // mínimo 200ms de silencio
+    
+    if (shouldProcess) {
+      detection.isActive = false;
+      detection.silenceCount = 0;
+      detection.speechCount = 0;
+      logger.info(`🔇 [${streamSid}] Final de habla detectado (silencio: ${detection.silenceCount} chunks)`);
+      return { shouldProcess: true, reason: 'speech_end_detected' };
+    }
+    
+    // Timeout de seguridad - procesar si llevamos mucho tiempo acumulando
+    const timeSinceStart = Date.now() - detection.lastActivity;
+    if (detection.isActive && timeSinceStart > 8000) { // 8 segundos máximo
+      logger.warn(`⏰ [${streamSid}] Timeout de seguridad - procesando audio acumulado`);
+      detection.isActive = false;
+      detection.silenceCount = 0;
+      detection.speechCount = 0;
+      return { shouldProcess: true, reason: 'timeout' };
+    }
+    
+    return { 
+      shouldProcess: false, 
+      isActive: detection.isActive,
+      energy: energy.toFixed(1),
+      threshold: detection.adaptiveThreshold.toFixed(1),
+      speechCount: detection.speechCount,
+      silenceCount: detection.silenceCount
+    };
+  }
+
+  /**
    * Analizar calidad y características del buffer de audio
    */
   analyzeAudioBuffer(audioBuffer) {
@@ -570,19 +673,31 @@ class TwilioStreamHandler {
       // Decodificar audio de base64 a buffer
       const audioChunk = Buffer.from(payload, 'base64');
       
-      // Acumular chunks de audio en buffer
+      // Detectar actividad de voz usando VAD avanzado
+      const vadResult = this.detectVoiceActivity(audioChunk, streamSid);
+      
+      // Acumular chunks de audio en buffer solo si hay actividad o estamos en una sesión activa
       let audioBuffer = this.audioBuffers.get(streamSid) || [];
-      audioBuffer.push(audioChunk);
-      this.audioBuffers.set(streamSid, audioBuffer);
       
-      logger.debug(`🎤 [${streamSid}] Audio chunk recibido (${payload.length} chars base64, buffer: ${audioBuffer.length} chunks)`);
+      if (vadResult.isActive || vadResult.shouldProcess) {
+        audioBuffer.push(audioChunk);
+        this.audioBuffers.set(streamSid, audioBuffer);
+      }
       
-      // Procesar transcripción cuando tengamos suficiente audio (reducido para mayor responsividad)
-      if (audioBuffer.length >= 24) { // ~2 segundos de audio a 8kHz
+      logger.debug(`🎤 [${streamSid}] Audio chunk: energía=${vadResult.energy}, umbral=${vadResult.threshold}, activo=${vadResult.isActive}, buffer=${audioBuffer.length} chunks`);
+      
+      // Procesar transcripción cuando VAD detecte final de habla
+      if (vadResult.shouldProcess && audioBuffer.length > 0) {
         const combinedBuffer = Buffer.concat(audioBuffer);
         this.audioBuffers.set(streamSid, []); // Limpiar buffer
         
-        logger.info(`🎤 [${streamSid}] Procesando transcripción de ${combinedBuffer.length} bytes (${audioBuffer.length} chunks acumulados)`);
+        logger.info(`🎙️ [${streamSid}] VAD detectó final de habla (${vadResult.reason}) - procesando ${combinedBuffer.length} bytes de ${audioBuffer.length} chunks`);
+        
+        // Filtro de duración mínima - evitar procesar audio muy corto
+        if (audioBuffer.length < 6) { // menos de 120ms
+          logger.debug(`🚫 [${streamSid}] Audio muy corto (${audioBuffer.length} chunks) - ignorando`);
+          return;
+        }
         
         try {
           logger.info(`🎤 [${streamSid}] Iniciando transcripción de ${combinedBuffer.length} bytes`);
@@ -597,9 +712,9 @@ class TwilioStreamHandler {
           const audioStats = this.analyzeAudioBuffer(combinedBuffer);
           logger.info(`📊 [${streamSid}] Estadísticas de audio: ${JSON.stringify(audioStats)}`);
           
-          // Filtrar audio de mala calidad que probablemente sea eco/ruido
-          if (audioStats.quality === 'poor' || audioStats.avgAmplitude < 8) {
-            logger.warn(`🚫 [${streamSid}] Audio de mala calidad detectado - ignorando transcripción (avg: ${audioStats.avgAmplitude}, quality: ${audioStats.quality})`);
+          // Filtro de calidad más permisivo ya que VAD pre-filtró el audio
+          if (audioStats.avgAmplitude < 5) {
+            logger.warn(`🚫 [${streamSid}] Audio de muy baja calidad detectado - ignorando transcripción (avg: ${audioStats.avgAmplitude})`);
             return;
           }
           
