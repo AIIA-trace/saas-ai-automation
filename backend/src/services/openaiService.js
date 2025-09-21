@@ -259,26 +259,34 @@ INSTRUCCIONES:
 6. Usa un tono conversacional y humano, evita sonar robótica
 7. Si no entiendes algo, pide aclaración de manera amable
 
-CONTEXTO DE LA CONVERSACIÓN:
-${conversationContext.previousMessages ? `Mensajes anteriores: ${conversationContext.previousMessages.slice(-3).join(' | ')}` : 'Primera interacción'}
-
 Responde únicamente con el texto que dirías como recepcionista, sin formato adicional.`;
       
-      // DEBUG: Mostrar el prompt final que se envía a OpenAI
-      logger.info(`🔍 [DEBUG] System prompt generado:`);
-      logger.info(`🔍 [DEBUG] ${systemPrompt}`);
+      // Construir historial estructurado de mensajes para OpenAI
+      const messages = [{ role: 'system', content: systemPrompt }];
+      
+      // Añadir mensajes previos de la conversación (máximo 6 mensajes = 3 intercambios)
+      if (conversationContext.structuredHistory && conversationContext.structuredHistory.length > 0) {
+        const recentHistory = conversationContext.structuredHistory.slice(-6);
+        messages.push(...recentHistory);
+        logger.info(`💭 [OpenAI] Añadiendo ${recentHistory.length} mensajes de historial estructurado`);
+      }
+      
+      // Añadir mensaje actual del usuario
+      messages.push({ role: 'user', content: transcribedText });
+      
+      // DEBUG: Mostrar estructura completa de mensajes
+      logger.info(`🔍 [DEBUG] Estructura completa de mensajes para OpenAI:`);
+      messages.forEach((msg, index) => {
+        logger.info(`🔍 [DEBUG] Mensaje ${index}: ${msg.role} - "${msg.content.substring(0, 100)}..."`);
+      });
 
-      logger.info(`📝 [OpenAI] Enviando prompt (${systemPrompt.length} chars) a GPT-3.5-turbo`);
-      logger.info(`🔍 [DEBUG] Transcripción del usuario: "${transcribedText}"`);
+      logger.info(`📝 [OpenAI] Enviando ${messages.length} mensajes a GPT-3.5-turbo`);
       
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
         {
           model: 'gpt-3.5-turbo', // Cambio a GPT-3.5 para menor latencia
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: transcribedText }
-          ],
+          messages: messages,
           temperature: 0.7,
           max_tokens: 100, // Reducido para respuestas más concisas
           presence_penalty: 0.1,

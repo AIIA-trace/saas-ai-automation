@@ -545,23 +545,26 @@ class TwilioStreamHandler {
               return;
             }
             
-            // Verificar si contiene palabras del bot (posible eco) o frases comunes de ruido
-            const botKeywords = ['intacon', 'subtítulos', 'amara.org', 'servicios', 'ayudarte', 'comunidad', 'realizados'];
-            const noiseKeywords = ['subtítulos realizados por la comunidad', 'amara.org', 'gracias por', 'muchas gracias'];
+            // Verificar si contiene frases específicas del bot (eco real) - FILTRO MÁS ESPECÍFICO
+            const specificBotPhrases = [
+              'subtítulos realizados por la comunidad de amara.org',
+              'bienvenido a intacon',
+              'gracias por llamar a intacon',
+              'amara.org'
+            ];
             
-            const containsBotWords = botKeywords.some(keyword => 
-              currentText.includes(keyword.toLowerCase())
+            const containsSpecificBotPhrase = specificBotPhrases.some(phrase => 
+              currentText.includes(phrase.toLowerCase())
             );
             
-            const containsNoiseWords = noiseKeywords.some(keyword => 
-              currentText.includes(keyword.toLowerCase())
-            );
-            
-            // Filtrar eco del bot o ruido común
-            if (containsBotWords || containsNoiseWords) {
-              logger.warn(`🔊 [${streamSid}] Eco/ruido detectado - ignorando: "${transcriptionResult.text}"`);
+            // Solo filtrar frases muy específicas del bot, NO palabras comunes
+            if (containsSpecificBotPhrase) {
+              logger.warn(`🔊 [${streamSid}] Eco específico del bot detectado - ignorando: "${transcriptionResult.text}"`);
               return;
             }
+            
+            // DEBUG: Log para confirmar que transcripciones válidas pasan el filtro
+            logger.info(`✅ [${streamSid}] Transcripción válida pasó filtros: "${transcriptionResult.text}"`)
             
             // Filtrar transcripciones muy cortas que probablemente sean ruido
             if (transcriptionResult.text.trim().length < 3) {
@@ -629,11 +632,21 @@ class TwilioStreamHandler {
       const responseText = responseResult.response;
       logger.info(`📝 [${streamSid}] Respuesta generada: "${responseText}"`);
       
-      // Actualizar contexto conversacional (optimizado)
+      // Actualizar contexto conversacional con estructura OpenAI (optimizado)
+      conversationContext.structuredHistory = conversationContext.structuredHistory || [];
+      conversationContext.structuredHistory.push(
+        { role: 'user', content: transcribedText },
+        { role: 'assistant', content: responseText }
+      );
+      
+      // Mantener solo los últimos 6 mensajes (3 intercambios) para mayor velocidad
+      if (conversationContext.structuredHistory.length > 6) {
+        conversationContext.structuredHistory = conversationContext.structuredHistory.slice(-6);
+      }
+      
+      // Mantener compatibilidad con formato anterior (opcional)
       conversationContext.previousMessages = conversationContext.previousMessages || [];
       conversationContext.previousMessages.push(`Usuario: ${transcribedText}`, `Asistente: ${responseText}`);
-      
-      // Mantener solo los últimos 4 mensajes para mayor velocidad
       if (conversationContext.previousMessages.length > 4) {
         conversationContext.previousMessages = conversationContext.previousMessages.slice(-4);
       }
