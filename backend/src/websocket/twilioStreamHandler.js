@@ -456,6 +456,43 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Analizar calidad y características del buffer de audio
+   */
+  analyzeAudioBuffer(audioBuffer) {
+    const samples = new Uint8Array(audioBuffer);
+    let totalAmplitude = 0;
+    let maxAmplitude = 0;
+    let silentSamples = 0;
+    let nonZeroSamples = 0;
+    
+    for (const sample of samples) {
+      const amplitude = Math.abs(sample - 127); // mulaw center is 127
+      totalAmplitude += amplitude;
+      maxAmplitude = Math.max(maxAmplitude, amplitude);
+      
+      if (amplitude < 5) { // Very quiet threshold
+        silentSamples++;
+      }
+      if (sample !== 0xFF && sample !== 0x7F) { // Not silence markers
+        nonZeroSamples++;
+      }
+    }
+    
+    const avgAmplitude = totalAmplitude / samples.length;
+    const silenceRatio = silentSamples / samples.length;
+    const dataRatio = nonZeroSamples / samples.length;
+    
+    return {
+      totalBytes: audioBuffer.length,
+      avgAmplitude: Math.round(avgAmplitude * 100) / 100,
+      maxAmplitude,
+      silenceRatio: Math.round(silenceRatio * 100) / 100,
+      dataRatio: Math.round(dataRatio * 100) / 100,
+      quality: avgAmplitude > 10 && dataRatio > 0.3 ? 'good' : 'poor'
+    };
+  }
+
+  /**
    * Conversión linear a mulaw
    */
   linearToMulaw(sample) {
@@ -510,32 +547,39 @@ class TwilioStreamHandler {
       
       logger.debug(`🎤 [${streamSid}] Audio chunk recibido (${payload.length} chars base64, buffer: ${audioBuffer.length} chunks)`);
       
-      // Procesar transcripción cuando tengamos suficiente audio (cada ~3-4 segundos para evitar ruido)
-      if (audioBuffer.length >= 48) { // ~3-4 segundos de audio a 8kHz
+      // Procesar transcripción cuando tengamos suficiente audio (reducido para mayor responsividad)
+      if (audioBuffer.length >= 24) { // ~2 segundos de audio a 8kHz
         const combinedBuffer = Buffer.concat(audioBuffer);
         this.audioBuffers.set(streamSid, []); // Limpiar buffer
         
         logger.info(`🎤 [${streamSid}] Procesando transcripción de ${combinedBuffer.length} bytes (${audioBuffer.length} chunks acumulados)`);
         
         try {
+          logger.info(`🎤 [${streamSid}] Iniciando transcripción de ${combinedBuffer.length} bytes`);
+          
+          // DEBUG: Guardar audio para análisis manual
+          const debugFileName = `debug_audio_${Date.now()}_${streamSid.slice(-6)}.wav`;
+          const fs = require('fs');
+          fs.writeFileSync(debugFileName, combinedBuffer);
+          logger.info(`🔧 [${streamSid}] Audio guardado para debug: ${debugFileName}`);
+          
+          // DEBUG: Analizar calidad del audio antes de transcribir
+          const audioStats = this.analyzeAudioBuffer(combinedBuffer);
+          logger.info(`📊 [${streamSid}] Estadísticas de audio: ${JSON.stringify(audioStats)}`);
+          
+          // Filtrar audio de mala calidad que probablemente sea eco/ruido
+          if (audioStats.quality === 'poor' || audioStats.avgAmplitude < 8) {
+            logger.warn(`🚫 [${streamSid}] Audio de mala calidad detectado - ignorando transcripción (avg: ${audioStats.avgAmplitude}, quality: ${audioStats.quality})`);
+            return;
+          }
+          
           // Transcribir audio
           const languageConfig = streamData.client.callConfig?.language || 'es-ES';
-          // Convertir formato Azure TTS (es-ES) a formato OpenAI Whisper (es)
           const whisperLanguage = languageConfig.split('-')[0]; // es-ES -> es
           
-          const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(
-            combinedBuffer, 
-            whisperLanguage
-          );
+          const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(combinedBuffer, whisperLanguage);
           
-          logger.debug(`📝 [${streamSid}] Resultado transcripción (idioma: ${whisperLanguage}):`, {
-            success: transcriptionResult.success,
-            textLength: transcriptionResult.text?.length || 0,
-            confidence: transcriptionResult.confidence,
-            duration: transcriptionResult.duration
-          });
-          
-          if (transcriptionResult.success && transcriptionResult.text.trim()) {
+          if (transcriptionResult.success && transcriptionResult.text) {
             // Verificar si es una transcripción repetitiva o del propio bot
             const lastTranscription = streamData.lastTranscription;
             const currentText = transcriptionResult.text.trim().toLowerCase();
@@ -609,8 +653,18 @@ class TwilioStreamHandler {
       }
       
       // Obtener contexto de conversación
-      const conversationContext = this.conversationState.get(streamSid) || { previousMessages: [] };
-      logger.debug(`💭 [${streamSid}] Contexto conversación: ${conversationContext.previousMessages.length} mensajes previos`);
+      const conversationContext = this.conversationState.get(streamSid) || { previousMessages: [], structuredHistory: [] };
+      logger.info(`💭 [${streamSid}] Contexto conversación: ${conversationContext.structuredHistory?.length || 0} mensajes estructurados previos`);
+      
+      // DEBUG: Mostrar historial completo si existe
+      if (conversationContext.structuredHistory && conversationContext.structuredHistory.length > 0) {
+        logger.info(`🔍 [DEBUG] Historial conversacional existente:`);
+        conversationContext.structuredHistory.forEach((msg, index) => {
+          logger.info(`🔍 [DEBUG] ${index}: ${msg.role} - "${msg.content}"`);
+        });
+      } else {
+        logger.warn(`⚠️ [${streamSid}] NO HAY HISTORIAL CONVERSACIONAL - Primera interacción o contexto perdido`);
+      }
       
       // Generar respuesta con OpenAI (optimizado con GPT-3.5-turbo)
       const startTime = Date.now();
