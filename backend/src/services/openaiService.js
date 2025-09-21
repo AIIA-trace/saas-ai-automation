@@ -202,12 +202,32 @@ class OpenAIService {
   async generateReceptionistResponse(transcribedText, clientConfig, conversationContext = {}) {
     try {
       logger.info(`🤖 [OpenAI] Iniciando generación de respuesta para: "${transcribedText}"`);
-      logger.debug(`🏢 [OpenAI] Configuración cliente:`, JSON.stringify(clientConfig, null, 2));
+      
+      // DEBUG: Mostrar toda la configuración del cliente recibida
+      logger.info(`🔍 [DEBUG] ClientConfig completo recibido:`);
+      logger.info(`🔍 [DEBUG] - ID: ${clientConfig.id}`);
+      logger.info(`🔍 [DEBUG] - companyName: "${clientConfig.companyName}"`);
+      logger.info(`🔍 [DEBUG] - companyDescription: "${clientConfig.companyDescription}"`);
+      logger.info(`🔍 [DEBUG] - industry: "${clientConfig.industry}"`);
+      logger.info(`🔍 [DEBUG] - businessHours: ${JSON.stringify(clientConfig.businessHours)}`);
+      logger.info(`🔍 [DEBUG] - botConfig: ${JSON.stringify(clientConfig.botConfig)}`);
+      logger.info(`🔍 [DEBUG] - callConfig: ${JSON.stringify(clientConfig.callConfig)}`);
       
       const companyName = clientConfig.companyName || 'nuestra empresa';
-      const companyDescription = clientConfig.description || '';
-      const services = clientConfig.services || [];
+      const companyDescription = clientConfig.companyDescription || '';
+      const industry = clientConfig.industry || '';
       const businessHours = clientConfig.businessHours || {};
+      
+      // Extraer servicios del botConfig si existe
+      const botConfig = clientConfig.botConfig || {};
+      const services = botConfig.services || [];
+      
+      // DEBUG: Mostrar valores procesados
+      logger.info(`🔍 [DEBUG] Valores procesados para prompt:`);
+      logger.info(`🔍 [DEBUG] - companyName final: "${companyName}"`);
+      logger.info(`🔍 [DEBUG] - companyDescription final: "${companyDescription}"`);
+      logger.info(`🔍 [DEBUG] - industry final: "${industry}"`);
+      logger.info(`🔍 [DEBUG] - services final: ${JSON.stringify(services)}`);
       
       logger.debug(`🏢 [OpenAI] Empresa: ${companyName}, Servicios: ${services.length}, Horarios: ${businessHours.enabled ? 'Sí' : 'No'}`);
       
@@ -226,6 +246,7 @@ class OpenAIService {
 INFORMACIÓN DE LA EMPRESA:
 - Nombre: ${companyName}
 - Descripción: ${companyDescription}
+- Industria: ${industry}
 ${servicesText}
 ${hoursText}
 
@@ -242,8 +263,13 @@ CONTEXTO DE LA CONVERSACIÓN:
 ${conversationContext.previousMessages ? `Mensajes anteriores: ${conversationContext.previousMessages.slice(-3).join(' | ')}` : 'Primera interacción'}
 
 Responde únicamente con el texto que dirías como recepcionista, sin formato adicional.`;
+      
+      // DEBUG: Mostrar el prompt final que se envía a OpenAI
+      logger.info(`🔍 [DEBUG] System prompt generado:`);
+      logger.info(`🔍 [DEBUG] ${systemPrompt}`);
 
-      logger.debug(`📝 [OpenAI] Enviando prompt (${systemPrompt.length} chars) a GPT-3.5-turbo`);
+      logger.info(`📝 [OpenAI] Enviando prompt (${systemPrompt.length} chars) a GPT-3.5-turbo`);
+      logger.info(`🔍 [DEBUG] Transcripción del usuario: "${transcribedText}"`);
       
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
@@ -268,6 +294,7 @@ Responde únicamente con el texto que dirías como recepcionista, sin formato ad
       const usage = response.data.usage;
       
       logger.info(`✅ [OpenAI] Respuesta generada (${responseText.length} chars, ${usage.total_tokens} tokens): "${responseText}"`);
+      logger.info(`🔍 [DEBUG] Respuesta completa de OpenAI: "${responseText}"`);
       logger.debug(`💰 [OpenAI] Uso tokens - Prompt: ${usage.prompt_tokens}, Completion: ${usage.completion_tokens}, Total: ${usage.total_tokens}`);
       
       return {
