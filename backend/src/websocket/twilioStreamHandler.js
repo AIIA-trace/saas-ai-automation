@@ -15,6 +15,8 @@ class TwilioStreamHandler {
     this.outboundAudioQueue = new Map();
     this.ttsInProgress = new Map();
     this.preConvertedAudio = new Map(); // Cache de conversiones
+    this.responseInProgress = new Map(); // Prevenir respuestas concurrentes
+    this.lastResponseTime = new Map(); // Control de tiempo entre respuestas
     this.azureToken = null; // Token reutilizable
     this.validateAzureConfig(); // Validación crítica al iniciar
 
@@ -122,7 +124,10 @@ class TwilioStreamHandler {
     this.activeStreams.set(tempId, {
       isConnected: true,
       greetingSent: false,
-      isInitializing: true
+      isInitializing: true,
+      botSpeaking: false,
+      conversationTurn: 'waiting', // waiting, listening, processing, speaking
+      lastUserInput: null
     });
     
     // También guardar referencia por WebSocket para poder encontrarlo en 'start'
@@ -186,15 +191,27 @@ class TwilioStreamHandler {
       
       // Marcar ANTES de generar para evitar condiciones de carrera
       streamData.greetingSent = true;
+      streamData.conversationTurn = 'speaking';
       
       try {
         logger.info(`🔊 [${streamSid}] Generando ÚNICO saludo...`);
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
+        
+        // Después del saludo, activar escucha del usuario
+        setTimeout(() => {
+          if (this.activeStreams.has(streamSid)) {
+            streamData.conversationTurn = 'listening';
+            streamData.botSpeaking = false;
+            logger.info(`👂 [${streamSid}] Activando escucha del usuario después del saludo`);
+          }
+        }, 6000); // 6 segundos para el saludo inicial
+        
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
         // Resetear flag si falla para permitir reintento
         streamData.greetingSent = false;
+        streamData.conversationTurn = 'waiting';
       }
 
     } catch (error) {
@@ -521,6 +538,12 @@ class TwilioStreamHandler {
       return;
     }
 
+    // Verificar estado de conversación - solo procesar si estamos escuchando
+    if (streamData.conversationTurn !== 'listening') {
+      logger.debug(`🤖 [${streamSid}] Estado: ${streamData.conversationTurn} - ignorando audio del usuario`);
+      return;
+    }
+    
     // Verificar si el bot está hablando - no procesar audio del usuario
     if (streamData.botSpeaking) {
       logger.debug(`🤖 [${streamSid}] Bot hablando - ignorando audio del usuario`);
@@ -608,7 +631,7 @@ class TwilioStreamHandler {
             }
             
             // DEBUG: Log para confirmar que transcripciones válidas pasan el filtro
-            logger.info(`✅ [${streamSid}] Transcripción válida pasó filtros: "${transcriptionResult.text}"`)
+            logger.info(`✅ [${streamSid}] Transcripción válida pasó filtros: "${transcriptionResult.text}"`);
             
             // Filtrar transcripciones muy cortas que probablemente sean ruido
             if (transcriptionResult.text.trim().length < 3) {
@@ -616,8 +639,26 @@ class TwilioStreamHandler {
               return;
             }
             
+            // Verificar que no hay otra respuesta en progreso
+            if (this.responseInProgress.get(streamSid)) {
+              logger.warn(`⚠️ [${streamSid}] Respuesta ya en progreso - ignorando nueva transcripción`);
+              return;
+            }
+            
+            // Control de tiempo mínimo entre respuestas (anti-spam)
+            const lastResponse = this.lastResponseTime.get(streamSid) || 0;
+            const timeSinceLastResponse = Date.now() - lastResponse;
+            if (timeSinceLastResponse < 3000) { // Mínimo 3 segundos entre respuestas
+              logger.warn(`⏰ [${streamSid}] Muy pronto para nueva respuesta (${timeSinceLastResponse}ms) - ignorando`);
+              return;
+            }
+            
             logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);          
-          logger.info(`🔍 [DEBUG] Llamando a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
+            logger.info(`🔍 [DEBUG] Llamando a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
+            
+            // Cambiar estado a procesando
+            streamData.conversationTurn = 'processing';
+            streamData.lastUserInput = transcriptionResult.text;
             
             // Guardar última transcripción
             streamData.lastTranscription = currentText;
@@ -646,10 +687,21 @@ class TwilioStreamHandler {
       logger.info(`🤖 [${streamSid}] Iniciando generación de respuesta para: "${transcribedText}"`);      
       logger.info(`🔍 [DEBUG] ClientConfig recibido en generateAndSendResponse: ${JSON.stringify(clientConfig, null, 2)}`);
       
+      // Verificar que no hay otra respuesta en progreso
+      if (this.responseInProgress.get(streamSid)) {
+        logger.warn(`⚠️ [${streamSid}] Respuesta ya en progreso - abortando nueva generación`);
+        return;
+      }
+      
+      // Marcar respuesta en progreso
+      this.responseInProgress.set(streamSid, true);
+      this.lastResponseTime.set(streamSid, Date.now());
+      
       // Marcar que el bot va a hablar
       const streamData = this.activeStreams.get(streamSid);
       if (streamData) {
         streamData.botSpeaking = true;
+        streamData.conversationTurn = 'speaking';
       }
       
       // Obtener contexto de conversación
@@ -714,9 +766,20 @@ class TwilioStreamHandler {
       logger.error(`❌ [${streamSid}] Error crítico en generación de respuesta: ${error.message}`);
       logger.error(`❌ [${streamSid}] Stack trace generación:`, error.stack);
       
+      // Limpiar estado en caso de error
+      this.responseInProgress.delete(streamSid);
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        streamData.botSpeaking = false;
+        streamData.conversationTurn = 'listening';
+      }
+      
       // Respuesta de emergencia
       const fallbackText = "Disculpa, tengo problemas técnicos. ¿Podrías repetir tu consulta?";
       await this.sendResponseAsAudio(ws, streamSid, fallbackText, clientConfig);
+    } finally {
+      // Asegurar limpieza del estado
+      this.responseInProgress.delete(streamSid);
     }
   }
 
@@ -755,14 +818,20 @@ class TwilioStreamHandler {
         
         logger.info(`✅ [${streamSid}] Audio enviado exitosamente`);
         
-        // Marcar que el bot terminó de hablar después de un delay FIJO
+        // Calcular duración aproximada del audio y agregar buffer
+        const estimatedDuration = Math.max(3000, (ttsResult.audioBuffer.length / 8) + 2000); // ~1ms por byte + 2s buffer
+        
+        // Marcar que el bot terminó de hablar después de la duración estimada
         setTimeout(() => {
           const streamData = this.activeStreams.get(streamSid);
           if (streamData) {
             streamData.botSpeaking = false;
-            logger.info(`🔇 [${streamSid}] Bot terminó de hablar - reactivando escucha del usuario`);
+            streamData.conversationTurn = 'listening';
+            logger.info(`🔇 [${streamSid}] Bot terminó de hablar (${estimatedDuration}ms) - reactivando escucha del usuario`);
           }
-        }, 5000); // FIJO: 5 segundos para asegurar que el audio termine
+          // Limpiar estado de respuesta en progreso
+          this.responseInProgress.delete(streamSid);
+        }, estimatedDuration);
         
       } else {
         logger.error(`❌ [${streamSid}] Error generando TTS: ${ttsResult.error || 'Error desconocido'}`);
@@ -779,14 +848,20 @@ class TwilioStreamHandler {
         if (fallbackResult.success) {
           await this.sendRawMulawToTwilio(ws, fallbackResult.audioBuffer, streamSid);
           
-          // Marcar que el bot terminó de hablar - FIJO
+          // Calcular duración aproximada del audio fallback
+          const fallbackDuration = Math.max(3000, (fallbackResult.audioBuffer.length / 8) + 2000);
+          
+          // Marcar que el bot terminó de hablar - CALCULADO
           setTimeout(() => {
             const streamData = this.activeStreams.get(streamSid);
             if (streamData) {
               streamData.botSpeaking = false;
-              logger.info(`🔇 [${streamSid}] Bot terminó de hablar (fallback) - reactivando escucha del usuario`);
+              streamData.conversationTurn = 'listening';
+              logger.info(`🔇 [${streamSid}] Bot terminó de hablar (fallback ${fallbackDuration}ms) - reactivando escucha del usuario`);
             }
-          }, 5000); // FIJO: 5 segundos
+            // Limpiar estado de respuesta en progreso
+            this.responseInProgress.delete(streamSid);
+          }, fallbackDuration);
         }
       }
       
@@ -798,7 +873,10 @@ class TwilioStreamHandler {
       const streamData = this.activeStreams.get(streamSid);
       if (streamData) {
         streamData.botSpeaking = false;
+        streamData.conversationTurn = 'listening';
       }
+      // Limpiar estado de respuesta en progreso
+      this.responseInProgress.delete(streamSid);
     }
   }
 
@@ -816,6 +894,8 @@ class TwilioStreamHandler {
     this.outboundAudioQueue.delete(streamSid);
     this.ttsInProgress.delete(streamSid);
     this.preConvertedAudio.delete(streamSid);
+    this.responseInProgress.delete(streamSid);
+    this.lastResponseTime.delete(streamSid);
     
     logger.info(`✅ [${streamSid}] Recursos limpiados`);
   }
