@@ -48,12 +48,13 @@ class TwilioStreamHandler {
 
     // Solo devolver el contenido SSML interno (sin <speak> wrapper)
     // El servicio TTS ya agrega el wrapper completo
-    // Estilos optimizados para Ximena Multilingüe
+    // Estilos optimizados para Isidora Multilingüe - velocidad 1.1 en todos
     const styleSettings = {
-      'chat': { rate: '0.85', pitch: '-2%', volume: '90%', breakTime: '400ms' },
-      'empathetic': { rate: '0.8', pitch: '-3%', volume: '85%', breakTime: '500ms' },
-      'friendly': { rate: '0.9', pitch: '-1%', volume: '90%', breakTime: '300ms' },
-      'calm': { rate: '0.75', pitch: '-4%', volume: '80%', breakTime: '600ms' }
+      'chat': { rate: '1.1', pitch: '-2%', volume: '90%', breakTime: '400ms' },
+      'empathetic': { rate: '1.1', pitch: '-3%', volume: '85%', breakTime: '500ms' },
+      'friendly': { rate: '1.1', pitch: '-1%', volume: '90%', breakTime: '300ms' },
+      'calm': { rate: '1.1', pitch: '-4%', volume: '80%', breakTime: '600ms' },
+      'cheerful': { rate: '1.1', pitch: '+2%', volume: '95%', breakTime: '300ms' }
     };
     
     const settings = styleSettings[style] || styleSettings['chat'];
