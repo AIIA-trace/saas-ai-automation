@@ -17,8 +17,8 @@ class TwilioStreamHandler {
     this.validateAzureConfig(); // Validación crítica al iniciar
 
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
-    // Voz única para todos los usuarios: Elvira (optimizada para conversaciones)
-    this.defaultVoice = 'es-ES-ElviraNeural';
+    // Voz única para todos los usuarios: Ximena Multilingüe (soporte SSML completo)
+    this.defaultVoice = 'es-ES-XimenaMultilingualNeural';
   }
 
   /**
@@ -28,17 +28,18 @@ class TwilioStreamHandler {
    * @returns {string} Valid Azure TTS voice identifier
    */
   mapVoiceToAzure(voiceId, language = 'es-ES') {
-    // Siempre usar Elvira para todos los usuarios
-    logger.info(`🎵 Using Elvira voice for all users: ${this.defaultVoice}`);
+    // Siempre usar Ximena Multilingüe para todos los usuarios
+    logger.info(`🎵 Using Ximena Multilingual voice for all users: ${this.defaultVoice}`);
     return this.defaultVoice;
   }
 
   /**
-   * Humanizar texto con SSML para que Elvira suene más natural
+   * Humanizar texto con SSML para que Ximena Multilingüe suene más natural
    * @param {string} text - Texto a humanizar
+   * @param {string} style - Estilo SSML: 'chat', 'empathetic', 'friendly', 'calm'
    * @returns {string} Texto con SSML aplicado (solo contenido interno)
    */
-  humanizeTextWithSSML(text) {
+  humanizeTextWithSSML(text, style = 'chat') {
     // Limpiar texto de posibles caracteres problemáticos
     const cleanText = text.replace(/[<>&"']/g, (match) => {
       const entities = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' };
@@ -47,10 +48,20 @@ class TwilioStreamHandler {
 
     // Solo devolver el contenido SSML interno (sin <speak> wrapper)
     // El servicio TTS ya agrega el wrapper completo
+    // Estilos optimizados para Ximena Multilingüe
+    const styleSettings = {
+      'chat': { rate: '0.85', pitch: '-2%', volume: '90%', breakTime: '400ms' },
+      'empathetic': { rate: '0.8', pitch: '-3%', volume: '85%', breakTime: '500ms' },
+      'friendly': { rate: '0.9', pitch: '-1%', volume: '90%', breakTime: '300ms' },
+      'calm': { rate: '0.75', pitch: '-4%', volume: '80%', breakTime: '600ms' }
+    };
+    
+    const settings = styleSettings[style] || styleSettings['chat'];
+    
     const ssmlContent = `
-          <mstts:express-as style="friendly">
-            <prosody rate="0.9" pitch="-3%" volume="85%">
-              ${cleanText.replace(/\./g, '.<break time="300ms"/>')}
+          <mstts:express-as style="${style}">
+            <prosody rate="${settings.rate}" pitch="${settings.pitch}" volume="${settings.volume}">
+              ${cleanText.replace(/\./g, `.<break time="${settings.breakTime}"/>`)}
             </prosody>
           </mstts:express-as>
     `.trim();
@@ -209,7 +220,7 @@ class TwilioStreamHandler {
     // Get voice configuration and map to valid Azure voice
     const rawVoiceId = streamData.client.callConfig?.voiceId || 
                       clientConfigData.callConfig?.voiceId || 
-                      'elvira';
+                      'ximena';
     const language = streamData.client.callConfig?.language || 
                     clientConfigData.callConfig?.language || 
                     'es-ES';
@@ -265,7 +276,7 @@ class TwilioStreamHandler {
     const fallbackGreeting = "Gracias por llamar. Estamos conectándote con un asistente. Por favor, espera un momento.";
     
     // Get voice configuration and map to valid Azure voice
-    const rawVoiceId = clientConfigData.callConfig?.voiceId || 'elvira';
+    const rawVoiceId = clientConfigData.callConfig?.voiceId || 'ximena';
     const language = clientConfigData.callConfig?.language || 'es-ES';
     const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
     

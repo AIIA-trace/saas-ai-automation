@@ -10,11 +10,11 @@ function humanizeTextWithSSML(text) {
         return entities[match];
     });
 
-    // Aplicar SSML humanizado para Elvira
+    // Aplicar SSML humanizado para Ximena Multilingüe
     const ssmlText = `
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" 
              xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="es-ES">
-        <voice name="es-ES-ElviraNeural">
+        <voice name="es-ES-XimenaMultilingualNeural">
           <mstts:express-as style="friendly">
             <prosody rate="0.9" pitch="-3%" volume="85%">
               ${cleanText.replace(/\./g, '.<break time="300ms"/>')}
@@ -61,4 +61,4 @@ console.log('   🔉 volume="85%" - Volumen más suave');
 console.log('   ⏸️  <break time="300ms"/> - Pausas naturales después de puntos');
 console.log('   🛡️  Caracteres especiales escapados para seguridad');
 
-console.log('\n🎤 RESULTADO: Elvira sonará más humana y menos robótica');
+console.log('\n🎤 RESULTADO: Ximena Multilingüe sonará más humana y menos robótica');

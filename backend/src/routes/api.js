@@ -127,15 +127,15 @@ router.get('/voices/azure', authenticate, async (req, res) => {
   try {
     logger.info(`🎵 Cliente ${req.client.id} solicitando voces Azure TTS disponibles`);
     
-    // Voz única para todos los usuarios: Elvira (optimizada para conversaciones)
+    // Voz única para todos los usuarios: Ximena Multilingüe (soporte SSML completo)
     const voices = [
       { 
-        id: 'elvira', 
-        name: 'Elvira (Conversacional)', 
+        id: 'ximena', 
+        name: 'Ximena (Multilingüe)', 
         gender: 'Female',
         locale: 'es-ES',
-        azureName: 'es-ES-ElviraNeural',
-        description: 'Voz optimizada para conversaciones naturales'
+        azureName: 'es-ES-XimenaMultilingualNeural',
+        description: 'Voz multilingüe con soporte SSML completo para conversaciones naturales'
       }
     ];
 
@@ -143,7 +143,7 @@ router.get('/voices/azure', authenticate, async (req, res) => {
       success: true,
       configured: true,
       voices: voices,
-      defaultVoice: 'elvira'
+      defaultVoice: 'ximena'
     });
   } catch (error) {
     logger.error(`Error obteniendo voces Azure TTS: ${error.message}`);

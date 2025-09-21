@@ -144,7 +144,7 @@ function detectVoiceGender(voiceName) {
     ];
     
     const femaleVoices = [
-        'Elvira', 'Adriana', 'Laia', 'Jenny', 'Aria', 'Sara',
+        'Ximena', 'Adriana', 'Laia', 'Jenny', 'Aria', 'Sara',
         'Denise', 'Brigitte', 'Coralie', 'Katja', 'Amala', 'Gisela'
     ];
     
