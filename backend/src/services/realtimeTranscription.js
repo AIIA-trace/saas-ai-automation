@@ -46,7 +46,7 @@ class RealtimeTranscription {
       const transcription = await this.openai.audio.transcriptions.create({
         file: fs.createReadStream(tempFilePath),
         model: 'whisper-1',
-        language: language,
+        language: language === 'es-ES' ? 'es' : language, // Corregir formato ISO-639-1
         response_format: 'json', // JSON simple es más rápido que verbose_json
         temperature: 0.0, // Máximo determinismo
         prompt: "Conversación telefónica en español. Cliente hablando con recepcionista." // Prompt más conciso
@@ -117,7 +117,7 @@ class RealtimeTranscription {
         const encoder = new Lame({
           output: tempMp3Path,
           bitrate: 16,        // 16 kbps según recomendaciones OpenAI
-          samplerate: 8000,   // Mantener 8kHz (Twilio native)
+          sampleRate: 8000,   // Corregido: sampleRate (no samplerate)
           channels: 1,        // Mono
           quality: 7          // Calidad rápida pero aceptable
         }).setFile(tempWavPath);
