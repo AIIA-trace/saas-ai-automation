@@ -508,12 +508,16 @@ class TwilioStreamHandler {
         
         try {
           // Transcribir audio
+          const languageConfig = streamData.client.callConfig?.language || 'es-ES';
+          // Convertir formato Azure TTS (es-ES) a formato OpenAI Whisper (es)
+          const whisperLanguage = languageConfig.split('-')[0]; // es-ES -> es
+          
           const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(
             combinedBuffer, 
-            streamData.client.callConfig?.language || 'es'
+            whisperLanguage
           );
           
-          logger.debug(`📝 [${streamSid}] Resultado transcripción:`, {
+          logger.debug(`📝 [${streamSid}] Resultado transcripción (idioma: ${whisperLanguage}):`, {
             success: transcriptionResult.success,
             textLength: transcriptionResult.text?.length || 0,
             confidence: transcriptionResult.confidence,
