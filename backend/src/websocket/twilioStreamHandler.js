@@ -40,7 +40,7 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Humanizar texto con SSML para que Ximena Multilingüe suene más natural
+   * Humanizar texto con SSML para que Isidora Multilingüe suene más natural
    * @param {string} text - Texto a humanizar
    * @param {string} style - Estilo SSML: 'chat', 'empathetic', 'friendly', 'calm'
    * @returns {string} Texto con SSML aplicado (solo contenido interno)
@@ -507,8 +507,8 @@ class TwilioStreamHandler {
       
       logger.debug(`🎤 [${streamSid}] Audio chunk recibido (${payload.length} chars base64, buffer: ${audioBuffer.length} chunks)`);
       
-      // Procesar transcripción cuando tengamos suficiente audio (cada ~2 segundos)
-      if (audioBuffer.length >= 32) { // ~2 segundos de audio a 8kHz
+      // Procesar transcripción cuando tengamos suficiente audio (cada ~3-4 segundos para evitar ruido)
+      if (audioBuffer.length >= 48) { // ~3-4 segundos de audio a 8kHz
         const combinedBuffer = Buffer.concat(audioBuffer);
         this.audioBuffers.set(streamSid, []); // Limpiar buffer
         
@@ -542,14 +542,27 @@ class TwilioStreamHandler {
               return;
             }
             
-            // Verificar si contiene palabras del bot (posible eco)
-            const botKeywords = ['intacon', 'subtítulos', 'amara.org', 'servicios', 'ayudarte'];
+            // Verificar si contiene palabras del bot (posible eco) o frases comunes de ruido
+            const botKeywords = ['intacon', 'subtítulos', 'amara.org', 'servicios', 'ayudarte', 'comunidad', 'realizados'];
+            const noiseKeywords = ['subtítulos realizados por la comunidad', 'amara.org', 'gracias por', 'muchas gracias'];
+            
             const containsBotWords = botKeywords.some(keyword => 
               currentText.includes(keyword.toLowerCase())
             );
             
-            if (containsBotWords && transcriptionResult.confidence < 0.8) {
-              logger.warn(`🔊 [${streamSid}] Posible eco del bot detectado - ignorando: "${transcriptionResult.text}"`);
+            const containsNoiseWords = noiseKeywords.some(keyword => 
+              currentText.includes(keyword.toLowerCase())
+            );
+            
+            // Filtrar eco del bot o ruido común
+            if (containsBotWords || containsNoiseWords) {
+              logger.warn(`🔊 [${streamSid}] Eco/ruido detectado - ignorando: "${transcriptionResult.text}"`);
+              return;
+            }
+            
+            // Filtrar transcripciones muy cortas que probablemente sean ruido
+            if (transcriptionResult.text.trim().length < 3) {
+              logger.debug(`🔇 [${streamSid}] Transcripción muy corta - ignorando: "${transcriptionResult.text}"`);
               return;
             }
             
@@ -591,51 +604,47 @@ class TwilioStreamHandler {
       const conversationContext = this.conversationState.get(streamSid) || { previousMessages: [] };
       logger.debug(`💭 [${streamSid}] Contexto conversación: ${conversationContext.previousMessages.length} mensajes previos`);
       
-      // Generar respuesta con OpenAI
+      // Generar respuesta con OpenAI (optimizado con GPT-3.5-turbo)
       const startTime = Date.now();
       const responseResult = await this.openaiService.generateReceptionistResponse(
         transcribedText,
         clientConfig,
         conversationContext
       );
-      const responseTime = Date.now() - startTime;
+      const openaiTime = Date.now() - startTime;
       
-      logger.debug(`⏱️ [${streamSid}] Tiempo generación OpenAI: ${responseTime}ms`);
+      logger.info(`⚡ [${streamSid}] OpenAI respuesta generada en ${openaiTime}ms`);
       
-      if (responseResult.success) {
-        logger.info(`🤖 [${streamSid}] Respuesta generada exitosamente: "${responseResult.response}"`);
-        
-        // Actualizar contexto de conversación
-        conversationContext.previousMessages = conversationContext.previousMessages || [];
-        conversationContext.previousMessages.push(`Usuario: ${transcribedText}`);
-        conversationContext.previousMessages.push(`Recepcionista: ${responseResult.response}`);
-        
-        // Mantener solo los últimos 6 mensajes (3 intercambios)
-        if (conversationContext.previousMessages.length > 6) {
-          conversationContext.previousMessages = conversationContext.previousMessages.slice(-6);
-          logger.debug(`🗂️ [${streamSid}] Contexto recortado a ${conversationContext.previousMessages.length} mensajes`);
-        }
-        
-        this.conversationState.set(streamSid, conversationContext);
-        
-        // Convertir respuesta a audio y enviar
-        await this.sendResponseAsAudio(ws, streamSid, responseResult.response, clientConfig);
-        
-      } else {
-        logger.warn(`⚠️ [${streamSid}] Error generando respuesta OpenAI: ${responseResult.error}`);
-        logger.warn(`🔄 [${streamSid}] Usando respuesta de fallback: "${responseResult.response}"`);
-        // Enviar respuesta de fallback
-        await this.sendResponseAsAudio(ws, streamSid, responseResult.response, clientConfig);
+      if (!responseResult.success) {
+        logger.error(`❌ [${streamSid}] Error generando respuesta: ${responseResult.error}`);
+        await this.sendFallbackResponse(ws, streamSid, clientConfig);
+        return;
       }
+      
+      const responseText = responseResult.response;
+      logger.info(`📝 [${streamSid}] Respuesta generada: "${responseText}"`);
+      
+      // Actualizar contexto conversacional (optimizado)
+      conversationContext.previousMessages = conversationContext.previousMessages || [];
+      conversationContext.previousMessages.push(`Usuario: ${transcribedText}`, `Asistente: ${responseText}`);
+      
+      // Mantener solo los últimos 4 mensajes para mayor velocidad
+      if (conversationContext.previousMessages.length > 4) {
+        conversationContext.previousMessages = conversationContext.previousMessages.slice(-4);
+      }
+      
+      this.conversationState.set(streamSid, conversationContext);
+      
+      // Convertir respuesta a audio y enviar (optimizado)
+      await this.sendResponseAsAudio(ws, streamSid, responseText, clientConfig);
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error crítico en generación de respuesta: ${error.message}`);
       logger.error(`❌ [${streamSid}] Stack trace generación:`, error.stack);
       
       // Respuesta de emergencia
-      const emergencyResponse = "Disculpe, tengo dificultades técnicas. ¿Podría repetir su consulta?";
-      logger.warn(`🚨 [${streamSid}] Usando respuesta de emergencia: "${emergencyResponse}"`);
-      await this.sendResponseAsAudio(ws, streamSid, emergencyResponse, clientConfig);
+      const fallbackText = "Disculpa, tengo problemas técnicos. ¿Podrías repetir tu consulta?";
+      await this.sendResponseAsAudio(ws, streamSid, fallbackText, clientConfig);
     }
   }
 

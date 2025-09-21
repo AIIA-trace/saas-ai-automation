@@ -8,8 +8,13 @@ class AzureTTSStreaming {
       process.env.AZURE_SPEECH_REGION
     );
     
-    // Configurar formato de audio para Twilio (8kHz, mono, mulaw)
+    // Configurar formato de audio para Twilio (8kHz, mono, mulaw) - optimizado para latencia
     this.speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Raw8Khz8BitMonoMULaw;
+    
+    // Optimizaciones para reducir latencia
+    this.speechConfig.setProperty(sdk.PropertyId.SpeechServiceConnection_SynthEnableCompressedAudioTransmission, "true");
+    this.speechConfig.setProperty(sdk.PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs, "2000");
+    this.speechConfig.setProperty(sdk.PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs, "500");
   }
 
   /**
@@ -90,8 +95,8 @@ class AzureTTSStreaming {
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" 
              xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="es-ES">
         <voice name="${voice}">
-          <mstts:express-as style="friendly" styledegree="0.8">
-            <prosody rate="0.95" pitch="+0%" volume="+0%">
+          <mstts:express-as style="chat" styledegree="0.9">
+            <prosody rate="1.1" pitch="-2%" volume="90%">
               ${naturalText}
             </prosody>
           </mstts:express-as>
@@ -109,20 +114,16 @@ class AzureTTSStreaming {
   makeTextNatural(text) {
     let naturalText = text;
 
-    // Añadir pausas después de comas
-    naturalText = naturalText.replace(/,/g, ',<break time="200ms"/>');
+    // Pausas más cortas para reducir latencia
+    naturalText = naturalText.replace(/,/g, ',<break time="150ms"/>');
+    naturalText = naturalText.replace(/\./g, '.<break time="250ms"/>');
+    naturalText = naturalText.replace(/\?/g, '?<break time="300ms"/>');
     
-    // Pausas después de puntos
-    naturalText = naturalText.replace(/\./g, '.<break time="300ms"/>');
-    
-    // Pausas después de preguntas
-    naturalText = naturalText.replace(/\?/g, '?<break time="400ms"/>');
-    
-    // Añadir muletillas ocasionales al inicio
-    const muletillas = ['', '', '', 'mmm<break time="150ms"/> ', 'eh<break time="100ms"/> '];
+    // Reducir muletillas para mayor velocidad
+    const muletillas = ['', '', '', '', 'eh<break time="50ms"/> '];
     const randomMuletilla = muletillas[Math.floor(Math.random() * muletillas.length)];
     
-    if (randomMuletilla && Math.random() < 0.3) { // 30% probabilidad
+    if (randomMuletilla && Math.random() < 0.15) { // Reducido a 15% probabilidad
       naturalText = randomMuletilla + naturalText;
     }
 

@@ -243,22 +243,25 @@ ${conversationContext.previousMessages ? `Mensajes anteriores: ${conversationCon
 
 Responde únicamente con el texto que dirías como recepcionista, sin formato adicional.`;
 
-      logger.debug(`📝 [OpenAI] Enviando prompt (${systemPrompt.length} chars) a GPT-4`);
+      logger.debug(`📝 [OpenAI] Enviando prompt (${systemPrompt.length} chars) a GPT-3.5-turbo`);
       
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
         {
-          model: 'gpt-4',
+          model: 'gpt-3.5-turbo', // Cambio a GPT-3.5 para menor latencia
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: transcribedText }
           ],
           temperature: 0.7,
-          max_tokens: 150,
+          max_tokens: 100, // Reducido para respuestas más concisas
           presence_penalty: 0.1,
           frequency_penalty: 0.1
         },
-        { headers: this.headers }
+        { 
+          headers: this.headers,
+          timeout: 5000 // Timeout de 5 segundos para evitar esperas largas
+        }
       );
 
       const responseText = response.data.choices[0].message.content.trim();
