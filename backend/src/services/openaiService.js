@@ -212,15 +212,20 @@ class OpenAIService {
       logger.info(`🔍 [DEBUG] - businessHours: ${JSON.stringify(clientConfig.businessHours)}`);
       logger.info(`🔍 [DEBUG] - botConfig: ${JSON.stringify(clientConfig.botConfig)}`);
       logger.info(`🔍 [DEBUG] - callConfig: ${JSON.stringify(clientConfig.callConfig)}`);
+      logger.info(`🔍 [DEBUG] - faqs: ${JSON.stringify(clientConfig.faqs)}`);
+      logger.info(`🔍 [DEBUG] - contextFiles: ${JSON.stringify(clientConfig.contextFiles)}`);
       
       const companyName = clientConfig.companyName || 'nuestra empresa';
       const companyDescription = clientConfig.companyDescription || '';
       const industry = clientConfig.industry || '';
       const businessHours = clientConfig.businessHours || {};
       
-      // Extraer servicios del botConfig si existe
+      // Extraer información completa del cliente
       const botConfig = clientConfig.botConfig || {};
       const services = botConfig.services || [];
+      const faqs = clientConfig.faqs || [];
+      const contextFiles = clientConfig.contextFiles || [];
+      const companyInfo = clientConfig.companyInfo || {};
       
       // DEBUG: Mostrar valores procesados
       logger.info(`🔍 [DEBUG] Valores procesados para prompt:`);
@@ -228,36 +233,58 @@ class OpenAIService {
       logger.info(`🔍 [DEBUG] - companyDescription final: "${companyDescription}"`);
       logger.info(`🔍 [DEBUG] - industry final: "${industry}"`);
       logger.info(`🔍 [DEBUG] - services final: ${JSON.stringify(services)}`);
+      logger.info(`🔍 [DEBUG] - faqs count: ${faqs.length}`);
+      logger.info(`🔍 [DEBUG] - contextFiles count: ${contextFiles.length}`);
       
-      logger.debug(`🏢 [OpenAI] Empresa: ${companyName}, Servicios: ${services.length}, Horarios: ${businessHours.enabled ? 'Sí' : 'No'}`);
+      logger.debug(`🏢 [OpenAI] Empresa: ${companyName}, Servicios: ${services.length}, FAQs: ${faqs.length}, Contexto: ${contextFiles.length}`);
       
       // Construir información de servicios
       const servicesText = services.length > 0 
-        ? `Nuestros servicios incluyen: ${services.join(', ')}.`
+        ? `\nSERVICIOS QUE OFRECEMOS:\n${services.map(s => `- ${s}`).join('\n')}`
         : '';
       
       // Construir información de horarios
       const hoursText = businessHours.enabled 
-        ? `Nuestro horario de atención es de ${businessHours.start || '9:00'} a ${businessHours.end || '18:00'}.`
+        ? `\nHORARIO DE ATENCIÓN: ${businessHours.start || '9:00'} a ${businessHours.end || '18:00'}`
         : '';
+        
+      // Construir FAQs
+      const faqsText = faqs.length > 0 
+        ? `\nPREGUNTAS FRECUENTES:\n${faqs.map(faq => `P: ${faq.question}\nR: ${faq.answer}`).join('\n\n')}`
+        : '';
+        
+      // Construir información de contexto
+      const contextText = contextFiles.length > 0 
+        ? `\nINFORMACIÓN ADICIONAL DE LA EMPRESA:\n${contextFiles.map(ctx => `- ${ctx.title}: ${ctx.content}`).join('\n')}`
+        : '';
+        
+      // Información adicional de la empresa
+      const additionalInfo = companyInfo.description ? `\nDETALLES ADICIONALES: ${companyInfo.description}` : '';
 
-      const systemPrompt = `Eres una recepcionista virtual profesional, amable y eficiente para ${companyName}.
+      const systemPrompt = `Eres la recepcionista oficial de ${companyName}. Trabajas PARA esta empresa y eres parte del equipo. Tu misión es atender a los clientes de manera profesional, cálida y eficiente.
 
-INFORMACIÓN DE LA EMPRESA:
+🏢 INFORMACIÓN DE LA EMPRESA:
 - Nombre: ${companyName}
 - Descripción: ${companyDescription}
-- Industria: ${industry}
-${servicesText}
-${hoursText}
+- Industria: ${industry}${additionalInfo}${servicesText}${hoursText}${faqsText}${contextText}
 
-INSTRUCCIONES:
-1. Responde de manera natural, cálida y profesional
-2. Mantén respuestas concisas (máximo 2-3 frases)
-3. Si preguntan por servicios específicos, proporciona información relevante
-4. Si necesitan hablar con alguien, ofrece tomar un mensaje o transferir la llamada
-5. Si preguntan por horarios, proporciona la información disponible
-6. Usa un tono conversacional y humano, evita sonar robótica
-7. Si no entiendes algo, pide aclaración de manera amable
+📋 PAUTAS DE COMPORTAMIENTO OBLIGATORIAS:
+
+1. **IDENTIDAD**: Eres empleada de ${companyName}. NUNCA digas "no puedo transcribir" o "soy una recepcionista virtual". Actúa como si fueras una persona real trabajando en la empresa.
+
+2. **INFORMACIÓN DE CONTACTO**: Si piden teléfonos, emails o direcciones, proporciona la información disponible o di "permíteme consultar esa información y te la proporciono enseguida".
+
+3. **SERVICIOS**: Conoces perfectamente todos los servicios. Si preguntan por algo específico, explica detalladamente basándote en la información proporcionada.
+
+4. **CITAS Y CONSULTAS**: Puedes tomar datos para agendar citas, consultas o reuniones. Di "perfecto, voy a tomar tus datos para coordinar eso".
+
+5. **TRANSFERENCIAS**: Si necesitan hablar con alguien específico, di "por supuesto, te voy a transferir con [departamento/persona]" o "tomo tus datos y te contactamos enseguida".
+
+6. **TONO**: Siempre amable, profesional pero cercana. Usa "por supuesto", "perfecto", "enseguida te ayudo", "¿en qué más puedo asistirte?".
+
+7. **RESPUESTAS**: Máximo 2-3 frases, directas y útiles. Si no tienes información específica, di "permíteme consultar eso y te confirmo".
+
+8. **NUNCA DIGAS**: "No puedo transcribir", "soy virtual", "no tengo acceso", "como IA". Siempre actúa como empleada real.
 
 Responde únicamente con el texto que dirías como recepcionista, sin formato adicional.`;
       
@@ -284,13 +311,14 @@ Responde únicamente con el texto que dirías como recepcionista, sin formato ad
       
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
-        {
+        {  
           model: 'gpt-3.5-turbo', // Cambio a GPT-3.5 para menor latencia
           messages: messages,
-          temperature: 0.7,
-          max_tokens: 100, // Reducido para respuestas más concisas
-          presence_penalty: 0.1,
-          frequency_penalty: 0.1
+          temperature: 0.8, // Más creatividad para respuestas naturales
+          max_tokens: 150, // Aumentado para respuestas más completas
+          presence_penalty: 0.2, // Evitar repeticiones
+          frequency_penalty: 0.3, // Más variedad en respuestas
+          top_p: 0.9 // Mejor calidad de respuestas
         },
         { 
           headers: this.headers,

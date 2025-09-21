@@ -146,14 +146,21 @@ class TwilioStreamHandler {
     logger.info(`🎤 [${streamSid}] Iniciando stream para cliente: ${clientId}`);
     
     try {
-      // Obtener configuración del cliente
+      // Obtener configuración COMPLETA del cliente incluyendo contexto
       const clientConfig = await this.prisma.client.findUnique({
         where: { id: parseInt(clientId) },
         select: {
           id: true,
           callConfig: true,
           companyName: true,
-          botLanguage: true
+          companyDescription: true,
+          industry: true,
+          botLanguage: true,
+          botConfig: true,
+          contextFiles: true,
+          faqs: true,
+          companyInfo: true,
+          businessHours: true
         }
       });
 
