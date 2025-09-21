@@ -212,7 +212,7 @@ class TwilioStreamHandler {
             streamData.botSpeaking = false;
             logger.info(`👂 [${streamSid}] Activando escucha del usuario después del saludo`);
           }
-        }, 6000); // 6 segundos para el saludo inicial
+        }, 8000); // 8 segundos para asegurar que el saludo termine completamente
         
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
