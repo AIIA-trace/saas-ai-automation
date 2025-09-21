@@ -557,15 +557,15 @@ router.put('/client', authenticate, async (req, res) => {
       logger.info(`📞 FORCE DEBUG CALLCONFIG - Contenido:`, JSON.stringify(req.body.callConfig, null, 2));
       logger.info(`📞 FORCE DEBUG CALLCONFIG - Añadido al updateData para cliente ${req.client.id}`);
       
-      // 🎯 VALIDACIÓN ESPECÍFICA SWITCH N8N "BOT DE LLAMADAS ACTIVO"
+      // 🎯 VALIDACIÓN SWITCH "BOT DE LLAMADAS ACTIVO"
       const isCallBotEnabled = req.body.callConfig.enabled;
-      logger.info(`🤖 N8N SWITCH VALIDATION - Bot de Llamadas: ${isCallBotEnabled ? 'ACTIVADO ✅' : 'DESACTIVADO ❌'}`);
+      logger.info(`🤖 Bot de Llamadas: ${isCallBotEnabled ? 'ACTIVADO ✅' : 'DESACTIVADO ❌'}`);
       
       if (isCallBotEnabled) {
-        logger.info(`🚀 N8N INTEGRATION - Activando bot de llamadas para cliente ${req.client.id}`);
-        logger.info(`📞 N8N CONFIG - Configuración completa:`, JSON.stringify(req.body.callConfig, null, 2));
+        logger.info(`🚀 Activando bot de llamadas para cliente ${req.client.id}`);
+        logger.info(`📞 Configuración completa:`, JSON.stringify(req.body.callConfig, null, 2));
       } else {
-        logger.info(`⏸️ N8N INTEGRATION - Desactivando bot de llamadas para cliente ${req.client.id}`);
+        logger.info(`⏸️ Desactivando bot de llamadas para cliente ${req.client.id}`);
       }
       
       // 🎵 Log específico para configuración de voz
@@ -660,48 +660,8 @@ router.put('/client', authenticate, async (req, res) => {
     });
     logger.info('✅ Cliente actualizado correctamente');
     
-    // 🚀 NOTIFICACIÓN PROACTIVA A N8N TRAS GUARDADO EXITOSO
-    // Notificar cambios en bot de llamadas
-    if (req.body.callConfig) {
-      const isCallBotEnabled = req.body.callConfig.enabled;
-      logger.info(`🔔 Iniciando notificación a N8N para bot de llamadas...`);
-      
-      // Notificación asíncrona a N8N (no bloquea la respuesta al frontend)
-      N8NService.notifyCallBotStatusChange(
-        req.client.id, 
-        isCallBotEnabled, 
-        req.body.callConfig
-      ).then(result => {
-        if (result.success) {
-          logger.info(`✅ N8N notificado exitosamente sobre cambio en bot de llamadas`);
-        } else {
-          logger.warn(`⚠️ Fallo en notificación N8N: ${result.error || result.reason}`);
-        }
-      }).catch(error => {
-        logger.error(`❌ Error crítico notificando a N8N: ${error.message}`);
-      });
-    }
-    
-    // Notificar cambios en bot de email
-    if (req.body.emailConfig) {
-      const isEmailBotEnabled = req.body.emailConfig.enabled;
-      logger.info(`📧 Iniciando notificación a N8N para bot de email...`);
-      
-      // Notificación asíncrona a N8N (no bloquea la respuesta al frontend)
-      N8NService.notifyEmailBotStatusChange(
-        req.client.id, 
-        isEmailBotEnabled, 
-        req.body.emailConfig
-      ).then(result => {
-        if (result.success) {
-          logger.info(`✅ N8N notificado exitosamente sobre cambio en bot de email`);
-        } else {
-          logger.warn(`⚠️ Fallo en notificación N8N: ${result.error || result.reason}`);
-        }
-      }).catch(error => {
-        logger.error(`❌ Error crítico notificando a N8N: ${error.message}`);
-      });
-    }
+    // ✅ Configuración guardada exitosamente
+    logger.info(`✅ Cliente ${req.client.id} actualizado correctamente`);
     
     // DEBUG: Verificar que businessHours se guardó correctamente
     if (businessHours) {

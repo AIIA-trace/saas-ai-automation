@@ -197,6 +197,108 @@ class OpenAIService {
       };
     }
   }
+  
+  // Generar respuesta conversacional de recepcionista
+  async generateReceptionistResponse(transcribedText, clientConfig, conversationContext = {}) {
+    try {
+      logger.info(`🤖 [OpenAI] Iniciando generación de respuesta para: "${transcribedText}"`);
+      logger.debug(`🏢 [OpenAI] Configuración cliente:`, JSON.stringify(clientConfig, null, 2));
+      
+      const companyName = clientConfig.companyName || 'nuestra empresa';
+      const companyDescription = clientConfig.description || '';
+      const services = clientConfig.services || [];
+      const businessHours = clientConfig.businessHours || {};
+      
+      logger.debug(`🏢 [OpenAI] Empresa: ${companyName}, Servicios: ${services.length}, Horarios: ${businessHours.enabled ? 'Sí' : 'No'}`);
+      
+      // Construir información de servicios
+      const servicesText = services.length > 0 
+        ? `Nuestros servicios incluyen: ${services.join(', ')}.`
+        : '';
+      
+      // Construir información de horarios
+      const hoursText = businessHours.enabled 
+        ? `Nuestro horario de atención es de ${businessHours.start || '9:00'} a ${businessHours.end || '18:00'}.`
+        : '';
+
+      const systemPrompt = `Eres una recepcionista virtual profesional, amable y eficiente para ${companyName}.
+
+INFORMACIÓN DE LA EMPRESA:
+- Nombre: ${companyName}
+- Descripción: ${companyDescription}
+${servicesText}
+${hoursText}
+
+INSTRUCCIONES:
+1. Responde de manera natural, cálida y profesional
+2. Mantén respuestas concisas (máximo 2-3 frases)
+3. Si preguntan por servicios específicos, proporciona información relevante
+4. Si necesitan hablar con alguien, ofrece tomar un mensaje o transferir la llamada
+5. Si preguntan por horarios, proporciona la información disponible
+6. Usa un tono conversacional y humano, evita sonar robótica
+7. Si no entiendes algo, pide aclaración de manera amable
+
+CONTEXTO DE LA CONVERSACIÓN:
+${conversationContext.previousMessages ? `Mensajes anteriores: ${conversationContext.previousMessages.slice(-3).join(' | ')}` : 'Primera interacción'}
+
+Responde únicamente con el texto que dirías como recepcionista, sin formato adicional.`;
+
+      logger.debug(`📝 [OpenAI] Enviando prompt (${systemPrompt.length} chars) a GPT-4`);
+      
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: 'gpt-4',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: transcribedText }
+          ],
+          temperature: 0.7,
+          max_tokens: 150,
+          presence_penalty: 0.1,
+          frequency_penalty: 0.1
+        },
+        { headers: this.headers }
+      );
+
+      const responseText = response.data.choices[0].message.content.trim();
+      const usage = response.data.usage;
+      
+      logger.info(`✅ [OpenAI] Respuesta generada (${responseText.length} chars, ${usage.total_tokens} tokens): "${responseText}"`);
+      logger.debug(`💰 [OpenAI] Uso tokens - Prompt: ${usage.prompt_tokens}, Completion: ${usage.completion_tokens}, Total: ${usage.total_tokens}`);
+      
+      return {
+        success: true,
+        response: responseText,
+        usage: usage
+      };
+
+    } catch (error) {
+      logger.error(`❌ [OpenAI] Error generando respuesta de recepcionista: ${error.message}`);
+      logger.error(`❌ [OpenAI] Stack trace:`, error.stack);
+      
+      if (error.response) {
+        logger.error(`❌ [OpenAI] HTTP Status: ${error.response.status}`);
+        logger.error(`❌ [OpenAI] Response data:`, JSON.stringify(error.response.data, null, 2));
+      }
+      
+      // Respuesta de fallback
+      const fallbackResponses = [
+        "Disculpe, ¿podría repetir su consulta? No logré entenderla completamente.",
+        "Gracias por contactarnos. ¿En qué puedo ayudarle hoy?",
+        "Lamento la inconveniencia. ¿Podría explicarme nuevamente su consulta?"
+      ];
+      
+      const selectedFallback = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+      logger.warn(`🔄 [OpenAI] Usando respuesta de fallback: "${selectedFallback}"`);
+      
+      return {
+        success: false,
+        response: selectedFallback,
+        error: error.message
+      };
+    }
+  }
 }
 
-module.exports = new OpenAIService();
+module.exports = OpenAIService;

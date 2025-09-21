@@ -1,6 +1,8 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const azureTTSRestService = require('../services/azureTTSRestService');
+const OpenAIService = require('../services/openaiService');
+const RealtimeTranscription = require('../services/realtimeTranscription');
 const fs = require('fs');
 
 class TwilioStreamHandler {
@@ -15,6 +17,10 @@ class TwilioStreamHandler {
     this.preConvertedAudio = new Map(); // Cache de conversiones
     this.azureToken = null; // Token reutilizable
     this.validateAzureConfig(); // Validación crítica al iniciar
+
+    // Inicializar servicios de IA
+    this.openaiService = new OpenAIService();
+    this.transcriptionService = new RealtimeTranscription();
 
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
     // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
@@ -474,8 +480,170 @@ class TwilioStreamHandler {
     const streamSid = data.streamSid;
     const payload = data.media.payload;
     
-    // TODO: Implementar transcripción en el futuro
-    logger.debug(`🎤 [${streamSid}] Audio recibido - Transcripción pendiente de implementación`);
+    try {
+      // Obtener datos del stream activo
+      const streamData = this.activeStreams.get(streamSid);
+      if (!streamData?.client) {
+        logger.error(`❌ [${streamSid}] Sin configuración de cliente para transcripción`);
+        return;
+      }
+
+      // Acumular audio en buffer
+      if (!this.audioBuffers.has(streamSid)) {
+        this.audioBuffers.set(streamSid, []);
+        logger.debug(`🎤 [${streamSid}] Inicializando buffer de audio`);
+      }
+      
+      const audioBuffer = this.audioBuffers.get(streamSid);
+      audioBuffer.push(Buffer.from(payload, 'base64'));
+      
+      logger.debug(`🎤 [${streamSid}] Audio chunk recibido (${payload.length} chars base64, buffer: ${audioBuffer.length} chunks)`);
+      
+      // Procesar transcripción cuando tengamos suficiente audio (cada ~2 segundos)
+      if (audioBuffer.length >= 32) { // ~2 segundos de audio a 8kHz
+        const combinedBuffer = Buffer.concat(audioBuffer);
+        this.audioBuffers.set(streamSid, []); // Limpiar buffer
+        
+        logger.info(`🎤 [${streamSid}] Procesando transcripción de ${combinedBuffer.length} bytes (${audioBuffer.length} chunks acumulados)`);
+        
+        try {
+          // Transcribir audio
+          const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(
+            combinedBuffer, 
+            streamData.client.callConfig?.language || 'es'
+          );
+          
+          logger.debug(`📝 [${streamSid}] Resultado transcripción:`, {
+            success: transcriptionResult.success,
+            textLength: transcriptionResult.text?.length || 0,
+            confidence: transcriptionResult.confidence,
+            duration: transcriptionResult.duration
+          });
+          
+          if (transcriptionResult.success && transcriptionResult.text.trim()) {
+            logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);
+            
+            // Generar respuesta conversacional
+            await this.generateAndSendResponse(ws, streamSid, transcriptionResult.text, streamData.client);
+          } else {
+            logger.debug(`🔇 [${streamSid}] Sin transcripción válida o silencio detectado`);
+          }
+        } catch (transcriptionError) {
+          logger.error(`❌ [${streamSid}] Error en transcripción: ${transcriptionError.message}`);
+          logger.error(`❌ [${streamSid}] Stack trace transcripción:`, transcriptionError.stack);
+        }
+      }
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error procesando audio: ${error.message}`);
+    }
+  }
+
+  /**
+   * Generar respuesta conversacional y enviar como audio
+   */
+  async generateAndSendResponse(ws, streamSid, transcribedText, clientConfig) {
+    try {
+      logger.info(`🤖 [${streamSid}] Iniciando generación de respuesta para: "${transcribedText}"`);
+      
+      // Obtener contexto de conversación
+      const conversationContext = this.conversationState.get(streamSid) || { previousMessages: [] };
+      logger.debug(`💭 [${streamSid}] Contexto conversación: ${conversationContext.previousMessages.length} mensajes previos`);
+      
+      // Generar respuesta con OpenAI
+      const startTime = Date.now();
+      const responseResult = await this.openaiService.generateReceptionistResponse(
+        transcribedText,
+        clientConfig,
+        conversationContext
+      );
+      const responseTime = Date.now() - startTime;
+      
+      logger.debug(`⏱️ [${streamSid}] Tiempo generación OpenAI: ${responseTime}ms`);
+      
+      if (responseResult.success) {
+        logger.info(`🤖 [${streamSid}] Respuesta generada exitosamente: "${responseResult.response}"`);
+        
+        // Actualizar contexto de conversación
+        conversationContext.previousMessages = conversationContext.previousMessages || [];
+        conversationContext.previousMessages.push(`Usuario: ${transcribedText}`);
+        conversationContext.previousMessages.push(`Recepcionista: ${responseResult.response}`);
+        
+        // Mantener solo los últimos 6 mensajes (3 intercambios)
+        if (conversationContext.previousMessages.length > 6) {
+          conversationContext.previousMessages = conversationContext.previousMessages.slice(-6);
+          logger.debug(`🗂️ [${streamSid}] Contexto recortado a ${conversationContext.previousMessages.length} mensajes`);
+        }
+        
+        this.conversationState.set(streamSid, conversationContext);
+        
+        // Convertir respuesta a audio y enviar
+        await this.sendResponseAsAudio(ws, streamSid, responseResult.response, clientConfig);
+        
+      } else {
+        logger.warn(`⚠️ [${streamSid}] Error generando respuesta OpenAI: ${responseResult.error}`);
+        logger.warn(`🔄 [${streamSid}] Usando respuesta de fallback: "${responseResult.response}"`);
+        // Enviar respuesta de fallback
+        await this.sendResponseAsAudio(ws, streamSid, responseResult.response, clientConfig);
+      }
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error crítico en generación de respuesta: ${error.message}`);
+      logger.error(`❌ [${streamSid}] Stack trace generación:`, error.stack);
+      
+      // Respuesta de emergencia
+      const emergencyResponse = "Disculpe, tengo dificultades técnicas. ¿Podría repetir su consulta?";
+      logger.warn(`🚨 [${streamSid}] Usando respuesta de emergencia: "${emergencyResponse}"`);
+      await this.sendResponseAsAudio(ws, streamSid, emergencyResponse, clientConfig);
+    }
+  }
+
+  /**
+   * Convertir texto a audio y enviar a Twilio
+   */
+  async sendResponseAsAudio(ws, streamSid, responseText, clientConfig) {
+    try {
+      logger.info(`🔊 [${streamSid}] Iniciando conversión TTS para: "${responseText}"`);
+      
+      // Obtener configuración de voz
+      const rawVoiceId = clientConfig.callConfig?.voiceId || 'isidora';
+      const language = clientConfig.callConfig?.language || 'es-ES';
+      const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
+      
+      logger.debug(`🎵 [${streamSid}] Configuración voz - Raw: ${rawVoiceId}, Azure: ${voiceId}, Idioma: ${language}`);
+      
+      // Humanizar texto con SSML
+      const humanizedText = this.humanizeTextWithSSML(responseText);
+      logger.debug(`📝 [${streamSid}] Texto humanizado (${humanizedText.length} chars): ${humanizedText.substring(0, 200)}...`);
+      
+      // Generar audio con Azure TTS
+      const ttsStartTime = Date.now();
+      const ttsResult = await this.ttsService.generateSpeech(
+        humanizedText, 
+        voiceId, 
+        'raw-8khz-8bit-mono-mulaw'
+      );
+      const ttsTime = Date.now() - ttsStartTime;
+      
+      logger.debug(`⏱️ [${streamSid}] Tiempo generación TTS: ${ttsTime}ms`);
+      
+      if (ttsResult.success) {
+        logger.info(`🔊 [${streamSid}] Audio TTS generado exitosamente (${ttsResult.audioBuffer.length} bytes)`);
+        
+        const sendStartTime = Date.now();
+        await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
+        const sendTime = Date.now() - sendStartTime;
+        
+        logger.info(`✅ [${streamSid}] Audio enviado a Twilio en ${sendTime}ms`);
+      } else {
+        logger.error(`❌ [${streamSid}] Error generando audio TTS: ${ttsResult.error}`);
+        logger.error(`❌ [${streamSid}] Detalles TTS error:`, ttsResult);
+      }
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error crítico enviando respuesta como audio: ${error.message}`);
+      logger.error(`❌ [${streamSid}] Stack trace TTS:`, error.stack);
+    }
   }
 
   /**
@@ -491,6 +659,7 @@ class TwilioStreamHandler {
     this.conversationState.delete(streamSid);
     this.outboundAudioQueue.delete(streamSid);
     this.ttsInProgress.delete(streamSid);
+    this.preConvertedAudio.delete(streamSid);
     
     logger.info(`✅ [${streamSid}] Recursos limpiados`);
   }
