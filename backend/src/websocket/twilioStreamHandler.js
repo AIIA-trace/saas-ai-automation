@@ -489,6 +489,9 @@ class TwilioStreamHandler {
       logger.debug(`🤖 [${streamSid}] Bot hablando - ignorando audio del usuario`);
       return;
     }
+    
+    // DEBUG: Confirmar que estamos procesando audio del usuario
+    logger.info(`🔍 [DEBUG] Procesando audio del usuario en stream ${streamSid}`);
 
     try {
       const payload = data.media?.payload;
@@ -566,7 +569,8 @@ class TwilioStreamHandler {
               return;
             }
             
-            logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);
+            logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);          
+          logger.info(`🔍 [DEBUG] Llamando a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
             
             // Guardar última transcripción
             streamData.lastTranscription = currentText;
@@ -592,7 +596,8 @@ class TwilioStreamHandler {
    */
   async generateAndSendResponse(ws, streamSid, transcribedText, clientConfig) {
     try {
-      logger.info(`🤖 [${streamSid}] Iniciando generación de respuesta para: "${transcribedText}"`);
+      logger.info(`🤖 [${streamSid}] Iniciando generación de respuesta para: "${transcribedText}"`);      
+      logger.info(`🔍 [DEBUG] ClientConfig recibido en generateAndSendResponse: ${JSON.stringify(clientConfig, null, 2)}`);
       
       // Marcar que el bot va a hablar
       const streamData = this.activeStreams.get(streamSid);
