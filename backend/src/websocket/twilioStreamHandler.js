@@ -17,8 +17,8 @@ class TwilioStreamHandler {
     this.validateAzureConfig(); // Validación crítica al iniciar
 
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
-    // Voz única para todos los usuarios: Ximena Multilingüe (soporte SSML completo)
-    this.defaultVoice = 'es-ES-XimenaMultilingualNeural';
+    // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
+    this.defaultVoice = 'es-ES-IsidoraMultilingualNeural';
   }
 
   /**
@@ -28,8 +28,8 @@ class TwilioStreamHandler {
    * @returns {string} Valid Azure TTS voice identifier
    */
   mapVoiceToAzure(voiceId, language = 'es-ES') {
-    // Siempre usar Ximena Multilingüe para todos los usuarios
-    logger.info(`🎵 Using Ximena Multilingual voice for all users: ${this.defaultVoice}`);
+    // Siempre usar Isidora Multilingüe para todos los usuarios
+    logger.info(`🎵 Using Isidora Multilingual voice for all users: ${this.defaultVoice}`);
     return this.defaultVoice;
   }
 
