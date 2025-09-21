@@ -120,8 +120,6 @@ class TwilioStreamHandler {
     
     // Registrar con ID temporal - se actualizará en 'start'
     this.activeStreams.set(tempId, {
-      ws: ws,
-      tempId: tempId,
       isConnected: true,
       greetingSent: false,
       isInitializing: true
@@ -283,21 +281,22 @@ class TwilioStreamHandler {
     const fallbackGreeting = "Gracias por llamar. Estamos conectándote con un asistente. Por favor, espera un momento.";
     
     // Get voice configuration and map to valid Azure voice
-    const rawVoiceId = clientConfigData.callConfig?.voiceId || 'ximena';
-    const language = clientConfigData.callConfig?.language || 'es-ES';
-    const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
+    const rawVoiceId = clientConfigData.callConfig?.voiceId || 
+                      'ximena';
+    const language = clientConfigData.callConfig?.language || 
+                    'es-ES';
     
     logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback`);
-    logger.info(`🎵 [${streamSid}] Raw voice: "${rawVoiceId}" → Mapped: "${voiceId}"`);
+    logger.info(`🎵 [${streamSid}] Raw voice: "${rawVoiceId}" → Mapped: "${this.mapVoiceToAzure(rawVoiceId, language)}"`);
   
-    logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con voz: ${voiceId}`);
+    logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con voz: ${this.mapVoiceToAzure(rawVoiceId, language)}`);
   
     // Humanizar el saludo de fallback con SSML
     const humanizedFallback = this.humanizeTextWithSSML(fallbackGreeting);
     
     const ttsResult = await this.ttsService.generateSpeech(
       humanizedFallback,
-      voiceId,
+      this.mapVoiceToAzure(rawVoiceId, language),
       'raw-8khz-8bit-mono-mulaw'
     );
   
@@ -477,25 +476,34 @@ class TwilioStreamHandler {
    * Manejar eventos de media (audio del caller)
    */
   async handleMediaEvent(ws, data) {
-    const streamSid = data.streamSid;
-    const payload = data.media.payload;
+    const { streamSid } = data;
+    const streamData = this.activeStreams.get(streamSid);
     
+    if (!streamData) {
+      logger.warn(`⚠️ [${streamSid}] Stream no encontrado para evento media`);
+      return;
+    }
+
+    // Verificar si el bot está hablando - no procesar audio del usuario
+    if (streamData.botSpeaking) {
+      logger.debug(`🤖 [${streamSid}] Bot hablando - ignorando audio del usuario`);
+      return;
+    }
+
     try {
-      // Obtener datos del stream activo
-      const streamData = this.activeStreams.get(streamSid);
-      if (!streamData?.client) {
-        logger.error(`❌ [${streamSid}] Sin configuración de cliente para transcripción`);
+      const payload = data.media?.payload;
+      if (!payload) {
+        logger.debug(`🔇 [${streamSid}] Payload de audio vacío`);
         return;
       }
 
-      // Acumular audio en buffer
-      if (!this.audioBuffers.has(streamSid)) {
-        this.audioBuffers.set(streamSid, []);
-        logger.debug(`🎤 [${streamSid}] Inicializando buffer de audio`);
-      }
+      // Decodificar audio de base64 a buffer
+      const audioChunk = Buffer.from(payload, 'base64');
       
-      const audioBuffer = this.audioBuffers.get(streamSid);
-      audioBuffer.push(Buffer.from(payload, 'base64'));
+      // Acumular chunks de audio en buffer
+      let audioBuffer = this.audioBuffers.get(streamSid) || [];
+      audioBuffer.push(audioChunk);
+      this.audioBuffers.set(streamSid, audioBuffer);
       
       logger.debug(`🎤 [${streamSid}] Audio chunk recibido (${payload.length} chars base64, buffer: ${audioBuffer.length} chunks)`);
       
@@ -525,7 +533,30 @@ class TwilioStreamHandler {
           });
           
           if (transcriptionResult.success && transcriptionResult.text.trim()) {
+            // Verificar si es una transcripción repetitiva o del propio bot
+            const lastTranscription = streamData.lastTranscription;
+            const currentText = transcriptionResult.text.trim().toLowerCase();
+            
+            if (lastTranscription && lastTranscription === currentText) {
+              logger.warn(`🔄 [${streamSid}] Transcripción repetitiva detectada - ignorando: "${transcriptionResult.text}"`);
+              return;
+            }
+            
+            // Verificar si contiene palabras del bot (posible eco)
+            const botKeywords = ['intacon', 'subtítulos', 'amara.org', 'servicios', 'ayudarte'];
+            const containsBotWords = botKeywords.some(keyword => 
+              currentText.includes(keyword.toLowerCase())
+            );
+            
+            if (containsBotWords && transcriptionResult.confidence < 0.8) {
+              logger.warn(`🔊 [${streamSid}] Posible eco del bot detectado - ignorando: "${transcriptionResult.text}"`);
+              return;
+            }
+            
             logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);
+            
+            // Guardar última transcripción
+            streamData.lastTranscription = currentText;
             
             // Generar respuesta conversacional
             await this.generateAndSendResponse(ws, streamSid, transcriptionResult.text, streamData.client);
@@ -549,6 +580,12 @@ class TwilioStreamHandler {
   async generateAndSendResponse(ws, streamSid, transcribedText, clientConfig) {
     try {
       logger.info(`🤖 [${streamSid}] Iniciando generación de respuesta para: "${transcribedText}"`);
+      
+      // Marcar que el bot va a hablar
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        streamData.botSpeaking = true;
+      }
       
       // Obtener contexto de conversación
       const conversationContext = this.conversationState.get(streamSid) || { previousMessages: [] };
@@ -610,43 +647,76 @@ class TwilioStreamHandler {
       logger.info(`🔊 [${streamSid}] Iniciando conversión TTS para: "${responseText}"`);
       
       // Obtener configuración de voz
-      const rawVoiceId = clientConfig.callConfig?.voiceId || 'isidora';
+      const rawVoiceId = clientConfig.callConfig?.voiceId || 'ximena';
       const language = clientConfig.callConfig?.language || 'es-ES';
       const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
       
-      logger.debug(`🎵 [${streamSid}] Configuración voz - Raw: ${rawVoiceId}, Azure: ${voiceId}, Idioma: ${language}`);
+      logger.info(`🎵 Using Isidora Multilingual voice for all users: ${voiceId}`);
       
       // Humanizar texto con SSML
       const humanizedText = this.humanizeTextWithSSML(responseText);
-      logger.debug(`📝 [${streamSid}] Texto humanizado (${humanizedText.length} chars): ${humanizedText.substring(0, 200)}...`);
+      logger.info(`🎭 SSML humanizado aplicado: ${humanizedText.substring(0, 100)}...`);
       
       // Generar audio con Azure TTS
-      const ttsStartTime = Date.now();
+      logger.info(`🎵 Usando formato mulaw directo para Twilio: raw-8khz-8bit-mono-mulaw`);
       const ttsResult = await this.ttsService.generateSpeech(
-        humanizedText, 
-        voiceId, 
+        humanizedText,
+        voiceId,
         'raw-8khz-8bit-mono-mulaw'
       );
-      const ttsTime = Date.now() - ttsStartTime;
       
-      logger.debug(`⏱️ [${streamSid}] Tiempo generación TTS: ${ttsTime}ms`);
-      
-      if (ttsResult.success) {
-        logger.info(`🔊 [${streamSid}] Audio TTS generado exitosamente (${ttsResult.audioBuffer.length} bytes)`);
+      if (ttsResult.success && ttsResult.audioBuffer) {
+        logger.info(`🔊 Tamaño del buffer de audio: ${ttsResult.audioBuffer.length} bytes`);
+        logger.info(`🔊 Primeros bytes: ${ttsResult.audioBuffer.subarray(0, 16).toString('hex')}`);
         
-        const sendStartTime = Date.now();
+        // Enviar audio a Twilio
         await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
-        const sendTime = Date.now() - sendStartTime;
         
-        logger.info(`✅ [${streamSid}] Audio enviado a Twilio en ${sendTime}ms`);
+        logger.info(`✅ [${streamSid}] Audio enviado exitosamente`);
+        
+        // Marcar que el bot terminó de hablar después de un delay
+        setTimeout(() => {
+          const streamData = this.activeStreams.get(streamSid);
+          if (streamData) {
+            streamData.botSpeaking = false;
+            logger.debug(`🔇 [${streamSid}] Bot terminó de hablar - reactivando escucha`);
+          }
+        }, Math.max(3000, ttsResult.audioBuffer.length / 8)); // Mínimo 3 segundos o duración estimada del audio
+        
       } else {
-        logger.error(`❌ [${streamSid}] Error generando audio TTS: ${ttsResult.error}`);
-        logger.error(`❌ [${streamSid}] Detalles TTS error:`, ttsResult);
+        logger.error(`❌ [${streamSid}] Error generando TTS: ${ttsResult.error || 'Error desconocido'}`);
+        
+        // Fallback: enviar mensaje de error como audio
+        const fallbackText = "Lo siento, ha habido un error técnico. ¿Puedo ayudarte de otra manera?";
+        const fallbackHumanized = this.humanizeTextWithSSML(fallbackText);
+        const fallbackResult = await this.ttsService.generateSpeech(
+          fallbackHumanized,
+          voiceId,
+          'raw-8khz-8bit-mono-mulaw'
+        );
+        
+        if (fallbackResult.success) {
+          await this.sendRawMulawToTwilio(ws, fallbackResult.audioBuffer, streamSid);
+          
+          // Marcar que el bot terminó de hablar
+          setTimeout(() => {
+            const streamData = this.activeStreams.get(streamSid);
+            if (streamData) {
+              streamData.botSpeaking = false;
+            }
+          }, 3000);
+        }
       }
       
     } catch (error) {
-      logger.error(`❌ [${streamSid}] Error crítico enviando respuesta como audio: ${error.message}`);
-      logger.error(`❌ [${streamSid}] Stack trace TTS:`, error.stack);
+      logger.error(`❌ [${streamSid}] Error en sendResponseAsAudio: ${error.message}`);
+      logger.error(`❌ [${streamSid}] Stack trace sendResponseAsAudio:`, error.stack);
+      
+      // Asegurar que se reactive la escucha en caso de error
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        streamData.botSpeaking = false;
+      }
     }
   }
 
