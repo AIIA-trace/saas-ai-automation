@@ -701,14 +701,14 @@ class TwilioStreamHandler {
         
         logger.info(`✅ [${streamSid}] Audio enviado exitosamente`);
         
-        // Marcar que el bot terminó de hablar después de un delay
+        // Marcar que el bot terminó de hablar después de un delay FIJO
         setTimeout(() => {
           const streamData = this.activeStreams.get(streamSid);
           if (streamData) {
             streamData.botSpeaking = false;
-            logger.debug(`🔇 [${streamSid}] Bot terminó de hablar - reactivando escucha`);
+            logger.info(`🔇 [${streamSid}] Bot terminó de hablar - reactivando escucha del usuario`);
           }
-        }, Math.max(3000, ttsResult.audioBuffer.length / 8)); // Mínimo 3 segundos o duración estimada del audio
+        }, 5000); // FIJO: 5 segundos para asegurar que el audio termine
         
       } else {
         logger.error(`❌ [${streamSid}] Error generando TTS: ${ttsResult.error || 'Error desconocido'}`);
@@ -725,13 +725,14 @@ class TwilioStreamHandler {
         if (fallbackResult.success) {
           await this.sendRawMulawToTwilio(ws, fallbackResult.audioBuffer, streamSid);
           
-          // Marcar que el bot terminó de hablar
+          // Marcar que el bot terminó de hablar - FIJO
           setTimeout(() => {
             const streamData = this.activeStreams.get(streamSid);
             if (streamData) {
               streamData.botSpeaking = false;
+              logger.info(`🔇 [${streamSid}] Bot terminó de hablar (fallback) - reactivando escucha del usuario`);
             }
-          }, 3000);
+          }, 5000); // FIJO: 5 segundos
         }
       }
       
