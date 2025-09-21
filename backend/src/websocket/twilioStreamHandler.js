@@ -91,6 +91,19 @@ class TwilioStreamHandler {
     
     logger.info(`📡 [${streamSid}] Evento: ${event}`);
     
+    // DEBUG CRÍTICO: Diagnosticar por qué no llegan eventos media
+    if (event === 'media') {
+      logger.info(`🎤 [${streamSid}] ¡EVENTO MEDIA RECIBIDO! - Payload: ${data.media?.payload ? 'presente' : 'ausente'}`);
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        logger.info(`🎤 [${streamSid}] Estado conversación: ${streamData.conversationTurn}, Bot hablando: ${streamData.botSpeaking}`);
+      } else {
+        logger.warn(`🎤 [${streamSid}] Stream no encontrado en activeStreams`);
+      }
+    } else {
+      logger.info(`📡 [${streamSid}] Evento NO-MEDIA: ${event} - esperando eventos media...`);
+    }
+    
     try {
       switch (event) {
         case 'connected':
@@ -129,7 +142,7 @@ class TwilioStreamHandler {
       greetingSent: false,
       isInitializing: true,
       botSpeaking: false,
-      conversationTurn: 'waiting', // waiting, listening, processing, speaking
+      conversationTurn: 'greeting', // Iniciar con saludo
       lastUserInput: null
     });
     
@@ -189,6 +202,8 @@ class TwilioStreamHandler {
       // Actualizar en el Map con la clave real
       this.activeStreams.delete(tempId);
       this.activeStreams.set(streamSid, streamData);
+
+      logger.info(`🎯 [${streamSid}] Stream configurado - Estado inicial: ${streamData.conversationTurn}, esperando transición a listening`);
       
       logger.info(`✅ [${streamSid}] Cliente configurado: ${clientConfig.companyName}`);
       logger.info(`🔄 [${streamSid}] Migrado desde ID temporal: ${tempId}`);
@@ -1122,15 +1137,19 @@ class TwilioStreamHandler {
       // Enviar mensaje de ayuda como audio
       await this.sendResponseAsAudio(ws, streamSid, helpText, clientConfig);
       
-      // Reactivar escucha después del mensaje de ayuda
-      setTimeout(() => {
-        const streamData = this.activeStreams.get(streamSid);
-        if (streamData) {
-          streamData.botSpeaking = false;
-          streamData.conversationTurn = 'listening';
-          logger.info(`👂 [${streamSid}] Bot reactivado para escuchar después de mensaje de ayuda`);
-        }
-      }, 6000); // 6 segundos para mensaje más largo
+      // Cambiar estado a 'listening' después del saludo con timeout de 8 segundos
+        setTimeout(() => {
+          const currentStreamData = this.activeStreams.get(streamSid);
+          if (currentStreamData && currentStreamData.conversationTurn === 'greeting') {
+            currentStreamData.conversationTurn = 'listening';
+            logger.info(`🎧 [${streamSid}] ✅ ESTADO CAMBIADO A 'LISTENING' - Bot listo para recibir audio del usuario`);
+            logger.info(`🎯 [${streamSid}] DIAGNÓSTICO: Ahora deberían llegar eventos 'media' con audio del usuario`);
+          } else if (currentStreamData) {
+            logger.warn(`⚠️ [${streamSid}] Estado inesperado en timeout: ${currentStreamData.conversationTurn}`);
+          } else {
+            logger.error(`❌ [${streamSid}] Stream no encontrado en timeout de listening`);
+          }
+        }, 8000); // 8 segundos después del saludo
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en sendTranscriptionHelpResponse: ${error.message}`);
