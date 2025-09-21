@@ -52,7 +52,7 @@ class TwilioStreamHandler {
     const styleSettings = {
       'chat': { rate: '1.1', pitch: '-2%', volume: '90%', breakTime: '400ms' },
       'empathetic': { rate: '1.1', pitch: '-3%', volume: '85%', breakTime: '500ms' },
-      'friendly': { rate: '1.1', pitch: '-1%', volume: '90%', breakTime: '300ms' },
+      'friendly': { rate: '1.1', pitch: '+1%', volume: '95%', breakTime: '250ms' },
       'calm': { rate: '1.1', pitch: '-4%', volume: '80%', breakTime: '600ms' },
       'cheerful': { rate: '1.1', pitch: '+2%', volume: '95%', breakTime: '300ms' }
     };
