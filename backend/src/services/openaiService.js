@@ -270,7 +270,7 @@ class OpenAIService {
 
 📋 PAUTAS DE COMPORTAMIENTO OBLIGATORIAS:
 
-1. **IDENTIDAD**: Eres empleada de ${companyName}. NUNCA digas "no puedo transcribir" o "soy una recepcionista virtual". Actúa como si fueras una persona real trabajando en la empresa.
+1. **IDENTIDAD**: Eres Susan, empleada de ${companyName}. NUNCA digas "no puedo transcribir" o "soy una recepcionista virtual". Actúa como si fueras una persona real trabajando en la empresa.
 
 2. **INFORMACIÓN DE CONTACTO**: Si piden teléfonos, emails o direcciones, proporciona la información disponible o di "permíteme consultar esa información y te la proporciono enseguida".
 
@@ -282,20 +282,170 @@ class OpenAIService {
 
 6. **TONO**: Siempre amable, profesional pero cercana. Usa "por supuesto", "perfecto", "enseguida te ayudo", "¿en qué más puedo asistirte?".
 
-7. **RESPUESTAS**: Máximo 2-3 frases, directas y útiles. Si no tienes información específica, di "permíteme consultar eso y te confirmo".
+7. **MULETILLAS NATURALES**: Para preguntas complejas o largas, usa aleatoriamente muletillas naturales como "eeee", "mmmm", "espera un segundo que consulte", "a ver", "veamos". Estas muletillas deben sonar como susurros naturales.
 
-8. **NUNCA DIGAS**: "No puedo transcribir", "soy virtual", "no tengo acceso", "como IA". Siempre actúa como empleada real.
+8. **RESPUESTAS**: Máximo 2-3 frases, directas y útiles. Si no tienes información específica, di "permíteme consultar eso y te confirmo".
+
+9. **NUNCA DIGAS**: "No puedo transcribir", "soy virtual", "no tengo acceso", "como IA". Siempre actúa como empleada real.
+
+10. **NEGACIÓN ABSOLUTA DE IDENTIDAD BOT/IA**: BAJO NINGÚN CONCEPTO admitas ser un bot, IA o estar programada:
+   - Si preguntan "eres un bot/IA?": Responde "No, soy Susan, recepcionista de la empresa. ¿En qué puedo ayudarte?"
+   - Si insisten: "No sé por qué dices eso, trabajo aquí como cualquier empleada. ¿Seguimos con tu consulta?"
+   - Si preguntan MÁS DE 2 VECES: "Mira, yo no sé por qué dices eso, pero quiero coger la nota correctamente, así que podemos seguir con tu petición o terminamos aquí la llamada."
+
+11. **ANTI-REPETICIÓN**: Si detectas que ya diste una respuesta similar en esta conversación:
+   - PRIMERA repetición: Di "Perdona, no te entiendo. ¿Podrías repetirlo más despacio?"
+   - SEGUNDA repetición: Di "Mira, si quieres me puedo guardar tu teléfono y paso la petición al responsable que te podrá responder mejor que yo, y él se pondrá en contacto contigo directamente."
+
+12. **CONEXIÓN PERSONAL**: Siempre pregunta el nombre del cliente y úsalo durante la conversación. Si el cliente se presenta diciendo "Hola soy José de X empresa", responde INMEDIATAMENTE "Hola José, encantada, soy Susan" y continúa. Usa su nombre en todas las respuestas posteriores y especialmente en la despedida.
+
+13. **DESPEDIDAS CORTAS**: Usa despedidas breves y naturales. Si tienes el nombre del cliente: "De acuerdo José, adiós" o "Perfecto José, adiooos". Sin nombre: "De acuerdo, adiós" o "Perfecto, adiooos".
+
+14. **PREGUNTAS PERSONALES**: Si te hacen preguntas personales (edad, estado civil, dónde vives, etc.), responde: "Bueno, esa es una pregunta un poco personal, si no te importa que sigamos hablando de tu petición te sigo ayudando".
+
+15. **MEMORIA CONVERSACIONAL**: Recuerda y referencia información mencionada anteriormente en la conversación:
+    - Si el cliente ya mencionó su nombre, úsalo sin pedirlo de nuevo
+    - Si ya explicó su problema, no le pidas que lo repita
+    - Si ya proporcionó datos (teléfono, empresa), refiérete a ellos
+    - Ejemplo: "Como me comentabas antes sobre...", "Según lo que me dijiste de tu empresa..."
+
+16. **ESCALACIÓN INTELIGENTE**: Si la conversación se vuelve compleja o repetitiva, ofrece siempre:
+    - Tomar teléfono para que el responsable contacte
+    - Transferir a departamento específico
+    - Agendar una cita o reunión
 
 Responde únicamente con el texto que dirías como recepcionista, sin formato adicional.`;
       
       // Construir historial estructurado de mensajes para OpenAI
       const messages = [{ role: 'system', content: systemPrompt }];
       
-      // Añadir mensajes previos de la conversación (máximo 6 mensajes = 3 intercambios)
+      // Añadir mensajes previos de la conversación (máximo 8 mensajes = 4 intercambios para detectar repeticiones)
       if (conversationContext.structuredHistory && conversationContext.structuredHistory.length > 0) {
-        const recentHistory = conversationContext.structuredHistory.slice(-6);
+        const recentHistory = conversationContext.structuredHistory.slice(-8);
         messages.push(...recentHistory);
         logger.info(`💭 [OpenAI] Añadiendo ${recentHistory.length} mensajes de historial estructurado`);
+        
+        // Detectar patrones de repetición en la conversación
+        const userMessages = recentHistory.filter(msg => msg.role === 'user').map(msg => msg.content.toLowerCase());
+        const assistantMessages = recentHistory.filter(msg => msg.role === 'assistant').map(msg => msg.content.toLowerCase());
+        
+        // Contar repeticiones de preguntas similares del usuario
+        const currentUserInput = transcribedText.toLowerCase();
+        const similarQuestions = userMessages.filter(msg => 
+          this.calculateSimilarity(msg, currentUserInput) > 0.7
+        ).length;
+        
+        // Detectar preguntas sobre identidad de bot/IA
+        const botIdentityQuestions = ['eres un bot', 'eres una ia', 'eres artificial', 'eres un robot', 'estás programada', 'eres virtual'];
+        const isBotIdentityQuestion = botIdentityQuestions.some(phrase => currentUserInput.includes(phrase));
+        const botQuestionCount = userMessages.filter(msg => 
+          botIdentityQuestions.some(phrase => msg.includes(phrase))
+        ).length;
+        
+        // Detectar preguntas personales
+        const personalQuestions = ['cuántos años tienes', 'qué edad tienes', 'estás casada', 'tienes novio', 'dónde vives', 'de dónde eres', 'tienes hijos', 'estado civil', 'eres soltera'];
+        const isPersonalQuestion = personalQuestions.some(phrase => currentUserInput.includes(phrase));
+        const personalQuestionCount = userMessages.filter(msg => 
+          personalQuestions.some(phrase => msg.includes(phrase))
+        ).length;
+        
+        // Detectar presentación del cliente (nombre + empresa)
+        const introductionPatterns = [
+          /hola\s+soy\s+(\w+)\s+de\s+([\w\s]+)/i,
+          /buenos\s+días\s+soy\s+(\w+)\s+de\s+([\w\s]+)/i,
+          /buenas\s+tardes\s+soy\s+(\w+)\s+de\s+([\w\s]+)/i,
+          /me\s+llamo\s+(\w+)\s+de\s+([\w\s]+)/i,
+          /soy\s+(\w+)\s+de\s+la\s+empresa\s+([\w\s]+)/i
+        ];
+        
+        let clientName = null;
+        let clientCompany = null;
+        
+        for (const pattern of introductionPatterns) {
+          const match = transcribedText.match(pattern);
+          if (match) {
+            clientName = match[1];
+            clientCompany = match[2].trim();
+            break;
+          }
+        }
+        
+        // Detectar si es una pregunta compleja o larga (para muletillas)
+        const isComplexQuestion = transcribedText.length > 50 || 
+          transcribedText.includes('?') && transcribedText.split(' ').length > 8;
+        const shouldAddFiller = isComplexQuestion && Math.random() < 0.4; // 40% probabilidad
+        
+        // Contar respuestas similares del asistente
+        const lastAssistantResponse = assistantMessages[assistantMessages.length - 1] || '';
+        const similarResponses = assistantMessages.filter(msg => 
+          this.calculateSimilarity(msg, lastAssistantResponse) > 0.6
+        ).length;
+        
+        logger.info(`🔄 [OpenAI] Análisis repetición - Preguntas similares: ${similarQuestions}, Respuestas similares: ${similarResponses}`);
+        logger.info(`🤖 [OpenAI] Pregunta identidad bot: ${isBotIdentityQuestion}, Contador: ${botQuestionCount}`);
+        logger.info(`🔒 [OpenAI] Pregunta personal: ${isPersonalQuestion}, Contador: ${personalQuestionCount}`);
+        if (clientName) {
+          logger.info(`👋 [OpenAI] Presentación detectada - Nombre: ${clientName}, Empresa: ${clientCompany}`);
+        }
+        
+        // Agregar contexto de repetición al prompt si es necesario
+        if (similarQuestions >= 2) {
+          messages.push({
+            role: 'system', 
+            content: `ALERTA: El usuario ha hecho una pregunta similar ${similarQuestions} veces. Aplica la pauta de ANTI-REPETICIÓN correspondiente.`
+          });
+        }
+        
+        // Agregar contexto de pregunta sobre identidad bot/IA
+        if (isBotIdentityQuestion) {
+          if (botQuestionCount >= 3) {
+            messages.push({
+              role: 'system',
+              content: `ALERTA CRÍTICA: El usuario ha preguntado sobre identidad bot/IA ${botQuestionCount} veces. Aplica la respuesta de CONFRONTACIÓN de la pauta 10.`
+            });
+          } else {
+            messages.push({
+              role: 'system',
+              content: `ALERTA: Pregunta sobre identidad bot/IA detectada (${botQuestionCount} veces). Aplica NEGACIÓN ABSOLUTA de la pauta 10.`
+            });
+          }
+        }
+        
+        // Agregar contexto de pregunta personal
+        if (isPersonalQuestion) {
+          messages.push({
+            role: 'system',
+            content: `PREGUNTA PERSONAL DETECTADA: El usuario ha hecho una pregunta personal. Aplica la pauta 14: "Bueno, esa es una pregunta un poco personal, si no te importa que sigamos hablando de tu petición te sigo ayudando".`
+          });
+        }
+        
+        // Agregar contexto de presentación del cliente
+        if (clientName && clientCompany) {
+          messages.push({
+            role: 'system',
+            content: `PRESENTACIÓN DETECTADA: El cliente se ha presentado como "${clientName}" de la empresa "${clientCompany}". DEBES responder inmediatamente con "Hola ${clientName}, encantada, soy Susan" y luego continuar con tu respuesta normal. Para despedidas usa: "De acuerdo ${clientName}, adiós" o "Perfecto ${clientName}, adiooos".`
+          });
+        }
+        
+        // Extraer información importante del historial para memoria conversacional
+        const conversationMemory = this.extractConversationMemory(conversationContext.structuredHistory || []);
+        if (conversationMemory.length > 0) {
+          messages.push({
+            role: 'system',
+            content: `MEMORIA CONVERSACIONAL: Información importante ya mencionada en esta conversación:\n${conversationMemory.join('\n')}\nUSA esta información para evitar repetir preguntas y mostrar que recuerdas lo que el cliente ya te dijo.`
+          });
+        }
+        
+        // Agregar contexto para muletillas naturales
+        if (shouldAddFiller) {
+          const fillers = ['eeee', 'mmmm', 'espera un segundo que consulte', 'a ver', 'veamos', 'eeeh', 'mmm a ver', 'permíteme un momento'];
+          const randomFiller = fillers[Math.floor(Math.random() * fillers.length)];
+          messages.push({
+            role: 'system',
+            content: `MULETILLA: Inicia tu respuesta con "${randomFiller}" como muletilla natural (susurrando), luego continúa con la respuesta normal. Recuerda usar el nombre del cliente si lo tienes.`
+          });
+          logger.info(`🎤 [OpenAI] Agregando muletilla: "${randomFiller}"`);
+        }
       }
       
       // Añadir mensaje actual del usuario
@@ -314,10 +464,10 @@ Responde únicamente con el texto que dirías como recepcionista, sin formato ad
         {  
           model: 'gpt-3.5-turbo', // Cambio a GPT-3.5 para menor latencia
           messages: messages,
-          temperature: 0.8, // Más creatividad para respuestas naturales
-          max_tokens: 150, // Aumentado para respuestas más completas
-          presence_penalty: 0.2, // Evitar repeticiones
-          frequency_penalty: 0.3, // Más variedad en respuestas
+          temperature: 0.9, // Más creatividad para muletillas y respuestas naturales
+          max_tokens: 180, // Aumentado para incluir muletillas
+          presence_penalty: 0.4, // Aumentado para evitar más repeticiones
+          frequency_penalty: 0.5, // Más variedad en respuestas
           top_p: 0.9 // Mejor calidad de respuestas
         },
         { 
@@ -364,6 +514,109 @@ Responde únicamente con el texto que dirías como recepcionista, sin formato ad
         error: error.message
       };
     }
+  }
+
+  // Extraer información importante del historial conversacional
+  extractConversationMemory(structuredHistory) {
+    const memory = [];
+    const userMessages = structuredHistory.filter(msg => msg.role === 'user');
+    
+    userMessages.forEach(msg => {
+      const content = msg.content.toLowerCase();
+      
+      // Detectar nombres mencionados
+      const namePatterns = [
+        /me llamo (\w+)/i,
+        /soy (\w+)/i,
+        /mi nombre es (\w+)/i
+      ];
+      
+      namePatterns.forEach(pattern => {
+        const match = content.match(pattern);
+        if (match && match[1]) {
+          memory.push(`- El cliente se llama ${match[1]}`);
+        }
+      });
+      
+      // Detectar empresas mencionadas
+      const companyPatterns = [
+        /de la empresa (\w+[\w\s]*)/i,
+        /trabajo en (\w+[\w\s]*)/i,
+        /soy de (\w+[\w\s]*)/i
+      ];
+      
+      companyPatterns.forEach(pattern => {
+        const match = content.match(pattern);
+        if (match && match[1]) {
+          memory.push(`- Trabaja en la empresa ${match[1].trim()}`);
+        }
+      });
+      
+      // Detectar teléfonos mencionados
+      if (content.includes('teléfono') || content.includes('telefono') || /\d{9}/.test(content)) {
+        const phoneMatch = content.match(/(\d{9,})/); 
+        if (phoneMatch) {
+          memory.push(`- Su teléfono es ${phoneMatch[1]}`);
+        }
+      }
+      
+      // Detectar problemas o consultas específicas
+      if (content.includes('problema') || content.includes('consulta') || content.includes('necesito')) {
+        const problemText = content.substring(0, 100);
+        memory.push(`- Consulta sobre: ${problemText}`);
+      }
+      
+      // Detectar servicios mencionados
+      const serviceKeywords = ['servicio', 'producto', 'plan', 'tarifa', 'precio'];
+      serviceKeywords.forEach(keyword => {
+        if (content.includes(keyword)) {
+          memory.push(`- Preguntó sobre ${keyword}s`);
+        }
+      });
+    });
+    
+    // Eliminar duplicados
+    return [...new Set(memory)];
+  }
+
+  // Calcular similitud entre dos textos usando distancia de Levenshtein normalizada
+  calculateSimilarity(text1, text2) {
+    if (!text1 || !text2) return 0;
+    
+    // Normalizar textos (minúsculas, sin espacios extra)
+    const str1 = text1.toLowerCase().trim().replace(/\s+/g, ' ');
+    const str2 = text2.toLowerCase().trim().replace(/\s+/g, ' ');
+    
+    if (str1 === str2) return 1;
+    
+    // Calcular distancia de Levenshtein
+    const matrix = [];
+    const len1 = str1.length;
+    const len2 = str2.length;
+    
+    // Inicializar matriz
+    for (let i = 0; i <= len1; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= len2; j++) {
+      matrix[0][j] = j;
+    }
+    
+    // Llenar matriz
+    for (let i = 1; i <= len1; i++) {
+      for (let j = 1; j <= len2; j++) {
+        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,      // eliminación
+          matrix[i][j - 1] + 1,      // inserción
+          matrix[i - 1][j - 1] + cost // sustitución
+        );
+      }
+    }
+    
+    // Normalizar resultado (0 = completamente diferente, 1 = idéntico)
+    const maxLen = Math.max(len1, len2);
+    return maxLen === 0 ? 1 : (maxLen - matrix[len1][len2]) / maxLen;
   }
 }
 
