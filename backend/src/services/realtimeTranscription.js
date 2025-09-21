@@ -2,6 +2,7 @@ const OpenAI = require('openai');
 const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
+const Lame = require('node-lame').Lame;
 
 class RealtimeTranscription {
   constructor() {
@@ -24,28 +25,31 @@ class RealtimeTranscription {
   }
 
   /**
-   * Transcribir buffer de audio con Whisper (OPTIMIZADO)
+   * Transcribir buffer de audio con Whisper (OPTIMIZADO SEGÚN MEJORES PRÁCTICAS OPENAI)
    */
   async transcribeAudioBuffer(audioBuffer, language = 'es') {
     const transcriptionId = this.generateTranscriptionId();
     
     try {
-      logger.info(`🎤 [${transcriptionId}] Iniciando transcripción optimizada (${audioBuffer.length} bytes)`);
+      logger.info(`🎤 [${transcriptionId}] Iniciando transcripción optimizada OpenAI (${audioBuffer.length} bytes)`);
 
-      // Convertir mulaw a PCM para mejor calidad
-      const pcmBuffer = this.convertMulawToPCM(audioBuffer);
+      // OPTIMIZACIÓN: Crear MP3 directamente según recomendaciones OpenAI
+      // Formato óptimo: MP3, 16 kbps, 12 kHz, mono
+      const mp3Buffer = await this.convertMulawToOptimizedMP3(audioBuffer);
       
-      // Crear archivo WAV con audio PCM
-      const tempFilePath = await this.bufferToTempFile(pcmBuffer, transcriptionId, 'pcm');
+      // Crear archivo MP3 temporal optimizado
+      const tempFilePath = await this.bufferToTempFile(mp3Buffer, transcriptionId, 'mp3');
       
-      // Transcribir con Whisper OPTIMIZADO
+      logger.info(`📦 [${transcriptionId}] Archivo MP3 optimizado: ${mp3Buffer.length} bytes (reducción: ${Math.round((1 - mp3Buffer.length/audioBuffer.length) * 100)}%)`);
+      
+      // Transcribir con Whisper usando configuración óptima
       const transcription = await this.openai.audio.transcriptions.create({
         file: fs.createReadStream(tempFilePath),
         model: 'whisper-1',
         language: language,
-        response_format: 'verbose_json', // Más información
-        temperature: 0.0, // Máxima determinismo
-        prompt: "Esta es una conversación telefónica de una recepcionista. Transcribe exactamente lo que dice el cliente." // Contexto específico
+        response_format: 'json', // JSON simple es más rápido que verbose_json
+        temperature: 0.0, // Máximo determinismo
+        prompt: "Conversación telefónica en español. Cliente hablando con recepcionista." // Prompt más conciso
       });
 
       // Limpiar archivo temporal
@@ -90,23 +94,103 @@ class RealtimeTranscription {
   }
 
   /**
-   * Convertir buffer de audio a archivo temporal WAV
+   * Convertir mulaw a MP3 optimizado según mejores prácticas OpenAI
+   * Formato: MP3, 16 kbps, 12 kHz, mono
    */
-  async bufferToTempFile(audioBuffer, transcriptionId, format = 'mulaw') {
-    const tempFilePath = path.join(this.tempDir, `audio_${transcriptionId}.wav`);
+  async convertMulawToOptimizedMP3(mulawBuffer) {
+    try {
+      // Primero convertir mulaw a PCM
+      const pcmBuffer = this.convertMulawToPCM(mulawBuffer);
+      
+      // Crear WAV temporal para conversión a MP3
+      const wavBuffer = this.createOptimizedWavForMP3(pcmBuffer);
+      
+      // Crear archivos temporales para conversión
+      const tempWavPath = path.join(this.tempDir, `temp_${Date.now()}.wav`);
+      const tempMp3Path = path.join(this.tempDir, `temp_${Date.now()}.mp3`);
+      
+      try {
+        // Escribir WAV temporal
+        fs.writeFileSync(tempWavPath, wavBuffer);
+        
+        // Configurar encoder MP3 con parámetros óptimos para OpenAI
+        const encoder = new Lame({
+          output: tempMp3Path,
+          bitrate: 16,        // 16 kbps según recomendaciones OpenAI
+          samplerate: 8000,   // Mantener 8kHz (Twilio native)
+          channels: 1,        // Mono
+          quality: 7          // Calidad rápida pero aceptable
+        }).setFile(tempWavPath);
+        
+        // Convertir a MP3
+        await encoder.encode();
+        
+        // Leer MP3 resultante
+        const mp3Buffer = fs.readFileSync(tempMp3Path);
+        
+        // Limpiar archivos temporales
+        fs.unlinkSync(tempWavPath);
+        fs.unlinkSync(tempMp3Path);
+        
+        logger.info(`✅ MP3 optimizado creado: ${mp3Buffer.length} bytes (compresión: ${Math.round((1 - mp3Buffer.length/mulawBuffer.length) * 100)}%)`);
+        return mp3Buffer;
+        
+      } catch (mp3Error) {
+        // Limpiar archivos en caso de error
+        if (fs.existsSync(tempWavPath)) fs.unlinkSync(tempWavPath);
+        if (fs.existsSync(tempMp3Path)) fs.unlinkSync(tempMp3Path);
+        throw mp3Error;
+      }
+      
+    } catch (error) {
+      logger.error(`❌ Error convirtiendo a MP3 optimizado: ${error.message}`);
+      logger.warn('⚠️ Fallback: usando WAV optimizado');
+      // Fallback: usar WAV optimizado si MP3 falla
+      return this.createOptimizedWavForMP3(this.convertMulawToPCM(mulawBuffer));
+    }
+  }
+
+  /**
+   * Crear WAV optimizado para mejor compatibilidad con Whisper
+   * 8kHz, 16-bit, mono (formato mínimo pero compatible)
+   */
+  createOptimizedWavForMP3(pcmBuffer) {
+    const header = Buffer.alloc(44);
+    
+    // RIFF header
+    header.write('RIFF', 0);
+    header.writeUInt32LE(36 + pcmBuffer.length, 4);
+    header.write('WAVE', 8);
+    
+    // fmt chunk - optimizado para Whisper
+    header.write('fmt ', 12);
+    header.writeUInt32LE(16, 16); // chunk size
+    header.writeUInt16LE(1, 20);  // format (PCM)
+    header.writeUInt16LE(1, 22);  // channels (mono)
+    header.writeUInt32LE(8000, 24); // sample rate (8kHz - mínimo)
+    header.writeUInt32LE(16000, 28); // byte rate
+    header.writeUInt16LE(2, 32);  // block align
+    header.writeUInt16LE(16, 34); // bits per sample
+    
+    // data chunk
+    header.write('data', 36);
+    header.writeUInt32LE(pcmBuffer.length, 40);
+    
+    return Buffer.concat([header, pcmBuffer]);
+  }
+
+  /**
+   * Convertir buffer de audio a archivo temporal
+   */
+  async bufferToTempFile(audioBuffer, transcriptionId, format = 'wav') {
+    const extension = format === 'mp3' ? 'mp3' : 'wav';
+    const tempFilePath = path.join(this.tempDir, `audio_${transcriptionId}.${extension}`);
     
     try {
-      // Crear header WAV según el formato
-      const wavHeader = format === 'pcm' ? 
-        this.createPCMWavHeader(audioBuffer.length) : 
-        this.createWavHeader(audioBuffer.length);
+      // Escribir archivo temporal directamente (ya viene con headers si es necesario)
+      fs.writeFileSync(tempFilePath, audioBuffer);
       
-      const wavBuffer = Buffer.concat([wavHeader, audioBuffer]);
-      
-      // Escribir archivo temporal
-      fs.writeFileSync(tempFilePath, wavBuffer);
-      
-      logger.debug(`📁 [${transcriptionId}] Archivo ${format.toUpperCase()} creado: ${tempFilePath}`);
+      logger.debug(`📁 [${transcriptionId}] Archivo ${format.toUpperCase()} creado: ${tempFilePath} (${audioBuffer.length} bytes)`);
       return tempFilePath;
       
     } catch (error) {
