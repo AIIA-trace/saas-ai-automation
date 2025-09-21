@@ -24,38 +24,51 @@ class RealtimeTranscription {
   }
 
   /**
-   * Transcribir buffer de audio con Whisper
+   * Transcribir buffer de audio con Whisper (OPTIMIZADO)
    */
   async transcribeAudioBuffer(audioBuffer, language = 'es') {
     const transcriptionId = this.generateTranscriptionId();
     
     try {
-      logger.info(`🎤 [${transcriptionId}] Iniciando transcripción (${audioBuffer.length} bytes)`);
+      logger.info(`🎤 [${transcriptionId}] Iniciando transcripción optimizada (${audioBuffer.length} bytes)`);
 
-      // Convertir buffer a formato WAV temporal
-      const tempFilePath = await this.bufferToTempFile(audioBuffer, transcriptionId);
+      // Convertir mulaw a PCM para mejor calidad
+      const pcmBuffer = this.convertMulawToPCM(audioBuffer);
       
-      // Transcribir con Whisper
+      // Crear archivo WAV con audio PCM
+      const tempFilePath = await this.bufferToTempFile(pcmBuffer, transcriptionId, 'pcm');
+      
+      // Transcribir con Whisper OPTIMIZADO
       const transcription = await this.openai.audio.transcriptions.create({
         file: fs.createReadStream(tempFilePath),
         model: 'whisper-1',
         language: language,
-        response_format: 'json',
-        temperature: 0.2 // Más determinístico
+        response_format: 'verbose_json', // Más información
+        temperature: 0.0, // Máxima determinismo
+        prompt: "Esta es una conversación telefónica de una recepcionista. Transcribe exactamente lo que dice el cliente." // Contexto específico
       });
 
       // Limpiar archivo temporal
       this.cleanupTempFile(tempFilePath);
 
-      const text = transcription.text?.trim();
+      let text = transcription.text?.trim();
       
       if (text && text.length > 0) {
-        logger.info(`✅ [${transcriptionId}] Transcripción: "${text}"`);
+        // Post-procesamiento para limpiar transcripción
+        text = this.cleanTranscription(text);
+        
+        // Usar confianza real de Whisper si está disponible
+        const confidence = transcription.segments ? 
+          this.calculateRealConfidence(transcription.segments) : 
+          this.estimateConfidence(text);
+        
+        logger.info(`✅ [${transcriptionId}] Transcripción limpia: "${text}" (confianza: ${confidence})`);
         return {
           success: true,
           text: text,
-          confidence: this.estimateConfidence(text),
-          duration: transcription.duration || 0
+          confidence: confidence,
+          duration: transcription.duration || 0,
+          language: transcription.language || language
         };
       } else {
         logger.warn(`⚠️ [${transcriptionId}] Transcripción vacía`);
@@ -79,18 +92,21 @@ class RealtimeTranscription {
   /**
    * Convertir buffer de audio a archivo temporal WAV
    */
-  async bufferToTempFile(audioBuffer, transcriptionId) {
+  async bufferToTempFile(audioBuffer, transcriptionId, format = 'mulaw') {
     const tempFilePath = path.join(this.tempDir, `audio_${transcriptionId}.wav`);
     
     try {
-      // Crear header WAV para audio mulaw 8kHz mono
-      const wavHeader = this.createWavHeader(audioBuffer.length);
+      // Crear header WAV según el formato
+      const wavHeader = format === 'pcm' ? 
+        this.createPCMWavHeader(audioBuffer.length) : 
+        this.createWavHeader(audioBuffer.length);
+      
       const wavBuffer = Buffer.concat([wavHeader, audioBuffer]);
       
       // Escribir archivo temporal
       fs.writeFileSync(tempFilePath, wavBuffer);
       
-      logger.debug(`📁 [${transcriptionId}] Archivo temporal creado: ${tempFilePath}`);
+      logger.debug(`📁 [${transcriptionId}] Archivo ${format.toUpperCase()} creado: ${tempFilePath}`);
       return tempFilePath;
       
     } catch (error) {
@@ -125,6 +141,114 @@ class RealtimeTranscription {
     header.writeUInt32LE(dataLength, 40);
     
     return header;
+  }
+
+  /**
+   * Crear header WAV para audio PCM 16-bit 8kHz mono
+   */
+  createPCMWavHeader(dataLength) {
+    const header = Buffer.alloc(44);
+    
+    // RIFF header
+    header.write('RIFF', 0);
+    header.writeUInt32LE(36 + dataLength, 4);
+    header.write('WAVE', 8);
+    
+    // fmt chunk
+    header.write('fmt ', 12);
+    header.writeUInt32LE(16, 16); // chunk size
+    header.writeUInt16LE(1, 20);  // format (PCM)
+    header.writeUInt16LE(1, 22);  // channels
+    header.writeUInt32LE(8000, 24); // sample rate
+    header.writeUInt32LE(16000, 28); // byte rate (8000 * 2)
+    header.writeUInt16LE(2, 32);  // block align
+    header.writeUInt16LE(16, 34); // bits per sample
+    
+    // data chunk
+    header.write('data', 36);
+    header.writeUInt32LE(dataLength, 40);
+    
+    return header;
+  }
+
+  /**
+   * Convertir audio mulaw a PCM 16-bit para mejor calidad
+   */
+  convertMulawToPCM(mulawBuffer) {
+    const pcmBuffer = Buffer.alloc(mulawBuffer.length * 2);
+    
+    // Tabla de conversión mulaw a PCM
+    const mulawToPcm = [
+      -32124,-31100,-30076,-29052,-28028,-27004,-25980,-24956,
+      -23932,-22908,-21884,-20860,-19836,-18812,-17788,-16764,
+      -15996,-15484,-14972,-14460,-13948,-13436,-12924,-12412,
+      -11900,-11388,-10876,-10364, -9852, -9340, -8828, -8316,
+      -7932, -7676, -7420, -7164, -6908, -6652, -6396, -6140,
+      -5884, -5628, -5372, -5116, -4860, -4604, -4348, -4092,
+      -3900, -3772, -3644, -3516, -3388, -3260, -3132, -3004,
+      -2876, -2748, -2620, -2492, -2364, -2236, -2108, -1980,
+      -1884, -1820, -1756, -1692, -1628, -1564, -1500, -1436,
+      -1372, -1308, -1244, -1180, -1116, -1052,  -988,  -924,
+      -876,  -844,  -812,  -780,  -748,  -716,  -684,  -652,
+      -620,  -588,  -556,  -524,  -492,  -460,  -428,  -396,
+      -372,  -356,  -340,  -324,  -308,  -292,  -276,  -260,
+      -244,  -228,  -212,  -196,  -180,  -164,  -148,  -132,
+      -120,  -112,  -104,   -96,   -88,   -80,   -72,   -64,
+      -56,   -48,   -40,   -32,   -24,   -16,    -8,     0,
+      32124, 31100, 30076, 29052, 28028, 27004, 25980, 24956,
+      23932, 22908, 21884, 20860, 19836, 18812, 17788, 16764,
+      15996, 15484, 14972, 14460, 13948, 13436, 12924, 12412,
+      11900, 11388, 10876, 10364,  9852,  9340,  8828,  8316,
+      7932,  7676,  7420,  7164,  6908,  6652,  6396,  6140,
+      5884,  5628,  5372,  5116,  4860,  4604,  4348,  4092,
+      3900,  3772,  3644,  3516,  3388,  3260,  3132,  3004,
+      2876,  2748,  2620,  2492,  2364,  2236,  2108,  1980,
+      1884,  1820,  1756,  1692,  1628,  1564,  1500,  1436,
+      1372,  1308,  1244,  1180,  1116,  1052,   988,   924,
+      876,   844,   812,   780,   748,   716,   684,   652,
+      620,   588,   556,   524,   492,   460,   428,   396,
+      372,   356,   340,   324,   308,   292,   276,   260,
+      244,   228,   212,   196,   180,   164,   148,   132,
+      120,   112,   104,    96,    88,    80,    72,    64,
+      56,    48,    40,    32,    24,    16,     8,     0
+    ];
+    
+    for (let i = 0; i < mulawBuffer.length; i++) {
+      const pcmValue = mulawToPcm[mulawBuffer[i]];
+      pcmBuffer.writeInt16LE(pcmValue, i * 2);
+    }
+    
+    return pcmBuffer;
+  }
+
+  /**
+   * Limpiar transcripción de artefactos comunes
+   */
+  cleanTranscription(text) {
+    return text
+      // Eliminar repeticiones excesivas
+      .replace(/(.)\1{3,}/g, '$1$1')
+      // Limpiar espacios múltiples
+      .replace(/\s+/g, ' ')
+      // Eliminar caracteres extraños al inicio/final
+      .replace(/^[^a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+|[^a-záéíóúñA-ZÁÉÍÓÚÑ0-9.!?]+$/g, '')
+      // Capitalizar primera letra
+      .replace(/^[a-záéíóúñ]/, match => match.toUpperCase())
+      .trim();
+  }
+
+  /**
+   * Calcular confianza real basada en segmentos de Whisper
+   */
+  calculateRealConfidence(segments) {
+    if (!segments || segments.length === 0) return 0.5;
+    
+    const avgConfidence = segments.reduce((sum, segment) => {
+      return sum + (segment.avg_logprob || -1.0);
+    }, 0) / segments.length;
+    
+    // Convertir logprob a confianza (aproximado)
+    return Math.max(0, Math.min(1, (avgConfidence + 1.0) / 1.0));
   }
 
   /**
