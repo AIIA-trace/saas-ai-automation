@@ -557,24 +557,39 @@ class TwilioStreamHandler {
    * Detectar actividad de voz en tiempo real usando VAD (Voice Activity Detection)
    */
   detectVoiceActivity(audioChunk, streamSid) {
-    let detection = this.speechDetection.get(streamSid);
-    if (!detection) {
-      this.initializeSpeechDetection(streamSid);
-      detection = this.speechDetection.get(streamSid);
-    }
+    const detection = this.speechDetection.get(streamSid);
+    if (!detection) return { shouldProcess: false, reason: 'no_detection_config' };
 
     // Calcular energía del chunk actual
     const samples = new Uint8Array(audioChunk);
     let energy = 0;
     let maxAmplitude = 0;
+    let sampleSum = 0;
+    let zeroSamples = 0;
+    let silentSamples = 0;
+    
+    // Análisis detallado de muestras para diagnóstico
+    const sampleAnalysis = [];
+    for (let i = 0; i < Math.min(10, samples.length); i++) {
+      sampleAnalysis.push(samples[i]);
+    }
     
     for (const sample of samples) {
       const amplitude = Math.abs(sample - 127); // mulaw center is 127
       energy += amplitude * amplitude; // energía cuadrática
       maxAmplitude = Math.max(maxAmplitude, amplitude);
+      sampleSum += sample;
+      
+      if (sample === 0xFF || sample === 0x7F) zeroSamples++;
+      if (amplitude < 5) silentSamples++;
     }
     
     energy = Math.sqrt(energy / samples.length); // RMS energy
+    const avgSample = sampleSum / samples.length;
+    const silenceRatio = silentSamples / samples.length;
+    
+    // LOG CRÍTICO: Análisis detallado de muestras
+    logger.info(`🔬 [${streamSid}] ANÁLISIS AUDIO: energy=${energy.toFixed(1)}, maxAmp=${maxAmplitude}, avgSample=${avgSample.toFixed(1)}, silenceRatio=${(silenceRatio*100).toFixed(1)}%, primeras10=${sampleAnalysis.join(',')}`)
     
     // Mantener historial de energía para umbral adaptativo
     detection.energyHistory.push(energy);
