@@ -636,10 +636,16 @@ class TwilioStreamHandler {
     // Detectar si hay actividad de voz - UMBRAL MÁS BAJO
     const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 2;
     
+    // LOG CRÍTICO: Mostrar decisión de speech detection
+    logger.info(`🎯 [${streamSid}] SPEECH DECISION: energy=${energy.toFixed(1)} > threshold=${detection.adaptiveThreshold.toFixed(1)}? ${energy > detection.adaptiveThreshold}, maxAmp=${maxAmplitude} > 2? ${maxAmplitude > 2}, isSpeech=${isSpeech}`);
+    
     if (isSpeech) {
       detection.speechCount++;
       detection.silenceCount = 0;
       detection.lastActivity = Date.now();
+      
+      // LOG CRÍTICO: Mostrar progreso hacia activación
+      logger.info(`🔢 [${streamSid}] SPEECH COUNT: ${detection.speechCount}/${detection.minSpeechDuration}, isActive=${detection.isActive}`);
       
       if (!detection.isActive && detection.speechCount >= detection.minSpeechDuration) {
         detection.isActive = true;
@@ -648,6 +654,9 @@ class TwilioStreamHandler {
     } else {
       detection.silenceCount++;
       detection.speechCount = Math.max(0, detection.speechCount - 1); // decaimiento gradual
+      
+      // LOG CRÍTICO: Mostrar por qué no es speech
+      logger.info(`❌ [${streamSid}] NO SPEECH: speechCount=${detection.speechCount} (decremented), silenceCount=${detection.silenceCount}`);
     }
     
     // Detectar final de habla
