@@ -412,6 +412,26 @@ class TwilioStreamHandler {
       return;
     }
 
+    // Verificación inicial del estado de WebSocket
+    if (ws.readyState !== ws.OPEN) {
+      logger.error(`❌ [${streamSid}] WebSocket no está conectado al iniciar envío (readyState: ${ws.readyState})`);
+      
+      // Intentar esperar hasta 500ms por reconexión
+      let attempts = 0;
+      while (ws.readyState !== ws.OPEN && attempts < 5) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+        logger.debug(`🔄 [${streamSid}] Esperando reconexión WebSocket (intento ${attempts}/5)`);
+      }
+      
+      if (ws.readyState !== ws.OPEN) {
+        logger.error(`❌ [${streamSid}] WebSocket no se reconectó - cancelando envío de audio`);
+        return;
+      }
+      
+      logger.info(`✅ [${streamSid}] WebSocket reconectado después de ${attempts} intentos`);
+    }
+
     try {
       let processedBuffer = audioBuffer;
       
@@ -461,15 +481,34 @@ class TwilioStreamHandler {
           timestamp: Date.now()
         });
 
+        // Verificación robusta del estado de WebSocket
+        const isConnected = ws.readyState === ws.OPEN;
+        
         console.log('🔌 WebSocket transmission debug:', {
           timestamp: Date.now(),
           chunkSize: chunk.length,
           streamSid: streamSid,
-          isConnected: ws.readyState === ws.OPEN
+          isConnected: isConnected,
+          readyState: ws.readyState
         });
 
-        if (ws.readyState === 1) { // WebSocket.OPEN
+        if (!isConnected) {
+          logger.error(`❌ [${streamSid}] WebSocket desconectado durante envío de audio (readyState: ${ws.readyState})`);
+          
+          // Intentar esperar un momento por si se reconecta
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          if (ws.readyState !== ws.OPEN) {
+            logger.error(`❌ [${streamSid}] WebSocket sigue desconectado - abortando envío de audio`);
+            return;
+          }
+        }
+
+        try {
           ws.send(JSON.stringify(mediaMessage));
+        } catch (sendError) {
+          logger.error(`❌ [${streamSid}] Error enviando chunk de audio: ${sendError.message}`);
+          return;
         }
         
         offset += chunkSize;
