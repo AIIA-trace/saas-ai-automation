@@ -557,8 +557,12 @@ class TwilioStreamHandler {
    * Detectar actividad de voz en tiempo real usando VAD (Voice Activity Detection)
    */
   detectVoiceActivity(audioChunk, streamSid) {
-    const detection = this.speechDetection.get(streamSid);
-    if (!detection) return { shouldProcess: false, reason: 'no_detection_config' };
+    try {
+      const detection = this.speechDetection.get(streamSid);
+      if (!detection) {
+        logger.error(`🚨 [${streamSid}] No detection config found`);
+        return { shouldProcess: false, reason: 'no_detection_config' };
+      }
 
     // Calcular energía del chunk actual
     const samples = new Uint8Array(audioChunk);
@@ -674,6 +678,16 @@ class TwilioStreamHandler {
       speechCount: detection.speechCount,
       silenceCount: detection.silenceCount
     };
+    } catch (error) {
+      logger.error(`🚨 [${streamSid}] Error in detectVoiceActivity: ${error.message}`);
+      return { 
+        shouldProcess: false, 
+        reason: 'error',
+        isActive: undefined,
+        energy: undefined,
+        threshold: undefined
+      };
+    }
   }
 
   /**
