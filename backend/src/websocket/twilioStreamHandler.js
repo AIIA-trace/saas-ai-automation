@@ -584,10 +584,10 @@ class TwilioStreamHandler {
     
     // Calcular umbral adaptativo basado en promedio del ruido de fondo
     const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
-    detection.adaptiveThreshold = Math.max(8, avgEnergy * 1.1); // al menos 8, o 1.1x el promedio - EXTREMADAMENTE SENSIBLE
-    
-    // Detectar si hay actividad de voz - UMBRAL MÁS BAJO
-    const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 3;
+    detection.adaptiveThreshold = Math.max(5, avgEnergy * 0.8); // al menos 5, o 0.8x el promedio - ULTRA SENSIBLE
+  
+  // Detectar si hay actividad de voz - UMBRAL MÁS BAJO
+  const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 2;
     
     if (isSpeech) {
       detection.speechCount++;
