@@ -547,7 +547,7 @@ class TwilioStreamHandler {
       lastActivity: Date.now(),
       energyHistory: [],
       minSpeechDuration: 3, // chunks mínimos para considerar habla (60ms) - MÁS SENSIBLE
-      maxSilenceDuration: 8, // chunks máximos de silencio antes de procesar (160ms) - MÁS RÁPIDO
+      maxSilenceDuration: 4, // chunks máximos de silencio antes de procesar (80ms) - ULTRA RÁPIDO
       energyThreshold: 5, // umbral de energía para detectar habla - MÁS BAJO
       adaptiveThreshold: 5 // umbral adaptativo basado en historial - MÁS BAJO
     });
@@ -584,10 +584,16 @@ class TwilioStreamHandler {
     
     // Calcular umbral adaptativo basado en promedio del ruido de fondo
     const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
-    detection.adaptiveThreshold = Math.max(5, avgEnergy * 0.8); // al menos 5, o 0.8x el promedio - ULTRA SENSIBLE
   
-  // Detectar si hay actividad de voz - UMBRAL MÁS BAJO
-  const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 2;
+    // Si la energía actual es muy baja, reducir umbral inmediatamente
+    if (energy < 10) {
+      detection.adaptiveThreshold = Math.max(3, energy * 1.5); // Umbral muy bajo para silencio
+    } else {
+      detection.adaptiveThreshold = Math.max(5, avgEnergy * 0.8); // Umbral normal
+    }
+  
+    // Detectar si hay actividad de voz - UMBRAL MÁS BAJO
+    const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 2;
     
     if (isSpeech) {
       detection.speechCount++;
