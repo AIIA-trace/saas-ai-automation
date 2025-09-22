@@ -305,6 +305,9 @@ class TwilioStreamHandler {
         voiceId,
         'raw-8khz-8bit-mono-mulaw'
       );
+      
+      // ECHO BLANKING: Activar blanking antes de enviar audio del bot
+      this.activateEchoBlanking(streamSid);
 
       if (ttsResult.success) {
         // Save audio to file
@@ -345,6 +348,9 @@ class TwilioStreamHandler {
       this.mapVoiceToAzure(rawVoiceId, language),
       'raw-8khz-8bit-mono-mulaw'
     );
+    
+    // ECHO BLANKING: Activar blanking antes de enviar audio del bot
+    this.activateEchoBlanking(streamSid);
   
     if (ttsResult.success) {
       // Save audio to file
@@ -553,8 +559,44 @@ class TwilioStreamHandler {
       minSpeechDuration: 3, // chunks mínimos para considerar habla (60ms) - MÁS SENSIBLE
       maxSilenceDuration: 4, // chunks máximos de silencio antes de procesar (80ms) - ULTRA RÁPIDO
       energyThreshold: 5, // umbral de energía para detectar habla - MÁS BAJO
-      adaptiveThreshold: 5 // umbral adaptativo basado en historial - MÁS BAJO
+      adaptiveThreshold: 5, // umbral adaptativo basado en historial - MÁS BAJO
+      
+      // MEJORES PRÁCTICAS: Echo Blanking + Hangover Timer
+      echoBlanking: false, // true cuando el bot está hablando o acabó de hablar
+      echoBlankingUntil: 0, // timestamp hasta cuando ignorar VAD por eco
+      hangoverTimer: 0, // timestamp hasta cuando mantener isActive después de último speech
+      hangoverDuration: 300, // ms para mantener activo después de speech (300ms)
+      echoBlankingDuration: 500 // ms para ignorar VAD después de TTS (500ms)
     });
+  }
+
+  /**
+   * Activar Echo Blanking cuando el bot va a hablar
+   */
+  activateEchoBlanking(streamSid) {
+    const detection = this.speechDetection.get(streamSid);
+    if (detection) {
+      const now = Date.now();
+      detection.echoBlanking = true;
+      detection.echoBlankingUntil = now + detection.echoBlankingDuration;
+      logger.info(`🔇 [${streamSid}] Echo Blanking ACTIVADO por ${detection.echoBlankingDuration}ms`);
+    }
+  }
+
+  /**
+   * Verificar si Echo Blanking está activo
+   */
+  isEchoBlankingActive(streamSid) {
+    const detection = this.speechDetection.get(streamSid);
+    if (!detection) return false;
+    
+    const now = Date.now();
+    if (detection.echoBlanking && now > detection.echoBlankingUntil) {
+      detection.echoBlanking = false;
+      logger.info(`🔊 [${streamSid}] Echo Blanking DESACTIVADO`);
+    }
+    
+    return detection.echoBlanking;
   }
 
   /**
@@ -566,6 +608,20 @@ class TwilioStreamHandler {
       if (!detection) {
         logger.error(`🚨 [${streamSid}] No detection config found`);
         return { shouldProcess: false, reason: 'no_detection_config' };
+      }
+
+      const now = Date.now();
+
+      // ECHO BLANKING: Ignorar VAD si el bot está hablando o acabó de hablar
+      if (this.isEchoBlankingActive(streamSid)) {
+        logger.info(`🔇 [${streamSid}] VAD IGNORADO por Echo Blanking (bot hablando/eco)`);
+        return { 
+          shouldProcess: false, 
+          isActive: detection.isActive,
+          energy: 0,
+          threshold: detection.adaptiveThreshold,
+          reason: 'echo_blanking'
+        };
       }
 
     // Calcular energía del chunk actual
@@ -642,7 +698,10 @@ class TwilioStreamHandler {
     if (isSpeech) {
       detection.speechCount++;
       detection.silenceCount = 0;
-      detection.lastActivity = Date.now();
+      detection.lastActivity = now;
+      
+      // HANGOVER TIMER: Establecer timer para mantener activo después de speech
+      detection.hangoverTimer = now + detection.hangoverDuration;
       
       // LOG CRÍTICO: Mostrar progreso hacia activación
       logger.info(`🔢 [${streamSid}] SPEECH COUNT: ${detection.speechCount}/${detection.minSpeechDuration}, isActive=${detection.isActive}`);
@@ -657,6 +716,21 @@ class TwilioStreamHandler {
       
       // LOG CRÍTICO: Mostrar por qué no es speech
       logger.info(`❌ [${streamSid}] NO SPEECH: speechCount=${detection.speechCount} (decremented), silenceCount=${detection.silenceCount}`);
+    }
+
+    // HANGOVER TIMER: Mantener isActive si está dentro del período de hangover
+    if (!detection.isActive && now <= detection.hangoverTimer) {
+      detection.isActive = true;
+      logger.info(`⏰ [${streamSid}] HANGOVER TIMER: Manteniendo isActive por ${detection.hangoverTimer - now}ms más`);
+    }
+    
+    // Desactivar isActive si hangover timer expiró y no hay speech reciente
+    if (detection.isActive && now > detection.hangoverTimer && !isSpeech) {
+      // Solo desactivar si llevamos suficiente silencio
+      if (detection.silenceCount >= detection.maxSilenceDuration) {
+        logger.info(`⏰ [${streamSid}] HANGOVER TIMER EXPIRADO: Desactivando isActive`);
+        // No desactivar aquí, dejar que la lógica normal de shouldProcess lo maneje
+      }
     }
     
     // Detectar final de habla
@@ -1118,6 +1192,9 @@ class TwilioStreamHandler {
         'raw-8khz-8bit-mono-mulaw'
       );
       
+      // ECHO BLANKING: Activar blanking antes de enviar audio del bot
+      this.activateEchoBlanking(streamSid);
+      
       if (ttsResult.success && ttsResult.audioBuffer) {
         logger.info(`🔊 Tamaño del buffer de audio: ${ttsResult.audioBuffer.length} bytes`);
         logger.info(`🔊 Primeros bytes: ${ttsResult.audioBuffer.subarray(0, 16).toString('hex')}`);
@@ -1153,6 +1230,9 @@ class TwilioStreamHandler {
           voiceId,
           'raw-8khz-8bit-mono-mulaw'
         );
+        
+        // ECHO BLANKING: Activar blanking antes de enviar audio del bot
+        this.activateEchoBlanking(streamSid);
         
         if (fallbackResult.success) {
           await this.sendRawMulawToTwilio(ws, fallbackResult.audioBuffer, streamSid);
