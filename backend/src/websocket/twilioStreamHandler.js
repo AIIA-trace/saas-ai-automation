@@ -227,6 +227,10 @@ class TwilioStreamHandler {
             streamData.botSpeaking = false;
             logger.info(`👂 [${streamSid}] Activando escucha del usuario después del saludo`);
             
+            // CRÍTICO: Inicializar detección de voz antes de procesar audio
+            this.initializeSpeechDetection(streamSid);
+            logger.info(`🎯 [${streamSid}] Speech detection inicializado correctamente`);
+            
             // Procesar eventos media que llegaron durante la configuración
             this.processPendingMediaEvents(ws, streamSid);
           }
