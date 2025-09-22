@@ -575,16 +575,32 @@ class TwilioStreamHandler {
     }
     
     for (const sample of samples) {
-      const amplitude = Math.abs(sample - 127); // mulaw center is 127
+      // CORRECCIÓN CRÍTICA: En mu-law, silence = 0xFF (255), no 127
+      // Detectar muestras de silencio real primero
+      if (sample === 0xFF) {
+        // Silencio real en mu-law - energía = 0
+        silentSamples++;
+        sampleSum += sample;
+        continue;
+      }
+      
+      // Para muestras no-silenciosas, usar conversión mu-law estándar
+      const amplitude = Math.abs(sample - 127); // Solo para muestras con audio real
       energy += amplitude * amplitude; // energía cuadrática
       maxAmplitude = Math.max(maxAmplitude, amplitude);
       sampleSum += sample;
       
-      if (sample === 0xFF || sample === 0x7F) zeroSamples++;
+      if (sample === 0x7F) zeroSamples++;
       if (amplitude < 5) silentSamples++;
     }
     
-    energy = Math.sqrt(energy / samples.length); // RMS energy
+    // CORRECCIÓN CRÍTICA: Calcular energía solo sobre muestras no-silenciosas
+    const nonSilentSamples = samples.length - silentSamples;
+    if (nonSilentSamples > 0) {
+      energy = Math.sqrt(energy / nonSilentSamples); // RMS energy solo de audio real
+    } else {
+      energy = 0; // Todo silencio = energía 0
+    }
     const avgSample = sampleSum / samples.length;
     const silenceRatio = silentSamples / samples.length;
     
