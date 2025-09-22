@@ -588,8 +588,10 @@ class TwilioStreamHandler {
     // Si la energía actual es muy baja, reducir umbral inmediatamente
     if (energy < 10) {
       detection.adaptiveThreshold = Math.max(3, energy * 1.5); // Umbral muy bajo para silencio
+      logger.info(`🔧 [${streamSid}] UMBRAL INMEDIATO: energy=${energy.toFixed(1)} < 10 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
     } else {
       detection.adaptiveThreshold = Math.max(5, avgEnergy * 0.8); // Umbral normal
+      logger.info(`🔧 [${streamSid}] UMBRAL NORMAL: energy=${energy.toFixed(1)} ≥ 10 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
     }
   
     // Detectar si hay actividad de voz - UMBRAL MÁS BAJO
