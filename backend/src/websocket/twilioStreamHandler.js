@@ -91,17 +91,11 @@ class TwilioStreamHandler {
     
     logger.info(`📡 [${streamSid}] Evento: ${event}`);
     
-    // DEBUG CRÍTICO: Diagnosticar por qué no llegan eventos media
+    // DEBUG: Registrar eventos recibidos
     if (event === 'media') {
-      logger.info(`🎤 [${streamSid}] ¡EVENTO MEDIA RECIBIDO! - Payload: ${data.media?.payload ? 'presente' : 'ausente'}`);
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        logger.info(`🎤 [${streamSid}] Estado conversación: ${streamData.conversationTurn}, Bot hablando: ${streamData.botSpeaking}`);
-      } else {
-        logger.warn(`🎤 [${streamSid}] Stream no encontrado en activeStreams`);
-      }
+      logger.debug(`🎤 [${streamSid}] Evento media recibido - payload: ${data.media?.payload ? 'presente' : 'ausente'}`);
     } else {
-      logger.info(`📡 [${streamSid}] Evento NO-MEDIA: ${event} - esperando eventos media...`);
+      logger.info(`📡 [${streamSid}] Evento: ${event}`);
     }
     
     try {
