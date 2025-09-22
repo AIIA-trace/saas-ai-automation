@@ -26,6 +26,9 @@ class TwilioStreamHandler {
 
     // Sistema avanzado de detección de habla
     this.speechDetection = new Map(); // Estado de detección por stream
+    
+    // Buffer temporal para eventos media durante configuración inicial
+    this.pendingMediaEvents = new Map(); // Buffer de eventos media por stream
 
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
     // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
@@ -217,12 +220,15 @@ class TwilioStreamHandler {
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
         
-        // Después del saludo, activar escucha del usuario
+        // Después del saludo, activar escucha del usuario y procesar eventos buffered
         setTimeout(() => {
           if (this.activeStreams.has(streamSid)) {
             streamData.conversationTurn = 'listening';
             streamData.botSpeaking = false;
             logger.info(`👂 [${streamSid}] Activando escucha del usuario después del saludo`);
+            
+            // Procesar eventos media que llegaron durante la configuración
+            this.processPendingMediaEvents(ws, streamSid);
           }
         }, 8000); // 8 segundos para asegurar que el saludo termine completamente
         
@@ -647,6 +653,31 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Procesar eventos media que llegaron durante la configuración inicial
+   */
+  async processPendingMediaEvents(ws, streamSid) {
+    const pendingEvents = this.pendingMediaEvents.get(streamSid);
+    if (!pendingEvents || pendingEvents.length === 0) {
+      return;
+    }
+
+    logger.info(`📦 [${streamSid}] Procesando ${pendingEvents.length} eventos media buffered`);
+    
+    // Procesar eventos en orden
+    for (const eventData of pendingEvents) {
+      try {
+        await this.handleMediaEvent(ws, eventData);
+      } catch (error) {
+        logger.error(`❌ [${streamSid}] Error procesando evento buffered: ${error.message}`);
+      }
+    }
+    
+    // Limpiar buffer
+    this.pendingMediaEvents.delete(streamSid);
+    logger.info(`✅ [${streamSid}] Eventos buffered procesados y buffer limpiado`);
+  }
+
+  /**
    * Manejar eventos de media (audio del caller)
    */
   async handleMediaEvent(ws, data) {
@@ -654,7 +685,21 @@ class TwilioStreamHandler {
     const streamData = this.activeStreams.get(streamSid);
     
     if (!streamData) {
-      logger.warn(`⚠️ [${streamSid}] Stream no encontrado para evento media`);
+      // Buffer temporal para eventos media que llegan durante configuración inicial
+      if (!this.pendingMediaEvents.has(streamSid)) {
+        this.pendingMediaEvents.set(streamSid, []);
+        logger.info(`📦 [${streamSid}] Creando buffer temporal para eventos media durante setup`);
+      }
+      
+      const buffer = this.pendingMediaEvents.get(streamSid);
+      buffer.push(data);
+      
+      // Limitar buffer a 100 eventos para evitar memory leak
+      if (buffer.length > 100) {
+        buffer.shift();
+      }
+      
+      logger.debug(`📦 [${streamSid}] Evento media buffered durante setup (${buffer.length} eventos)`);
       return;
     }
 
@@ -1219,6 +1264,8 @@ class TwilioStreamHandler {
     this.preConvertedAudio.delete(streamSid);
     this.responseInProgress.delete(streamSid);
     this.lastResponseTime.delete(streamSid);
+    this.speechDetection.delete(streamSid);
+    this.pendingMediaEvents.delete(streamSid); // Limpiar buffer de eventos pendientes
     
     logger.info(`✅ [${streamSid}] Recursos limpiados`);
   }
