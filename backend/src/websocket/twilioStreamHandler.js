@@ -733,10 +733,10 @@ class TwilioStreamHandler {
       }
     }
     
-    // SOLUCIÓN TEMPORAL AGRESIVA: Procesar si llevamos mucho tiempo activos
+    // CONFIGURACIÓN BASADA EN OPENAI DOCS: 500ms = ~6-8 chunks a 8kHz
     const timeActive = now - detection.lastActivity;
     const forceProcess = detection.isActive && 
-                        detection.speechCount > 25; // Reducido de 50 a 25 chunks
+                        detection.speechCount > 8; // Basado en OpenAI: 500ms silence_duration_ms
     
     // Detectar final de habla (lógica original + forzado)
     const shouldProcess = (detection.isActive && 
