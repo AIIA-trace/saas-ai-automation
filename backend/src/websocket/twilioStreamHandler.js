@@ -745,14 +745,18 @@ class TwilioStreamHandler {
     
     if (shouldProcess) {
       const silenceChunks = detection.silenceCount; // Guardar antes de resetear
+      const speechChunks = detection.speechCount; // Guardar antes de resetear
       const reason = forceProcess ? 'forced_timeout' : 'speech_end_detected';
+      
+      if (forceProcess) {
+        logger.warn(`⚡ [${streamSid}] PROCESAMIENTO FORZADO: speechCount=${speechChunks}, timeActive=${timeActive}ms`);
+      }
+      
       detection.isActive = false;
       detection.silenceCount = 0;
       detection.speechCount = 0;
       
-      if (forceProcess) {
-        logger.warn(`⚡ [${streamSid}] PROCESAMIENTO FORZADO: speechCount=${detection.speechCount}, timeActive=${timeActive}ms`);
-      } else {
+      if (!forceProcess) {
         logger.info(`🔇 [${streamSid}] Final de habla detectado (silencio: ${silenceChunks} chunks)`);
       }
       
