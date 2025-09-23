@@ -733,18 +733,31 @@ class TwilioStreamHandler {
       }
     }
     
-    // Detectar final de habla
-    const shouldProcess = detection.isActive && 
-                         detection.silenceCount >= detection.maxSilenceDuration &&
-                         (Date.now() - detection.lastActivity) > 200; // mínimo 200ms de silencio
+    // SOLUCIÓN TEMPORAL AGRESIVA: Procesar si llevamos mucho tiempo activos
+    const timeActive = now - detection.lastActivity;
+    const forceProcess = detection.isActive && 
+                        detection.speechCount > 50 && // Más de 50 chunks de speech
+                        timeActive > 1000; // Más de 1 segundo desde última actividad
+    
+    // Detectar final de habla (lógica original + forzado)
+    const shouldProcess = (detection.isActive && 
+                          detection.silenceCount >= detection.maxSilenceDuration &&
+                          timeActive > 200) || forceProcess; // mínimo 200ms de silencio O forzado
     
     if (shouldProcess) {
       const silenceChunks = detection.silenceCount; // Guardar antes de resetear
+      const reason = forceProcess ? 'forced_timeout' : 'speech_end_detected';
       detection.isActive = false;
       detection.silenceCount = 0;
       detection.speechCount = 0;
-      logger.info(`🔇 [${streamSid}] Final de habla detectado (silencio: ${silenceChunks} chunks)`);
-      return { shouldProcess: true, reason: 'speech_end_detected' };
+      
+      if (forceProcess) {
+        logger.warn(`⚡ [${streamSid}] PROCESAMIENTO FORZADO: speechCount=${detection.speechCount}, timeActive=${timeActive}ms`);
+      } else {
+        logger.info(`🔇 [${streamSid}] Final de habla detectado (silencio: ${silenceChunks} chunks)`);
+      }
+      
+      return { shouldProcess: true, reason: reason };
     }
     
     // Timeout de seguridad - procesar si llevamos mucho tiempo acumulando
