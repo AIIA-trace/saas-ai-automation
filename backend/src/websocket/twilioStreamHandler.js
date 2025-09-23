@@ -986,6 +986,24 @@ class TwilioStreamHandler {
             return;
           }
           
+          // PROTECCIÓN CRÍTICA: Verificar que no hay transcripción o respuesta en progreso
+          if (this.responseInProgress.get(streamSid)) {
+            logger.warn(`🚫 [${streamSid}] Respuesta en progreso - ignorando nueva transcripción`);
+            return;
+          }
+          
+          // Verificar tiempo mínimo entre transcripciones para evitar spam
+          const lastResponse = this.lastResponseTime.get(streamSid) || 0;
+          const timeSinceLastResponse = Date.now() - lastResponse;
+          if (timeSinceLastResponse < 2000) { // Mínimo 2 segundos entre transcripciones
+            logger.warn(`⏰ [${streamSid}] Muy pronto para nueva transcripción (${timeSinceLastResponse}ms) - ignorando`);
+            return;
+          }
+          
+          // Marcar transcripción en progreso para bloquear otras
+          this.responseInProgress.set(streamSid, true);
+          logger.info(`🔒 [${streamSid}] Transcripción iniciada - bloqueando otras transcripciones`);
+          
           // Transcribir audio con servicio optimizado y manejo robusto de errores
           try {
             const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(
@@ -1057,10 +1075,16 @@ class TwilioStreamHandler {
               // Transcripción falló pero no es un error crítico - solo log debug
               logger.debug(`🔇 [${streamSid}] Sin transcripción válida: ${transcriptionResult.error || 'silencio detectado'}`);
               
+              // CRÍTICO: Liberar bloqueo si transcripción vacía
+              this.responseInProgress.delete(streamSid);
+              logger.info(`🔓 [${streamSid}] Bloqueo liberado - transcripción vacía`);
+              
               // Si hay múltiples fallos consecutivos, enviar mensaje de ayuda
               streamData.transcriptionFailCount = (streamData.transcriptionFailCount || 0) + 1;
               if (streamData.transcriptionFailCount >= 3) {
                 logger.warn(`⚠️ [${streamSid}] Múltiples fallos de transcripción (${streamData.transcriptionFailCount}) - enviando mensaje de ayuda`);
+                // Reactivar bloqueo para mensaje de ayuda
+                this.responseInProgress.set(streamSid, true);
                 await this.sendTranscriptionHelpResponse(ws, streamSid, streamData.client);
                 streamData.transcriptionFailCount = 0; // Reset counter
               }
@@ -1069,16 +1093,23 @@ class TwilioStreamHandler {
             logger.error(`❌ [${streamSid}] Error crítico en transcripción: ${transcriptionError.message}`);
             logger.error(`❌ [${streamSid}] Stack trace transcripción:`, transcriptionError.stack);
             
+            // CRÍTICO: Liberar bloqueo en caso de error
+            this.responseInProgress.delete(streamSid);
+            logger.info(`🔓 [${streamSid}] Bloqueo liberado - error en transcripción`);
+            
             // Incrementar contador de errores críticos
             streamData.criticalTranscriptionErrors = (streamData.criticalTranscriptionErrors || 0) + 1;
             
             // Si hay demasiados errores críticos, usar fallback más agresivo
             if (streamData.criticalTranscriptionErrors >= 2) {
               logger.error(`🚨 [${streamSid}] Múltiples errores críticos de transcripción - usando fallback agresivo`);
+              // Reactivar bloqueo para respuesta de error
+              this.responseInProgress.set(streamSid, true);
               await this.sendCriticalTranscriptionErrorResponse(ws, streamSid, streamData.client);
               streamData.criticalTranscriptionErrors = 0; // Reset
             } else {
               // Primer error crítico - mensaje estándar
+              this.responseInProgress.set(streamSid, true);
               await this.sendTranscriptionErrorResponse(ws, streamSid, streamData.client);
             }
           }
