@@ -220,32 +220,33 @@ class TwilioStreamHandler {
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
         
-        // DIAGNÓSTICO: Programar timeout con logs detallados
-        logger.info(`⏰ [${streamSid}] Programando timeout de 3 segundos para activar listening...`);
+        // CRÍTICO: Implementar sistema robusto de transición de estado
+        // El setTimeout falla en producción Render, usar múltiples mecanismos
+        logger.info(`⏰ [${streamSid}] Implementando transición robusta speaking → listening...`);
+        
+        // Almacenar timestamp para verificación
+        const streamData = this.activeStreams.get(streamSid);
+        streamData.greetingCompletedAt = Date.now();
+        streamData.transitionScheduled = true;
+        
+        // Mecanismo 1: setTimeout tradicional
         const timeoutId = setTimeout(() => {
           logger.info(`⏰ [${streamSid}] TIMEOUT EJECUTÁNDOSE - verificando stream activo...`);
-          
-          if (this.activeStreams.has(streamSid)) {
-            const currentStreamData = this.activeStreams.get(streamSid);
-            logger.info(`✅ [${streamSid}] Stream encontrado, cambiando estado: ${currentStreamData.conversationTurn} → listening`);
-            
-            currentStreamData.conversationTurn = 'listening';
-            currentStreamData.botSpeaking = false;
-            logger.info(`👂 [${streamSid}] Activando escucha del usuario después del saludo`);
-            
-            // CRÍTICO: Inicializar detección de voz antes de procesar audio
-            this.initializeSpeechDetection(streamSid);
-            logger.info(`🎯 [${streamSid}] Speech detection inicializado correctamente`);
-            
-            // Procesar eventos media que llegaron durante la configuración
-            this.processPendingMediaEvents(ws, streamSid);
-            logger.info(`🔄 [${streamSid}] Eventos media pendientes procesados`);
-          } else {
-            logger.error(`❌ [${streamSid}] TIMEOUT FALLÓ - Stream no encontrado en activeStreams`);
-          }
-        }, 3000); // Reducido a 3 segundos para pruebas más rápidas
+          this.activateListeningMode(streamSid, ws, 'setTimeout');
+        }, 3000);
         
-        logger.info(`⏰ [${streamSid}] Timeout programado con ID: ${timeoutId}`)
+        // Mecanismo 2: setImmediate + Promise para evitar bloqueo del event loop
+        setImmediate(() => {
+          setTimeout(() => {
+            logger.info(`⏰ [${streamSid}] BACKUP TIMEOUT ejecutándose...`);
+            this.activateListeningMode(streamSid, ws, 'setImmediate+setTimeout');
+          }, 3500); // 500ms después del timeout principal
+        });
+        
+        // Mecanismo 3: Verificación en próximo evento media (fallback)
+        streamData.needsTransitionCheck = true;
+        
+        logger.info(`⏰ [${streamSid}] Timeout programado con ID: ${timeoutId} + mecanismos de respaldo`)
         
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
@@ -909,6 +910,15 @@ class TwilioStreamHandler {
       return;
     }
 
+    // MECANISMO 3: Verificación fallback para transición forzada
+    if (streamData.needsTransitionCheck && streamData.greetingCompletedAt) {
+      const timeSinceGreeting = Date.now() - streamData.greetingCompletedAt;
+      if (timeSinceGreeting > 4000) { // 4 segundos de gracia
+        logger.warn(`⚠️ [${streamSid}] TIMEOUT FALLIDO - Forzando transición después de ${timeSinceGreeting}ms`);
+        this.activateListeningMode(streamSid, ws, 'fallback-media-event');
+      }
+    }
+    
     // DIAGNÓSTICO CRÍTICO: Mostrar estado actual SIEMPRE
     logger.info(`🔍 [${streamSid}] ESTADO ACTUAL: conversationTurn="${streamData.conversationTurn}", botSpeaking=${streamData.botSpeaking}, greetingSent=${streamData.greetingSent}`);
     
@@ -1526,6 +1536,45 @@ class TwilioStreamHandler {
     }
     logger.info(`🔌 Nueva conexión WebSocket desde ${ip}`);
     // Lógica básica de conexión
+  }
+
+  /**
+   * Activar modo de escucha de forma robusta
+   * Múltiples mecanismos para garantizar transición en producción
+   */
+  activateListeningMode(streamSid, ws, mechanism) {
+    if (!this.activeStreams.has(streamSid)) {
+      logger.error(`❌ [${streamSid}] TRANSICIÓN FALLIDA (${mechanism}) - Stream no encontrado`);
+      return;
+    }
+
+    const streamData = this.activeStreams.get(streamSid);
+    
+    // Verificar si ya está en modo listening (evitar duplicados)
+    if (streamData.conversationTurn === 'listening') {
+      logger.info(`✅ [${streamSid}] Ya en modo listening (${mechanism}) - ignorando`);
+      return;
+    }
+    
+    // Verificar tiempo transcurrido desde el saludo
+    const timeSinceGreeting = Date.now() - (streamData.greetingCompletedAt || 0);
+    logger.info(`⏰ [${streamSid}] Transición por ${mechanism} después de ${timeSinceGreeting}ms`);
+    
+    // CRÍTICO: Cambiar estado
+    streamData.conversationTurn = 'listening';
+    streamData.botSpeaking = false;
+    streamData.transitionScheduled = false;
+    streamData.needsTransitionCheck = false;
+    
+    logger.info(`👂 [${streamSid}] MODO LISTENING ACTIVADO por ${mechanism}`);
+    
+    // Inicializar detección de voz
+    this.initializeSpeechDetection(streamSid);
+    logger.info(`🎯 [${streamSid}] Speech detection inicializado`);
+    
+    // Procesar eventos media pendientes
+    this.processPendingMediaEvents(ws, streamSid);
+    logger.info(`🔄 [${streamSid}] Eventos media pendientes procesados`);
   }
 
   // Validar variables Azure
