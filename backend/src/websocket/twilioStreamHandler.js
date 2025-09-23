@@ -1221,11 +1221,8 @@ class TwilioStreamHandler {
       
       // Limpiar estado en caso de error
       this.responseInProgress.delete(streamSid);
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.botSpeaking = false;
-        streamData.conversationTurn = 'listening';
-      }
+      // Usar sistema robusto de transición
+      this.activateListeningMode(streamSid, ws, 'emergency-response');
       
       // Respuesta de emergencia
       const fallbackText = "Disculpa, tengo problemas técnicos. ¿Podrías repetir tu consulta?";
@@ -1279,12 +1276,8 @@ class TwilioStreamHandler {
         
         // Marcar que el bot terminó de hablar después de la duración estimada
         setTimeout(() => {
-          const streamData = this.activeStreams.get(streamSid);
-          if (streamData) {
-            streamData.botSpeaking = false;
-            streamData.conversationTurn = 'listening';
-            logger.info(`🔇 [${streamSid}] Bot terminó de hablar (${estimatedDuration}ms) - reactivando escucha del usuario`);
-          }
+          // Usar sistema robusto de transición después de respuesta
+          this.activateListeningMode(streamSid, ws, `response-completed-${estimatedDuration}ms`);
           // Limpiar estado de respuesta en progreso
           this.responseInProgress.delete(streamSid);
         }, estimatedDuration);
@@ -1312,12 +1305,8 @@ class TwilioStreamHandler {
           
           // Marcar que el bot terminó de hablar - CALCULADO
           setTimeout(() => {
-            const streamData = this.activeStreams.get(streamSid);
-            if (streamData) {
-              streamData.botSpeaking = false;
-              streamData.conversationTurn = 'listening';
-              logger.info(`🔇 [${streamSid}] Bot terminó de hablar (fallback ${fallbackDuration}ms) - reactivando escucha del usuario`);
-            }
+            // Usar sistema robusto de transición después de fallback
+            this.activateListeningMode(streamSid, ws, `fallback-completed-${fallbackDuration}ms`);
             // Limpiar estado de respuesta en progreso
             this.responseInProgress.delete(streamSid);
           }, fallbackDuration);
@@ -1329,12 +1318,8 @@ class TwilioStreamHandler {
       logger.error(`❌ [${streamSid}] Stack trace sendResponseAsAudio:`, error.stack);
       
       // Asegurar que se reactive la escucha en caso de error
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.botSpeaking = false;
-        streamData.conversationTurn = 'listening';
-      }
-      // Limpiar estado de respuesta en progreso
+      // Usar sistema robusto de transición y limpiar estado
+      this.activateListeningMode(streamSid, ws, 'response-error-recovery');
       this.responseInProgress.delete(streamSid);
     }
   }
@@ -1353,24 +1338,16 @@ class TwilioStreamHandler {
       
       // Asegurar que el bot vuelve a escuchar después del fallback
       setTimeout(() => {
-        const streamData = this.activeStreams.get(streamSid);
-        if (streamData) {
-          streamData.botSpeaking = false;
-          streamData.conversationTurn = 'listening';
-          logger.info(`👂 [${streamSid}] Bot reactivado para escuchar después de fallback OpenAI`);
-        }
+        // Usar sistema robusto de transición después de fallback OpenAI
+        this.activateListeningMode(streamSid, ws, 'openai-fallback-recovery');
         this.responseInProgress.delete(streamSid);
       }, 4000); // 4 segundos para que termine de hablar
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en sendFallbackResponse: ${error.message}`);
       
-      // Último recurso: reactivar escucha sin audio
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.botSpeaking = false;
-        streamData.conversationTurn = 'listening';
-      }
+      // Último recurso: usar sistema robusto de transición
+      this.activateListeningMode(streamSid, ws, 'help-response-error');
       this.responseInProgress.delete(streamSid);
     }
   }
@@ -1396,24 +1373,15 @@ class TwilioStreamHandler {
       
       // CRÍTICO: Reactivar escucha después del mensaje de error
       setTimeout(() => {
-        const streamData = this.activeStreams.get(streamSid);
-        if (streamData) {
-          streamData.botSpeaking = false;
-          streamData.conversationTurn = 'listening';
-          logger.info(`👂 [${streamSid}] Bot reactivado para escuchar después de error de transcripción`);
-        }
+        // Usar sistema robusto de transición después de error de transcripción
+        this.activateListeningMode(streamSid, ws, 'transcription-error-recovery');
       }, 5000); // 5 segundos para que termine de hablar el mensaje de error
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en sendTranscriptionErrorResponse: ${error.message}`);
       
-      // Último recurso: reactivar escucha sin audio
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.botSpeaking = false;
-        streamData.conversationTurn = 'listening';
-        logger.info(`👂 [${streamSid}] Bot forzado a escuchar después de error crítico`);
-      }
+      // Último recurso: usar sistema robusto de transición
+      this.activateListeningMode(streamSid, ws, 'critical-transcription-error');
     }
   }
 
@@ -1436,29 +1404,15 @@ class TwilioStreamHandler {
       // Enviar mensaje de ayuda como audio
       await this.sendResponseAsAudio(ws, streamSid, helpText, clientConfig);
       
-      // Cambiar estado a 'listening' después del saludo con timeout de 8 segundos
-        setTimeout(() => {
-          const currentStreamData = this.activeStreams.get(streamSid);
-          if (currentStreamData && currentStreamData.conversationTurn === 'greeting') {
-            currentStreamData.conversationTurn = 'listening';
-            logger.info(`🎧 [${streamSid}] ✅ ESTADO CAMBIADO A 'LISTENING' - Bot listo para recibir audio del usuario`);
-            logger.info(`🎯 [${streamSid}] DIAGNÓSTICO: Ahora deberían llegar eventos 'media' con audio del usuario`);
-          } else if (currentStreamData) {
-            logger.warn(`⚠️ [${streamSid}] Estado inesperado en timeout: ${currentStreamData.conversationTurn}`);
-          } else {
-            logger.error(`❌ [${streamSid}] Stream no encontrado en timeout de listening`);
-          }
-        }, 8000); // 8 segundos después del saludo
+      // USAR SISTEMA ROBUSTO DE TRANSICIÓN - Después del mensaje de ayuda
+      // El sendResponseAsAudio ya maneja la transición automáticamente
+      logger.info(`🔄 [${streamSid}] Transición manejada por sistema robusto después del mensaje de ayuda`);
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en sendTranscriptionHelpResponse: ${error.message}`);
       
-      // Último recurso: reactivar escucha
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.botSpeaking = false;
-        streamData.conversationTurn = 'listening';
-      }
+      // Último recurso: usar sistema robusto de transición
+      this.activateListeningMode(streamSid, ws, 'help-response-error');
     }
   }
 
@@ -1483,23 +1437,15 @@ class TwilioStreamHandler {
       
       // Después del mensaje crítico, mantener el bot en escucha por si se recupera
       setTimeout(() => {
-        const streamData = this.activeStreams.get(streamSid);
-        if (streamData) {
-          streamData.botSpeaking = false;
-          streamData.conversationTurn = 'listening';
-          logger.info(`👂 [${streamSid}] Bot reactivado para escuchar después de error crítico (transferencia sugerida)`);
-        }
+        // Usar sistema robusto de transición después de sugerir transferencia
+        this.activateListeningMode(streamSid, ws, 'transfer-suggestion-recovery');
       }, 7000); // 7 segundos para mensaje de transferencia
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en sendCriticalTranscriptionErrorResponse: ${error.message}`);
       
-      // Último recurso: reactivar escucha
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.botSpeaking = false;
-        streamData.conversationTurn = 'listening';
-      }
+      // Último recurso: usar sistema robusto de transición
+      this.activateListeningMode(streamSid, ws, 'critical-error-final');
     }
   }
 
