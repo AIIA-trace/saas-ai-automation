@@ -225,7 +225,6 @@ class TwilioStreamHandler {
         logger.info(`⏰ [${streamSid}] Implementando transición robusta speaking → listening...`);
         
         // Almacenar timestamp para verificación
-        const streamData = this.activeStreams.get(streamSid);
         streamData.greetingCompletedAt = Date.now();
         streamData.transitionScheduled = true;
         
