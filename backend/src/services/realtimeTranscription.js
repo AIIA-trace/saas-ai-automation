@@ -29,6 +29,7 @@ class RealtimeTranscription {
    */
   async transcribeAudioBuffer(audioBuffer, language = 'es') {
     const transcriptionId = this.generateTranscriptionId();
+    let tempFilePath = null;
     
     try {
       logger.info(`🎤 [${transcriptionId}] Iniciando transcripción optimizada OpenAI (${audioBuffer.length} bytes)`);
@@ -38,19 +39,33 @@ class RealtimeTranscription {
       const mp3Buffer = await this.convertMulawToOptimizedMP3(audioBuffer);
       
       // Crear archivo MP3 temporal optimizado
-      const tempFilePath = await this.bufferToTempFile(mp3Buffer, transcriptionId, 'mp3');
+      tempFilePath = await this.bufferToTempFile(mp3Buffer, transcriptionId, 'mp3');
       
       logger.info(`📦 [${transcriptionId}] Archivo MP3 optimizado: ${mp3Buffer.length} bytes (reducción: ${Math.round((1 - mp3Buffer.length/audioBuffer.length) * 100)}%)`);
       
-      // Transcribir con Whisper usando configuración óptima
-      const transcription = await this.openai.audio.transcriptions.create({
-        file: fs.createReadStream(tempFilePath),
-        model: 'whisper-1',
-        language: language === 'es-ES' ? 'es' : language, // Corregir formato ISO-639-1
-        response_format: 'json', // JSON simple es más rápido que verbose_json
-        temperature: 0.0 // Máximo determinismo
-        // REMOVED: prompt genérico que causaba transcripciones falsas
-      });
+      // Transcribir con Whisper usando configuración óptima + TIMEOUT
+      logger.info(`🚀 [${transcriptionId}] Enviando a OpenAI Whisper...`);
+      
+      const transcription = await Promise.race([
+        this.openai.audio.transcriptions.create({
+          file: fs.createReadStream(tempFilePath),
+          model: 'whisper-1',
+          language: language === 'es-ES' ? 'es' : language, // Corregir formato ISO-639-1
+          response_format: 'json', // JSON simple es más rápido que verbose_json
+          temperature: 0.0 // Máximo determinismo
+          // REMOVED: prompt genérico que causaba transcripciones falsas
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout de 10 segundos en Whisper')), 10000)
+        )
+      ]);
+      
+      logger.info(`✅ [${transcriptionId}] Respuesta recibida de Whisper`);
+      logger.debug(`🔍 [${transcriptionId}] Whisper response: ${JSON.stringify(transcription)}`);
+      
+      if (!transcription) {
+        throw new Error('Respuesta vacía de Whisper');
+      }
 
       // Limpiar archivo temporal
       this.cleanupTempFile(tempFilePath);
@@ -85,6 +100,13 @@ class RealtimeTranscription {
 
     } catch (error) {
       logger.error(`❌ [${transcriptionId}] Error transcribiendo: ${error.message}`);
+      logger.error(`❌ [${transcriptionId}] Stack trace: ${error.stack}`);
+      
+      // Limpiar archivo temporal en caso de error
+      if (tempFilePath) {
+        this.cleanupTempFile(tempFilePath);
+      }
+      
       return {
         success: false,
         text: '',
