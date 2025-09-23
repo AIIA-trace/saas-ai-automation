@@ -1,1 +1,6 @@
-Deploy 2025-01-23 20:30:15 - CRÍTICO: Arreglado error redeclaración variable
+DEPLOY_TIMESTAMP=2024-12-23_20:40:15
+Deploy - CRÍTICO: Sistema centralizado de transiciones de estado
+- Eliminadas 12 asignaciones directas de conversationTurn
+- Todas las transiciones ahora usan activateListeningMode()
+- Identificadores específicos para debugging granular
+- Debería resolver problema de timeouts que no se ejecutan
