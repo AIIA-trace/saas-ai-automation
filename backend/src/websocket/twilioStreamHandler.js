@@ -29,6 +29,10 @@ class TwilioStreamHandler {
     
     // Buffer temporal para eventos media durante configuración inicial
     this.pendingMediaEvents = new Map(); // Buffer de eventos media por stream
+    
+    // Sistema de timeout de inactividad
+    this.inactivityTimers = new Map(); // Timers de inactividad por stream
+    this.lastUserActivity = new Map(); // Timestamp de última actividad del usuario
 
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
     // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
@@ -1071,6 +1075,9 @@ class TwilioStreamHandler {
               logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);          
               logger.info(`🔍 [DEBUG] Llamando a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
               
+              // CRÍTICO: Actualizar actividad del usuario y cancelar timeout
+              this.updateUserActivity(streamSid);
+              
               // Cambiar estado a procesando
               streamData.conversationTurn = 'processing';
               streamData.lastUserInput = transcriptionResult.text;
@@ -1517,6 +1524,9 @@ class TwilioStreamHandler {
     this.initializeSpeechDetection(streamSid);
     logger.info(`🎯 [${streamSid}] Speech detection inicializado`);
     
+    // CRÍTICO: Iniciar timeout de inactividad
+    this.startInactivityTimer(streamSid, ws);
+    
     // Procesar eventos media pendientes
     this.processPendingMediaEvents(ws, streamSid);
     logger.info(`🔄 [${streamSid}] Eventos media pendientes procesados`);
@@ -1535,6 +1545,104 @@ class TwilioStreamHandler {
         process.exit(1);
       }
     });
+  }
+  /**
+   * Iniciar timeout de inactividad - detecta cuando el usuario no recibe respuesta
+   */
+  startInactivityTimer(streamSid, ws) {
+    // Cancelar timer existente si hay uno
+    this.clearInactivityTimer(streamSid);
+    
+    const streamData = this.activeStreams.get(streamSid);
+    if (!streamData) return;
+    
+    // Configurar timeout de 15 segundos de inactividad
+    const timeoutId = setTimeout(() => {
+      logger.warn(`⏰ [${streamSid}] TIMEOUT DE INACTIVIDAD - Usuario sin respuesta por 15s`);
+      this.handleInactivityTimeout(streamSid, ws);
+    }, 15000);
+    
+    this.inactivityTimers.set(streamSid, timeoutId);
+    this.lastUserActivity.set(streamSid, Date.now());
+    
+    logger.info(`⏰ [${streamSid}] Timer de inactividad iniciado (15s)`);
+  }
+
+  /**
+   * Actualizar actividad del usuario y reiniciar timer
+   */
+  updateUserActivity(streamSid) {
+    this.lastUserActivity.set(streamSid, Date.now());
+    
+    // Cancelar timer actual
+    this.clearInactivityTimer(streamSid);
+    
+    logger.info(`🔄 [${streamSid}] Actividad del usuario actualizada - timer cancelado`);
+  }
+
+  /**
+   * Cancelar timer de inactividad
+   */
+  clearInactivityTimer(streamSid) {
+    const timerId = this.inactivityTimers.get(streamSid);
+    if (timerId) {
+      clearTimeout(timerId);
+      this.inactivityTimers.delete(streamSid);
+      logger.info(`🚫 [${streamSid}] Timer de inactividad cancelado`);
+    }
+  }
+
+  /**
+   * Manejar timeout de inactividad - enviar mensaje de ayuda
+   */
+  async handleInactivityTimeout(streamSid, ws) {
+    const streamData = this.activeStreams.get(streamSid);
+    if (!streamData) return;
+    
+    logger.warn(`⚠️ [${streamSid}] Manejando timeout de inactividad`);
+    
+    // Verificar si hay respuesta en progreso
+    if (this.responseInProgress.get(streamSid)) {
+      logger.info(`🔄 [${streamSid}] Respuesta en progreso - extendiendo timeout`);
+      // Extender timeout otros 10 segundos si hay respuesta en progreso
+      this.startInactivityTimer(streamSid, ws);
+      return;
+    }
+    
+    try {
+      // Marcar respuesta en progreso para evitar conflictos
+      this.responseInProgress.set(streamSid, true);
+      
+      const helpMessage = "¿Sigues ahí? Si tienes alguna pregunta, puedes hablar ahora. ¿En qué puedo ayudarte?";
+      
+      logger.info(`🆘 [${streamSid}] Enviando mensaje de inactividad: "${helpMessage}"`);
+      
+      // Cambiar estado a hablando
+      streamData.conversationTurn = 'speaking';
+      streamData.botSpeaking = true;
+      
+      // Enviar mensaje de ayuda
+      await this.sendResponseAsAudio(ws, streamSid, helpMessage, streamData.client);
+      
+      // Programar reactivación de escucha después del mensaje
+      setTimeout(() => {
+        this.activateListeningMode(streamSid, ws, 'inactivity-timeout-recovery');
+        this.responseInProgress.delete(streamSid);
+        
+        // Reiniciar timer de inactividad para el próximo ciclo
+        this.startInactivityTimer(streamSid, ws);
+      }, 4000); // 4 segundos para que termine de hablar
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error manejando timeout de inactividad: ${error.message}`);
+      
+      // Limpiar estado y reactivar escucha
+      this.responseInProgress.delete(streamSid);
+      this.activateListeningMode(streamSid, ws, 'inactivity-error-recovery');
+      
+      // Reiniciar timer
+      this.startInactivityTimer(streamSid, ws);
+    }
   }
 }
 
