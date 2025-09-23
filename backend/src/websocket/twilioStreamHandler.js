@@ -736,8 +736,7 @@ class TwilioStreamHandler {
     // SOLUCIÓN TEMPORAL AGRESIVA: Procesar si llevamos mucho tiempo activos
     const timeActive = now - detection.lastActivity;
     const forceProcess = detection.isActive && 
-                        detection.speechCount > 50 && // Más de 50 chunks de speech
-                        timeActive > 1000; // Más de 1 segundo desde última actividad
+                        detection.speechCount > 25; // Reducido de 50 a 25 chunks
     
     // Detectar final de habla (lógica original + forzado)
     const shouldProcess = (detection.isActive && 
@@ -761,8 +760,8 @@ class TwilioStreamHandler {
     }
     
     // Timeout de seguridad - procesar si llevamos mucho tiempo acumulando
-    const timeSinceStart = Date.now() - detection.lastActivity;
-    if (detection.isActive && timeSinceStart > 8000) { // 8 segundos máximo
+    const timeoutCheck = Date.now() - detection.lastActivity;
+    if (detection.isActive && timeoutCheck > 8000) { // 8 segundos máximo
       logger.warn(`⏰ [${streamSid}] Timeout de seguridad - procesando audio acumulado`);
       detection.isActive = false;
       detection.silenceCount = 0;
