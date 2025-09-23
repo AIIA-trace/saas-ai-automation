@@ -10,10 +10,19 @@
     "build": "cd backend && npm run build",
     "postinstall": "cd backend && npm install && npx prisma generate"
   },
-  "keywords": ["saas", "ai", "automation", "calls", "emails"],
+  "keywords": [
+    "saas",
+    "ai",
+    "automation",
+    "calls",
+    "emails"
+  ],
   "author": "Your Name",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
   }
 }
