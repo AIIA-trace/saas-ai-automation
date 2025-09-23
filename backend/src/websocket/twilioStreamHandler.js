@@ -220,11 +220,17 @@ class TwilioStreamHandler {
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
         
-        // Después del saludo, activar escucha del usuario y procesar eventos buffered
-        setTimeout(() => {
+        // DIAGNÓSTICO: Programar timeout con logs detallados
+        logger.info(`⏰ [${streamSid}] Programando timeout de 3 segundos para activar listening...`);
+        const timeoutId = setTimeout(() => {
+          logger.info(`⏰ [${streamSid}] TIMEOUT EJECUTÁNDOSE - verificando stream activo...`);
+          
           if (this.activeStreams.has(streamSid)) {
-            streamData.conversationTurn = 'listening';
-            streamData.botSpeaking = false;
+            const currentStreamData = this.activeStreams.get(streamSid);
+            logger.info(`✅ [${streamSid}] Stream encontrado, cambiando estado: ${currentStreamData.conversationTurn} → listening`);
+            
+            currentStreamData.conversationTurn = 'listening';
+            currentStreamData.botSpeaking = false;
             logger.info(`👂 [${streamSid}] Activando escucha del usuario después del saludo`);
             
             // CRÍTICO: Inicializar detección de voz antes de procesar audio
@@ -233,8 +239,13 @@ class TwilioStreamHandler {
             
             // Procesar eventos media que llegaron durante la configuración
             this.processPendingMediaEvents(ws, streamSid);
+            logger.info(`🔄 [${streamSid}] Eventos media pendientes procesados`);
+          } else {
+            logger.error(`❌ [${streamSid}] TIMEOUT FALLÓ - Stream no encontrado en activeStreams`);
           }
-        }, 8000); // 8 segundos para asegurar que el saludo termine completamente
+        }, 3000); // Reducido a 3 segundos para pruebas más rápidas
+        
+        logger.info(`⏰ [${streamSid}] Timeout programado con ID: ${timeoutId}`)
         
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
