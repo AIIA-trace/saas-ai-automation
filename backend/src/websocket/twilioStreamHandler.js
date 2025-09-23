@@ -898,15 +898,18 @@ class TwilioStreamHandler {
       return;
     }
 
+    // DIAGNÓSTICO CRÍTICO: Mostrar estado actual SIEMPRE
+    logger.info(`🔍 [${streamSid}] ESTADO ACTUAL: conversationTurn="${streamData.conversationTurn}", botSpeaking=${streamData.botSpeaking}, greetingSent=${streamData.greetingSent}`);
+    
     // Verificar estado de conversación - solo procesar si estamos escuchando
     if (streamData.conversationTurn !== 'listening') {
-      logger.debug(`🤖 [${streamSid}] Estado: ${streamData.conversationTurn} - ignorando audio del usuario`);
+      logger.warn(`🚫 [${streamSid}] BLOQUEADO por conversationTurn: "${streamData.conversationTurn}" !== "listening" - ignorando audio del usuario`);
       return;
     }
     
     // Verificar si el bot está hablando - no procesar audio del usuario
     if (streamData.botSpeaking) {
-      logger.debug(`🤖 [${streamSid}] Bot hablando - ignorando audio del usuario`);
+      logger.warn(`🚫 [${streamSid}] BLOQUEADO por botSpeaking=true - ignorando audio del usuario`);
       return;
     }
     

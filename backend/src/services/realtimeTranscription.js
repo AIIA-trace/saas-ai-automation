@@ -139,7 +139,7 @@ class RealtimeTranscription {
         const encoder = new Lame({
           output: tempMp3Path,
           bitrate: 16,        // 16 kbps según recomendaciones OpenAI
-          sampleRate: 8000,   // Corregido: sampleRate (no samplerate)
+          samplerate: 8000,   // CORREGIDO: samplerate (minúsculas) para node-lame
           channels: 1,        // Mono
           quality: 7          // Calidad rápida pero aceptable
         }).setFile(tempWavPath);
