@@ -48,8 +48,8 @@ class RealtimeTranscription {
         model: 'whisper-1',
         language: language === 'es-ES' ? 'es' : language, // Corregir formato ISO-639-1
         response_format: 'json', // JSON simple es más rápido que verbose_json
-        temperature: 0.0, // Máximo determinismo
-        prompt: "Conversación telefónica en español. Cliente hablando con recepcionista." // Prompt más conciso
+        temperature: 0.0 // Máximo determinismo
+        // REMOVED: prompt genérico que causaba transcripciones falsas
       });
 
       // Limpiar archivo temporal
