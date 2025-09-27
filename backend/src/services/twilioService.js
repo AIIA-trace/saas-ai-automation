@@ -486,8 +486,8 @@ class TwilioService {
       const language = clientData.language || 'es-ES';
       const azureVoice = this.getAzureVoiceForLanguage(language);
       
-      // Obtener voz personalizada del usuario o usar la detectada por idioma
-      const userVoice = clientData.callConfig?.voiceSettings?.azureVoice || azureVoice || 'lola';
+      // Voz fija para todos los usuarios - Isidora Neural
+      const voice = 'es-ES-IsidoraMultilingualNeural';
       
       // Obtener configuración avanzada de voz del usuario
       const voiceSettings = {
@@ -786,7 +786,7 @@ class TwilioService {
       if (hasAzure) {
         try {
           // Obtener y validar voz preferida del usuario (solo Lola o Dario)
-          const requestedVoice = callConfig?.voiceSettings?.azureVoice || 'lola';
+          const requestedVoice = 'es-ES-IsidoraMultilingualNeural'; // Voz fija para todos los usuarios
           const preferredVoice = this.validateAndGetVoice(requestedVoice);
           
           logger.info(`✅ Generando audio con Azure TTS (${preferredVoice} - español peninsular)...`);
@@ -1204,12 +1204,12 @@ class TwilioService {
       logger.info(`🎵 FORZANDO uso de Azure TTS para voz natural española`);
       
       // Obtener voz preferida del usuario (por defecto: lola - voz femenina española)
-      const requestedVoice = voiceConfig?.azureVoice || 'lola';
+      const requestedVoice = 'es-ES-IsidoraMultilingualNeural'; // Voz fija para todos los usuarios
       const preferredVoice = this.validateAndGetVoice(requestedVoice);
       logger.info(`🎭 Usando voz Azure: ${preferredVoice}`);
       
       const audioResult = await this.generatePremiumAudio(naturalMessage, {
-        voiceSettings: { azureVoice: preferredVoice },
+        voiceSettings: { azureVoice: 'es-ES-IsidoraMultilingualNeural' },
         language: language
       });
       
