@@ -953,52 +953,66 @@ class TwilioStreamHandler {
         };
       }
 
-    // Calcular energía del chunk actual
+    // PASO 1: Detectar audio saturado
     const samples = new Uint8Array(audioChunk);
+    const maxSample = Math.max(...samples);
+    const minSample = Math.min(...samples);
+    const saturationCount = samples.filter(s => s >= 126 || s <= 1).length;
+    const saturationRatio = saturationCount / samples.length;
+    
+    // Rechazar audio claramente saturado
+    if (saturationRatio > 0.3 || maxSample >= 127) {
+      logger.warn(`🚫 [${streamSid}] Audio saturado rechazado: saturation=${(saturationRatio*100).toFixed(1)}%, max=${maxSample}`);
+      return { 
+        shouldProcess: false, 
+        reason: 'saturated_audio',
+        energy: '127.0',
+        maxAmplitude: maxSample,
+        silenceRatio: (saturationRatio * 100).toFixed(1) + '%'
+      };
+    }
+    
+    // PASO 2: Calcular energía con límites realistas
     let energy = 0;
     let maxAmplitude = 0;
     let sampleSum = 0;
     let zeroSamples = 0;
     let silentSamples = 0;
     
-    // Análisis detallado de muestras para diagnóstico
-    const sampleAnalysis = [];
-    for (let i = 0; i < Math.min(10, samples.length); i++) {
-      sampleAnalysis.push(samples[i]);
-    }
-    
     for (const sample of samples) {
-      // CORRECCIÓN CRÍTICA: En mu-law, silence = 0xFF (255), no 127
-      // Detectar muestras de silencio real primero
-      if (sample === 0xFF) {
-        // Silencio real en mu-law - energía = 0
+      // Detectar silencio real en mu-law
+      if (sample === 0xFF || sample === 127) {
         silentSamples++;
         sampleSum += sample;
         continue;
       }
       
-      // Para muestras no-silenciosas, usar conversión mu-law estándar
-      const amplitude = Math.abs(sample - 127); // Solo para muestras con audio real
-      energy += amplitude * amplitude; // energía cuadrática
-      maxAmplitude = Math.max(maxAmplitude, amplitude);
+      // Calcular amplitud con límites anti-saturación
+      const amplitude = Math.abs(sample - 127);
+      const limitedAmplitude = Math.min(amplitude, 100); // LÍMITE CRÍTICO: máximo 100
+      
+      energy += limitedAmplitude * limitedAmplitude;
+      maxAmplitude = Math.max(maxAmplitude, limitedAmplitude);
       sampleSum += sample;
       
       if (sample === 0x7F) zeroSamples++;
-      if (amplitude < 5) silentSamples++;
+      if (amplitude < 8) silentSamples++; // Umbral más alto para silencio
     }
     
-    // CORRECCIÓN CRÍTICA: Calcular energía solo sobre muestras no-silenciosas
+    // PASO 3: Calcular energía RMS con límite máximo
     const nonSilentSamples = samples.length - silentSamples;
     if (nonSilentSamples > 0) {
-      energy = Math.sqrt(energy / nonSilentSamples); // RMS energy solo de audio real
+      energy = Math.sqrt(energy / nonSilentSamples);
+      energy = Math.min(energy, 80); // LÍMITE CRÍTICO: nunca superar 80
     } else {
-      energy = 0; // Todo silencio = energía 0
+      energy = 0;
     }
+    
     const avgSample = sampleSum / samples.length;
     const silenceRatio = silentSamples / samples.length;
     
     // LOG CRÍTICO: Análisis detallado de muestras
-    logger.info(`🔬 [${streamSid}] ANÁLISIS AUDIO: energy=${energy.toFixed(1)}, maxAmp=${maxAmplitude}, avgSample=${avgSample.toFixed(1)}, silenceRatio=${(silenceRatio*100).toFixed(1)}%, primeras10=${sampleAnalysis.join(',')}`)
+    logger.info(`🔬 [${streamSid}] ANÁLISIS AUDIO: energy=${energy.toFixed(1)}, maxAmp=${maxAmplitude}, avgSample=${avgSample.toFixed(1)}, silenceRatio=${(silenceRatio*100).toFixed(1)}%`)
     
     // Mantener historial de energía para umbral adaptativo
     detection.energyHistory.push(energy);
@@ -1009,22 +1023,26 @@ class TwilioStreamHandler {
     // Calcular umbral adaptativo basado en promedio del ruido de fondo
     const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
   
-    // CONFIGURACIÓN VAD OPTIMIZADA PARA TWILIO (μ-law 8kHz)
-    // Basado en sistemas probados: Whisper, Silero VAD, WebRTC VAD
-    if (energy < 15) {
-      detection.adaptiveThreshold = Math.max(8, energy * 1.8); // Ruido de fondo
-      logger.info(`🔧 [${streamSid}] UMBRAL RUIDO: energy=${energy.toFixed(1)} < 15 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
+    // CONFIGURACIÓN VAD ANTI-SATURACIÓN
+    // Umbrales más altos para evitar falsos positivos por audio saturado
+    if (energy < 20) {
+      detection.adaptiveThreshold = Math.max(12, energy * 1.5); // Ruido de fondo más estricto
+      logger.info(`🔧 [${streamSid}] UMBRAL RUIDO: energy=${energy.toFixed(1)} < 20 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
     } else {
-      // Para μ-law: umbral típico 15-25 para habla real vs ruido telefónico
-      detection.adaptiveThreshold = Math.max(15, Math.min(25, avgEnergy * 1.1));
-      logger.info(`🔧 [${streamSid}] UMBRAL HABLA: energy=${energy.toFixed(1)} ≥ 15 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
+      // Umbrales más altos para habla real vs ruido telefónico
+      detection.adaptiveThreshold = Math.max(20, Math.min(40, avgEnergy * 1.2));
+      logger.info(`🔧 [${streamSid}] UMBRAL HABLA: energy=${energy.toFixed(1)} ≥ 20 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
     }
   
-    // VAD: Requiere energía Y amplitud mínima para evitar falsos positivos
-    const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 5;
+    // VAD MEJORADO: Múltiples condiciones para evitar saturación
+    const energyOK = energy > detection.adaptiveThreshold && energy <= 75; // Límite superior
+    const amplitudeOK = maxAmplitude > 8 && maxAmplitude <= 80; // Rango realista
+    const silenceOK = silenceRatio < 0.4; // Menos tolerancia al silencio
     
-    // LOG CRÍTICO: Mostrar decisión de speech detection
-    logger.info(`🎯 [${streamSid}] SPEECH DECISION: energy=${energy.toFixed(1)} > threshold=${detection.adaptiveThreshold.toFixed(1)}? ${energy > detection.adaptiveThreshold}, maxAmp=${maxAmplitude} > 2? ${maxAmplitude > 2}, isSpeech=${isSpeech}`);
+    const isSpeech = energyOK && amplitudeOK && silenceOK;
+    
+    // LOG CRÍTICO: Mostrar decisión de speech detection mejorada
+    logger.info(`🎯 [${streamSid}] SPEECH DECISION: energyOK=${energyOK} (${energy.toFixed(1)} vs ${detection.adaptiveThreshold.toFixed(1)}), ampOK=${amplitudeOK} (${maxAmplitude}), silenceOK=${silenceOK} (${(silenceRatio*100).toFixed(1)}%), isSpeech=${isSpeech}`);
     
     if (isSpeech) {
       detection.speechCount++;
@@ -1781,6 +1799,37 @@ class TwilioStreamHandler {
     logger.info(`📅 Horario comercial ${todayName}: ${todayConfig.start}-${todayConfig.end}, actual: ${Math.floor(currentTime/100)}:${String(currentTime%100).padStart(2,'0')}, permitido: ${isWithinHours}`);
     
     return isWithinHours;
+  }
+
+  /**
+   * Manejar evento de parada del stream
+   */
+  async handleStreamStop(ws, data) {
+    const streamSid = data.streamSid;
+    logger.info(`🛑 [${streamSid}] Stream detenido`);
+    
+    try {
+      // Limpiar recursos del stream
+      if (this.audioBuffers.has(streamSid)) {
+        this.audioBuffers.delete(streamSid);
+        logger.info(`🧹 [${streamSid}] Buffer de audio limpiado`);
+      }
+      
+      if (this.vadStates.has(streamSid)) {
+        this.vadStates.delete(streamSid);
+        logger.info(`🧹 [${streamSid}] Estado VAD limpiado`);
+      }
+      
+      if (this.echoBlanking.has(streamSid)) {
+        this.echoBlanking.delete(streamSid);
+        logger.info(`🧹 [${streamSid}] Estado echo blanking limpiado`);
+      }
+      
+      logger.info(`✅ [${streamSid}] Recursos del stream limpiados correctamente`);
+      
+    } catch (error) {
+      logger.error(`🚨 [${streamSid}] Error al limpiar recursos del stream: ${error.message}`);
+    }
   }
 
   /**
