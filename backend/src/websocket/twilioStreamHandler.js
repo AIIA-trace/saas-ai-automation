@@ -509,12 +509,20 @@ class TwilioStreamHandler {
       // 3. Humanizar el saludo con SSML
       const humanizedGreeting = this.humanizeTextWithSSML(greeting);
       
-      // 4. Generar audio con Azure TTS usando SSML humanizado
-      const ttsResult = await this.ttsService.generateSpeech(
+      // 4. Generar audio con Azure TTS usando SSML humanizado con timeout
+      logger.info(`🔊 [${streamSid}] Iniciando Azure TTS con timeout de 10s...`);
+      const ttsPromise = this.ttsService.generateSpeech(
         humanizedGreeting,
         voiceId,
         'raw-8khz-8bit-mono-mulaw'
       );
+      
+      // Agregar timeout para evitar que Azure TTS se cuelgue en producción
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Azure TTS timeout after 10 seconds')), 10000);
+      });
+      
+      const ttsResult = await Promise.race([ttsPromise, timeoutPromise]);
       
       // ECHO BLANKING: Activar blanking antes de enviar audio del bot
       this.activateEchoBlanking(streamSid);
@@ -569,23 +577,44 @@ class TwilioStreamHandler {
     // Humanizar el saludo de fallback con SSML
     const humanizedFallback = this.humanizeTextWithSSML(fallbackGreeting);
     
-    const ttsResult = await this.ttsService.generateSpeech(
-      humanizedFallback,
-      this.mapVoiceToAzure(rawVoiceId, language),
-      'raw-8khz-8bit-mono-mulaw'
-    );
-    
-    // ECHO BLANKING: Activar blanking antes de enviar audio del bot
-    this.activateEchoBlanking(streamSid);
-  
-    if (ttsResult.success) {
-      // Save audio to file
-      const fileName = `debug_${Date.now()}_${streamSid}.wav`;
-      fs.writeFileSync(fileName, ttsResult.audioBuffer);
-      logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
+    try {
+      logger.info(`🔊 [${streamSid}] Iniciando Azure TTS para saludo extendido con timeout de 10s...`);
+      const ttsPromise = this.ttsService.generateSpeech(
+        humanizedFallback,
+        this.mapVoiceToAzure(rawVoiceId, language),
+        'raw-8khz-8bit-mono-mulaw'
+      );
       
-      await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
-      logger.debug(`🔊 [${streamSid}] Llamada a sendRawMulawToTwilio completada (fallback)`);
+      // Agregar timeout para evitar que Azure TTS se cuelgue en producción
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Azure TTS timeout after 10 seconds')), 10000);
+      });
+      
+      const ttsResult = await Promise.race([ttsPromise, timeoutPromise]);
+      
+      // ECHO BLANKING: Activar blanking antes de enviar audio del bot
+      this.activateEchoBlanking(streamSid);
+    
+      if (ttsResult.success) {
+        // Save audio to file
+        const fileName = `debug_${Date.now()}_${streamSid}.wav`;
+        fs.writeFileSync(fileName, ttsResult.audioBuffer);
+        logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
+        
+        await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
+        logger.debug(`🔊 [${streamSid}] Llamada a sendRawMulawToTwilio completada (fallback)`);
+      }
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error en saludo extendido: ${error.message}`);
+      
+      // Usar audio de fallback si TTS falla
+      logger.warn(`⚠️ [${streamSid}] Usando audio de fallback para saludo extendido`);
+      await this.sendAudioToTwilio(ws, this.fallbackAudio, streamSid);
+      
+      // También desactivar echo blanking para fallback
+      setTimeout(() => {
+        this.deactivateEchoBlanking(streamSid);
+      }, 3000);
     }
   }
 
