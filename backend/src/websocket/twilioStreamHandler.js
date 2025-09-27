@@ -22,6 +22,10 @@ class TwilioStreamHandler {
     this.transcriptionActive = new Map();
     this.silenceStartTime = new Map();
     
+    // VAD y detección de voz
+    this.speechDetection = new Map();
+    this.echoBlanking = new Map();
+    
     // NUEVO: Parámetros de timeout inteligentes (inspirados en AssemblyAI)
     this.timeoutParams = {
       minEndOfTurnSilenceWhenConfident: 700, // ms - silencio mínimo para fin de turno cuando hay confianza
@@ -163,6 +167,8 @@ class TwilioStreamHandler {
     this.silenceStartTime.delete(streamSid);
     this.vadState.delete(streamSid);
     this.lastResponseTime.delete(streamSid);
+    this.speechDetection.delete(streamSid);
+    this.echoBlanking.delete(streamSid);
     
     logger.info(`🧹 [${streamSid}] Recursos limpiados`);
   }
@@ -331,6 +337,21 @@ class TwilioStreamHandler {
       // Actualizar en el Map con la clave real
       this.activeStreams.delete(tempId);
       this.activeStreams.set(streamSid, streamData);
+
+      // Inicializar VAD y detección de voz para este stream
+      this.speechDetection.set(streamSid, {
+        isActive: false,
+        adaptiveThreshold: 100,
+        silenceCount: 0,
+        speechCount: 0,
+        lastActivity: Date.now()
+      });
+
+      // Inicializar echo blanking
+      this.echoBlanking.set(streamSid, {
+        active: false,
+        endTime: 0
+      });
 
       logger.info(`🎯 [${streamSid}] Stream configurado - Estado inicial: ${streamData.conversationTurn}, esperando transición a listening`);
       
@@ -702,12 +723,13 @@ class TwilioStreamHandler {
    * Activar Echo Blanking cuando el bot va a hablar
    */
   activateEchoBlanking(streamSid) {
-    const detection = this.speechDetection.get(streamSid);
-    if (detection) {
+    const echoBlanking = this.echoBlanking.get(streamSid);
+    if (echoBlanking) {
       const now = Date.now();
-      detection.echoBlanking = true;
-      detection.echoBlankingUntil = now + detection.echoBlankingDuration;
-      logger.info(`🔇 [${streamSid}] Echo Blanking ACTIVADO por ${detection.echoBlankingDuration}ms`);
+      const duration = 2000; // 2 seconds echo blanking duration
+      echoBlanking.active = true;
+      echoBlanking.endTime = now + duration;
+      logger.info(`🔇 [${streamSid}] Echo Blanking ACTIVADO por ${duration}ms`);
     }
   }
 
@@ -715,16 +737,16 @@ class TwilioStreamHandler {
    * Verificar si Echo Blanking está activo
    */
   isEchoBlankingActive(streamSid) {
-    const detection = this.speechDetection.get(streamSid);
-    if (!detection) return false;
+    const echoBlanking = this.echoBlanking.get(streamSid);
+    if (!echoBlanking) return false;
     
     const now = Date.now();
-    if (detection.echoBlanking && now > detection.echoBlankingUntil) {
-      detection.echoBlanking = false;
+    if (echoBlanking.active && now > echoBlanking.endTime) {
+      echoBlanking.active = false;
       logger.info(`🔊 [${streamSid}] Echo Blanking DESACTIVADO`);
     }
     
-    return detection.echoBlanking;
+    return echoBlanking.active;
   }
 
   /**
