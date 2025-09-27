@@ -810,25 +810,35 @@ class TwilioStreamHandler {
    * Inicializar sistema de detección de habla para un stream
    */
   initializeSpeechDetection(streamSid) {
-    logger.info(`🎯 [${streamSid}] Initializing speech detection system...`);
+    logger.info(`🎤 [${streamSid}] Inicializando detección de voz...`);
     
+    // CONFIGURACIÓN VAD OPTIMIZADA PARA TWILIO
+    // Basado en sistemas probados: OpenAI Whisper, Silero VAD, WebRTC
     const config = {
       isActive: false,
       silenceCount: 0,
       speechCount: 0,
       lastActivity: Date.now(),
-      energyHistory: [],
-      minSpeechDuration: 3, // chunks mínimos para considerar habla (60ms) - MÁS SENSIBLE
-      maxSilenceDuration: 4, // chunks máximos de silencio antes de procesar (80ms) - ULTRA RÁPIDO
-      energyThreshold: 5, // umbral de energía para detectar habla - MÁS BAJO
-      adaptiveThreshold: 5, // umbral adaptativo basado en historial - MÁS BAJO
       
-      // MEJORES PRÁCTICAS: Echo Blanking + Hangover Timer
-      echoBlanking: false, // true cuando el bot está hablando o acabó de hablar
-      echoBlankingUntil: 0, // timestamp hasta cuando ignorar VAD por eco
-      hangoverTimer: 0, // timestamp hasta cuando mantener isActive después de último speech
-      hangoverDuration: 300, // ms para mantener activo después de speech (300ms)
-      echoBlankingDuration: 500 // ms para ignorar VAD después de TTS (500ms)
+      // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz
+      energyThreshold: 15, // Umbral base para habla real vs ruido telefónico
+      adaptiveThreshold: 15,
+      
+      // CONTEOS ESTÁNDAR PARA VAD
+      maxSilenceDuration: 4, // 4 chunks = ~320ms de silencio para procesar
+      minSpeechDuration: 2, // 2 chunks = ~160ms mínimo de habla
+      
+      // TIMERS ESTÁNDAR
+      hangoverDuration: 500, // 500ms hangover después de habla
+      hangoverTimer: 0,
+      
+      // ECHO BLANKING
+      echoBlanking: false,
+      echoBlankingUntil: 0,
+      echoBlankingDuration: 500,
+      
+      // HISTORIAL PARA UMBRAL ADAPTATIVO
+      energyHistory: []
     };
     
     this.speechDetection.set(streamSid, config);
@@ -996,17 +1006,19 @@ class TwilioStreamHandler {
     // Calcular umbral adaptativo basado en promedio del ruido de fondo
     const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
   
-    // Si la energía actual es muy baja, reducir umbral inmediatamente
-    if (energy < 10) {
-      detection.adaptiveThreshold = Math.max(3, energy * 1.5); // Umbral muy bajo para silencio
-      logger.info(`🔧 [${streamSid}] UMBRAL INMEDIATO: energy=${energy.toFixed(1)} < 10 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
+    // CONFIGURACIÓN VAD OPTIMIZADA PARA TWILIO (μ-law 8kHz)
+    // Basado en sistemas probados: Whisper, Silero VAD, WebRTC VAD
+    if (energy < 15) {
+      detection.adaptiveThreshold = Math.max(8, energy * 1.8); // Ruido de fondo
+      logger.info(`🔧 [${streamSid}] UMBRAL RUIDO: energy=${energy.toFixed(1)} < 15 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
     } else {
-      detection.adaptiveThreshold = Math.max(5, avgEnergy * 0.8); // Umbral normal
-      logger.info(`🔧 [${streamSid}] UMBRAL NORMAL: energy=${energy.toFixed(1)} ≥ 10 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
+      // Para μ-law: umbral típico 15-25 para habla real vs ruido telefónico
+      detection.adaptiveThreshold = Math.max(15, Math.min(25, avgEnergy * 1.1));
+      logger.info(`🔧 [${streamSid}] UMBRAL HABLA: energy=${energy.toFixed(1)} ≥ 15 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
     }
   
-    // Detectar si hay actividad de voz - UMBRAL MÁS BAJO
-    const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 2;
+    // VAD: Requiere energía Y amplitud mínima para evitar falsos positivos
+    const isSpeech = energy > detection.adaptiveThreshold && maxAmplitude > 5;
     
     // LOG CRÍTICO: Mostrar decisión de speech detection
     logger.info(`🎯 [${streamSid}] SPEECH DECISION: energy=${energy.toFixed(1)} > threshold=${detection.adaptiveThreshold.toFixed(1)}? ${energy > detection.adaptiveThreshold}, maxAmp=${maxAmplitude} > 2? ${maxAmplitude > 2}, isSpeech=${isSpeech}`);
