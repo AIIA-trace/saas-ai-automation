@@ -9,6 +9,7 @@ const fs = require('fs');
 class TwilioStreamHandler {
   constructor(prisma, ttsService) {
     this.prisma = prisma;
+    this.ttsService = ttsService; // FIX: Asignar el servicio TTS
     // Mapas para gestión de estado y audio
     this.activeStreams = new Map();
     this.pendingMediaEvents = new Map();
@@ -351,28 +352,17 @@ class TwilioStreamHandler {
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
         
-        // NUEVO: Sistema basado en eventos - SIN setTimeout
-        logger.info(`🚀 [${streamSid}] Implementando transición basada en eventos speaking → listening...`);
-      
-        // Inicializar StateManager para este stream
-        this.stateManager.initializeStream(streamSid, 'speaking');
-      
-        // Configurar callback de transición
-        this.stateManager.onTransition(streamSid, (newState, oldState, reason) => {
-          this.handleStateTransition(streamSid, ws, newState, oldState, reason);
-        });
-      
-        // Configurar timeout basado en eventos para transición automática
-        this.safeTimeouts.createStateTransitionTimeout(streamSid, 'speaking', 'listening', () => {
-          logger.info(`⚡ [${streamSid}] TRANSICIÓN AUTOMÁTICA: speaking → listening`);
-          this.stateManager.transitionTo(streamSid, 'listening', 'event-based-timeout');
-        });
-      
+        // NUEVO: Patrón start/stop simplificado - activar transcripción después del saludo
+        logger.info(`🚀 [${streamSid}] Activando transcripción después del saludo...`);
+        
+        // Activar transcripción para escuchar al usuario
+        this.transcriptionActive.set(streamSid, true);
+        streamData.state = 'listening';
+        
         // Almacenar timestamp para verificación
         streamData.greetingCompletedAt = Date.now();
-        streamData.transitionScheduled = true;
-      
-        logger.info(`🚀 [${streamSid}] Sistema basado en eventos configurado - NO setTimeout`)
+        
+        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`)
         
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
