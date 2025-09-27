@@ -48,6 +48,125 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Maneja una nueva conexión WebSocket
+   * @param {WebSocket} ws - Conexión WebSocket
+   */
+  handleConnection(ws) {
+    logger.info(`🔌 Nueva conexión WebSocket recibida: ${ws.connectionId}`);
+    
+    // Configurar event listeners para la conexión
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message);
+        this.handleMessage(ws, data);
+      } catch (error) {
+        logger.error(`❌ Error parseando mensaje WebSocket: ${error.message}`);
+      }
+    });
+
+    ws.on('error', (error) => {
+      logger.error(`❌ Error en WebSocket ${ws.connectionId}: ${error.message}`);
+    });
+
+    ws.on('close', () => {
+      logger.info(`🔌 Conexión WebSocket cerrada: ${ws.connectionId}`);
+      this.cleanup(ws.connectionId);
+    });
+  }
+
+  /**
+   * Maneja mensajes WebSocket entrantes
+   * @param {WebSocket} ws - Conexión WebSocket
+   * @param {Object} data - Datos del mensaje
+   */
+  handleMessage(ws, data) {
+    const { event } = data;
+    
+    switch (event) {
+      case 'connected':
+        this.handleConnected(ws, data);
+        break;
+      case 'start':
+        this.handleStart(ws, data);
+        break;
+      case 'media':
+        this.handleMediaEvent(ws, data);
+        break;
+      case 'stop':
+        this.handleStop(ws, data);
+        break;
+      default:
+        logger.warn(`⚠️ Evento WebSocket no reconocido: ${event}`);
+    }
+  }
+
+  /**
+   * Maneja evento 'connected' de Twilio
+   */
+  handleConnected(ws, data) {
+    logger.info(`🔗 WebSocket conectado: ${data.protocol} v${data.version}`);
+  }
+
+  /**
+   * Maneja evento 'start' de Twilio Stream
+   */
+  handleStart(ws, data) {
+    const streamSid = data.start?.streamSid;
+    const callSid = data.start?.callSid;
+    
+    if (!streamSid) {
+      logger.error('❌ No se recibió streamSid en evento start');
+      return;
+    }
+
+    logger.info(`🎵 [${streamSid}] Stream iniciado para llamada ${callSid}`);
+    
+    // Inicializar stream
+    this.activeStreams.set(streamSid, {
+      callSid,
+      streamSid,
+      state: 'connected',
+      startTime: Date.now(),
+      lastActivity: Date.now()
+    });
+
+    // Inicializar buffers
+    this.audioBuffers.set(streamSid, []);
+    this.transcriptionActive.set(streamSid, false);
+    this.responseInProgress.set(streamSid, false);
+
+    // Enviar saludo inicial
+    this.sendInitialGreeting(ws, { streamSid, callSid });
+  }
+
+  /**
+   * Maneja evento 'stop' de Twilio Stream
+   */
+  handleStop(ws, data) {
+    const streamSid = data.stop?.streamSid;
+    
+    if (streamSid) {
+      logger.info(`🛑 [${streamSid}] Stream detenido`);
+      this.cleanup(streamSid);
+    }
+  }
+
+  /**
+   * Limpia recursos asociados a un stream
+   */
+  cleanup(streamSid) {
+    this.activeStreams.delete(streamSid);
+    this.audioBuffers.delete(streamSid);
+    this.transcriptionActive.delete(streamSid);
+    this.responseInProgress.delete(streamSid);
+    this.silenceStartTime.delete(streamSid);
+    this.vadState.delete(streamSid);
+    this.lastResponseTime.delete(streamSid);
+    
+    logger.info(`🧹 [${streamSid}] Recursos limpiados`);
+  }
+
+  /**
    * Maps a user-friendly voice name to a valid Azure TTS voice identifier
    * @param {string} voiceId - User-friendly voice name
    * @param {string} language - Language code (e.g., 'es-ES', 'en-US')
