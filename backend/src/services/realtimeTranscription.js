@@ -46,57 +46,73 @@ class RealtimeTranscription {
       // Transcribir con Whisper usando configuración óptima + TIMEOUT
       logger.info(`🚀 [${transcriptionId}] Enviando a OpenAI Whisper...`);
       
-      const transcription = await Promise.race([
-        this.openai.audio.transcriptions.create({
+      // NUEVO: Usar AbortController para timeout seguro en producción
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 10000);
+      
+      try {
+        const transcription = await this.openai.audio.transcriptions.create({
           file: fs.createReadStream(tempFilePath),
           model: 'whisper-1',
           language: language === 'es-ES' ? 'es' : language, // Corregir formato ISO-639-1
           response_format: 'json', // JSON simple es más rápido que verbose_json
           temperature: 0.0 // Máximo determinismo
           // REMOVED: prompt genérico que causaba transcripciones falsas
-        }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout de 10 segundos en Whisper')), 10000)
-        )
-      ]);
-      
-      logger.info(`✅ [${transcriptionId}] Respuesta recibida de Whisper`);
-      logger.debug(`🔍 [${transcriptionId}] Whisper response: ${JSON.stringify(transcription)}`);
-      
-      if (!transcription) {
-        throw new Error('Respuesta vacía de Whisper');
+        }, {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!transcription) {
+          throw new Error('Respuesta vacía de Whisper');
+        }
+        
+        logger.info(`✅ [${transcriptionId}] Respuesta recibida de Whisper`);
+        logger.debug(`🔍 [${transcriptionId}] Whisper response: ${JSON.stringify(transcription)}`);
+        
+        // Continuar con el procesamiento...
+        let text = transcription.text?.trim();
+        
+        if (text && text.length > 0) {
+          // Post-procesamiento para limpiar transcripción
+          text = this.cleanTranscription(text);
+          
+          // Usar confianza real de Whisper si está disponible
+          const confidence = transcription.segments ? 
+            this.calculateRealConfidence(transcription.segments) : 
+            this.estimateConfidence(text);
+          
+          logger.info(`✅ [${transcriptionId}] Transcripción limpia: "${text}" (confianza: ${confidence})`);
+          return {
+            success: true,
+            text: text,
+            confidence: confidence,
+            duration: transcription.duration || 0,
+            language: transcription.language || language
+          };
+        } else {
+          logger.warn(`⚠️ [${transcriptionId}] Transcripción vacía`);
+          return {
+            success: false,
+            text: '',
+            error: 'Transcripción vacía'
+          };
+        }
+        
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+          throw new Error('Timeout de 10 segundos en Whisper - operación cancelada');
+        }
+        throw error;
       }
-
+      
       // Limpiar archivo temporal
       this.cleanupTempFile(tempFilePath);
-
-      let text = transcription.text?.trim();
-      
-      if (text && text.length > 0) {
-        // Post-procesamiento para limpiar transcripción
-        text = this.cleanTranscription(text);
-        
-        // Usar confianza real de Whisper si está disponible
-        const confidence = transcription.segments ? 
-          this.calculateRealConfidence(transcription.segments) : 
-          this.estimateConfidence(text);
-        
-        logger.info(`✅ [${transcriptionId}] Transcripción limpia: "${text}" (confianza: ${confidence})`);
-        return {
-          success: true,
-          text: text,
-          confidence: confidence,
-          duration: transcription.duration || 0,
-          language: transcription.language || language
-        };
-      } else {
-        logger.warn(`⚠️ [${transcriptionId}] Transcripción vacía`);
-        return {
-          success: false,
-          text: '',
-          error: 'Transcripción vacía'
-        };
-      }
 
     } catch (error) {
       logger.error(`❌ [${transcriptionId}] Error transcribiendo: ${error.message}`);

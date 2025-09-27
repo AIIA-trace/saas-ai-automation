@@ -237,29 +237,32 @@ class AzureTTSRestService {
       
       console.log(`🔍 Request Headers:`, JSON.stringify(requestConfig.headers, null, 2));
       
-      // HACER LA PETICIÓN HTTP CON TIMEOUT
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('AGGRESSIVE_TIMEOUT: Auth request hung after 1000ms'));
-        }, 1000);
-      });
-      
-      const requestPromise = axios.post(
-        `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
-        ssml,
-        requestConfig
-      );
+      // NUEVO: Usar AbortController para timeout seguro en producción
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 15000); // 15 segundos timeout
       
       // DETECTAR CONTEXTO DE LLAMADA
       const isInCall = process.env.TWILIO_CALL_ACTIVE === 'true' || global.activeTwilioStreams > 0;
-      console.log(`🚀 Starting Azure TTS request with 1s timeout...`);
+      console.log(`🚀 Starting Azure TTS request with AbortController timeout...`);
       console.log(`📞 CONTEXTO DE LLAMADA:`);
       console.log(`  ├── En llamada activa: ${isInCall}`);
       console.log(`  ├── Streams activos: ${global.activeTwilioStreams || 0}`);
       console.log(`  ├── Variables entorno Twilio: ${Object.keys(process.env).filter(k => k.includes('TWILIO')).length}`);
       console.log(`  └── Timestamp: ${new Date().toISOString()}`);
       
-      const response = await Promise.race([requestPromise, timeoutPromise]);
+      // Añadir AbortController al config
+      requestConfig.signal = controller.signal;
+      
+      try {
+        const response = await axios.post(
+          `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
+          ssml,
+          requestConfig
+        );
+        
+        clearTimeout(timeoutId);
       
       console.log(`🔊 Azure TTS Response Status: ${response.status}`);
       console.log(`🔊 Azure TTS Response Headers: ${JSON.stringify(response.headers)}`);
@@ -520,34 +523,24 @@ class AzureTTSRestService {
       };
 
     } catch (error) {
+      clearTimeout(timeoutId);
       const errorDuration = Date.now() - startTime;
-      console.error('🔊 ===== AZURE TTS ERROR ANALYSIS =====');
-      console.error('❌ VOZ USADA EN ERROR:', voice);
-      console.error('❌ TEXTO ENVIADO:', text.substring(0, 100));
-      console.error('❌ FORMATO SOLICITADO:', finalFormat);
-      console.error('❌ REGIÓN AZURE:', this.region);
-      console.error('❌ ERROR DURATION:', errorDuration + 'ms');
       
-      // DETECTAR TIMEOUT ESPECÍFICAMENTE (incluyendo el agresivo)
-      if (error.message?.includes('TTS_AGGRESSIVE_TIMEOUT')) {
-        console.error('🔊 ===== AGGRESSIVE TTS TIMEOUT DETECTED =====');
-        console.error('⏰ AGGRESSIVE TIMEOUT ANALYSIS:');
+      if (error.name === 'AbortError') {
+        console.error('🔊 ===== AZURE TTS TIMEOUT DETECTED (AbortController) =====');
+        console.error('⏰ TIMEOUT ANALYSIS:');
         console.error(`  ├── Duration: ${errorDuration}ms`);
-        console.error(`  ├── Aggressive Timeout Limit: 7000ms`);
+        console.error(`  ├── Timeout Limit: 15000ms`);
         console.error(`  ├── Region: ${this.region}`);
         console.error(`  ├── Text Length: ${text?.length || 0} chars`);
-        console.error('  └── 🎯 ROOT CAUSE: TTS se colgó en producción (Render issue)');
-        console.error('      ├── Azure TTS hanging in containerized environment');
-        console.error('      ├── Render resource limits causing process hang');
-        console.error('      ├── Event loop blocking in production');
-        console.error('      └── Network/DNS resolution issues');
+        console.error('  └── 🎯 ROOT CAUSE: Azure TTS colgado en producción');
         
         return {
           success: false,
-          error: 'Azure TTS colgado en producción - usando fallback',
-          cause: 'TTS_HANGING_IN_PRODUCTION',
+          error: 'Azure TTS timeout - operación cancelada',
+          cause: 'ABORT_CONTROLLER_TIMEOUT',
           duration: errorDuration,
-          timeout: 7000,
+          timeout: 15000,
           region: this.region,
           isProductionHang: true,
           recommendations: [
@@ -557,8 +550,18 @@ class AzureTTSRestService {
             'Monitorear recursos de Render'
           ]
         };
-      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        console.error('🔊 ===== STANDARD TIMEOUT ERROR DETECTED =====');
+      }
+      
+      console.error('🔊 ===== AZURE TTS ERROR ANALYSIS =====');
+      console.error('❌ VOZ USADA EN ERROR:', voice);
+      console.error('❌ TEXTO ENVIADO:', text.substring(0, 100));
+      console.error('❌ FORMATO SOLICITADO:', finalFormat);
+      console.error('❌ REGIÓN AZURE:', this.region);
+      console.error('❌ ERROR DURATION:', errorDuration + 'ms');
+      
+      // DETECTAR TIMEOUT ESPECÍFICAMENTE
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.error('🔊 ===== NETWORK TIMEOUT ERROR DETECTED =====');
         console.error('⏰ TIMEOUT ANALYSIS:');
         console.error(`  ├── Duration: ${errorDuration}ms`);
         console.error(`  ├── Timeout Limit: 10000ms`);

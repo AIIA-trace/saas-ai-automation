@@ -3,40 +3,48 @@ const { PrismaClient } = require('@prisma/client');
 const azureTTSRestService = require('../services/azureTTSRestService');
 const OpenAIService = require('../services/openaiService');
 const RealtimeTranscription = require('../services/realtimeTranscription');
+// ELIMINADO: EventBasedStateManager y ProductionSafeTimeouts - reemplazados por patrón start/stop simple
 const fs = require('fs');
 
 class TwilioStreamHandler {
   constructor(prisma, ttsService) {
     this.prisma = prisma;
-    this.ttsService = ttsService;
+    // Mapas para gestión de estado y audio
     this.activeStreams = new Map();
+    this.pendingMediaEvents = new Map();
     this.audioBuffers = new Map();
-    this.conversationState = new Map();
-    this.outboundAudioQueue = new Map();
-    this.ttsInProgress = new Map();
-    this.preConvertedAudio = new Map(); // Cache de conversiones
+    this.lastResponseTime = new Map();
+    this.responseInProgress = new Map();
+    this.vadState = new Map();
+    
+    // NUEVO: Patrón start/stop transcription
+    this.transcriptionActive = new Map();
+    this.silenceStartTime = new Map();
+    
+    // NUEVO: Parámetros de timeout inteligentes (inspirados en AssemblyAI)
+    this.timeoutParams = {
+      minEndOfTurnSilenceWhenConfident: 700, // ms - silencio mínimo para fin de turno cuando hay confianza
+      minEndOfTurnSilenceWhenNotConfident: 1200, // ms - silencio mínimo cuando no hay confianza
+      maxSpeechDuration: 30000, // ms - duración máxima de habla continua
+      confidenceThreshold: 0.8, // umbral de confianza para transcripción
+      energyThreshold: 100 // umbral de energía para detectar actividad
+    };
+
+    // Cache de conversiones
     this.responseInProgress = new Map(); // Prevenir respuestas concurrentes
     this.lastResponseTime = new Map(); // Control de tiempo entre respuestas
     this.azureToken = null; // Token reutilizable
     this.validateAzureConfig(); // Validación crítica al iniciar
 
-    // Inicializar servicios de IA
-    this.openaiService = new OpenAIService();
+    // Configurar transcripción en tiempo real
     this.transcriptionService = new RealtimeTranscription();
-
-    // Sistema avanzado de detección de habla
-    this.speechDetection = new Map(); // Estado de detección por stream
-    
-    // Buffer temporal para eventos media durante configuración inicial
-    this.pendingMediaEvents = new Map(); // Buffer de eventos media por stream
-    
-    // Sistema de timeout de inactividad
-    this.inactivityTimers = new Map(); // Timers de inactividad por stream
-    this.lastUserActivity = new Map(); // Timestamp de última actividad del usuario
+    this.fallbackAudio = this.generateFallbackAudio();
 
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
     // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
     this.defaultVoice = 'es-ES-IsidoraMultilingualNeural';
+    
+    logger.info('🚀 TwilioStreamHandler inicializado con patrón Start/Stop simplificado');
   }
 
   /**
@@ -142,9 +150,9 @@ class TwilioStreamHandler {
       isConnected: true,
       greetingSent: false,
       isInitializing: true,
-      botSpeaking: false,
-      conversationTurn: 'greeting', // Iniciar con saludo
-      lastUserInput: null
+      state: 'greeting', // Estados simples: greeting, listening, processing, speaking
+      lastUserInput: null,
+      lastActivity: Date.now()
     });
     
     // También guardar referencia por WebSocket para poder encontrarlo en 'start'
@@ -217,45 +225,41 @@ class TwilioStreamHandler {
       
       // Marcar ANTES de generar para evitar condiciones de carrera
       streamData.greetingSent = true;
-      streamData.conversationTurn = 'speaking';
+      streamData.state = 'speaking';
       
       try {
         logger.info(`🔊 [${streamSid}] Generando ÚNICO saludo...`);
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
         
-        // CRÍTICO: Implementar sistema robusto de transición de estado
-        // El setTimeout falla en producción Render, usar múltiples mecanismos
-        logger.info(`⏰ [${streamSid}] Implementando transición robusta speaking → listening...`);
-        
+        // NUEVO: Sistema basado en eventos - SIN setTimeout
+        logger.info(`🚀 [${streamSid}] Implementando transición basada en eventos speaking → listening...`);
+      
+        // Inicializar StateManager para este stream
+        this.stateManager.initializeStream(streamSid, 'speaking');
+      
+        // Configurar callback de transición
+        this.stateManager.onTransition(streamSid, (newState, oldState, reason) => {
+          this.handleStateTransition(streamSid, ws, newState, oldState, reason);
+        });
+      
+        // Configurar timeout basado en eventos para transición automática
+        this.safeTimeouts.createStateTransitionTimeout(streamSid, 'speaking', 'listening', () => {
+          logger.info(`⚡ [${streamSid}] TRANSICIÓN AUTOMÁTICA: speaking → listening`);
+          this.stateManager.transitionTo(streamSid, 'listening', 'event-based-timeout');
+        });
+      
         // Almacenar timestamp para verificación
         streamData.greetingCompletedAt = Date.now();
         streamData.transitionScheduled = true;
-        
-        // Mecanismo 1: setTimeout tradicional
-        const timeoutId = setTimeout(() => {
-          logger.info(`⏰ [${streamSid}] TIMEOUT EJECUTÁNDOSE - verificando stream activo...`);
-          this.activateListeningMode(streamSid, ws, 'setTimeout');
-        }, 3000);
-        
-        // Mecanismo 2: setImmediate + Promise para evitar bloqueo del event loop
-        setImmediate(() => {
-          setTimeout(() => {
-            logger.info(`⏰ [${streamSid}] BACKUP TIMEOUT ejecutándose...`);
-            this.activateListeningMode(streamSid, ws, 'setImmediate+setTimeout');
-          }, 3500); // 500ms después del timeout principal
-        });
-        
-        // Mecanismo 3: Verificación en próximo evento media (fallback)
-        streamData.needsTransitionCheck = true;
-        
-        logger.info(`⏰ [${streamSid}] Timeout programado con ID: ${timeoutId} + mecanismos de respaldo`)
+      
+        logger.info(`🚀 [${streamSid}] Sistema basado en eventos configurado - NO setTimeout`)
         
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
         // Resetear flag si falla para permitir reintento
         streamData.greetingSent = false;
-        streamData.conversationTurn = 'waiting';
+        streamData.state = 'waiting';
       }
 
     } catch (error) {
@@ -913,21 +917,14 @@ class TwilioStreamHandler {
       return;
     }
 
-    // MECANISMO 3: Verificación fallback para transición forzada
-    if (streamData.needsTransitionCheck && streamData.greetingCompletedAt) {
-      const timeSinceGreeting = Date.now() - streamData.greetingCompletedAt;
-      if (timeSinceGreeting > 4000) { // 4 segundos de gracia
-        logger.warn(`⚠️ [${streamSid}] TIMEOUT FALLIDO - Forzando transición después de ${timeSinceGreeting}ms`);
-        this.activateListeningMode(streamSid, ws, 'fallback-media-event');
-      }
+    // Verificar si la transcripción está activa (patrón start/stop)
+    if (!this.transcriptionActive || !this.transcriptionActive.get(streamSid)) {
+      logger.warn(`🚫 [${streamSid}] Transcripción inactiva - ignorando audio del usuario`);
+      return;
     }
-    
-    // DIAGNÓSTICO CRÍTICO: Mostrar estado actual SIEMPRE
-    logger.info(`🔍 [${streamSid}] ESTADO ACTUAL: conversationTurn="${streamData.conversationTurn}", botSpeaking=${streamData.botSpeaking}, greetingSent=${streamData.greetingSent}`);
-    
-    // Verificar estado de conversación - solo procesar si estamos escuchando
-    if (streamData.conversationTurn !== 'listening') {
-      logger.warn(`🚫 [${streamSid}] BLOQUEADO por conversationTurn: "${streamData.conversationTurn}" !== "listening" - ignorando audio del usuario`);
+
+    if (streamData.state !== 'listening') {
+      logger.warn(`🚫 [${streamSid}] Estado "${streamData.state}" !== "listening" - ignorando audio`);
       return;
     }
     
@@ -956,184 +953,171 @@ class TwilioStreamHandler {
       // DEBUG CRÍTICO: Logs detallados del VAD
       logger.info(`🎤 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
       
-      // Acumular chunks de audio en buffer solo si hay actividad o estamos en una sesión activa
-      let audioBuffer = this.audioBuffers.get(streamSid) || [];
-      
-      if (vadResult.isActive || vadResult.shouldProcess) {
-        audioBuffer.push(audioChunk);
-        this.audioBuffers.set(streamSid, audioBuffer);
-        logger.info(`🎤 [${streamSid}] Audio acumulado: ${audioBuffer.length} chunks`);
-      }
+      // Acumular audio y detectar fin de turno con parámetros inteligentes
+      const audioBuffer = this.audioBuffers.get(streamSid) || [];
+      audioBuffer.push(audioChunk);
+      this.audioBuffers.set(streamSid, audioBuffer);
       
       logger.debug(`🎤 [${streamSid}] Audio chunk: energía=${vadResult.energy}, umbral=${vadResult.threshold}, activo=${vadResult.isActive}, buffer=${audioBuffer.length} chunks`);
       
-      // Procesar transcripción cuando VAD detecte final de habla
-      if (vadResult.shouldProcess && audioBuffer.length > 0) {
-        const combinedBuffer = Buffer.concat(audioBuffer);
-        this.audioBuffers.set(streamSid, []); // Limpiar buffer
-        
-        logger.info(`🎙️ [${streamSid}] VAD detectó final de habla (${vadResult.reason}) - procesando ${combinedBuffer.length} bytes de ${audioBuffer.length} chunks`);
-        
-        // Filtro de duración mínima - evitar procesar audio muy corto
-        if (audioBuffer.length < 6) { // menos de 120ms
-          logger.debug(`🚫 [${streamSid}] Audio muy corto (${audioBuffer.length} chunks) - ignorando`);
-          return;
-        }
-        
-        try {
-          logger.info(`🎤 [${streamSid}] Iniciando transcripción de ${combinedBuffer.length} bytes`);
-          
-          // DEBUG: Guardar audio para análisis manual
-          const debugFileName = `debug_audio_${Date.now()}_${streamSid.slice(-6)}.wav`;
-          const fs = require('fs');
-          fs.writeFileSync(debugFileName, combinedBuffer);
-          logger.info(`🔧 [${streamSid}] Audio guardado para debug: ${debugFileName}`);
-          
-          // DEBUG: Analizar calidad del audio antes de transcribir
-          const audioStats = this.analyzeAudioBuffer(combinedBuffer);
-          logger.info(`📊 [${streamSid}] Estadísticas de audio: ${JSON.stringify(audioStats)}`);
-          
-          // Filtro de calidad más permisivo ya que VAD pre-filtró el audio
-          if (audioStats.avgAmplitude < 5) {
-            logger.warn(`🚫 [${streamSid}] Audio de muy baja calidad detectado - ignorando transcripción (avg: ${audioStats.avgAmplitude})`);
-            return;
-          }
-          
-          // PROTECCIÓN CRÍTICA: Verificar que no hay transcripción o respuesta en progreso
-          if (this.responseInProgress.get(streamSid)) {
-            logger.warn(`🚫 [${streamSid}] Respuesta en progreso - ignorando nueva transcripción`);
-            return;
-          }
-          
-          // Verificar tiempo mínimo entre transcripciones para evitar spam
-          const lastResponse = this.lastResponseTime.get(streamSid) || 0;
-          const timeSinceLastResponse = Date.now() - lastResponse;
-          if (timeSinceLastResponse < 2000) { // Mínimo 2 segundos entre transcripciones
-            logger.warn(`⏰ [${streamSid}] Muy pronto para nueva transcripción (${timeSinceLastResponse}ms) - ignorando`);
-            return;
-          }
-          
-          // Marcar transcripción en progreso para bloquear otras
-          this.responseInProgress.set(streamSid, true);
-          logger.info(`🔒 [${streamSid}] Transcripción iniciada - bloqueando otras transcripciones`);
-          
-          // Transcribir audio con servicio optimizado y manejo robusto de errores
-          try {
-            const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(
-              combinedBuffer,
-              streamData.client.callConfig?.language || 'es'
-            );
-            
-            if (transcriptionResult.success && transcriptionResult.text && transcriptionResult.text.trim().length > 0) {
-              const currentText = transcriptionResult.text.trim();
-              
-              // Filtrar repeticiones exactas
-              if (streamData.lastTranscription === currentText) {
-                logger.warn(`🔁 [${streamSid}] Transcripción repetida ignorada: "${currentText}"`);
-                return;
-              }
-              
-              // Filtrar ecos del bot (frases específicas que el bot suele decir)
-              const botPhrases = [
-                'hola', 'gracias por llamar', 'en qué puedo ayudarte', 'un momento por favor',
-                'te ayudo', 'dime', 'cuéntame', 'perfecto', 'entiendo', 'claro',
-                'disculpa', 'lo siento', 'problemas técnicos', 'repetir tu consulta'
-              ];
-              
-              const containsSpecificBotPhrase = botPhrases.some(phrase => 
-                currentText.toLowerCase().includes(phrase.toLowerCase())
-              );
-              
-              if (containsSpecificBotPhrase) {
-                logger.warn(`🔊 [${streamSid}] Eco específico del bot detectado - ignorando: "${transcriptionResult.text}"`);
-                return;
-              }
-              
-              // DEBUG: Log para confirmar que transcripciones válidas pasan el filtro
-              logger.info(`✅ [${streamSid}] Transcripción válida pasó filtros: "${transcriptionResult.text}"`);
-              
-              // Filtrar transcripciones muy cortas que probablemente sean ruido
-              if (transcriptionResult.text.trim().length < 3) {
-                logger.debug(`🔇 [${streamSid}] Transcripción muy corta ignorada: "${transcriptionResult.text}"`);
-                return;
-              }
-              
-              // Verificar que no hay respuesta en progreso
-              if (this.responseInProgress.get(streamSid)) {
-                logger.warn(`⚠️ [${streamSid}] Respuesta ya en progreso - ignorando nueva transcripción`);
-                return;
-              }
-              
-              // Control de tiempo mínimo entre respuestas (anti-spam)
-              const lastResponse = this.lastResponseTime.get(streamSid) || 0;
-              const timeSinceLastResponse = Date.now() - lastResponse;
-              if (timeSinceLastResponse < 3000) { // Mínimo 3 segundos entre respuestas
-                logger.warn(`⏰ [${streamSid}] Muy pronto para nueva respuesta (${timeSinceLastResponse}ms) - ignorando`);
-                return;
-              }
-              
-              logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);          
-              logger.info(`🔍 [DEBUG] Llamando a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
-              
-              // CRÍTICO: Actualizar actividad del usuario y cancelar timeout
-              this.updateUserActivity(streamSid);
-              
-              // Cambiar estado a procesando
-              streamData.conversationTurn = 'processing';
-              streamData.lastUserInput = transcriptionResult.text;
-              
-              // Guardar última transcripción
-              streamData.lastTranscription = currentText;
-              
-              // Generar respuesta conversacional
-              await this.generateAndSendResponse(ws, streamSid, transcriptionResult.text, streamData.client);
-            } else {
-              // Transcripción falló pero no es un error crítico - solo log debug
-              logger.debug(`🔇 [${streamSid}] Sin transcripción válida: ${transcriptionResult.error || 'silencio detectado'}`);
-              
-              // CRÍTICO: Liberar bloqueo si transcripción vacía
-              this.responseInProgress.delete(streamSid);
-              logger.info(`🔓 [${streamSid}] Bloqueo liberado - transcripción vacía`);
-              
-              // Si hay múltiples fallos consecutivos, enviar mensaje de ayuda
-              streamData.transcriptionFailCount = (streamData.transcriptionFailCount || 0) + 1;
-              if (streamData.transcriptionFailCount >= 3) {
-                logger.warn(`⚠️ [${streamSid}] Múltiples fallos de transcripción (${streamData.transcriptionFailCount}) - enviando mensaje de ayuda`);
-                // Reactivar bloqueo para mensaje de ayuda
-                this.responseInProgress.set(streamSid, true);
-                await this.sendTranscriptionHelpResponse(ws, streamSid, streamData.client);
-                streamData.transcriptionFailCount = 0; // Reset counter
-              }
-            }
-          } catch (transcriptionError) {
-            logger.error(`❌ [${streamSid}] Error crítico en transcripción: ${transcriptionError.message}`);
-            logger.error(`❌ [${streamSid}] Stack trace transcripción:`, transcriptionError.stack);
-            
-            // CRÍTICO: Liberar bloqueo en caso de error
-            this.responseInProgress.delete(streamSid);
-            logger.info(`🔓 [${streamSid}] Bloqueo liberado - error en transcripción`);
-            
-            // Incrementar contador de errores críticos
-            streamData.criticalTranscriptionErrors = (streamData.criticalTranscriptionErrors || 0) + 1;
-            
-            // Si hay demasiados errores críticos, usar fallback más agresivo
-            if (streamData.criticalTranscriptionErrors >= 2) {
-              logger.error(`🚨 [${streamSid}] Múltiples errores críticos de transcripción - usando fallback agresivo`);
-              // Reactivar bloqueo para respuesta de error
-              this.responseInProgress.set(streamSid, true);
-              await this.sendCriticalTranscriptionErrorResponse(ws, streamSid, streamData.client);
-              streamData.criticalTranscriptionErrors = 0; // Reset
-            } else {
-              // Primer error crítico - mensaje estándar
-              this.responseInProgress.set(streamSid, true);
-              await this.sendTranscriptionErrorResponse(ws, streamSid, streamData.client);
-            }
-          }
-        } catch (error) {
-          logger.error(`❌ [${streamSid}] Error procesando audio: ${error.message}`);
+      // Detectar fin de turno usando parámetros inteligentes
+      const silenceDuration = this.calculateSilenceDuration(streamSid, vadResult);
+      
+      // Usar parámetros de timeout inteligentes
+      if (silenceDuration >= this.timeoutParams.minEndOfTurnSilenceWhenConfident) {
+        logger.info(`🔇 [${streamSid}] Fin de turno detectado (${silenceDuration}ms de silencio)`);
+        const collectedAudio = this.stopTranscription(streamSid);
+        if (collectedAudio && collectedAudio.length > 0) {
+          this.processCollectedAudio(ws, streamSid, collectedAudio);
         }
       }
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error procesando audio: ${error.message}`);
+    }
+  }
+
+  /**
+   * NUEVO: Procesar audio acumulado cuando se detecta fin de turno
+   */
+  async processCollectedAudio(ws, streamSid, collectedAudio) {
+    const streamData = this.activeStreams.get(streamSid);
+    if (!streamData) {
+      logger.error(`❌ [${streamSid}] Stream no encontrado para procesar audio`);
+      return;
+    }
+
+    const combinedBuffer = Buffer.concat(collectedAudio);
+    logger.info(`🎙️ [${streamSid}] Procesando audio acumulado: ${combinedBuffer.length} bytes de ${collectedAudio.length} chunks`);
+    
+    // Filtro de duración mínima - evitar procesar audio muy corto
+    if (collectedAudio.length < 6) { // menos de 120ms
+      logger.debug(`🚫 [${streamSid}] Audio muy corto (${collectedAudio.length} chunks) - ignorando`);
+      return;
+    }
+    
+    try {
+      logger.info(`🎤 [${streamSid}] Iniciando transcripción de ${combinedBuffer.length} bytes`);
       
+      // DEBUG: Guardar audio para análisis manual
+      const debugFileName = `debug_audio_${Date.now()}_${streamSid.slice(-6)}.wav`;
+      const fs = require('fs');
+      fs.writeFileSync(debugFileName, combinedBuffer);
+      logger.info(`🔧 [${streamSid}] Audio guardado para debug: ${debugFileName}`);
+      
+      // DEBUG: Analizar calidad del audio antes de transcribir
+      const audioStats = this.analyzeAudioBuffer(combinedBuffer);
+      logger.info(`📊 [${streamSid}] Estadísticas de audio: ${JSON.stringify(audioStats)}`);
+      
+      // Filtro de calidad más permisivo ya que VAD pre-filtró el audio
+      if (audioStats.avgAmplitude < 5) {
+        logger.warn(`🚫 [${streamSid}] Audio de muy baja calidad detectado - ignorando transcripción (avg: ${audioStats.avgAmplitude})`);
+        return;
+      }
+      
+      // PROTECCIÓN CRÍTICA: Verificar que no hay transcripción o respuesta en progreso
+      if (this.responseInProgress.get(streamSid)) {
+        logger.warn(`🚫 [${streamSid}] Respuesta en progreso - ignorando nueva transcripción`);
+        return;
+      }
+      
+      // Verificar tiempo mínimo entre transcripciones para evitar spam
+      const lastResponse = this.lastResponseTime.get(streamSid) || 0;
+      const timeSinceLastResponse = Date.now() - lastResponse;
+      if (timeSinceLastResponse < 2000) { // Mínimo 2 segundos entre transcripciones
+        logger.warn(`⏰ [${streamSid}] Muy pronto para nueva transcripción (${timeSinceLastResponse}ms) - ignorando`);
+        return;
+      }
+      
+      // Marcar transcripción en progreso para bloquear otras
+      this.responseInProgress.set(streamSid, true);
+      logger.info(`🔒 [${streamSid}] Transcripción iniciada - bloqueando otras transcripciones`);
+      
+      // Transcribir audio con servicio optimizado y manejo robusto de errores
+      try {
+        const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(
+          combinedBuffer,
+          streamData.client.callConfig?.language || 'es'
+        );
+        
+        if (transcriptionResult.success && transcriptionResult.text && transcriptionResult.text.trim().length > 0) {
+          const currentText = transcriptionResult.text.trim();
+          
+          // Filtrar repeticiones exactas
+          if (streamData.lastTranscription === currentText) {
+            logger.warn(`🔁 [${streamSid}] Transcripción repetida ignorada: "${currentText}"`);
+            this.responseInProgress.delete(streamSid);
+            return;
+          }
+          
+          // Filtrar ecos del bot (frases específicas que el bot suele decir)
+          const botPhrases = [
+            'hola', 'gracias por llamar', 'en qué puedo ayudarte', 'un momento por favor',
+            'te ayudo', 'dime', 'cuéntame', 'perfecto', 'entiendo', 'claro',
+            'disculpa', 'lo siento', 'problemas técnicos', 'repetir tu consulta'
+          ];
+          
+          const containsSpecificBotPhrase = botPhrases.some(phrase => 
+            currentText.toLowerCase().includes(phrase.toLowerCase())
+          );
+          
+          if (containsSpecificBotPhrase) {
+            logger.warn(`🔊 [${streamSid}] Eco específico del bot detectado - ignorando: "${transcriptionResult.text}"`);
+            this.responseInProgress.delete(streamSid);
+            return;
+          }
+          
+          // DEBUG: Log para confirmar que transcripciones válidas pasan el filtro
+          logger.info(`✅ [${streamSid}] Transcripción válida pasó filtros: "${transcriptionResult.text}"`);
+          
+          // Filtrar transcripciones muy cortas que probablemente sean ruido
+          if (transcriptionResult.text.trim().length < 3) {
+            logger.debug(`🔇 [${streamSid}] Transcripción muy corta ignorada: "${transcriptionResult.text}"`);
+            this.responseInProgress.delete(streamSid);
+            return;
+          }
+          
+          // Control de tiempo mínimo entre respuestas (anti-spam)
+          const lastResponse = this.lastResponseTime.get(streamSid) || 0;
+          const timeSinceLastResponse = Date.now() - lastResponse;
+          if (timeSinceLastResponse < 3000) { // Mínimo 3 segundos entre respuestas
+            logger.warn(`⏰ [${streamSid}] Muy pronto para nueva respuesta (${timeSinceLastResponse}ms) - ignorando`);
+            this.responseInProgress.delete(streamSid);
+            return;
+          }
+          
+          logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);          
+          logger.info(`🔍 [DEBUG] Llamando a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
+          
+          // CRÍTICO: Actualizar actividad del usuario en StateManager
+          // Cambiar estado a procesando
+          streamData.state = 'processing';
+          streamData.lastUserInput = transcriptionResult.text;
+          
+          // Guardar última transcripción
+          streamData.lastTranscription = currentText;
+          
+          // Generar respuesta conversacional
+          await this.generateAndSendResponse(ws, streamSid, transcriptionResult.text, streamData.client);
+          
+          // NUEVO: Después de enviar respuesta, reactivar listening
+          setTimeout(() => {
+            this.startListening(streamSid);
+          }, 1000); // 1 segundo de delay
+          
+        } else {
+          // Transcripción falló pero no es un error crítico - solo log debug
+          logger.debug(`🔇 [${streamSid}] Sin transcripción válida: ${transcriptionResult.error || 'silencio detectado'}`);
+          
+          // CRÍTICO: Liberar bloqueo si transcripción vacía
+          this.responseInProgress.delete(streamSid);
+        }
+      } catch (transcriptionError) {
+        logger.error(`❌ [${streamSid}] Error crítico en transcripción: ${transcriptionError.message}`);
+        logger.error(`❌ [${streamSid}] Stack trace transcripción:`, transcriptionError.stack);
+        
+        // CRÍTICO: Liberar bloqueo en caso de error
+        this.responseInProgress.delete(streamSid);
+      }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error procesando audio: ${error.message}`);
     }
@@ -1228,8 +1212,8 @@ class TwilioStreamHandler {
       
       // Limpiar estado en caso de error
       this.responseInProgress.delete(streamSid);
-      // Usar sistema robusto de transición
-      this.activateListeningMode(streamSid, ws, 'emergency-response');
+      // Reactivar listening
+      this.startListening(streamSid);
       
       // Respuesta de emergencia
       const fallbackText = "Disculpa, tengo problemas técnicos. ¿Podrías repetir tu consulta?";
@@ -1255,19 +1239,20 @@ class TwilioStreamHandler {
       logger.info(`🎵 Using Isidora Multilingual voice for all users: ${voiceId}`);
       
       // Humanizar texto con SSML
-      const humanizedText = this.humanizeTextWithSSML(responseText);
-      logger.info(`🎭 SSML humanizado aplicado: ${humanizedText.substring(0, 100)}...`);
+      const humanizedText = this.humanizeTextWithSSML(responseText, voiceId);
+      logger.info(`🎭 [${streamSid}] Texto humanizado: "${humanizedText}"`);
       
-      // Generar audio con Azure TTS
-      logger.info(`🎵 Usando formato mulaw directo para Twilio: raw-8khz-8bit-mono-mulaw`);
+      // Marcar que el bot va a hablar
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        streamData.state = 'speaking';
+      }
+      
       const ttsResult = await this.ttsService.generateSpeech(
         humanizedText,
         voiceId,
         'raw-8khz-8bit-mono-mulaw'
       );
-      
-      // ECHO BLANKING: Activar blanking antes de enviar audio del bot
-      this.activateEchoBlanking(streamSid);
       
       if (ttsResult.success && ttsResult.audioBuffer) {
         logger.info(`🔊 Tamaño del buffer de audio: ${ttsResult.audioBuffer.length} bytes`);
@@ -1281,13 +1266,12 @@ class TwilioStreamHandler {
         // Calcular duración aproximada del audio y agregar buffer
         const estimatedDuration = Math.max(3000, (ttsResult.audioBuffer.length / 8) + 2000); // ~1ms por byte + 2s buffer
         
-        // Marcar que el bot terminó de hablar después de la duración estimada
-        setTimeout(() => {
-          // Usar sistema robusto de transición después de respuesta
-          this.activateListeningMode(streamSid, ws, `response-completed-${estimatedDuration}ms`);
-          // Limpiar estado de respuesta en progreso
+        // NUEVO: Usar timeout basado en eventos
+        this.safeTimeouts.createTTSResponseTimeout(streamSid, estimatedDuration, () => {
+          logger.info(`⚡ [${streamSid}] TTS completado - transicionando a listening`);
+          this.stateManager.transitionTo(streamSid, 'listening', `tts-completed-${estimatedDuration}ms`);
           this.responseInProgress.delete(streamSid);
-        }, estimatedDuration);
+        });
         
       } else {
         logger.error(`❌ [${streamSid}] Error generando TTS: ${ttsResult.error || 'Error desconocido'}`);
@@ -1301,20 +1285,16 @@ class TwilioStreamHandler {
           'raw-8khz-8bit-mono-mulaw'
         );
         
-        // ECHO BLANKING: Activar blanking antes de enviar audio del bot
-        this.activateEchoBlanking(streamSid);
-        
         if (fallbackResult.success) {
           await this.sendRawMulawToTwilio(ws, fallbackResult.audioBuffer, streamSid);
           
           // Calcular duración aproximada del audio fallback
           const fallbackDuration = Math.max(3000, (fallbackResult.audioBuffer.length / 8) + 2000);
           
-          // Marcar que el bot terminó de hablar - CALCULADO
+          // NUEVO: Programar transición a listening después del TTS
           setTimeout(() => {
-            // Usar sistema robusto de transición después de fallback
-            this.activateListeningMode(streamSid, ws, `fallback-completed-${fallbackDuration}ms`);
-            // Limpiar estado de respuesta en progreso
+            logger.info(`⚡ [${streamSid}] Fallback TTS completado - iniciando listening`);
+            this.startListening(streamSid);
             this.responseInProgress.delete(streamSid);
           }, fallbackDuration);
         }
@@ -1325,9 +1305,11 @@ class TwilioStreamHandler {
       logger.error(`❌ [${streamSid}] Stack trace sendResponseAsAudio:`, error.stack);
       
       // Asegurar que se reactive la escucha en caso de error
-      // Usar sistema robusto de transición y limpiar estado
-      this.activateListeningMode(streamSid, ws, 'response-error-recovery');
       this.responseInProgress.delete(streamSid);
+      // Reactivar listening después de error
+      setTimeout(() => {
+        this.startListening(streamSid);
+      }, 1000);
     }
   }
 
@@ -1343,196 +1325,109 @@ class TwilioStreamHandler {
       // Enviar respuesta de fallback como audio
       await this.sendResponseAsAudio(ws, streamSid, fallbackText, clientConfig);
       
-      // Asegurar que el bot vuelve a escuchar después del fallback
+      // NUEVO: Programar transición a listening después del TTS (patrón simple)
+      const estimatedDuration = Math.max(3000, fallbackText.length * 100); // Mínimo 3s
       setTimeout(() => {
-        // Usar sistema robusto de transición después de fallback OpenAI
-        this.activateListeningMode(streamSid, ws, 'openai-fallback-recovery');
+        logger.info(`⚡ [${streamSid}] TTS completado - iniciando listening`);
+        this.startListening(streamSid);
         this.responseInProgress.delete(streamSid);
-      }, 4000); // 4 segundos para que termine de hablar
+      }, estimatedDuration);
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en sendFallbackResponse: ${error.message}`);
       
-      // Último recurso: usar sistema robusto de transición
-      this.activateListeningMode(streamSid, ws, 'help-response-error');
+      // Último recurso: reactivar listening
       this.responseInProgress.delete(streamSid);
-    }
-  }
-
-  /**
-   * Enviar respuesta específica para errores de transcripción
-   */
-  async sendTranscriptionErrorResponse(ws, streamSid, clientConfig) {
-    try {
-      logger.warn(`⚠️ [${streamSid}] Enviando respuesta por error de transcripción`);
-      
-      const transcriptionErrorText = "Lo siento, no he podido escucharte bien. ¿Podrías repetir lo que necesitas por favor?";
-      
-      // Marcar que el bot va a hablar
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.botSpeaking = true;
-        streamData.conversationTurn = 'speaking';
-      }
-      
-      // Enviar mensaje de error como audio
-      await this.sendResponseAsAudio(ws, streamSid, transcriptionErrorText, clientConfig);
-      
-      // CRÍTICO: Reactivar escucha después del mensaje de error
       setTimeout(() => {
-        // Usar sistema robusto de transición después de error de transcripción
-        this.activateListeningMode(streamSid, ws, 'transcription-error-recovery');
-      }, 5000); // 5 segundos para que termine de hablar el mensaje de error
-      
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error en sendTranscriptionErrorResponse: ${error.message}`);
-      
-      // Último recurso: usar sistema robusto de transición
-      this.activateListeningMode(streamSid, ws, 'critical-transcription-error');
+        this.startListening(streamSid);
+      }, 1000);
     }
   }
 
   /**
-   * Enviar mensaje de ayuda cuando hay múltiples fallos de transcripción
+   * NUEVO: Iniciar modo listening (patrón start/stop)
    */
-  async sendTranscriptionHelpResponse(ws, streamSid, clientConfig) {
-    try {
-      logger.warn(`⚠️ [${streamSid}] Enviando mensaje de ayuda por múltiples fallos de transcripción`);
-      
-      const helpText = "Parece que tengo dificultades para escucharte. Por favor, habla un poco más fuerte y claro. ¿En qué puedo ayudarte?";
-      
-      // Marcar que el bot va a hablar
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.botSpeaking = true;
-        streamData.conversationTurn = 'speaking';
-      }
-      
-      // Enviar mensaje de ayuda como audio
-      await this.sendResponseAsAudio(ws, streamSid, helpText, clientConfig);
-      
-      // USAR SISTEMA ROBUSTO DE TRANSICIÓN - Después del mensaje de ayuda
-      // El sendResponseAsAudio ya maneja la transición automáticamente
-      logger.info(`🔄 [${streamSid}] Transición manejada por sistema robusto después del mensaje de ayuda`);
-      
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error en sendTranscriptionHelpResponse: ${error.message}`);
-      
-      // Último recurso: usar sistema robusto de transición
-      this.activateListeningMode(streamSid, ws, 'help-response-error');
-    }
-  }
-
-  /**
-   * Enviar respuesta para errores críticos múltiples de transcripción
-   */
-  async sendCriticalTranscriptionErrorResponse(ws, streamSid, clientConfig) {
-    try {
-      logger.error(`🚨 [${streamSid}] Enviando respuesta por errores críticos de transcripción`);
-      
-      const criticalErrorText = "Estoy teniendo problemas técnicos con el audio. Te voy a transferir con un agente humano que podrá ayudarte mejor.";
-      
-      // Marcar que el bot va a hablar
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.botSpeaking = true;
-        streamData.conversationTurn = 'speaking';
-      }
-      
-      // Enviar mensaje crítico como audio
-      await this.sendResponseAsAudio(ws, streamSid, criticalErrorText, clientConfig);
-      
-      // Después del mensaje crítico, mantener el bot en escucha por si se recupera
-      setTimeout(() => {
-        // Usar sistema robusto de transición después de sugerir transferencia
-        this.activateListeningMode(streamSid, ws, 'transfer-suggestion-recovery');
-      }, 7000); // 7 segundos para mensaje de transferencia
-      
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error en sendCriticalTranscriptionErrorResponse: ${error.message}`);
-      
-      // Último recurso: usar sistema robusto de transición
-      this.activateListeningMode(streamSid, ws, 'critical-error-final');
-    }
-  }
-
-  /**
-   * Stream terminado - limpiar recursos
-   */
-  async handleStreamStop(ws, data) {
-    const streamSid = data.streamSid;
-    logger.info(`🛑 [${streamSid}] Stream terminado - limpiando recursos`);
-    
-    // Limpiar todos los recursos
-    this.activeStreams.delete(streamSid);
-    this.audioBuffers.delete(streamSid);
-    this.conversationState.delete(streamSid);
-    this.outboundAudioQueue.delete(streamSid);
-    this.ttsInProgress.delete(streamSid);
-    this.preConvertedAudio.delete(streamSid);
-    this.responseInProgress.delete(streamSid);
-    this.lastResponseTime.delete(streamSid);
-    this.speechDetection.delete(streamSid);
-    this.pendingMediaEvents.delete(streamSid); // Limpiar buffer de eventos pendientes
-    
-    logger.info(`✅ [${streamSid}] Recursos limpiados`);
-  }
-
-  /**
-   * Manejar nueva conexión
-   */
-  handleConnection(ws, req) {
-    let ip = 'unknown';
-    if (req) {
-      ip = req.socket?.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
-    }
-    logger.info(`🔌 Nueva conexión WebSocket desde ${ip}`);
-    // Lógica básica de conexión
-  }
-
-  /**
-   * Activar modo de escucha de forma robusta
-   * Múltiples mecanismos para garantizar transición en producción
-   */
-  activateListeningMode(streamSid, ws, mechanism) {
-    if (!this.activeStreams.has(streamSid)) {
-      logger.error(`❌ [${streamSid}] TRANSICIÓN FALLIDA (${mechanism}) - Stream no encontrado`);
-      return;
-    }
-
+  startListening(streamSid) {
     const streamData = this.activeStreams.get(streamSid);
-    
-    // Verificar si ya está en modo listening (evitar duplicados)
-    if (streamData.conversationTurn === 'listening') {
-      logger.info(`✅ [${streamSid}] Ya en modo listening (${mechanism}) - ignorando`);
+    if (!streamData) {
+      logger.error(`❌ [${streamSid}] No se puede iniciar listening - stream no encontrado`);
       return;
     }
     
-    // Verificar tiempo transcurrido desde el saludo
-    const timeSinceGreeting = Date.now() - (streamData.greetingCompletedAt || 0);
-    logger.info(`⏰ [${streamSid}] Transición por ${mechanism} después de ${timeSinceGreeting}ms`);
+    streamData.state = 'listening';
+    streamData.lastActivity = Date.now();
     
-    // CRÍTICO: Cambiar estado
-    streamData.conversationTurn = 'listening';
-    streamData.botSpeaking = false;
-    streamData.transitionScheduled = false;
-    streamData.needsTransitionCheck = false;
+    // Iniciar transcripción
+    this.startTranscription(streamSid);
     
-    logger.info(`👂 [${streamSid}] MODO LISTENING ACTIVADO por ${mechanism}`);
-    
-    // Inicializar detección de voz
-    this.initializeSpeechDetection(streamSid);
-    logger.info(`🎯 [${streamSid}] Speech detection inicializado`);
-    
-    // CRÍTICO: Iniciar timeout de inactividad
-    this.startInactivityTimer(streamSid, ws);
-    
-    // Procesar eventos media pendientes
-    this.processPendingMediaEvents(ws, streamSid);
-    logger.info(`🔄 [${streamSid}] Eventos media pendientes procesados`);
+    logger.info(`👂 [${streamSid}] LISTENING MODE ACTIVADO - transcripción iniciada`);
   }
 
-  // Validar variables Azure
+  /**
+   * NUEVO: Start transcription - Iniciar escucha activa
+   */
+  startTranscription(streamSid) {
+    if (this.transcriptionActive && this.transcriptionActive.get(streamSid)) {
+      logger.warn(`⚠️ [${streamSid}] Transcripción ya activa - ignorando`);
+      return;
+    }
+    
+    if (!this.transcriptionActive) {
+      this.transcriptionActive = new Map();
+    }
+    
+    this.transcriptionActive.set(streamSid, true);
+    
+    if (!this.audioBuffers.has(streamSid)) {
+      this.audioBuffers.set(streamSid, []);
+    }
+    
+    logger.info(`🎙️ [${streamSid}] Transcripción INICIADA - escuchando activamente`);
+  }
+  
+  /**
+   * NUEVO: Stop transcription - Detener escucha y procesar
+   */
+  stopTranscription(streamSid) {
+    if (!this.transcriptionActive || !this.transcriptionActive.get(streamSid)) {
+      logger.warn(`⚠️ [${streamSid}] Transcripción ya inactiva - ignorando`);
+      return null;
+    }
+    
+    this.transcriptionActive.set(streamSid, false);
+    const audioBuffer = this.audioBuffers.get(streamSid) || [];
+    
+    // Limpiar buffers
+    this.audioBuffers.set(streamSid, []);
+    
+    logger.info(`🛑 [${streamSid}] Transcripción DETENIDA - procesando ${audioBuffer.length} chunks`);
+    
+    return audioBuffer;
+  }
+
+  /**
+   * NUEVO: Calcular duración de silencio para detección de fin de turno
+   */
+  calculateSilenceDuration(streamSid, vadResult) {
+    if (!vadResult.isActive) {
+      // Iniciar contador de silencio si no existe
+      if (!this.silenceStartTime.has(streamSid)) {
+        this.silenceStartTime.set(streamSid, Date.now());
+      }
+      
+      // Calcular duración del silencio
+      const silenceStart = this.silenceStartTime.get(streamSid);
+      return Date.now() - silenceStart;
+    } else {
+      // Resetear contador si hay actividad
+      this.silenceStartTime.delete(streamSid);
+      return 0;
+    }
+  }
+
+  /**
+   * Validar variables Azure
+   */
   validateAzureConfig() {
     const requiredVars = [
       'AZURE_SPEECH_KEY',
@@ -1545,104 +1440,6 @@ class TwilioStreamHandler {
         process.exit(1);
       }
     });
-  }
-  /**
-   * Iniciar timeout de inactividad - detecta cuando el usuario no recibe respuesta
-   */
-  startInactivityTimer(streamSid, ws) {
-    // Cancelar timer existente si hay uno
-    this.clearInactivityTimer(streamSid);
-    
-    const streamData = this.activeStreams.get(streamSid);
-    if (!streamData) return;
-    
-    // Configurar timeout de 15 segundos de inactividad
-    const timeoutId = setTimeout(() => {
-      logger.warn(`⏰ [${streamSid}] TIMEOUT DE INACTIVIDAD - Usuario sin respuesta por 15s`);
-      this.handleInactivityTimeout(streamSid, ws);
-    }, 15000);
-    
-    this.inactivityTimers.set(streamSid, timeoutId);
-    this.lastUserActivity.set(streamSid, Date.now());
-    
-    logger.info(`⏰ [${streamSid}] Timer de inactividad iniciado (15s)`);
-  }
-
-  /**
-   * Actualizar actividad del usuario y reiniciar timer
-   */
-  updateUserActivity(streamSid) {
-    this.lastUserActivity.set(streamSid, Date.now());
-    
-    // Cancelar timer actual
-    this.clearInactivityTimer(streamSid);
-    
-    logger.info(`🔄 [${streamSid}] Actividad del usuario actualizada - timer cancelado`);
-  }
-
-  /**
-   * Cancelar timer de inactividad
-   */
-  clearInactivityTimer(streamSid) {
-    const timerId = this.inactivityTimers.get(streamSid);
-    if (timerId) {
-      clearTimeout(timerId);
-      this.inactivityTimers.delete(streamSid);
-      logger.info(`🚫 [${streamSid}] Timer de inactividad cancelado`);
-    }
-  }
-
-  /**
-   * Manejar timeout de inactividad - enviar mensaje de ayuda
-   */
-  async handleInactivityTimeout(streamSid, ws) {
-    const streamData = this.activeStreams.get(streamSid);
-    if (!streamData) return;
-    
-    logger.warn(`⚠️ [${streamSid}] Manejando timeout de inactividad`);
-    
-    // Verificar si hay respuesta en progreso
-    if (this.responseInProgress.get(streamSid)) {
-      logger.info(`🔄 [${streamSid}] Respuesta en progreso - extendiendo timeout`);
-      // Extender timeout otros 10 segundos si hay respuesta en progreso
-      this.startInactivityTimer(streamSid, ws);
-      return;
-    }
-    
-    try {
-      // Marcar respuesta en progreso para evitar conflictos
-      this.responseInProgress.set(streamSid, true);
-      
-      const helpMessage = "¿Sigues ahí? Si tienes alguna pregunta, puedes hablar ahora. ¿En qué puedo ayudarte?";
-      
-      logger.info(`🆘 [${streamSid}] Enviando mensaje de inactividad: "${helpMessage}"`);
-      
-      // Cambiar estado a hablando
-      streamData.conversationTurn = 'speaking';
-      streamData.botSpeaking = true;
-      
-      // Enviar mensaje de ayuda
-      await this.sendResponseAsAudio(ws, streamSid, helpMessage, streamData.client);
-      
-      // Programar reactivación de escucha después del mensaje
-      setTimeout(() => {
-        this.activateListeningMode(streamSid, ws, 'inactivity-timeout-recovery');
-        this.responseInProgress.delete(streamSid);
-        
-        // Reiniciar timer de inactividad para el próximo ciclo
-        this.startInactivityTimer(streamSid, ws);
-      }, 4000); // 4 segundos para que termine de hablar
-      
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error manejando timeout de inactividad: ${error.message}`);
-      
-      // Limpiar estado y reactivar escucha
-      this.responseInProgress.delete(streamSid);
-      this.activateListeningMode(streamSid, ws, 'inactivity-error-recovery');
-      
-      // Reiniciar timer
-      this.startInactivityTimer(streamSid, ws);
-    }
   }
 }
 
