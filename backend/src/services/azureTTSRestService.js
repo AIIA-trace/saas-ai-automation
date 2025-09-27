@@ -133,10 +133,9 @@ class AzureTTSRestService {
     console.log(`🔊 ===== AZURE TTS AUDIO GENERATION START =====`);
     console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
     
-    try {
-      // ANÁLISIS COMPLETO DE ENTRADA
-      console.log(`📝 INPUT ANALYSIS:`);
-      console.log(`  ├── Text received: "${text ? text.substring(0, 100) : 'NULL/UNDEFINED'}..."`);
+    // ANÁLISIS COMPLETO DE ENTRADA
+    console.log(`📝 INPUT ANALYSIS:`);
+    console.log(`  ├── Text received: "${text ? text.substring(0, 100) : 'NULL/UNDEFINED'}..."`);
       console.log(`  ├── Text type: ${typeof text}`);
       console.log(`  ├── Text length: ${text ? text.length : 0}`);
       console.log(`  ├── Text is empty: ${!text || text.trim().length === 0}`);
@@ -255,276 +254,276 @@ class AzureTTSRestService {
       // Añadir AbortController al config
       requestConfig.signal = controller.signal;
       
-      try {
-        const response = await axios.post(
-          `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
-          ssml,
-          requestConfig
-        );
+    try {
+      const response = await axios.post(
+        `https://${this.region}.tts.speech.microsoft.com/cognitiveservices/v1`,
+        ssml,
+        requestConfig
+      );
         
         clearTimeout(timeoutId);
       
-      console.log(`🔊 Azure TTS Response Status: ${response.status}`);
-      console.log(`🔊 Azure TTS Response Headers: ${JSON.stringify(response.headers)}`);
-      console.log(`🔊 Audio Buffer First 16 Bytes: ${response.data.slice(0, 16).toString('hex')}`);
+        console.log(`🔊 Azure TTS Response Status: ${response.status}`);
+        console.log(`🔊 Azure TTS Response Headers: ${JSON.stringify(response.headers)}`);
+        console.log(`🔊 Audio Buffer First 16 Bytes: ${response.data.slice(0, 16).toString('hex')}`);
       
-      const requestEndTime = Date.now();
-      const requestDuration = requestEndTime - speechStartTime;
+        const requestEndTime = Date.now();
+        const requestDuration = requestEndTime - speechStartTime;
       
-      console.log(`✅ AZURE RESPONSE ANALYSIS:`);
-      console.log(`  ├── Status Code: ${response.status}`);
-      console.log(`  ├── Content-Type: ${response.headers['content-type']}`);
-      console.log(`  ├── Audio Buffer Length: ${response.data ? response.data.length : 0} bytes`);
-      console.log(`  ├── Audio Buffer Type: ${response.data ? typeof response.data : 'undefined'}`);
-      console.log(`  ├── Audio Buffer Empty: ${!response.data || response.data.length === 0}`);
-      console.log(`  ├── Request Duration: ${requestDuration}ms`);
-      console.log(`  ├── Total Process Time: ${Date.now() - speechStartTime}ms`);
+        console.log(`✅ AZURE RESPONSE ANALYSIS:`);
+        console.log(`  ├── Status Code: ${response.status}`);
+        console.log(`  ├── Content-Type: ${response.headers['content-type']}`);
+        console.log(`  ├── Audio Buffer Length: ${response.data ? response.data.length : 0} bytes`);
+        console.log(`  ├── Audio Buffer Type: ${response.data ? typeof response.data : 'undefined'}`);
+        console.log(`  ├── Audio Buffer Empty: ${!response.data || response.data.length === 0}`);
+        console.log(`  ├── Request Duration: ${requestDuration}ms`);
+        console.log(`  ├── Total Process Time: ${Date.now() - speechStartTime}ms`);
       
-      // 🔍 ANÁLISIS DETALLADO DEL AUDIO BUFFER
-      console.log(`  └── 🎵 AUDIO BUFFER DEEP ANALYSIS:`);
-      if (response.data && response.data.length > 0) {
-        const buffer = Buffer.from(response.data);
-        console.log(`      ├── Buffer is valid: ${Buffer.isBuffer(buffer)}`);
-        console.log(`      ├── Buffer length: ${buffer.length} bytes`);
-        console.log(`      ├── First 16 bytes (hex): ${buffer.subarray(0, 16).toString('hex')}`);
-        console.log(`      ├── First 16 bytes (ascii): ${buffer.subarray(0, 16).toString('ascii').replace(/[^\x20-\x7E]/g, '.')}`);
-        
-        // Verificar si es un archivo PCM válido (debe empezar con RIFF)
-        const header = buffer.subarray(0, 4).toString('ascii');
-        console.log(`      ├── Audio header: "${header}"`);
-        console.log(`      ├── Is RIFF format: ${header === 'RIFF'}`);
-        
-        if (header === 'RIFF') {
-          const waveHeader = buffer.subarray(8, 12).toString('ascii');
-          console.log(`      ├── WAVE header: "${waveHeader}"`);
-          console.log(`      ├── Is valid WAVE: ${waveHeader === 'WAVE'}`);
+        // 🔍 ANÁLISIS DETALLADO DEL AUDIO BUFFER
+        console.log(`  └── 🎵 AUDIO BUFFER DEEP ANALYSIS:`);
+        if (response.data && response.data.length > 0) {
+          const buffer = Buffer.from(response.data);
+          console.log(`      ├── Buffer is valid: ${Buffer.isBuffer(buffer)}`);
+          console.log(`      ├── Buffer length: ${buffer.length} bytes`);
+          console.log(`      ├── First 16 bytes (hex): ${buffer.subarray(0, 16).toString('hex')}`);
+          console.log(`      ├── First 16 bytes (ascii): ${buffer.subarray(0, 16).toString('ascii').replace(/[^\x20-\x7E]/g, '.')}`);
           
-          // Obtener información del formato
-          const fmtChunk = buffer.indexOf('fmt ');
-          if (fmtChunk !== -1) {
-            const audioFormat = buffer.readUInt16LE(fmtChunk + 8);
-            const channels = buffer.readUInt16LE(fmtChunk + 10);
-            const sampleRate = buffer.readUInt32LE(fmtChunk + 12);
-            const bitsPerSample = buffer.readUInt16LE(fmtChunk + 22);
+          // Verificar si es un archivo PCM válido (debe empezar con RIFF)
+          const header = buffer.subarray(0, 4).toString('ascii');
+          console.log(`      ├── Audio header: "${header}"`);
+          console.log(`      ├── Is RIFF format: ${header === 'RIFF'}`);
+          
+          if (header === 'RIFF') {
+            const waveHeader = buffer.subarray(8, 12).toString('ascii');
+            console.log(`      ├── WAVE header: "${waveHeader}"`);
+            console.log(`      ├── Is valid WAVE: ${waveHeader === 'WAVE'}`);
             
-            console.log(`      ├── Audio Format: ${audioFormat} (1=PCM)`);
-            console.log(`      ├── Channels: ${channels}`);
-            console.log(`      ├── Sample Rate: ${sampleRate} Hz`);
-            console.log(`      ├── Bits per Sample: ${bitsPerSample}`);
-            
-            // Buscar el chunk de datos
-            const dataChunk = buffer.indexOf('data');
-            if (dataChunk !== -1) {
-              const dataSize = buffer.readUInt32LE(dataChunk + 4);
-              console.log(`      ├── Data chunk size: ${dataSize} bytes`);
-              console.log(`      ├── Audio duration: ~${(dataSize / (sampleRate * channels * (bitsPerSample/8))).toFixed(2)}s`);
-              console.log(`      └── ✅ VALID PCM AUDIO DETECTED`);
+            // Obtener información del formato
+            const fmtChunk = buffer.indexOf('fmt ');
+            if (fmtChunk !== -1) {
+              const audioFormat = buffer.readUInt16LE(fmtChunk + 8);
+              const channels = buffer.readUInt16LE(fmtChunk + 10);
+              const sampleRate = buffer.readUInt32LE(fmtChunk + 12);
+              const bitsPerSample = buffer.readUInt16LE(fmtChunk + 22);
+              
+              console.log(`      ├── Audio Format: ${audioFormat} (1=PCM)`);
+              console.log(`      ├── Channels: ${channels}`);
+              console.log(`      ├── Sample Rate: ${sampleRate} Hz`);
+              console.log(`      ├── Bits per Sample: ${bitsPerSample}`);
+              
+              // Buscar el chunk de datos
+              const dataChunk = buffer.indexOf('data');
+              if (dataChunk !== -1) {
+                const dataSize = buffer.readUInt32LE(dataChunk + 4);
+                console.log(`      ├── Data chunk size: ${dataSize} bytes`);
+                console.log(`      ├── Audio duration: ~${(dataSize / (sampleRate * channels * (bitsPerSample/8))).toFixed(2)}s`);
+                console.log(`      └── ✅ VALID PCM AUDIO DETECTED`);
+              } else {
+                console.log(`      └── ❌ NO DATA CHUNK FOUND - Invalid audio`);
+              }
             } else {
-              console.log(`      └── ❌ NO DATA CHUNK FOUND - Invalid audio`);
+              console.log(`      └── ❌ NO FMT CHUNK FOUND - Invalid audio`);
             }
           } else {
-            console.log(`      └── ❌ NO FMT CHUNK FOUND - Invalid audio`);
+            console.log(`      ├── Unknown format header: "${header}"`);
+            console.log(`      ├── Expected: "RIFF" for PCM audio`);
+            console.log(`      └── ❌ INVALID AUDIO FORMAT - Not PCM`);
+          }
+          
+          // Verificar si el buffer contiene solo zeros (audio silencioso)
+          const nonZeroBytes = buffer.filter(byte => byte !== 0).length;
+          const zeroPercentage = ((buffer.length - nonZeroBytes) / buffer.length * 100).toFixed(1);
+          console.log(`      ├── Non-zero bytes: ${nonZeroBytes}/${buffer.length}`);
+          console.log(`      ├── Zero percentage: ${zeroPercentage}%`);
+          
+          if (zeroPercentage > 95) {
+            console.log(`      └── ⚠️ MOSTLY SILENT AUDIO - ${zeroPercentage}% zeros`);
+          } else if (zeroPercentage > 50) {
+            console.log(`      └── ⚠️ PARTIALLY SILENT AUDIO - ${zeroPercentage}% zeros`);
+          } else {
+            console.log(`      └── ✅ AUDIO HAS CONTENT - ${zeroPercentage}% zeros`);
           }
         } else {
-          console.log(`      ├── Unknown format header: "${header}"`);
-          console.log(`      ├── Expected: "RIFF" for PCM audio`);
-          console.log(`      └── ❌ INVALID AUDIO FORMAT - Not PCM`);
+          console.log(`      └── ❌ NO AUDIO BUFFER - Azure returned empty response`);
         }
-        
-        // Verificar si el buffer contiene solo zeros (audio silencioso)
-        const nonZeroBytes = buffer.filter(byte => byte !== 0).length;
-        const zeroPercentage = ((buffer.length - nonZeroBytes) / buffer.length * 100).toFixed(1);
-        console.log(`      ├── Non-zero bytes: ${nonZeroBytes}/${buffer.length}`);
-        console.log(`      ├── Zero percentage: ${zeroPercentage}%`);
-        
-        if (zeroPercentage > 95) {
-          console.log(`      └── ⚠️ MOSTLY SILENT AUDIO - ${zeroPercentage}% zeros`);
-        } else if (zeroPercentage > 50) {
-          console.log(`      └── ⚠️ PARTIALLY SILENT AUDIO - ${zeroPercentage}% zeros`);
+      
+        console.log(`  └── 🎯 LATENCY ANALYSIS:`);
+      
+        // ANÁLISIS DETALLADO DE LATENCIA
+        if (requestDuration > 3000) {
+          console.log(`      ├── ⚠️ HIGH LATENCY DETECTED: ${requestDuration}ms > 3000ms`);
+          console.log(`      ├── 🔍 POSSIBLE CAUSES:`);
+          console.log(`      │   ├── Network latency to Azure ${this.region}`);
+          console.log(`      │   ├── Azure TTS service overload`);
+          console.log(`      │   ├── Large text processing time`);
+          console.log(`      │   └── Production environment resource limits`);
+          console.log(`      └── 💡 RECOMMENDATIONS:`);
+          console.log(`          ├── Try different Azure region (eastus, centralus)`);
+          console.log(`          ├── Reduce text length or complexity`);
+          console.log(`          ├── Pre-generate common phrases`);
+          console.log(`          └── Implement caching for repeated texts`);
+        } else if (requestDuration > 1000) {
+          console.log(`      ├── ⚠️ MODERATE LATENCY: ${requestDuration}ms > 1000ms`);
+          console.log(`      └── 💡 Consider optimization if this persists`);
         } else {
-          console.log(`      └── ✅ AUDIO HAS CONTENT - ${zeroPercentage}% zeros`);
+          console.log(`      └── ✅ GOOD LATENCY: ${requestDuration}ms < 1000ms`);
         }
-      } else {
-        console.log(`      └── ❌ NO AUDIO BUFFER - Azure returned empty response`);
-      }
       
-      console.log(`  └── 🎯 LATENCY ANALYSIS:`);
-      
-      // ANÁLISIS DETALLADO DE LATENCIA
-      if (requestDuration > 3000) {
-        console.log(`      ├── ⚠️ HIGH LATENCY DETECTED: ${requestDuration}ms > 3000ms`);
-        console.log(`      ├── 🔍 POSSIBLE CAUSES:`);
-        console.log(`      │   ├── Network latency to Azure ${this.region}`);
-        console.log(`      │   ├── Azure TTS service overload`);
-        console.log(`      │   ├── Large text processing time`);
-        console.log(`      │   └── Production environment resource limits`);
-        console.log(`      └── 💡 RECOMMENDATIONS:`);
-        console.log(`          ├── Try different Azure region (eastus, centralus)`);
-        console.log(`          ├── Reduce text length or complexity`);
-        console.log(`          ├── Pre-generate common phrases`);
-        console.log(`          └── Implement caching for repeated texts`);
-      } else if (requestDuration > 1000) {
-        console.log(`      ├── ⚠️ MODERATE LATENCY: ${requestDuration}ms > 1000ms`);
-        console.log(`      └── 💡 Consider optimization if this persists`);
-      } else {
-        console.log(`      └── ✅ GOOD LATENCY: ${requestDuration}ms < 1000ms`);
-      }
-      
-      // 🔍 VALIDACIÓN EXHAUSTIVA DEL AUDIO BUFFER
-      if (!response.data || response.data.length === 0) {
-        console.error(`❌ EMPTY AUDIO BUFFER DETECTED:`);
-        console.error(`  ├── Azure returned empty or null audio data`);
-        console.error(`  ├── This will cause silent audio playback`);
-        console.error(`  ├── Status was ${response.status} but no audio content`);
-        console.error(`  ├── Content-Type: ${response.headers['content-type']}`);
-        console.error(`  ├── Response Headers: ${JSON.stringify(response.headers)}`);
-        console.error(`  └── 🎯 ROOT CAUSE: Azure TTS generated no audio`);
-        
-        return {
-          success: false,
-          error: 'Audio buffer vacío desde Azure - TTS no generó audio',
-          cause: 'EMPTY_AUDIO_BUFFER',
-          statusCode: response.status,
-          contentType: response.headers['content-type'],
-          responseHeaders: response.headers,
-          diagnosis: 'Azure TTS responded with HTTP 200 but no audio content'
-        };
-      }
-      
-      // 🔍 VALIDACIÓN DE FORMATO DE AUDIO
-      const buffer = Buffer.from(response.data);
-      const header = buffer.subarray(0, 4).toString('ascii');
-      
-      // Validar formato según lo solicitado
-      if (!finalFormat.includes('mulaw')) {
-        logger.warn(`⚠️ Formato forzado a mulaw: ${finalFormat} no es nativo Twilio`);
-        finalFormat = 'raw-8khz-8bit-mono-mulaw';
-      }
-      if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
-        // Para mulaw, no esperamos header RIFF
-        console.log(`🎵 MULAW FORMAT VALIDATION:`);
-        console.log(`  ├── Format requested: ${finalFormat}`);
-        console.log(`  ├── Buffer length: ${buffer.length} bytes`);
-        console.log(`  ├── First 16 bytes: ${buffer.subarray(0, 16).toString('hex')}`);
-        console.log(`  └── ✅ Raw mulaw format - no RIFF header expected`);
-      } else {
-        // Para PCM, esperamos header RIFF
-        if (header !== 'RIFF') {
-          console.error(`❌ INVALID AUDIO FORMAT DETECTED:`);
-          console.error(`  ├── Expected: "RIFF" header for PCM audio`);
-          console.error(`  ├── Received: "${header}" (${buffer.subarray(0, 4).toString('hex')})`);
-          console.error(`  ├── Buffer length: ${buffer.length} bytes`);
-          console.error(`  ├── First 32 bytes: ${buffer.subarray(0, 32).toString('hex')}`);
-          console.error(`  └── 🎯 ROOT CAUSE: Azure returned invalid audio format`);
+        // 🔍 VALIDACIÓN EXHAUSTIVA DEL AUDIO BUFFER
+        if (!response.data || response.data.length === 0) {
+          console.error(`❌ EMPTY AUDIO BUFFER DETECTED:`);
+          console.error(`  ├── Azure returned empty or null audio data`);
+          console.error(`  ├── This will cause silent audio playback`);
+          console.error(`  ├── Status was ${response.status} but no audio content`);
+          console.error(`  ├── Content-Type: ${response.headers['content-type']}`);
+          console.error(`  ├── Response Headers: ${JSON.stringify(response.headers)}`);
+          console.error(`  └── 🎯 ROOT CAUSE: Azure TTS generated no audio`);
           
           return {
             success: false,
-            error: 'Formato de audio inválido desde Azure',
-            cause: 'INVALID_AUDIO_FORMAT',
-            expectedHeader: 'RIFF',
-            receivedHeader: header,
-            bufferLength: buffer.length,
-            diagnosis: 'Azure TTS returned data but not in expected PCM format'
+            error: 'Audio buffer vacío desde Azure - TTS no generó audio',
+            cause: 'EMPTY_AUDIO_BUFFER',
+            statusCode: response.status,
+            contentType: response.headers['content-type'],
+            responseHeaders: response.headers,
+            diagnosis: 'Azure TTS responded with HTTP 200 but no audio content'
           };
         }
-      }
       
-      // 🔍 VALIDACIÓN DE CONTENIDO DE AUDIO (SILENCIO)
-      let nonZeroBytes, zeroPercentage;
-      
-      if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
-        // Para mulaw, el silencio es 0xFF (255), no 0x00
-        const silentBytes = buffer.filter(byte => byte === 0xFF).length;
-        nonZeroBytes = buffer.length - silentBytes;
-        zeroPercentage = (silentBytes / buffer.length * 100);
+        // 🔍 VALIDACIÓN DE FORMATO DE AUDIO
+        const buffer = Buffer.from(response.data);
+        const header = buffer.subarray(0, 4).toString('ascii');
         
-        console.log(`🎵 MULAW SILENCE ANALYSIS:`);
-        console.log(`  ├── Silent bytes (0xFF): ${silentBytes}/${buffer.length}`);
-        console.log(`  ├── Audio bytes: ${nonZeroBytes}/${buffer.length}`);
-        console.log(`  └── Silence percentage: ${zeroPercentage.toFixed(1)}%`);
-      } else {
-        // Para PCM, el silencio es 0x00
-        nonZeroBytes = buffer.filter(byte => byte !== 0).length;
-        zeroPercentage = ((buffer.length - nonZeroBytes) / buffer.length * 100);
-      }
-      
-      if (zeroPercentage > 95) {
-        console.error(`❌ SILENT AUDIO DETECTED:`);
-        console.error(`  ├── Audio buffer is ${zeroPercentage.toFixed(1)}% silent`);
-        console.error(`  ├── Non-silent bytes: ${nonZeroBytes}/${buffer.length}`);
-        console.error(`  ├── This will result in no audible sound`);
-        console.error(`  └── 🎯 ROOT CAUSE: Azure generated silent/empty audio`);
+        // Validar formato según lo solicitado
+        if (!finalFormat.includes('mulaw')) {
+          logger.warn(`⚠️ Formato forzado a mulaw: ${finalFormat} no es nativo Twilio`);
+          finalFormat = 'raw-8khz-8bit-mono-mulaw';
+        }
+        if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
+          // Para mulaw, no esperamos header RIFF
+          console.log(`🎵 MULAW FORMAT VALIDATION:`);
+          console.log(`  ├── Format requested: ${finalFormat}`);
+          console.log(`  ├── Buffer length: ${buffer.length} bytes`);
+          console.log(`  ├── First 16 bytes: ${buffer.subarray(0, 16).toString('hex')}`);
+          console.log(`  └── ✅ Raw mulaw format - no RIFF header expected`);
+        } else {
+          // Para PCM, esperamos header RIFF
+          if (header !== 'RIFF') {
+            console.error(`❌ INVALID AUDIO FORMAT DETECTED:`);
+            console.error(`  ├── Expected: "RIFF" header for PCM audio`);
+            console.error(`  ├── Received: "${header}" (${buffer.subarray(0, 4).toString('hex')})`);
+            console.error(`  ├── Buffer length: ${buffer.length} bytes`);
+            console.error(`  ├── First 32 bytes: ${buffer.subarray(0, 32).toString('hex')}`);
+            console.error(`  └── 🎯 ROOT CAUSE: Azure returned invalid audio format`);
+            
+            return {
+              success: false,
+              error: 'Formato de audio inválido desde Azure',
+              cause: 'INVALID_AUDIO_FORMAT',
+              expectedHeader: 'RIFF',
+              receivedHeader: header,
+              bufferLength: buffer.length,
+              diagnosis: 'Azure TTS returned data but not in expected PCM format'
+            };
+          }
+        }
+        
+        // 🔍 VALIDACIÓN DE CONTENIDO DE AUDIO (SILENCIO)
+        let nonZeroBytes, zeroPercentage;
+        
+        if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
+          // Para mulaw, el silencio es 0xFF (255), no 0x00
+          const silentBytes = buffer.filter(byte => byte === 0xFF).length;
+          nonZeroBytes = buffer.length - silentBytes;
+          zeroPercentage = (silentBytes / buffer.length * 100);
+          
+          console.log(`🎵 MULAW SILENCE ANALYSIS:`);
+          console.log(`  ├── Silent bytes (0xFF): ${silentBytes}/${buffer.length}`);
+          console.log(`  ├── Audio bytes: ${nonZeroBytes}/${buffer.length}`);
+          console.log(`  └── Silence percentage: ${zeroPercentage.toFixed(1)}%`);
+        } else {
+          // Para PCM, el silencio es 0x00
+          nonZeroBytes = buffer.filter(byte => byte !== 0).length;
+          zeroPercentage = ((buffer.length - nonZeroBytes) / buffer.length * 100);
+        }
+        
+        if (zeroPercentage > 95) {
+          console.error(`❌ SILENT AUDIO DETECTED:`);
+          console.error(`  ├── Audio buffer is ${zeroPercentage.toFixed(1)}% silent`);
+          console.error(`  ├── Non-silent bytes: ${nonZeroBytes}/${buffer.length}`);
+          console.error(`  ├── This will result in no audible sound`);
+          console.error(`  └── 🎯 ROOT CAUSE: Azure generated silent/empty audio`);
+          
+          return {
+            success: false,
+            error: 'Audio silencioso generado por Azure',
+            cause: 'SILENT_AUDIO',
+            zeroPercentage: zeroPercentage,
+            nonZeroBytes: nonZeroBytes,
+            totalBytes: buffer.length,
+            diagnosis: 'Azure TTS generated valid format but silent audio content'
+          };
+        }
+        
+        console.log(`🔊 ===== AZURE TTS DEBUG SUCCESS =====`);
+        console.log(`✅ AUDIO VALIDATION PASSED:`);
+        
+        if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
+          console.log(`  ├── Valid RAW mulaw format: ✓`);
+          console.log(`  ├── Audio content present: ✓ (${zeroPercentage.toFixed(1)}% silent)`);
+          console.log(`  ├── Buffer size: ${buffer.length} bytes`);
+          console.log(`  └── Ready for direct Twilio streaming (no conversion needed)`);
+        } else {
+          console.log(`  ├── Valid RIFF/PCM format: ✓`);
+          console.log(`  ├── Audio content present: ✓ (${zeroPercentage.toFixed(1)}% zeros)`);
+          console.log(`  ├── Buffer size: ${buffer.length} bytes`);
+          console.log(`  └── Ready for mulaw conversion and Twilio streaming`);
+        }
+        
+        // Function to trim leading silence from raw mulaw buffer
+        function trimLeadingSilence(audioBuffer) {
+          // Mulaw silence is represented by 0xFF (or 0x7F in some encodings)
+          // We'll skip all 0xFF bytes at the start
+          let i = 0;
+          const maxSilence = 24000; // Max 3 seconds of silence (8000 samples per second)
+          
+          while (i < audioBuffer.length && i < maxSilence) {
+            if (audioBuffer[i] !== 0xFF) {
+              break;
+            }
+            i++;
+          }
+          
+          return audioBuffer.slice(i);
+        }
+
+        const trimmedBuffer = trimLeadingSilence(buffer);
+
+        // Save audio to file
+        const fileName = `/tmp/debug_${Date.now()}.wav`;
+        try {
+          fs.writeFileSync(fileName, trimmedBuffer);
+          logger.info(`🔧 Audio guardado en ${fileName}`);
+        } catch (error) {
+          logger.error(`❌ Error guardando audio: ${error.message}`);
+        }
         
         return {
-          success: false,
-          error: 'Audio silencioso generado por Azure',
-          cause: 'SILENT_AUDIO',
-          zeroPercentage: zeroPercentage,
-          nonZeroBytes: nonZeroBytes,
-          totalBytes: buffer.length,
-          diagnosis: 'Azure TTS generated valid format but silent audio content'
-        };
-      }
-      
-      console.log(`🔊 ===== AZURE TTS DEBUG SUCCESS =====`);
-      console.log(`✅ AUDIO VALIDATION PASSED:`);
-      
-      if (finalFormat === 'raw-8khz-8bit-mono-mulaw') {
-        console.log(`  ├── Valid RAW mulaw format: ✓`);
-        console.log(`  ├── Audio content present: ✓ (${zeroPercentage.toFixed(1)}% silent)`);
-        console.log(`  ├── Buffer size: ${buffer.length} bytes`);
-        console.log(`  └── Ready for direct Twilio streaming (no conversion needed)`);
-      } else {
-        console.log(`  ├── Valid RIFF/PCM format: ✓`);
-        console.log(`  ├── Audio content present: ✓ (${zeroPercentage.toFixed(1)}% zeros)`);
-        console.log(`  ├── Buffer size: ${buffer.length} bytes`);
-        console.log(`  └── Ready for mulaw conversion and Twilio streaming`);
-      }
-      
-      // Function to trim leading silence from raw mulaw buffer
-      function trimLeadingSilence(audioBuffer) {
-        // Mulaw silence is represented by 0xFF (or 0x7F in some encodings)
-        // We'll skip all 0xFF bytes at the start
-        let i = 0;
-        const maxSilence = 24000; // Max 3 seconds of silence (8000 samples per second)
-        
-        while (i < audioBuffer.length && i < maxSilence) {
-          if (audioBuffer[i] !== 0xFF) {
-            break;
+          success: true,
+          audioBuffer: trimmedBuffer,
+          contentType: response.headers['content-type'],
+          audioAnalysis: {
+            format: finalFormat === 'raw-8khz-8bit-mono-mulaw' ? 'RAW_MULAW' : 'RIFF/PCM',
+            bufferSize: buffer.length,
+            zeroPercentage: zeroPercentage,
+            nonZeroBytes: nonZeroBytes,
+            isValid: true
           }
-          i++;
-        }
-        
-        return audioBuffer.slice(i);
-      }
-
-      const trimmedBuffer = trimLeadingSilence(buffer);
-
-      // Save audio to file
-      const fileName = `/tmp/debug_${Date.now()}.wav`;
-      try {
-        fs.writeFileSync(fileName, trimmedBuffer);
-        logger.info(`🔧 Audio guardado en ${fileName}`);
-      } catch (error) {
-        logger.error(`❌ Error guardando audio: ${error.message}`);
-      }
-      
-      return {
-        success: true,
-        audioBuffer: trimmedBuffer,
-        contentType: response.headers['content-type'],
-        audioAnalysis: {
-          format: finalFormat === 'raw-8khz-8bit-mono-mulaw' ? 'RAW_MULAW' : 'RIFF/PCM',
-          bufferSize: buffer.length,
-          zeroPercentage: zeroPercentage,
-          nonZeroBytes: nonZeroBytes,
-          isValid: true
-        }
-      };
+        };
 
     } catch (error) {
       clearTimeout(timeoutId);
-      const errorDuration = Date.now() - startTime;
+      const errorDuration = Date.now() - speechStartTime;
       
       if (error.name === 'AbortError') {
         console.error('🔊 ===== AZURE TTS TIMEOUT DETECTED (AbortController) =====');
@@ -551,120 +550,7 @@ class AzureTTSRestService {
           ]
         };
       }
-      
-      console.error('🔊 ===== AZURE TTS ERROR ANALYSIS =====');
-      console.error('❌ VOZ USADA EN ERROR:', voice);
-      console.error('❌ TEXTO ENVIADO:', text.substring(0, 100));
-      console.error('❌ FORMATO SOLICITADO:', finalFormat);
-      console.error('❌ REGIÓN AZURE:', this.region);
-      console.error('❌ ERROR DURATION:', errorDuration + 'ms');
-      
-      // DETECTAR TIMEOUT ESPECÍFICAMENTE
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        console.error('🔊 ===== NETWORK TIMEOUT ERROR DETECTED =====');
-        console.error('⏰ TIMEOUT ANALYSIS:');
-        console.error(`  ├── Duration: ${errorDuration}ms`);
-        console.error(`  ├── Timeout Limit: 10000ms`);
-        console.error(`  ├── Region: ${this.region}`);
-        console.error(`  ├── Text Length: ${text?.length || 0} chars`);
-        console.error('  └── 🎯 ROOT CAUSE ANALYSIS:');
-        console.error('      ├── Azure TTS service is slow in production');
-        console.error('      ├── Network latency from Render to Azure westeurope');
-        console.error('      ├── Render resource limits affecting HTTP requests');
-        console.error('      └── Azure service overload or maintenance');
-        
-        return {
-          success: false,
-          error: 'Azure TTS timeout - servicio no responde',
-          cause: 'TIMEOUT_ERROR',
-          duration: errorDuration,
-          timeout: 10000,
-          region: this.region,
-          recommendations: [
-            'Cambiar región a eastus o centralus',
-            'Reducir longitud del texto',
-            'Implementar cache de audio',
-            'Usar audio pre-generado como fallback'
-          ]
-        };
-      }
-      
-      // ANÁLISIS ESPECÍFICO DEL ERROR 400
-      if (error.response?.status === 400) {
-        console.error('🔍 ERROR 400 - BAD REQUEST ANALYSIS:');
-        console.error('  ├── Status Code:', error.response.status);
-        console.error('  ├── Status Text:', error.response.statusText);
-        console.error('  ├── Azure Region Used:', this.region);
-        console.error('  ├── Voice Name Sent:', voice);
-        console.error('  ├── SSML Length:', ssml?.length || 'undefined');
-        console.error('  ├── Text Length:', text?.length || 'undefined');
-        console.error('  ├── Format Requested:', finalFormat);
-        
-        // Analizar respuesta de Azure
-        if (error.response.data) {
-          const errorData = Buffer.isBuffer(error.response.data) 
-            ? error.response.data.toString('utf8') 
-            : error.response.data;
-          console.error('  ├── Azure Error Response:', errorData);
-          
-          // Buscar mensajes específicos de error
-          if (typeof errorData === 'string') {
-            if (errorData.includes('voice')) {
-              console.error('  ├── 🎯 VOICE ERROR DETECTED in response');
-            }
-            if (errorData.includes('Unsupported')) {
-              console.error('  ├── 🎯 UNSUPPORTED ERROR DETECTED in response');
-            }
-            if (errorData.includes('Invalid')) {
-              console.error('  ├── 🎯 INVALID ERROR DETECTED in response');
-            }
-          }
-        }
-        
-        // Verificar headers de la petición
-        console.error('  ├── Request Headers Sent:');
-        console.error('  │   ├── Authorization:', error.config?.headers?.Authorization ? 'Present' : 'Missing');
-        console.error('  │   ├── Content-Type:', error.config?.headers['Content-Type']);
-        console.error('  │   └── X-Microsoft-OutputFormat:', error.config?.headers['X-Microsoft-OutputFormat']);
-        
-        // Verificar SSML
-        console.error('  ├── SSML Analysis:');
-        console.error('  │   ├── SSML Valid XML:', ssml ? 'Present' : 'Missing');
-        console.error('  │   ├── Voice Tag:', ssml?.includes(`<voice name='${voice}'>`) ? 'Correct' : 'Incorrect');
-        console.error('  │   └── Language Tag:', ssml?.includes("xml:lang='es-ES'") ? 'Present' : 'Missing');
-        
-        console.error('  └── 🔍 POSSIBLE CAUSES:');
-        console.error('      ├── Invalid voice name for region');
-        console.error('      ├── Unsupported output format');
-        console.error('      ├── Malformed SSML');
-        console.error('      └── Authentication/authorization issue');
-      }
-      
-      console.error('❌ Full Error Details:');
-      console.error('  Status:', error.response?.status);
-      console.error('  Status Text:', error.response?.statusText);
-      console.error('  Response Data:', error.response?.data);
-      console.error('  Response Headers:', error.response?.headers);
-      console.error('  Request URL:', error.config?.url);
-      console.error('  Request Method:', error.config?.method);
-      console.error('  Request Headers:', error.config?.headers);
-      console.error('  Request Data Length:', error.config?.data?.length);
-      console.error('  Error Message:', error.message);
-      console.error('  Error Code:', error.code);
-      
-      // Si hay response data, intentar parsearlo
-      if (error.response?.data) {
-        const errorText = Buffer.isBuffer(error.response.data) ? error.response.data.toString('utf8') : error.response.data;
-        console.error('  Parsed Error Response:', errorText);
-      }
-      
-      console.error('🔊 ===== AZURE TTS DEBUG ERROR END =====');
-      
-      // Log final de diagnóstico
-      console.error('🔧 DIAGNOSTIC SUMMARY:');
-      console.error(`  Voice: "${voice}" | Text: "${text.substring(0, 50)}..." | Status: ${error.response?.status}`);
-      console.error(`  Region: ${this.region} | Format: ${finalFormat}`);
-      
+         
       return {
         success: false,
         error: error.message,
@@ -680,13 +566,7 @@ class AzureTTSRestService {
 }
 
 // Crear instancia del servicio
-const azureTTSRestServiceInstance = new AzureTTSRestService();
-
-// Añadir método initialize
-azureTTSRestServiceInstance.initialize = function() {
-  console.log('✅ Azure TTS REST Service initialized');
-  // Configuración inicial si es necesaria
-};
+var azureTTSRestService = new AzureTTSRestService();
 
 // Exportar la instancia
-module.exports = azureTTSRestServiceInstance;
+module.exports = azureTTSRestService;
