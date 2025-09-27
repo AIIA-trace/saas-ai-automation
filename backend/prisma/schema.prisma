@@ -67,7 +67,6 @@ model Client {
   emailConfig          Json?          // Configuración del manejo de emails
   callConfig           Json?          // Configuración de llamadas (activación, grabación, transcripción, voz, idioma, mensaje)
   companyInfo          Json?          // Información de la empresa
-  botConfig            Json?          // Configuración del bot (restaurado para compatibilidad)
   billingInfo          Json?          // Información de facturación
   paymentMethods       Json?          // Métodos de pago
   notificationConfig   Json?          // Configuración de notificaciones

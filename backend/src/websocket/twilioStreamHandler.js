@@ -385,7 +385,6 @@ class TwilioStreamHandler {
           companyDescription: true,
           industry: true,
           botLanguage: true,
-          botConfig: true,
           contextFiles: true,
           faqs: true,
           companyInfo: true,

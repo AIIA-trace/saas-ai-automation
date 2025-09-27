@@ -29,7 +29,6 @@ class StreamingTwiMLService {
       logger.info(`🔍 DEBUG TWIML: WebSocket URL: ${wsUrl}`);
       logger.info(`🔍 DEBUG TWIML: Datos del cliente recibidos:`);
       logger.info(`🔍 DEBUG TWIML: - companyInfo: ${!!clientData.companyInfo}`);
-      logger.info(`🔍 DEBUG TWIML: - botConfig: ${!!clientData.botConfig}`);
       logger.info(`🔍 DEBUG TWIML: - businessHours: ${clientData.businessHours?.length || 0}`);
       logger.info(`🔍 DEBUG TWIML: - faqs: ${clientData.faqs?.length || 0}`);
       logger.info(`🔍 DEBUG TWIML: - contextFiles: ${clientData.contextFiles?.length || 0}`);
@@ -94,16 +93,10 @@ class StreamingTwiMLService {
       if (clientData.companyInfo) {
         stream.parameter({
           name: 'companyInfo',
-          value: typeof clientData.companyInfo === 'string' ? clientData.companyInfo : JSON.stringify(clientData.companyInfo)
+          value: JSON.stringify(clientData.companyInfo)
         });
       }
 
-      if (clientData.botConfig) {
-        stream.parameter({
-          name: 'botConfig',
-          value: typeof clientData.botConfig === 'string' ? clientData.botConfig : JSON.stringify(clientData.botConfig)
-        });
-      }
 
       if (clientData.businessHours) {
         stream.parameter({

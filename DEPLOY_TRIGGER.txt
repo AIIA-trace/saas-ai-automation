@@ -1,5 +1,9 @@
-DEPLOY_TIMESTAMP=2024-12-23_20:40:15
-Deploy - CRÍTICO: Sistema centralizado de transiciones de estado
+DEPLOY_TIMESTAMP=2025-09-27T12:30:32+02:00
+Deploy requerido a las 2025-09-27T12:30:32+02:00
+Razón: Añadir logs de diagnóstico para transcripción
+Cambios:
+- backend/src/websocket/twilioStreamHandler.js
+- CRÍTICO: Sistema centralizado de transiciones de estado
 - Eliminadas 12 asignaciones directas de conversationTurn
 - Todas las transiciones ahora usan activateListeningMode()
 - Identificadores específicos para debugging granular

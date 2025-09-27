@@ -1237,7 +1237,7 @@ function createEmailsTabContent() {
  * Crear el contenido de la pestaña Configuración del Bot
  * @returns {string} HTML de la pestaña
  */
-function createBotConfigTabContent() {
+function createCallConfigTabContent() {
     return `
         <!-- 3. Configuración del Bot -->
         <div class="tab-pane" id="call-bot-content" role="tabpanel" aria-labelledby="call-bot-tab" tabindex="0">
@@ -2213,7 +2213,7 @@ function createTabsContent() {
     tabsContentContainer.innerHTML = `
         ${createCallsTabContent()}
         ${createEmailsTabContent()}
-        ${createBotConfigTabContent()}
+        ${createCallConfigTabContent()}
         ${createAccountTabContent()}
         ${createBillingTabContent()}
     `;
@@ -3258,11 +3258,11 @@ function setupEventListeners() {
     
     // Configurar botones de guardar configuración del bot (arriba y abajo del formulario)
     // Verificar si ya se configuraron los event listeners para evitar duplicados
-    const saveBotConfigBtn = document.getElementById('save-bot-config-btn');
-    const saveBotConfigBtnBottom = document.getElementById('save-bot-config-btn-bottom');
+    const saveCallConfigBtn = document.getElementById('save-bot-config-btn');
+    const saveCallConfigBtnBottom = document.getElementById('save-bot-config-btn-bottom');
     
     // Verificar si ya tienen event listeners configurados
-    const alreadyConfigured = saveBotConfigBtn && saveBotConfigBtn.hasAttribute('data-listener-configured');
+    const alreadyConfigured = saveCallConfigBtn && saveCallConfigBtn.hasAttribute('data-listener-configured');
     
     if (!alreadyConfigured) {
         console.log('🔧 Configurando event listeners para botones de guardar configuración...');
@@ -3306,16 +3306,16 @@ function setupEventListeners() {
         };
         
         // Añadir listeners a ambos botones
-        if (saveBotConfigBtn) {
-            saveBotConfigBtn.addEventListener('click', handleSaveConfig);
-            saveBotConfigBtn.setAttribute('data-listener-configured', 'true');
-            console.log('✅ Event listener configurado para save-bot-config-btn');
+        if (saveCallConfigBtn) {
+            saveCallConfigBtn.addEventListener('click', handleSaveConfig);
+            saveCallConfigBtn.setAttribute('data-listener-configured', 'true');
+            console.log('✅ Event listener configurado para save-call-config-btn');
         }
         
-        if (saveBotConfigBtnBottom) {
-            saveBotConfigBtnBottom.addEventListener('click', handleSaveConfig);
-            saveBotConfigBtnBottom.setAttribute('data-listener-configured', 'true');
-            console.log('✅ Event listener configurado para save-bot-config-btn-bottom');
+        if (saveCallConfigBtnBottom) {
+            saveCallConfigBtnBottom.addEventListener('click', handleSaveConfig);
+            saveCallConfigBtnBottom.setAttribute('data-listener-configured', 'true');
+            console.log('✅ Event listener configurado para save-call-config-btn-bottom');
         }
     } else {
         console.log('⚠️ Event listeners para botones de guardar ya configurados, omitiendo duplicados');
@@ -3325,7 +3325,7 @@ function setupEventListeners() {
     const testBotBtn = document.getElementById('test-bot-btn');
     if (testBotBtn) {
         testBotBtn.addEventListener('click', function() {
-            // testBotConfiguration() eliminada como parte de la limpieza del sistema legacy
+            // testCallConfiguration() eliminada como parte de la limpieza del sistema legacy
         });
     }
     
@@ -3432,7 +3432,7 @@ function refreshDashboardData() {
     loadEmailsData();
     
     // Actualizar otros datos si es necesario
-    // loadBotConfigData();
+    // loadCallConfigData();
     // loadAccountData();
     // loadBillingData();
     
@@ -3506,9 +3506,9 @@ function loadExistingData() {
         console.log('   - faq-items:', !!document.getElementById('faq-items'));
         // context-files-list eliminado como parte de la limpieza del sistema legacy
         
-        // Cargar configuración del bot (FAQs y archivos de contexto)
-        console.log('🤖 Iniciando carga de configuración del bot...');
-        loadBotConfiguration();
+        // Cargar configuración de llamadas (FAQs y archivos de contexto)
+        console.log('🤖 Iniciando carga de configuración de llamadas...');
+        loadCallConfiguration();
         
         // Cargar datos de perfil desde backend (fuente única de verdad)
 
@@ -3522,8 +3522,8 @@ function loadExistingData() {
 /**
  * Cargar configuración del bot (FAQs, archivos de contexto y configuración de llamadas)
  */
-function loadBotConfiguration() {
-    console.log('🤖 ===== CARGANDO CONFIGURACIÓN DEL BOT =====');
+function loadCallConfiguration() {
+    console.log('🤖 ===== CARGANDO CONFIGURACIÓN DE LLAMADAS =====');
     
     // Usar el endpoint unificado /api/client para obtener toda la configuración
     window.ApiHelper.fetchApi(window.API_CONFIG.DASHBOARD.CLIENT_DATA, { method: 'GET' })
@@ -3775,9 +3775,9 @@ function loadProfileData() {
             console.log('🕰️ No hay configuración de horarios comerciales guardada');
         }
         
-        // Cargar datos de bot config
-        if (profileData.botConfig) {
-            console.log('🤖 Bot config disponible:', Object.keys(profileData.botConfig));
+        // Cargar datos de call config
+        if (profileData.callConfig) {
+            console.log('🤖 Call config disponible:', Object.keys(profileData.callConfig));
         }
         
         // Guardar datos en localStorage para uso posterior
@@ -3862,7 +3862,7 @@ function loadAccountFormData(profileData) {
     console.log('✅ Formulario de perfil cargado correctamente');
 }
 
-// NOTA: loadBotConfiguration() restaurada y mejorada para cargar todos los campos del bot
+// NOTA: loadCallConfiguration() restaurada y mejorada para cargar todos los campos de llamadas
 
 // Función deleteContextFile() eliminada como parte de la refactorización del sistema de configuración del bot
 
@@ -7166,7 +7166,7 @@ function saveUnifiedConfig() {
     toastr.info('Guardando configuración...', 'Procesando');
     
     // Preparar datos para enviar al backend - Estructura corregida para coincidir con el endpoint PUT
-    const botConfigData = {
+    const callConfigData = {
         // Información de empresa - Campos individuales como espera el backend
         companyName: config.companyName,
         companyDescription: config.companyDescription,
@@ -7231,7 +7231,7 @@ function saveUnifiedConfig() {
         personality: config.botPersonality
     };
     
-    console.log(' Preguntas frecuentes incluidas:', botConfigData.faqs);
+    console.log(' Preguntas frecuentes incluidas:', callConfigData.faqs);
     console.log(' Archivos de contexto a procesar:', config.files);
     
     // Obtener token de autenticación
@@ -7248,9 +7248,9 @@ function saveUnifiedConfig() {
     // Primero procesamos los archivos de contexto y luego guardamos la configuración completa
     console.log(' Procesando archivos de contexto...');
     
-    // Actualizar botConfigData con los FAQs recolectados
-    botConfigData.faqs = collectFaqItems();
-    console.log(' FAQs recopiladas:', botConfigData.faqs);
+    // Actualizar callConfigData con los FAQs recolectados
+    callConfigData.faqs = collectFaqItems();
+    console.log(' FAQs recopiladas:', callConfigData.faqs);
     
     // PROCESAMIENTO DE ARCHIVOS DE CONTEXTO ELIMINADO
     // Esta funcionalidad ha sido removida como parte de la eliminación del sistema legacy
@@ -7259,7 +7259,7 @@ function saveUnifiedConfig() {
     // Proceder directamente con el guardado de configuración
     Promise.resolve()
         .then(() => {
-            console.log('📤 Enviando configuración unificada al backend:', botConfigData);
+            console.log('📤 Enviando configuración unificada al backend:', callConfigData);
             
             // SOLUCIÓN FINAL: Formato híbrido con campos tanto directos como anidados
             // para garantizar la compatibilidad con el backend actualizado
@@ -7287,11 +7287,11 @@ function saveUnifiedConfig() {
 
                 },
                 
-                // Configuración del bot
-                botConfig: {
+                // Configuración de llamadas
+                callConfig: {
                     name: config.botName,
                     personality: config.botPersonality,
-                    callConfig: config.callConfig
+                    voiceSettings: config.voiceSettings
                 },
                 
                 // Configuración de llamadas
@@ -7425,9 +7425,9 @@ function saveUnifiedConfig() {
                     saveButton.disabled = false;
                 }
                 
-                // Recargar datos de configuración del bot
-                loadBotConfiguration();
-                console.log('✅ UI restaurada - configuración del bot recargada');
+                // Recargar datos de configuración de llamadas
+                loadCallConfiguration();
+                console.log('✅ UI restaurada - configuración de llamadas recargada');
             }, 2000); // Exactamente 2 segundos como solicitó el usuario
             
             resolve();
@@ -7446,20 +7446,20 @@ function saveUnifiedConfig() {
 }
 
 // ...
-// FUNCIÓN testBotConfiguration() ELIMINADA
+// FUNCIÓN testCallConfiguration() ELIMINADA
 // Esta función era parte del sistema legacy de configuración del bot
 // que dependía del endpoint /api/bot/test que no existe en el backend
 // Ha sido removida como parte de la limpieza exhaustiva del código legacy
-function testBotConfiguration() {
-    console.log('⚠️ Función testBotConfiguration() ha sido deshabilitada');
+function testCallConfiguration() {
+    console.log('⚠️ Función testCallConfiguration() ha sido deshabilitada');
     toastr.warning('Esta funcionalidad ha sido temporalmente deshabilitada', 'Aviso');
     return;
 }
 
 // La función showBotTestModal ha sido eliminada porque ahora usamos la API real
-// y mostramos los resultados en un modal generado dinámicamente en la función testBotConfiguration
+// y mostramos los resultados en un modal generado dinámicamente en la función testCallConfiguration
 
-// FUNCIÓN ELIMINADA: setupFaqManager() - Reemplazada por setupFaqButtons() + loadBotConfiguration()
+// FUNCIÓN ELIMINADA: setupFaqManager() - Reemplazada por setupFaqButtons() + loadCallConfiguration()
 
 /**
  * Configurar solo los botones de FAQs (sin cargar datos)

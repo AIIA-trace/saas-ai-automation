@@ -487,15 +487,15 @@ class TwilioService {
       const azureVoice = this.getAzureVoiceForLanguage(language);
       
       // Obtener voz personalizada del usuario o usar la detectada por idioma
-      const userVoice = clientData.botConfig?.voiceSettings?.azureVoice || azureVoice || 'lola';
+      const userVoice = clientData.callConfig?.voiceSettings?.azureVoice || azureVoice || 'lola';
       
       // Obtener configuración avanzada de voz del usuario
       const voiceSettings = {
-        rate: clientData.botConfig?.voiceSettings?.rate || 'medium',           // Velocidad de habla
-        pitch: clientData.botConfig?.voiceSettings?.pitch || 'medium',         // Tono de voz
-        volume: clientData.botConfig?.voiceSettings?.volume || 'medium',       // Volumen
-        style: clientData.botConfig?.voiceSettings?.style || 'friendly',       // Estilo emocional
-        emphasis: clientData.botConfig?.voiceSettings?.emphasis || 'moderate'   // Énfasis
+        rate: clientData.callConfig?.voiceSettings?.rate || 'medium',           // Velocidad de habla
+        pitch: clientData.callConfig?.voiceSettings?.pitch || 'medium',         // Tono de voz
+        volume: clientData.callConfig?.voiceSettings?.volume || 'medium',       // Volumen
+        style: clientData.callConfig?.voiceSettings?.style || 'friendly',       // Estilo emocional
+        emphasis: clientData.callConfig?.voiceSettings?.emphasis || 'moderate'   // Énfasis
       };
       
       logger.info(`🎵 [TTS-DEBUG-${ttsId}] Idioma detectado: ${language}`);
@@ -776,7 +776,7 @@ class TwilioService {
   }
 
   // Generar audio premium con Azure TTS (voces españolas)
-  async generatePremiumAudio(text, botConfig) {
+  async generatePremiumAudio(text, callConfig) {
     try {
       // Verificar si Azure TTS está configurado
       const hasAzure = azureTTSService.isConfigured();
@@ -786,7 +786,7 @@ class TwilioService {
       if (hasAzure) {
         try {
           // Obtener y validar voz preferida del usuario (solo Lola o Dario)
-          const requestedVoice = botConfig?.voiceSettings?.azureVoice || 'lola';
+          const requestedVoice = callConfig?.voiceSettings?.azureVoice || 'lola';
           const preferredVoice = this.validateAndGetVoice(requestedVoice);
           
           logger.info(`✅ Generando audio con Azure TTS (${preferredVoice} - español peninsular)...`);
