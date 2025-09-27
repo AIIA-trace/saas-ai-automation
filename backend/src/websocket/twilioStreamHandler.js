@@ -140,8 +140,22 @@ class TwilioStreamHandler {
     this.transcriptionActive.set(streamSid, false);
     this.responseInProgress.set(streamSid, false);
 
-    // Enviar saludo inicial
-    this.sendInitialGreeting(ws, { streamSid, callSid });
+    // Enviar saludo inicial y activar transcripción después de un delay
+    this.sendInitialGreeting(ws, { streamSid, callSid }).then(() => {
+      // Esperar un poco más para asegurar que el audio termine de reproducirse
+      setTimeout(() => {
+        logger.info(`🚀 [${streamSid}] Activando transcripción después del saludo inicial...`);
+        this.transcriptionActive.set(streamSid, true);
+        const streamData = this.activeStreams.get(streamSid);
+        if (streamData) {
+          streamData.state = 'listening';
+          streamData.greetingCompletedAt = Date.now();
+        }
+        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`);
+      }, 3000); // Delay de 3 segundos para asegurar que el saludo termine
+    }).catch(error => {
+      logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
+    });
   }
 
   /**
@@ -297,6 +311,65 @@ class TwilioStreamHandler {
     logger.info(`🎤 [${streamSid}] Iniciando stream para cliente: ${clientId}`);
     
     try {
+      // Buscar el stream - primero por streamSid, luego por tempId del WebSocket
+      let streamData = this.activeStreams.get(streamSid);
+      
+      if (!streamData && ws.tempStreamId) {
+        // Migrar desde ID temporal al streamSid real
+        streamData = this.activeStreams.get(ws.tempStreamId);
+        if (streamData) {
+          logger.info(`🔄 [${streamSid}] Migrando desde ID temporal: ${ws.tempStreamId}`);
+          this.activeStreams.delete(ws.tempStreamId);
+          this.activeStreams.set(streamSid, streamData);
+        }
+      }
+      
+      if (!streamData) {
+        logger.error(`❌ [${streamSid}] Stream no encontrado en activeStreams`);
+        return;
+      }
+
+      // Verificar si ya se envió el saludo
+      if (streamData.greetingSent) {
+        logger.warn(`⚠️ [${streamSid}] Saludo ya enviado - ignorando handleStreamStart duplicado`);
+        return;
+      }
+
+      // Si no hay clientId, usar configuración por defecto para testing
+      if (!clientId || isNaN(parseInt(clientId))) {
+        logger.warn(`⚠️ [${streamSid}] ClientId no válido (${clientId}) - usando configuración por defecto`);
+        
+        // Configuración por defecto para testing
+        const defaultConfig = {
+          id: 1,
+          companyName: 'Sistema de Prueba',
+          callConfig: {
+            enabled: true,
+            greeting: 'Hola, gracias por llamar. Soy el asistente virtual de prueba. ¿En qué puedo ayudarte?',
+            voiceId: 'lola',
+            language: 'es-ES'
+          }
+        };
+        
+        streamData.client = defaultConfig;
+        streamData.greetingSent = true;
+        streamData.streamSid = streamSid;
+        streamData.isInitializing = false;
+        
+        // Enviar saludo y activar transcripción
+        await this.sendInitialGreeting(ws, { streamSid, callSid });
+        logger.info(`✅ [${streamSid}] Saludo de prueba enviado correctamente`);
+        
+        // IMPORTANTE: Activar transcripción también para configuración por defecto
+        logger.info(`🚀 [${streamSid}] Activando transcripción después del saludo (config por defecto)...`);
+        this.transcriptionActive.set(streamSid, true);
+        streamData.state = 'listening';
+        streamData.greetingCompletedAt = Date.now();
+        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`);
+        
+        return;
+      }
+
       // Obtener configuración COMPLETA del cliente incluyendo contexto
       const clientConfig = await this.prisma.client.findUnique({
         where: { id: parseInt(clientId) },
@@ -320,14 +393,8 @@ class TwilioStreamHandler {
         return;
       }
 
-      // Actualizar stream con configuración
-      const tempId = ws.tempStreamId;
-      const streamData = this.activeStreams.get(tempId);
-      
-      if (!streamData) {
-        logger.error(`❌ [${streamSid}] No se encontró stream temporal: ${tempId}`);
-        return;
-      }
+      // Marcar como enviado ANTES de enviar para evitar duplicados
+      streamData.greetingSent = true;
       
       // Migrar de ID temporal a streamSid real
       streamData.streamSid = streamSid;
@@ -335,39 +402,23 @@ class TwilioStreamHandler {
       streamData.isInitializing = false;
       
       // Actualizar en el Map con la clave real
-      this.activeStreams.delete(tempId);
       this.activeStreams.set(streamSid, streamData);
 
-      // Inicializar VAD y detección de voz para este stream
-      this.speechDetection.set(streamSid, {
-        isActive: false,
-        adaptiveThreshold: 100,
-        silenceCount: 0,
-        speechCount: 0,
-        lastActivity: Date.now()
-      });
-
-      // Inicializar echo blanking
-      this.echoBlanking.set(streamSid, {
-        active: false,
-        endTime: 0
-      });
-
-      logger.info(`🎯 [${streamSid}] Stream configurado - Estado inicial: ${streamData.conversationTurn}, esperando transición a listening`);
-      
       logger.info(`✅ [${streamSid}] Cliente configurado: ${clientConfig.companyName}`);
-      logger.info(`🔄 [${streamSid}] Migrado desde ID temporal: ${tempId}`);
       
-      // VERIFICACIÓN ESTRICTA: Solo generar saludo UNA VEZ
-      if (streamData.greetingSent) {
-        logger.warn(`⚠️ [${streamSid}] DUPLICADO DETECTADO - Saludo ya enviado, OMITIENDO`);
+      // Verificar si el bot está habilitado
+      if (!clientConfig.callConfig?.enabled) {
+        logger.warn(`⚠️ [${streamSid}] Bot deshabilitado para cliente ${clientId}`);
         return;
       }
       
-      // Marcar ANTES de generar para evitar condiciones de carrera
-      streamData.greetingSent = true;
-      streamData.state = 'speaking';
-      
+      // Verificar horario comercial
+      if (!this.isWithinBusinessHours(clientConfig.businessHours)) {
+        logger.warn(`⚠️ [${streamSid}] Fuera de horario comercial`);
+        return;
+      }
+
+      // ENVÍO ÚNICO DEL SALUDO - SOLO AQUÍ
       try {
         logger.info(`🔊 [${streamSid}] Generando ÚNICO saludo...`);
         await this.sendInitialGreeting(ws, { streamSid, callSid });
@@ -383,7 +434,7 @@ class TwilioStreamHandler {
         // Almacenar timestamp para verificación
         streamData.greetingCompletedAt = Date.now();
         
-        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`)
+        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`);
         
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
@@ -465,6 +516,17 @@ class TwilioStreamHandler {
         logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
         
         await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
+        
+        // Calcular duración del audio para activar transcripción después
+        const audioDuration = Math.max(2000, (ttsResult.audioBuffer.length / 8) + 1000);
+        logger.info(`🕐 [${streamSid}] Duración estimada del saludo: ${audioDuration}ms`);
+        
+        // Desactivar echo blanking después de que termine el audio
+        setTimeout(() => {
+          this.deactivateEchoBlanking(streamSid);
+          logger.info(`🔇 [${streamSid}] Echo blanking desactivado después del saludo`);
+        }, audioDuration);
+        
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error TTS: ${error.message}`);
@@ -472,6 +534,11 @@ class TwilioStreamHandler {
       // 4. Usar fallback si TTS falla
       logger.warn(`⚠️ [${streamSid}] Usando audio de fallback`);
       await this.sendAudioToTwilio(ws, this.fallbackAudio, streamSid);
+      
+      // También desactivar echo blanking para fallback
+      setTimeout(() => {
+        this.deactivateEchoBlanking(streamSid);
+      }, 3000);
     }
   }
 
@@ -730,6 +797,18 @@ class TwilioStreamHandler {
       echoBlanking.active = true;
       echoBlanking.endTime = now + duration;
       logger.info(`🔇 [${streamSid}] Echo Blanking ACTIVADO por ${duration}ms`);
+    }
+  }
+
+  /**
+   * Desactivar Echo Blanking manualmente
+   */
+  deactivateEchoBlanking(streamSid) {
+    const echoBlanking = this.echoBlanking.get(streamSid);
+    if (echoBlanking && echoBlanking.active) {
+      echoBlanking.active = false;
+      echoBlanking.endTime = 0;
+      logger.info(`🔊 [${streamSid}] Echo Blanking DESACTIVADO manualmente`);
     }
   }
 
