@@ -859,7 +859,17 @@ class TwilioStreamHandler {
     if (echoBlanking && echoBlanking.active) {
       echoBlanking.active = false;
       echoBlanking.endTime = 0;
-      logger.info(`🔊 [${streamSid}] Echo Blanking DESACTIVADO manualmente`);
+      logger.info(`🔇 [${streamSid}] Echo Blanking DESACTIVADO`);
+      
+      // CRÍTICO: Activar transcripción si es después del saludo inicial
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData && !streamData.greetingCompletedAt && !this.transcriptionActive.get(streamSid)) {
+        logger.info(`🚀 [${streamSid}] Activando transcripción después del saludo inicial...`);
+        this.transcriptionActive.set(streamSid, true);
+        streamData.state = 'listening';
+        streamData.greetingCompletedAt = Date.now();
+        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`);
+      }
     }
   }
 
