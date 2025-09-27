@@ -1,5 +1,5 @@
 DEPLOY_TIMESTAMP=2025-09-27T12:30:32+02:00
-Deploy requerido a las 2025-09-27T13:32:15+02:00
+Deploy requerido a las 2025-09-27T13:44:30+02:00
 Razón: Correcciones críticas del bot - horarios comerciales, speechDetection y voces
 Cambios:
 - backend/src/websocket/twilioStreamHandler.js (speechDetection auto-reinicialización + voces Isidora)

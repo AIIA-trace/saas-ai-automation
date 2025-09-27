@@ -539,10 +539,16 @@ class TwilioStreamHandler {
         logger.info(`🕐 [${streamSid}] Duración estimada del saludo: ${audioDuration}ms`);
         
         // Desactivar echo blanking después de que termine el audio
-        setTimeout(() => {
+        logger.info(`⏰ [${streamSid}] Programando desactivación de echo blanking en ${audioDuration}ms`);
+        const timeoutId = setTimeout(() => {
+          logger.info(`⚡ [${streamSid}] EJECUTANDO timeout de desactivación de echo blanking`);
           this.deactivateEchoBlanking(streamSid);
           logger.info(`🔇 [${streamSid}] Echo blanking desactivado después del saludo`);
         }, audioDuration);
+        
+        // Guardar timeout ID para debugging
+        if (!this.echoTimeouts) this.echoTimeouts = new Map();
+        this.echoTimeouts.set(streamSid, timeoutId);
         
       }
     } catch (error) {
