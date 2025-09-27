@@ -356,6 +356,11 @@ class TwilioStreamHandler {
         streamData.streamSid = streamSid;
         streamData.isInitializing = false;
         
+        // Inicializar detección de voz ANTES del saludo
+        this.initializeSpeechDetection(streamSid);
+        this.initializeEchoBlanking(streamSid);
+        logger.info(`🎯 [${streamSid}] Sistemas de detección inicializados`);
+        
         // Enviar saludo y activar transcripción
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo de prueba enviado correctamente`);
@@ -417,6 +422,11 @@ class TwilioStreamHandler {
         logger.warn(`⚠️ [${streamSid}] Fuera de horario comercial`);
         return;
       }
+
+      // Inicializar detección de voz ANTES del saludo
+      this.initializeSpeechDetection(streamSid);
+      this.initializeEchoBlanking(streamSid);
+      logger.info(`🎯 [${streamSid}] Sistemas de detección inicializados`);
 
       // ENVÍO ÚNICO DEL SALUDO - SOLO AQUÍ
       try {
@@ -784,6 +794,18 @@ class TwilioStreamHandler {
       hangoverDuration: 300, // ms para mantener activo después de speech (300ms)
       echoBlankingDuration: 500 // ms para ignorar VAD después de TTS (500ms)
     });
+  }
+
+  /**
+   * Inicializar sistema de echo blanking para un stream
+   */
+  initializeEchoBlanking(streamSid) {
+    this.echoBlanking.set(streamSid, {
+      active: false,
+      endTime: 0,
+      lastActivation: 0
+    });
+    logger.info(`🔇 [${streamSid}] Echo blanking inicializado`);
   }
 
   /**
@@ -1633,6 +1655,42 @@ class TwilioStreamHandler {
       this.silenceStartTime.delete(streamSid);
       return 0;
     }
+  }
+
+  /**
+   * Verificar si está dentro del horario comercial
+   */
+  isWithinBusinessHours(businessHours) {
+    // Si no hay configuración de horario, permitir siempre (24/7)
+    if (!businessHours || typeof businessHours !== 'object') {
+      logger.info('📅 No hay configuración de horario comercial - permitiendo 24/7');
+      return true;
+    }
+
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const currentTime = now.getHours() * 100 + now.getMinutes(); // HHMM format
+
+    // Mapear días de la semana
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayName = dayNames[currentDay];
+
+    // Verificar si el día está configurado
+    const todayConfig = businessHours[todayName];
+    if (!todayConfig || !todayConfig.enabled) {
+      logger.info(`📅 Día ${todayName} no habilitado en horario comercial`);
+      return false;
+    }
+
+    // Verificar horario del día
+    const startTime = parseInt(todayConfig.start?.replace(':', '') || '0000');
+    const endTime = parseInt(todayConfig.end?.replace(':', '') || '2359');
+
+    const isWithinHours = currentTime >= startTime && currentTime <= endTime;
+    
+    logger.info(`📅 Horario comercial ${todayName}: ${todayConfig.start}-${todayConfig.end}, actual: ${Math.floor(currentTime/100)}:${String(currentTime%100).padStart(2,'0')}, permitido: ${isWithinHours}`);
+    
+    return isWithinHours;
   }
 
   /**
