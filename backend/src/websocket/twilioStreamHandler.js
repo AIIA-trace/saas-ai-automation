@@ -1031,16 +1031,17 @@ class TwilioStreamHandler {
       detection.silenceCount = 0;
       detection.lastActivity = now;
       
+      // Activar detección si no está activa
+      if (!detection.isActive) {
+        detection.isActive = true;
+        logger.info(`🎤 [${streamSid}] VAD ACTIVADO: Habla detectada`);
+      }
+      
       // HANGOVER TIMER: Establecer timer para mantener activo después de speech
       detection.hangoverTimer = now + detection.hangoverDuration;
       
       // LOG CRÍTICO: Mostrar progreso hacia activación
-      logger.info(`🔢 [${streamSid}] SPEECH COUNT: ${detection.speechCount}/${detection.minSpeechDuration}, isActive=${detection.isActive}`);
-      
-      if (!detection.isActive && detection.speechCount >= detection.minSpeechDuration) {
-        detection.isActive = true;
-        logger.info(`🎙️ [${streamSid}] Inicio de habla detectado (energía: ${energy.toFixed(1)}, umbral: ${detection.adaptiveThreshold.toFixed(1)})`);
-      }
+      logger.info(`🔢 [${streamSid}] SPEECH COUNT: ${detection.speechCount}, isActive=${detection.isActive}`);
     } else {
       detection.silenceCount++;
       detection.speechCount = Math.max(0, detection.speechCount - 1); // decaimiento gradual
@@ -1069,10 +1070,13 @@ class TwilioStreamHandler {
     const forceProcess = detection.isActive && 
                         detection.speechCount > 8; // Basado en OpenAI: 500ms silence_duration_ms
     
-    // Detectar final de habla (lógica original + forzado)
-    const shouldProcess = (detection.isActive && 
-                          detection.silenceCount >= detection.maxSilenceDuration &&
-                          timeActive > 200) || forceProcess; // mínimo 200ms de silencio O forzado
+    // Detectar final de habla - LÓGICA SIMPLIFICADA PARA TWILIO
+    // Si hay habla activa Y (suficiente silencio O tiempo máximo excedido)
+    const shouldProcess = detection.isActive && (
+      (detection.silenceCount >= detection.maxSilenceDuration && timeActive > 200) ||
+      (detection.speechCount >= 8) || // Forzar después de ~640ms de habla continua
+      forceProcess
+    );
     
     if (shouldProcess) {
       const silenceChunks = detection.silenceCount; // Guardar antes de resetear
