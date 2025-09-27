@@ -1,8 +1,14 @@
 DEPLOY_TIMESTAMP=2025-09-27T12:30:32+02:00
-Deploy requerido a las 2025-09-27T12:30:32+02:00
-Razón: Añadir logs de diagnóstico para transcripción
+Deploy requerido a las 2025-09-27T13:32:15+02:00
+Razón: Correcciones críticas del bot - horarios comerciales, speechDetection y voces
 Cambios:
-- backend/src/websocket/twilioStreamHandler.js
+- backend/src/websocket/twilioStreamHandler.js (speechDetection auto-reinicialización + voces Isidora)
+- backend/src/routes/api.js (soporte businessHoursConfig)
+- frontend/js/dashboard-simple-clean.js (voces Isidora)
+- backend/src/routes/testAudio.js (voces Isidora)
+- backend/src/services/azureTTSRestService.js (voces Isidora)
+- frontend/js/multilingual-voice-system.js (voces Isidora)
+- Base de datos: horarios comerciales sábado 24h + voiceId 'isidora'
 - CRÍTICO: Sistema centralizado de transiciones de estado
 - Eliminadas 12 asignaciones directas de conversationTurn
 - Todas las transiciones ahora usan activateListeningMode()

@@ -167,8 +167,8 @@ class AzureTTSRestService {
       
       // Validar voz antes de usar
       const validVoices = [
-        'es-ES-DarioNeural', 'es-ES-XimenaMultilingualNeural', 'es-ES-AlvaroNeural',
-        'en-US-LolaMultilingualNeural', 'es-ES-ArabellaMultilingualNeural', 'es-ES-IsidoraMultilingualNeural'
+        'es-ES-IsidoraMultilingualNeural', 'es-ES-DarioNeural', 'es-ES-AlvaroNeural',
+        'en-US-LolaMultilingualNeural', 'es-ES-ArabellaMultilingualNeural'
       ];
       
       if (!validVoices.includes(voice)) {

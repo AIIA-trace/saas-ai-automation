@@ -482,7 +482,7 @@ router.put('/client', authenticate, async (req, res) => {
 
     // FORCE DEBUG - Verificar businessHours en el endpoint CORRECTO
     logger.info(`🕐 FORCE DEBUG CORRECTO - Verificando businessHours en req.body`);
-    const businessHoursFromBody = req.body.businessHours || req.body.business_hours_config;
+    const businessHoursFromBody = req.body.businessHours || req.body.business_hours_config || req.body.businessHoursConfig;
     logger.info(`🕐 FORCE DEBUG CORRECTO - businessHours encontrado:`, !!businessHoursFromBody);
     if (businessHoursFromBody) {
       logger.info(`🕐 FORCE DEBUG CORRECTO - businessHours contenido:`, JSON.stringify(businessHoursFromBody, null, 2));

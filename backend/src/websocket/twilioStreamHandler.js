@@ -480,7 +480,7 @@ class TwilioStreamHandler {
     // Get voice configuration and map to valid Azure voice
     const rawVoiceId = streamData.client.callConfig?.voiceId || 
                       clientConfigData.callConfig?.voiceId || 
-                      'ximena';
+                      'isidora';
     const language = streamData.client.callConfig?.language || 
                     clientConfigData.callConfig?.language || 
                     'es-ES';
@@ -564,7 +564,7 @@ class TwilioStreamHandler {
     
     // Get voice configuration and map to valid Azure voice
     const rawVoiceId = clientConfigData.callConfig?.voiceId || 
-                      'ximena';
+                      'isidora';
     const language = clientConfigData.callConfig?.language || 
                     'es-ES';
     
@@ -804,7 +804,9 @@ class TwilioStreamHandler {
    * Inicializar sistema de detección de habla para un stream
    */
   initializeSpeechDetection(streamSid) {
-    this.speechDetection.set(streamSid, {
+    logger.info(`🎯 [${streamSid}] Initializing speech detection system...`);
+    
+    const config = {
       isActive: false,
       silenceCount: 0,
       speechCount: 0,
@@ -821,7 +823,18 @@ class TwilioStreamHandler {
       hangoverTimer: 0, // timestamp hasta cuando mantener isActive después de último speech
       hangoverDuration: 300, // ms para mantener activo después de speech (300ms)
       echoBlankingDuration: 500 // ms para ignorar VAD después de TTS (500ms)
-    });
+    };
+    
+    this.speechDetection.set(streamSid, config);
+    
+    // Verificar que se guardó correctamente
+    const verification = this.speechDetection.get(streamSid);
+    if (verification) {
+      logger.info(`✅ [${streamSid}] Speech detection initialized successfully`);
+      logger.info(`🔍 [${streamSid}] Config keys: ${Object.keys(verification).join(', ')}`);
+    } else {
+      logger.error(`❌ [${streamSid}] Failed to initialize speech detection`);
+    }
   }
 
   /**
@@ -893,10 +906,18 @@ class TwilioStreamHandler {
    */
   detectVoiceActivity(audioChunk, streamSid) {
     try {
-      const detection = this.speechDetection.get(streamSid);
+      let detection = this.speechDetection.get(streamSid);
       if (!detection) {
-        logger.error(`🚨 [${streamSid}] No detection config found`);
-        return { shouldProcess: false, reason: 'no_detection_config' };
+        logger.warn(`⚠️ [${streamSid}] No detection config found, re-initializing...`);
+        // Re-inicializar automáticamente si no existe
+        this.initializeSpeechDetection(streamSid);
+        detection = this.speechDetection.get(streamSid);
+        
+        if (!detection) {
+          logger.error(`🚨 [${streamSid}] Failed to re-initialize detection config`);
+          return { shouldProcess: false, reason: 'no_detection_config' };
+        }
+        logger.info(`✅ [${streamSid}] Detection config re-initialized successfully`);
       }
 
       const now = Date.now();
@@ -1502,7 +1523,7 @@ class TwilioStreamHandler {
       logger.info(`🔊 [${streamSid}] Iniciando conversión TTS para: "${responseText}"`);
       
       // Obtener configuración de voz
-      const rawVoiceId = clientConfig.callConfig?.voiceId || 'ximena';
+      const rawVoiceId = clientConfig.callConfig?.voiceId || 'isidora';
       const language = clientConfig.callConfig?.language || 'es-ES';
       const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
       

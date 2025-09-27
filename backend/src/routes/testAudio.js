@@ -99,7 +99,7 @@ router.get('/', async (req, res) => {
 router.get('/voices', (req, res) => {
   const availableVoices = [
     { id: 'es-ES-DarioNeural', name: 'Dario (Español - Masculino)', language: 'es-ES' },
-    { id: 'es-ES-XimenaMultilingualNeural', name: 'Ximena Multilingüe (Español - Femenino)', language: 'es-ES' },
+    { id: 'es-ES-IsidoraMultilingualNeural', name: 'Isidora Multilingüe (Español - Femenino)', language: 'es-ES' },
     { id: 'es-ES-AlvaroNeural', name: 'Alvaro (Español - Masculino)', language: 'es-ES' },
     { id: 'en-US-LolaMultilingualNeural', name: 'Lola (Inglés/Multilingüe - Femenino)', language: 'en-US' },
     { id: 'es-ES-ArabellaMultilingualNeural', name: 'Arabella (Español/Multilingüe - Femenino)', language: 'es-ES' }

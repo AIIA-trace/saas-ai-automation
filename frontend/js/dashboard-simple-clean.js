@@ -1458,7 +1458,7 @@ function createCallConfigTabContent() {
                                                             Voz del Bot
                                                         </label>
                                                         <div class="alert alert-info mb-0" role="alert">
-                                                            <strong>Ximena (Multilingüe)</strong><br>
+                                                            <strong>Isidora (Multilingüe)</strong><br>
                                                             <small class="text-muted">Voz española multilingüe con soporte SSML completo para conversaciones naturales</small>
                                                         </div>
                                                     </div>
@@ -3549,8 +3549,8 @@ function loadCallConfiguration() {
         // Idioma fijo: Español para todos los usuarios
         console.log('🌍 Idioma configurado: Español (es-ES)');
         
-        // Voz fija: Ximena Multilingüe para todos los usuarios
-        console.log('🎤 Voz configurada: Ximena (es-ES-XimenaMultilingualNeural)');
+        // Voz fija: Isidora Multilingüe para todos los usuarios
+        console.log('🎤 Voz configurada: Isidora (es-ES-IsidoraMultilingualNeural)');
         
         if (callConfig.greeting) {
             const greetingTextarea = document.getElementById('call_greeting');
@@ -6950,7 +6950,7 @@ function saveUnifiedConfig() {
                 const config = {
                     // Campos que SÍ existen en el HTML
                     enabled: document.getElementById('call_bot_active')?.checked || false,
-                    voiceId: 'ximena', // Voz fija para todos los usuarios
+                    voiceId: 'isidora', // Voz fija para todos los usuarios
                     language: 'es-ES', // Idioma fijo español
                     greeting: document.getElementById('call_greeting')?.value || 'Hola, ha llamado a nuestra empresa. Soy el asistente virtual, ¿en qué puedo ayudarle hoy?',
                     // Configuración automática para N8N
@@ -9644,8 +9644,8 @@ function markEmailAsRead(emailId) {
  * Cargar voces disponibles de Azure TTS
  */
 async function loadAzureVoices() {
-    // Voz fija configurada: Ximena Multilingüe
-    console.log('🎵 Voz configurada: Ximena (es-ES-XimenaMultilingualNeural)');
+    // Voz fija configurada: Isidora Multilingüe
+    console.log('🎵 Voz configurada: Isidora (es-ES-IsidoraMultilingualNeural)');
     console.log('✅ Configuración de voz simplificada - no requiere carga dinámica');
 }
 
