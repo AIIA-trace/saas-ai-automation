@@ -53,19 +53,21 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Maneja una nueva conexión WebSocket
-   * @param {WebSocket} ws - Conexión WebSocket
+   * Maneja conexión WebSocket establecida
    */
   handleConnection(ws) {
-    logger.info(`🔌 Nueva conexión WebSocket recibida: ${ws.connectionId}`);
+    logger.info(`🔌 NUEVA CONEXIÓN WEBSOCKET ESTABLECIDA`);
     
-    // Configurar event listeners para la conexión
-    ws.on('message', (message) => {
+    ws.connectionId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+    logger.info(`🔌 Connection ID asignado: ${ws.connectionId}`);
+    
+    ws.on('message', async (message) => {
       try {
-        const data = JSON.parse(message);
-        this.handleMessage(ws, data);
+        const data = JSON.parse(message.toString());
+        logger.info(`📨 [${ws.connectionId}] Mensaje recibido: ${data.event}`);
+        await this.handleMessage(ws, data);
       } catch (error) {
-        logger.error(`❌ Error parseando mensaje WebSocket: ${error.message}`);
+        logger.error(`❌ Error procesando mensaje: ${error.message}`);
       }
     });
 
@@ -109,7 +111,8 @@ class TwilioStreamHandler {
    * Maneja evento 'connected' de Twilio
    */
   handleConnected(ws, data) {
-    logger.info(`🔗 WebSocket conectado: ${data.protocol} v${data.version}`);
+    logger.info(`🔌 STREAM CONECTADO: ${JSON.stringify(data)}`);
+    logger.info(`🔌 [${ws.connectionId}] Twilio Stream conectado exitosamente`);
   }
 
   /**
