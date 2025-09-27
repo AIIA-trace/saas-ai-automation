@@ -1527,12 +1527,15 @@ class TwilioStreamHandler {
         // Calcular duración aproximada del audio y agregar buffer
         const estimatedDuration = Math.max(3000, (ttsResult.audioBuffer.length / 8) + 2000); // ~1ms por byte + 2s buffer
         
-        // NUEVO: Usar timeout basado en eventos
-        this.safeTimeouts.createTTSResponseTimeout(streamSid, estimatedDuration, () => {
-          logger.info(`⚡ [${streamSid}] TTS completado - transicionando a listening`);
-          this.stateManager.transitionTo(streamSid, 'listening', `tts-completed-${estimatedDuration}ms`);
+        // Activar echo blanking durante la reproducción
+        this.activateEchoBlanking(streamSid);
+        
+        // Desactivar echo blanking después del audio
+        setTimeout(() => {
+          logger.info(`⚡ [${streamSid}] TTS completado - desactivando echo blanking`);
+          this.deactivateEchoBlanking(streamSid);
           this.responseInProgress.delete(streamSid);
-        });
+        }, estimatedDuration);
         
       } else {
         logger.error(`❌ [${streamSid}] Error generando TTS: ${ttsResult.error || 'Error desconocido'}`);
@@ -1552,10 +1555,13 @@ class TwilioStreamHandler {
           // Calcular duración aproximada del audio fallback
           const fallbackDuration = Math.max(3000, (fallbackResult.audioBuffer.length / 8) + 2000);
           
-          // NUEVO: Programar transición a listening después del TTS
+          // Activar echo blanking durante la reproducción del fallback
+          this.activateEchoBlanking(streamSid);
+          
+          // Desactivar echo blanking después del audio fallback
           setTimeout(() => {
-            logger.info(`⚡ [${streamSid}] Fallback TTS completado - iniciando listening`);
-            this.startListening(streamSid);
+            logger.info(`⚡ [${streamSid}] Fallback TTS completado - desactivando echo blanking`);
+            this.deactivateEchoBlanking(streamSid);
             this.responseInProgress.delete(streamSid);
           }, fallbackDuration);
         }
