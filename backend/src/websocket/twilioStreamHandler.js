@@ -17,9 +17,9 @@ class AudioPreprocessor {
   /**
    * Detectar saturación temprana en el audio
    */
-  detectSaturation(audioData, threshold = 250) {
+  detectSaturation(audioData, threshold = 254) {
     const samples = new Uint8Array(audioData);
-    const saturatedSamples = samples.filter(s => s >= threshold || s <= 5).length;
+    const saturatedSamples = samples.filter(s => s >= threshold || s <= 3).length;
     const ratio = saturatedSamples / samples.length;
     
     const stats = {
@@ -28,13 +28,13 @@ class AudioPreprocessor {
       avg: samples.reduce((a, b) => a + b) / samples.length
     };
     
-    // Condiciones múltiples para detectar saturación
+    // Condiciones múltiples para detectar saturación (umbrales más permisivos)
     const rejectionConditions = [
-      stats.max >= 250,                    // Valores cerca del máximo
-      stats.min >= 200,                    // Mínimo muy alto
-      stats.avg >= 200,                    // Promedio muy alto
-      stats.max - stats.min < 10,          // Rango dinámico muy pequeño
-      ratio > 0.1                          // >10% de muestras saturadas
+      stats.max >= 254 && stats.min >= 240,  // Solo si REALMENTE saturado (max Y min altos)
+      stats.min >= 230,                      // Mínimo extremadamente alto
+      stats.avg >= 230,                      // Promedio extremadamente alto
+      stats.max - stats.min < 5,             // Rango dinámico casi nulo
+      ratio > 0.3                            // >30% de muestras saturadas
     ];
     
     return {
