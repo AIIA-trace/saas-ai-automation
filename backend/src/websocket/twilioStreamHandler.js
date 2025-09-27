@@ -6,17 +6,92 @@ const RealtimeTranscription = require('../services/realtimeTranscription');
 // ELIMINADO: EventBasedStateManager y ProductionSafeTimeouts - reemplazados por patrón start/stop simple
 const fs = require('fs');
 
+/**
+ * Preprocesador de audio para detectar y corregir saturación
+ */
+class AudioPreprocessor {
+  constructor() {
+    this.gainReduction = 0.7; // Reducir ganancia al 70%
+  }
+  
+  /**
+   * Detectar saturación temprana en el audio
+   */
+  detectSaturation(audioData, threshold = 250) {
+    const samples = new Uint8Array(audioData);
+    const saturatedSamples = samples.filter(s => s >= threshold || s <= 5).length;
+    const ratio = saturatedSamples / samples.length;
+    
+    const stats = {
+      max: Math.max(...samples),
+      min: Math.min(...samples),
+      avg: samples.reduce((a, b) => a + b) / samples.length
+    };
+    
+    // Condiciones múltiples para detectar saturación
+    const rejectionConditions = [
+      stats.max >= 250,                    // Valores cerca del máximo
+      stats.min >= 200,                    // Mínimo muy alto
+      stats.avg >= 200,                    // Promedio muy alto
+      stats.max - stats.min < 10,          // Rango dinámico muy pequeño
+      ratio > 0.1                          // >10% de muestras saturadas
+    ];
+    
+    return {
+      isSaturated: rejectionConditions.some(condition => condition),
+      ratio: ratio,
+      saturatedCount: saturatedSamples,
+      stats: stats,
+      rejectionReasons: rejectionConditions.map((cond, i) => cond ? i : null).filter(x => x !== null)
+    };
+  }
+  
+  /**
+   * Aplicar reducción de ganancia agresiva
+   */
+  applyGainReduction(audioData) {
+    const samples = new Uint8Array(audioData);
+    return samples.map(sample => {
+      // Convertir de uint8 a int8, aplicar ganancia, volver a uint8
+      const intSample = sample - 128;
+      const reduced = intSample * this.gainReduction;
+      return Math.max(0, Math.min(255, reduced + 128));
+    });
+  }
+  
+  /**
+   * Normalización agresiva para audio saturado
+   */
+  normalizeAudio(audioData, targetGain = 0.7) {
+    const samples = new Uint8Array(audioData);
+    const maxVal = Math.max(...samples.map(s => Math.abs(s - 127)));
+    
+    if (maxVal === 0) return samples;
+    
+    // Normalización agresiva para reducir saturación
+    const scaleFactor = Math.min(targetGain, 80 / maxVal);
+    return samples.map(sample => {
+      const centered = sample - 127;
+      const scaled = centered * scaleFactor;
+      return Math.round(Math.max(0, Math.min(255, scaled + 127)));
+    });
+  }
+}
+
 class TwilioStreamHandler {
   constructor(prisma, ttsService) {
     this.prisma = prisma;
     this.ttsService = ttsService; // FIX: Asignar el servicio TTS
     // Mapas para gestión de estado y audio
     this.activeStreams = new Map();
-    this.pendingMediaEvents = new Map();
     this.audioBuffers = new Map();
-    this.lastResponseTime = new Map();
-    this.responseInProgress = new Map();
-    this.vadState = new Map();
+    this.vadStates = new Map();
+    this.echoBlanking = new Map();
+    this.transcriptionActive = new Map();
+    this.pendingMediaEvents = new Map();
+    this.consecutiveSaturatedChunks = new Map(); // Contador para evitar ciclos infinitos
+    this.audioPreprocessor = new AudioPreprocessor(); // Preprocesador de audio
+    this.validateAzureConfig();
     
     // NUEVO: Patrón start/stop transcription
     this.transcriptionActive = new Map();
@@ -1279,17 +1354,45 @@ class TwilioStreamHandler {
       }
 
       // Decodificar audio de base64 a buffer
-      const audioChunk = Buffer.from(payload, 'base64');
+      const rawAudioChunk = Buffer.from(payload, 'base64');
       
-      // Detectar actividad de voz usando VAD avanzado
-      const vadResult = this.detectVoiceActivity(audioChunk, streamSid);
+      // PASO 1: DETECCIÓN TEMPRANA DE SATURACIÓN (antes del VAD)
+      const saturationCheck = this.audioPreprocessor.detectSaturation(rawAudioChunk);
+      if (saturationCheck.isSaturated) {
+        const consecutiveCount = (this.consecutiveSaturatedChunks.get(streamSid) || 0) + 1;
+        this.consecutiveSaturatedChunks.set(streamSid, consecutiveCount);
+        
+        logger.warn(`🎙️ [${streamSid}] AUDIO SATURADO - Chunk ${consecutiveCount}: ratio=${(saturationCheck.ratio*100).toFixed(1)}%, max=${saturationCheck.stats.max}, min=${saturationCheck.stats.min}, avg=${saturationCheck.stats.avg.toFixed(1)}, reasons=[${saturationCheck.rejectionReasons.join(',')}]`);
+        
+        // Si llevamos 5+ chunks consecutivos saturados, resetear VAD
+        if (consecutiveCount >= 5) {
+          logger.error(`🔴 [${streamSid}] AUDIO CONSTANTEMENTE SATURADO (${consecutiveCount} chunks) - Reiniciando VAD`);
+          this.resetVADState(streamSid);
+          this.consecutiveSaturatedChunks.set(streamSid, 0);
+          return { shouldProcess: false, reset: true };
+        }
+        
+        return { shouldProcess: false, reason: 'saturated_audio' };
+      }
+      
+      // Resetear contador si el audio no está saturado
+      this.consecutiveSaturatedChunks.set(streamSid, 0);
+      
+      // PASO 2: PREPROCESAMIENTO CON REDUCCIÓN DE GANANCIA
+      const normalizedAudio = this.audioPreprocessor.normalizeAudio(rawAudioChunk, 0.7);
+      const processedAudioChunk = Buffer.from(normalizedAudio);
+      
+      logger.info(`🔧 [${streamSid}] Audio preprocesado: original_max=${saturationCheck.stats.max}, processed_max=${Math.max(...normalizedAudio)}, gain_reduction=70%`);
+      
+      // PASO 3: PROCESAR CON VAD (usando audio preprocesado)
+      const vadResult = this.detectVoiceActivity(processedAudioChunk, streamSid);
       
       // DEBUG CRÍTICO: Logs detallados del VAD
       logger.info(`🎤 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
       
-      // Acumular audio y detectar fin de turno con parámetros inteligentes
+      // Acumular audio PREPROCESADO y detectar fin de turno con parámetros inteligentes
       const audioBuffer = this.audioBuffers.get(streamSid) || [];
-      audioBuffer.push(audioChunk);
+      audioBuffer.push(processedAudioChunk); // Usar audio preprocesado, no el original
       this.audioBuffers.set(streamSid, audioBuffer);
       
       logger.debug(`🎤 [${streamSid}] Audio chunk: energía=${vadResult.energy}, umbral=${vadResult.threshold}, activo=${vadResult.isActive}, buffer=${audioBuffer.length} chunks`);
@@ -1802,6 +1905,31 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Resetear estado VAD para audio constantemente saturado
+   */
+  resetVADState(streamSid) {
+    logger.warn(`🔄 [${streamSid}] Reseteando estado VAD por audio saturado`);
+    
+    // Limpiar estado VAD
+    if (this.vadStates.has(streamSid)) {
+      const detection = this.vadStates.get(streamSid);
+      detection.isActive = false;
+      detection.speechCount = 0;
+      detection.silenceCount = 0;
+      detection.energyHistory = [];
+      detection.adaptiveThreshold = 15;
+      detection.lastActivity = Date.now();
+      logger.info(`🧹 [${streamSid}] Estado VAD reseteado`);
+    }
+    
+    // Limpiar buffer de audio acumulado
+    if (this.audioBuffers.has(streamSid)) {
+      this.audioBuffers.set(streamSid, []);
+      logger.info(`🧹 [${streamSid}] Buffer de audio limpiado`);
+    }
+  }
+
+  /**
    * Manejar evento de parada del stream
    */
   async handleStreamStop(ws, data) {
@@ -1823,6 +1951,11 @@ class TwilioStreamHandler {
       if (this.echoBlanking.has(streamSid)) {
         this.echoBlanking.delete(streamSid);
         logger.info(`🧹 [${streamSid}] Estado echo blanking limpiado`);
+      }
+      
+      if (this.consecutiveSaturatedChunks.has(streamSid)) {
+        this.consecutiveSaturatedChunks.delete(streamSid);
+        logger.info(`🧹 [${streamSid}] Contador de saturación limpiado`);
       }
       
       logger.info(`✅ [${streamSid}] Recursos del stream limpiados correctamente`);
