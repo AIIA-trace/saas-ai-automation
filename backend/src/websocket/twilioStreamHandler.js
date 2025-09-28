@@ -474,12 +474,11 @@ class TwilioStreamHandler {
   }
 
   /**
-{{ ... }}
    * Maneja evento 'stop' de Twilio Stream
    */
   handleStop(ws, data) {
     const streamSid = data.stop?.streamSid;
-    
+
     if (streamSid) {
       logger.info(`🛑 [${streamSid}] Stream detenido`);
       this.cleanup(streamSid);
