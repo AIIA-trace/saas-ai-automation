@@ -9,13 +9,25 @@ class OpenAITTSService {
       apiKey: process.env.OPENAI_API_KEY
     });
     this.defaultVoice = 'onyx'; // Voz masculina profesional, mejor para español peninsular
-    this.model = 'tts-1-hd'; // Modelo HD para mayor calidad y naturalidad
+    this.model = 'tts-1'; // Modelo más rápido para velocidad
+    this.cache = new Map(); // Cache para audio
+    this.cacheTimeout = 300000; // 5 minutos
   }
 
   // Generar audio a partir de texto
   async generateSpeech(text, voice = null, outputPath = null) {
     try {
       const selectedVoice = voice || this.defaultVoice;
+      
+      // Cache: verificar si ya se generó
+      const cacheKey = `${text}-${selectedVoice}`;
+      if (this.cache.has(cacheKey)) {
+        const cached = this.cache.get(cacheKey);
+        if (Date.now() - cached.timestamp < this.cacheTimeout) {
+          logger.info('🔄 Usando audio cacheado');
+          return cached.result;
+        }
+      }
       
       logger.info(`🔍 DEBUG OpenAI TTS - Generando audio con voz: ${selectedVoice}`);
       logger.info(`🔍 DEBUG OpenAI TTS - Texto: "${text.substring(0, 50)}..."`);
@@ -31,6 +43,13 @@ class OpenAITTSService {
       
       // Convertir a buffer
       const buffer = Buffer.from(await mp3.arrayBuffer());
+      
+      // Cachear resultado
+      this.cache.set(cacheKey, { result: { success: true, audioBuffer: buffer }, timestamp: Date.now() });
+      if (this.cache.size > 100) {
+        const firstKey = this.cache.keys().next().value;
+        this.cache.delete(firstKey);
+      }
       
       // Si se especificó un path de salida, guardar el archivo
       if (outputPath) {
@@ -126,4 +145,4 @@ class OpenAITTSService {
   }
 }
 
-module.exports = new OpenAITTSService();
+module.exports = OpenAITTSService;
