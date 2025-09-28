@@ -584,16 +584,18 @@ class TwilioStreamHandler {
       // ECHO BLANKING: Activar blanking antes de enviar audio del bot
       this.activateEchoBlanking(streamSid);
 
-      if (ttsResult && ttsResult.length > 0) {
+      logger.info(`🔍 [${streamSid}] TTS Result recibido: tipo=${typeof ttsResult}, success=${ttsResult?.success}, audioBuffer length=${ttsResult?.audioBuffer?.length}`);
+      
+      if (ttsResult.success) {
         // Save audio to file
         const fileName = `debug_${Date.now()}_${streamSid}.wav`;
-        fs.writeFileSync(fileName, ttsResult);
+        fs.writeFileSync(fileName, ttsResult.audioBuffer);
         logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
         
         logger.info(`🔍 [${streamSid}] ANTES de sendRawMulawToTwilio`);
         
         // Enviar audio de forma no bloqueante y activar transcripción inmediatamente
-        this.sendRawMulawToTwilio(ws, ttsResult, streamSid).then(() => {
+        this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid).then(() => {
           logger.info(`🔍 [${streamSid}] DESPUÉS de sendRawMulawToTwilio - audio enviado completamente`);
         }).catch(sendError => {
           logger.error(`❌ [${streamSid}] Error en sendRawMulawToTwilio: ${sendError.message}`);
