@@ -982,20 +982,44 @@ class TwilioStreamHandler {
   detectVoiceActivity(audioChunk, streamSid) {
     const samples = new Uint8Array(audioChunk);
     let energy = 0;
-    
+
     for (const sample of samples) {
       const amplitude = Math.abs(sample - 127);
       energy += amplitude * amplitude;
     }
     energy = Math.sqrt(energy / samples.length);
-    
+
     const detection = this.speechDetection.get(streamSid);
-    if (!detection) return { shouldProcess: false, isActive: false, energy: energy.toFixed(1) };
-    
+
+    // 🔍 DEBUG CRÍTICO: Verificar estado del detection
+    logger.info(`🔍 [${streamSid}] VAD Debug - detection exists: ${!!detection}`);
+    if (detection) {
+      logger.info(`🔍 [${streamSid}] VAD Debug - adaptiveThreshold: ${detection.adaptiveThreshold}, type: ${typeof detection.adaptiveThreshold}`);
+      logger.info(`🔍 [${streamSid}] VAD Debug - energyThreshold: ${detection.energyThreshold}, type: ${typeof detection.energyThreshold}`);
+      logger.info(`🔍 [${streamSid}] VAD Debug - all keys: ${Object.keys(detection).join(', ')}`);
+    }
+
+    if (!detection) {
+      logger.error(`❌ [${streamSid}] VAD: No hay configuración speechDetection`);
+      return { shouldProcess: false, isActive: false, energy: energy.toFixed(1) };
+    }
+
+    // Verificar si adaptiveThreshold es válido
+    if (typeof detection.adaptiveThreshold !== 'number' || isNaN(detection.adaptiveThreshold)) {
+      logger.warn(`⚠️ [${streamSid}] VAD: adaptiveThreshold inválido (${detection.adaptiveThreshold}), usando energyThreshold (${detection.energyThreshold})`);
+
+      if (typeof detection.energyThreshold !== 'number' || isNaN(detection.energyThreshold)) {
+        logger.error(`❌ [${streamSid}] VAD: energyThreshold también inválido, usando valor por defecto`);
+        detection.adaptiveThreshold = 5; // Fallback temporal para debugging
+      } else {
+        detection.adaptiveThreshold = detection.energyThreshold;
+      }
+    }
+
     const isActive = energy > detection.adaptiveThreshold;
-    
-    logger.info(`🎤 [${streamSid}] VAD Debug: energy=${energy.toFixed(1)}, adaptiveThreshold=${detection.adaptiveThreshold.toFixed(1)}, isActive=${isActive}`);
-    
+
+    logger.info(`🎤 [${streamSid}] VAD: energy=${energy.toFixed(1)}, threshold=${detection.adaptiveThreshold}, isActive=${isActive}`);
+
     if (isActive) {
       detection.speechCount++;
       detection.silenceCount = 0;
@@ -1007,9 +1031,9 @@ class TwilioStreamHandler {
         detection.isActive = false;
       }
     }
-    
+
     detection.lastActivity = Date.now();
-    
+
     return {
       shouldProcess: isActive,
       isActive: detection.isActive,
