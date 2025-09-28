@@ -554,14 +554,15 @@ class TwilioStreamHandler {
           </mstts:express-as>
     `.trim();
 
-    logger.info(`🎭 SSML humanizado aplicado: ${ssmlContent.substring(0, 100)}...`);  
+    logger.info(`🎭 SSML humanizado aplicado: ${ssmlContent.substring(0, 100)}...`);
+  }  
 
   /**
    * Stream conectado - SOLO registrar conexión
    */
 
   // Generar saludo inicial - SOLO UNA VEZ POR STREAM
-  async sendInitialGreeting(ws, { streamSid, callSid }) {
+   async sendInitialGreeting(ws, { streamSid, callSid }) {
     logger.info(`🔍 [${streamSid}] INICIANDO sendInitialGreeting`);
     const streamData = this.activeStreams.get(streamSid);
     if (!streamData?.client) {
@@ -849,7 +850,7 @@ class TwilioStreamHandler {
   generateFallbackAudio() {
     const buffer = Buffer.alloc(160, 0xff); // Silencio digital
     return buffer;
-  }
+  };
 
   /**
    * Inicializar sistema de detección de habla para un stream
