@@ -219,18 +219,15 @@ class TwilioStreamHandler {
     this.transcriptionActive.set(streamSid, false);
     this.responseInProgress.set(streamSid, false);
 
-    // Enviar saludo inicial y activar transcripción después de un delay
+    // La transcripción se activará automáticamente cuando se desactive el echo blanking
+    this.echoBlanking.set(streamSid, true);
+
+    // Enviar saludo inicial
     this.sendInitialGreeting(ws, { streamSid, callSid }).then(() => {
       // Esperar un poco más para asegurar que el audio termine de reproducirse
       setTimeout(() => {
-        logger.info(`🚀 [${streamSid}] Activando transcripción después del saludo inicial...`);
-        this.transcriptionActive.set(streamSid, true);
-        const streamData = this.activeStreams.get(streamSid);
-        if (streamData) {
-          streamData.state = 'listening';
-          streamData.greetingCompletedAt = Date.now();
-        }
-        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`);
+        logger.info(`🚀 [${streamSid}] Desactivando echo blanking...`);
+        this.echoBlanking.set(streamSid, false);
       }, 3000); // Delay de 3 segundos para asegurar que el saludo termine
     }).catch(error => {
       logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
@@ -238,6 +235,7 @@ class TwilioStreamHandler {
   }
 
   /**
+{{ ... }}
    * Maneja evento 'stop' de Twilio Stream
    */
   handleStop(ws, data) {
@@ -445,12 +443,7 @@ class TwilioStreamHandler {
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo de prueba enviado correctamente`);
         
-        // IMPORTANTE: Activar transcripción también para configuración por defecto
-        logger.info(`🚀 [${streamSid}] Activando transcripción después del saludo (config por defecto)...`);
-        this.transcriptionActive.set(streamSid, true);
-        streamData.state = 'listening';
-        streamData.greetingCompletedAt = Date.now();
-        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`);
+        // La transcripción se activará automáticamente cuando se desactive el echo blanking
         
         return;
       }
@@ -514,16 +507,7 @@ class TwilioStreamHandler {
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
         
         // NUEVO: Patrón start/stop simplificado - activar transcripción después del saludo
-        logger.info(`🚀 [${streamSid}] Activando transcripción después del saludo...`);
-        
-        // Activar transcripción para escuchar al usuario
-        this.transcriptionActive.set(streamSid, true);
-        streamData.state = 'listening';
-        
-        // Almacenar timestamp para verificación
-        streamData.greetingCompletedAt = Date.now();
-        
-        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`);
+        // La transcripción se activará automáticamente cuando se desactive el echo blanking
         
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
@@ -969,14 +953,16 @@ class TwilioStreamHandler {
       echoBlanking.endTime = 0;
       logger.info(`🔇 [${streamSid}] Echo Blanking DESACTIVADO`);
       
-      // CRÍTICO: Activar transcripción si es después del saludo inicial
+      // CRÍTICO: Activar transcripción automáticamente cuando se desactiva echo blanking
       const streamData = this.activeStreams.get(streamSid);
-      if (streamData && !streamData.greetingCompletedAt && !this.transcriptionActive.get(streamSid)) {
-        logger.info(`🚀 [${streamSid}] Activando transcripción después del saludo inicial...`);
+      if (streamData && !this.transcriptionActive.get(streamSid)) {
+        logger.info(`🚀 [${streamSid}] Activando transcripción después de desactivar echo blanking...`);
         this.transcriptionActive.set(streamSid, true);
         streamData.state = 'listening';
         streamData.greetingCompletedAt = Date.now();
         logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`);
+      } else if (this.transcriptionActive.get(streamSid)) {
+        logger.info(`ℹ️ [${streamSid}] Transcripción ya estaba activa`);
       }
     }
   }
@@ -1329,7 +1315,10 @@ class TwilioStreamHandler {
     }
 
     // Verificar si la transcripción está activa (patrón start/stop)
-    if (!this.transcriptionActive || !this.transcriptionActive.get(streamSid)) {
+    const isTranscriptionActive = this.transcriptionActive && this.transcriptionActive.get(streamSid);
+    logger.debug(`🔍 [${streamSid}] Estado transcripción: ${isTranscriptionActive}, Map exists: ${!!this.transcriptionActive}`);
+    
+    if (!isTranscriptionActive) {
       logger.warn(`🚫 [${streamSid}] Transcripción inactiva - ignorando audio del usuario`);
       return;
     }
@@ -1372,9 +1361,9 @@ class TwilioStreamHandler {
       // Usar audio normalizado en VAD y buffer
       const streamAudioBuffer = this.audioBuffer.get(streamSid);
       streamAudioBuffer.push(...normalizedAudio);
-      const vadResult = this.processVAD(streamSid, normalizedAudio);
       
-      // DEBUG CRÍTICO: Logs detallados del VAD
+      logger.debug(`🔧 [${streamSid}] Llamando processVAD con audio de ${normalizedAudio.length} bytes`);
+      const vadResult = this.processVAD(streamSid, normalizedAudio);
       logger.info(`🎤 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
       
       // Acumular audio PREPROCESADO y detectar fin de turno con parámetros inteligentes
@@ -1852,11 +1841,15 @@ class TwilioStreamHandler {
    * Procesar audio con VAD usando la estructura existente de speechDetection
    */
   processVAD(streamSid, audioChunk) {
+    logger.debug(`🔍 [${streamSid}] processVAD iniciado con chunk de ${audioChunk.length} bytes`);
+    
     const detection = this.speechDetection.get(streamSid);
     if (!detection) {
       logger.error(`❌ [${streamSid}] No hay configuración de speech detection`);
       return { shouldProcess: false, isActive: false, energy: 0, threshold: 0 };
     }
+    
+    logger.debug(`🔍 [${streamSid}] Speech detection encontrado: ${Object.keys(detection)}`);
 
     // Calcular energía del audio
     const samples = new Uint8Array(audioChunk);
