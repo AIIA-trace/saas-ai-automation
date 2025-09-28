@@ -981,45 +981,71 @@ class TwilioStreamHandler {
    */
   detectVoiceActivity(audioChunk, streamSid) {
     const samples = new Uint8Array(audioChunk);
+
+    // 🔧 CRITICAL FIX: Validar datos de entrada
+    if (!samples || samples.length === 0) {
+      logger.warn(`⚠️ [${streamSid}] VAD: Datos de audio inválidos o vacíos`);
+      return { shouldProcess: false, isActive: false, energy: '0.0', threshold: '5.0' };
+    }
+
     let energy = 0;
 
-    for (const sample of samples) {
-      const amplitude = Math.abs(sample - 127);
-      energy += amplitude * amplitude;
+    try {
+      // Calcular energía con validación
+      for (let i = 0; i < samples.length; i++) {
+        const sample = samples[i];
+        if (typeof sample !== 'number' || isNaN(sample)) {
+          logger.warn(`⚠️ [${streamSid}] VAD: Sample inválido en posición ${i}: ${sample}`);
+          continue;
+        }
+        const amplitude = Math.abs(sample - 127);
+        energy += amplitude * amplitude;
+      }
+
+      energy = Math.sqrt(energy / samples.length);
+
+      // Validar resultado de energía
+      if (isNaN(energy) || !isFinite(energy)) {
+        logger.warn(`⚠️ [${streamSid}] VAD: Energía inválida calculada: ${energy}, usando fallback`);
+        energy = 0;
+      }
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] VAD: Error calculando energía: ${error.message}`);
+      energy = 0;
     }
-    energy = Math.sqrt(energy / samples.length);
 
     const detection = this.speechDetection.get(streamSid);
 
-    // 🔍 DEBUG CRÍTICO: Verificar estado del detection
+    // 🔍 DEBUG: Verificar estado del detection
     logger.info(`🔍 [${streamSid}] VAD Debug - detection exists: ${!!detection}`);
     if (detection) {
       logger.info(`🔍 [${streamSid}] VAD Debug - adaptiveThreshold: ${detection.adaptiveThreshold}, type: ${typeof detection.adaptiveThreshold}`);
       logger.info(`🔍 [${streamSid}] VAD Debug - energyThreshold: ${detection.energyThreshold}, type: ${typeof detection.energyThreshold}`);
-      logger.info(`🔍 [${streamSid}] VAD Debug - all keys: ${Object.keys(detection).join(', ')}`);
     }
 
     if (!detection) {
       logger.error(`❌ [${streamSid}] VAD: No hay configuración speechDetection`);
-      return { shouldProcess: false, isActive: false, energy: energy.toFixed(1) };
+      return { shouldProcess: false, isActive: false, energy: energy.toFixed(1), threshold: '5.0' };
     }
 
-    // Verificar si adaptiveThreshold es válido
+    // 🔧 CRITICAL FIX: Inicializar adaptiveThreshold si es undefined
     if (typeof detection.adaptiveThreshold !== 'number' || isNaN(detection.adaptiveThreshold)) {
-      logger.warn(`⚠️ [${streamSid}] VAD: adaptiveThreshold inválido (${detection.adaptiveThreshold}), usando energyThreshold (${detection.energyThreshold})`);
+      logger.warn(`⚠️ [${streamSid}] VAD: adaptiveThreshold inválido (${detection.adaptiveThreshold}), inicializando...`);
 
-      if (typeof detection.energyThreshold !== 'number' || isNaN(detection.energyThreshold)) {
-        logger.error(`❌ [${streamSid}] VAD: energyThreshold también inválido, usando valor por defecto`);
-        detection.adaptiveThreshold = 5; // Fallback temporal para debugging
-      } else {
+      if (typeof detection.energyThreshold === 'number' && !isNaN(detection.energyThreshold)) {
         detection.adaptiveThreshold = detection.energyThreshold;
+        logger.info(`✅ [${streamSid}] VAD: Usando energyThreshold como fallback: ${detection.adaptiveThreshold}`);
+      } else {
+        detection.adaptiveThreshold = 5; // Valor por defecto estándar para μ-law
+        logger.info(`✅ [${streamSid}] VAD: Usando valor por defecto: ${detection.adaptiveThreshold}`);
       }
     }
 
     const isActive = energy > detection.adaptiveThreshold;
 
-    logger.info(`🎤 [${streamSid}] VAD: energy=${energy.toFixed(1)}, threshold=${detection.adaptiveThreshold}, isActive=${isActive}`);
+    logger.info(`🎤 [${streamSid}] VAD: energy=${energy.toFixed(1)}, threshold=${detection.adaptiveThreshold.toFixed(1)}, isActive=${isActive}`);
 
+    // Actualizar contadores
     if (isActive) {
       detection.speechCount++;
       detection.silenceCount = 0;
@@ -1033,6 +1059,22 @@ class TwilioStreamHandler {
     }
 
     detection.lastActivity = Date.now();
+
+    // 🔧 CRITICAL FIX: Adaptar threshold dinámicamente
+    if (detection.energyHistory && detection.energyHistory.length > 0) {
+      const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
+      if (!isNaN(avgEnergy) && avgEnergy > 0) {
+        // Ajuste gradual del threshold basado en el historial
+        detection.adaptiveThreshold = detection.adaptiveThreshold * 0.9 + avgEnergy * 0.1;
+      }
+    }
+
+    // Mantener historial de energía para adaptación
+    if (!detection.energyHistory) detection.energyHistory = [];
+    detection.energyHistory.push(energy);
+    if (detection.energyHistory.length > 50) {
+      detection.energyHistory.shift(); // Mantener solo los últimos 50 valores
+    }
 
     return {
       shouldProcess: isActive,
