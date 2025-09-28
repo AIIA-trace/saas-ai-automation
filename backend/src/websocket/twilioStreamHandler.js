@@ -592,22 +592,19 @@ class TwilioStreamHandler {
         
         await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
         
-        // Calcular duración del audio para activar transcripción después
-        const audioDuration = Math.max(2000, (ttsResult.audioBuffer.length / 8) + 1000);
-        logger.info(`🕐 [${streamSid}] Duración estimada del saludo: ${audioDuration}ms`);
+        // Activar transcripción inmediatamente después de enviar el saludo
+        logger.info(`🚀 [${streamSid}] Activando transcripción INMEDIATAMENTE tras enviar saludo`);
+        logger.info(`🔍 [${streamSid}] Estado ANTES de deactivateEchoBlanking:`);
+        logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
+        logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
+        logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
         
-        // Desactivar echo blanking después de que termine el audio
-        logger.info(`⏰ [${streamSid}] Programando desactivación de echo blanking en ${audioDuration}ms`);
-        const timeoutId = setTimeout(() => {
-          logger.info(`⚡ [${streamSid}] EJECUTANDO timeout de desactivación de echo blanking`);
-          this.deactivateEchoBlanking(streamSid);
-          logger.info(`🔇 [${streamSid}] Echo blanking desactivado después del saludo`);
-        }, audioDuration);
+        this.deactivateEchoBlanking(streamSid);
         
-        // Guardar timeout ID para debugging
-        if (!this.echoTimeouts) this.echoTimeouts = new Map();
-        this.echoTimeouts.set(streamSid, timeoutId);
-        
+        logger.info(`🔍 [${streamSid}] Estado DESPUÉS de deactivateEchoBlanking:`);
+        logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
+        logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
+        logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error TTS: ${error.message}`);
@@ -941,24 +938,53 @@ class TwilioStreamHandler {
    * Desactivar Echo Blanking manualmente
    */
   deactivateEchoBlanking(streamSid) {
+    logger.info(`🔍 [${streamSid}] INICIANDO deactivateEchoBlanking()`);
+    
     const echoBlanking = this.echoBlanking.get(streamSid);
+    logger.info(`🔍 [${streamSid}] echoBlanking obtenido:`, echoBlanking);
+    
+    if (!echoBlanking) {
+      logger.error(`❌ [${streamSid}] NO HAY echoBlanking en el mapa`);
+      return;
+    }
+    
+    logger.info(`🔍 [${streamSid}] echoBlanking.active = ${echoBlanking.active}`);
+    
     if (echoBlanking && echoBlanking.active) {
+      logger.info(`🔍 [${streamSid}] Desactivando echo blanking...`);
       echoBlanking.active = false;
       echoBlanking.endTime = 0;
       logger.info(`🔇 [${streamSid}] Echo Blanking DESACTIVADO`);
       
-      // CRÍTICO: Activar transcripción automáticamente cuando se desactiva echo blanking
+      // Activar transcripción automáticamente cuando se desactiva echo blanking
       const streamData = this.activeStreams.get(streamSid);
+      logger.info(`🔍 [${streamSid}] streamData obtenido:`, streamData ? 'EXISTS' : 'NULL');
+      
+      const currentTranscriptionState = this.transcriptionActive.get(streamSid);
+      logger.info(`🔍 [${streamSid}] Estado actual transcripción: ${currentTranscriptionState}`);
+      
       if (streamData && !this.transcriptionActive.get(streamSid)) {
-        logger.info(`🚀 [${streamSid}] Activando transcripción después de desactivar echo blanking...`);
+        logger.info(`🔍 [${streamSid}] ACTIVANDO TRANSCRIPCIÓN...`);
         this.transcriptionActive.set(streamSid, true);
         streamData.state = 'listening';
         streamData.greetingCompletedAt = Date.now();
-        logger.info(`✅ [${streamSid}] Transcripción activada - listo para escuchar`);
-      } else if (this.transcriptionActive.get(streamSid)) {
-        logger.info(`ℹ️ [${streamSid}] Transcripción ya estaba activa`);
+        
+        // Verificar que se activó correctamente
+        const newTranscriptionState = this.transcriptionActive.get(streamSid);
+        logger.info(`🚀 [${streamSid}] Transcripción activada! Nuevo estado: ${newTranscriptionState}`);
+        logger.info(`🚀 [${streamSid}] streamData.state = ${streamData.state}`);
+      } else {
+        logger.warn(`⚠️ [${streamSid}] NO se activó transcripción:`);
+        logger.warn(`⚠️ [${streamSid}] - streamData existe: ${!!streamData}`);
+        logger.warn(`⚠️ [${streamSid}] - transcripción ya activa: ${this.transcriptionActive.get(streamSid)}`);
       }
+    } else {
+      logger.warn(`⚠️ [${streamSid}] Echo blanking NO estaba activo o no existe`);
+      logger.warn(`⚠️ [${streamSid}] - echoBlanking existe: ${!!echoBlanking}`);
+      logger.warn(`⚠️ [${streamSid}] - echoBlanking.active: ${echoBlanking?.active}`);
     }
+    
+    logger.info(`🔍 [${streamSid}] FINALIZANDO deactivateEchoBlanking()`);
   }
 
   /**
@@ -1308,12 +1334,23 @@ class TwilioStreamHandler {
       return;
     }
 
+    // LOGS DETALLADOS PARA DIAGNOSTICAR TRANSCRIPCIÓN
+    logger.debug(`🎤 [${streamSid}] handleMediaEvent - Recibido chunk de audio`);
+    logger.debug(`🔍 [${streamSid}] Estado transcriptionActive Map:`, this.transcriptionActive);
+    logger.debug(`🔍 [${streamSid}] transcriptionActive para este stream: ${this.transcriptionActive.get(streamSid)}`);
+    logger.debug(`🔍 [${streamSid}] echoBlanking estado: ${this.echoBlanking.get(streamSid)?.active}`);
+    logger.debug(`🔍 [${streamSid}] streamData estado: ${streamData?.state}`);
+    
     // Verificar si la transcripción está activa (patrón start/stop)
     const isTranscriptionActive = this.transcriptionActive && this.transcriptionActive.get(streamSid);
     logger.debug(`🔍 [${streamSid}] Estado transcripción: ${isTranscriptionActive}, Map exists: ${!!this.transcriptionActive}`);
     
     if (!isTranscriptionActive) {
       logger.warn(`🚫 [${streamSid}] Transcripción inactiva - ignorando audio del usuario`);
+      logger.warn(`🚫 [${streamSid}] - transcriptionActive Map existe: ${!!this.transcriptionActive}`);
+      logger.warn(`🚫 [${streamSid}] - transcriptionActive para stream: ${this.transcriptionActive?.get(streamSid)}`);
+      logger.warn(`🚫 [${streamSid}] - Todos los streams activos: ${Array.from(this.transcriptionActive?.keys() || [])}`);
+      logger.warn(`🚫 [${streamSid}] - Echo blanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
       return;
     }
 
@@ -1914,42 +1951,13 @@ class TwilioStreamHandler {
       this.audioBuffers.set(streamSid, []);
       logger.info(`🧹 [${streamSid}] Buffer de audio limpiado`);
     }
-  }
-
-  /**
-   * Manejar evento de parada del stream
-   */
-  async handleStreamStop(ws, data) {
-    const streamSid = data.streamSid;
-    logger.info(`🛑 [${streamSid}] Stream detenido`);
     
-    try {
-      // Limpiar recursos del stream
-      if (this.audioBuffers.has(streamSid)) {
-        this.audioBuffers.delete(streamSid);
-        logger.info(`🧹 [${streamSid}] Buffer de audio limpiado`);
-      }
-      
-      if (this.speechDetection.has(streamSid)) {
-        this.speechDetection.delete(streamSid);
-        logger.info(`🧹 [${streamSid}] Estado VAD limpiado`);
-      }
-      
-      if (this.echoBlanking.has(streamSid)) {
-        this.echoBlanking.delete(streamSid);
-        logger.info(`🧹 [${streamSid}] Estado echo blanking limpiado`);
-      }
-      
-      if (this.consecutiveSaturatedChunks.has(streamSid)) {
-        this.consecutiveSaturatedChunks.delete(streamSid);
-        logger.info(`🧹 [${streamSid}] Contador de saturación limpiado`);
-      }
-      
-      logger.info(`✅ [${streamSid}] Recursos del stream limpiados correctamente`);
-      
-    } catch (error) {
-      logger.error(`🚨 [${streamSid}] Error al limpiar recursos del stream: ${error.message}`);
+    if (this.speechDetection.has(streamSid)) {
+      this.speechDetection.delete(streamSid);
+      logger.info(`🧹 [${streamSid}] Estado VAD limpiado`);
     }
+    
+    logger.info(`✅ [${streamSid}] Recursos del stream limpiados correctamente`);
   }
 
   /**
