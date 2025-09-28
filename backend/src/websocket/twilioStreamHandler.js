@@ -215,20 +215,27 @@ class TwilioStreamHandler {
     const markName = data.mark?.name;
     
     if (!markName) {
-      logger.warn(`⚠️ [${streamSid}] Mensaje mark sin nombre recibido`);
+      logger.warn(`⚠️ [${streamSid}] Mensaje mark sin nombre recibido - IGNORANDO`);
       return;
     }
     
     logger.info(`🎯 [${streamSid}] Marca recibida: ${markName}`);
+    logger.info(`🔍 [${streamSid}] DEBUG handleMark: markData = ${JSON.stringify(data.mark)}`);
     
     // Verificar si tenemos una acción pendiente para esta marca
-    if (!this.pendingMarks || !this.pendingMarks.has(markName)) {
-      logger.debug(`🔍 [${streamSid}] Marca ${markName} no esperada - ignorando`);
+    if (!this.pendingMarks) {
+      logger.warn(`⚠️ [${streamSid}] pendingMarks no inicializado - IGNORANDO marca ${markName}`);
+      return;
+    }
+    
+    if (!this.pendingMarks.has(markName)) {
+      logger.warn(`⚠️ [${streamSid}] Marca ${markName} no esperada (no está en pendingMarks) - IGNORANDO. pendingMarks entries: ${Array.from(this.pendingMarks.keys()).join(', ')}`);
       return;
     }
     
     const markData = this.pendingMarks.get(markName);
     logger.info(`🚀 [${streamSid}] Ejecutando acción para marca ${markName}: ${markData.action}`);
+    logger.info(`🔍 [${streamSid}] DEBUG handleMark: pendingMarks has ${this.pendingMarks.size} entries`);
     
     // Ejecutar la acción correspondiente
     switch (markData.action) {
@@ -243,11 +250,12 @@ class TwilioStreamHandler {
         logger.info(`✅ [${streamSid}] Echo blanking desactivado - usuario puede hablar de nuevo`);
         break;
       default:
-        logger.warn(`⚠️ [${streamSid}] Acción desconocida para marca ${markName}: ${markData.action}`);
+        logger.warn(`⚠️ [${streamSid}] Acción desconocida para marca ${markName}: ${markData.action} - IGNORANDO`);
     }
     
     // Limpiar la marca procesada
     this.pendingMarks.delete(markName);
+    logger.info(`🧹 [${streamSid}] Marca ${markName} procesada y limpiada`);
   }
 
   /**
