@@ -429,6 +429,7 @@ class TwilioStreamHandler {
    * Generar saludo inicial - SOLO UNA VEZ POR STREAM
    */
   async sendInitialGreeting(ws, { streamSid, callSid }) {
+    logger.info(`🔍 [${streamSid}] INICIANDO sendInitialGreeting`);
     const streamData = this.activeStreams.get(streamSid);
     if (!streamData?.client) {
       logger.error(`❌ [${streamSid}] Sin configuración de cliente`);
@@ -464,7 +465,7 @@ class TwilioStreamHandler {
     logger.info(`🌍 [${streamSid}] Language: "${language}"`);
   
     logger.info(`🔊 [${streamSid}] Generando saludo: "${greeting?.substring(0, 50)}..."`);
-  
+
     // Verificar longitud mínima (10 caracteres)
     if (!greeting || greeting.length < 10) {
       logger.warn(`⚠️ [${streamSid}] Saludo muy corto o vacío: "${greeting}" - usando fallback`);
@@ -475,6 +476,7 @@ class TwilioStreamHandler {
     try {
       // 3. Humanizar el saludo con SSML
       const humanizedGreeting = this.humanizeTextWithSSML(greeting);
+      logger.info(`🎭 [${streamSid}] SSML generado: ${humanizedGreeting.substring(0, 100)}...`);
       
       // 4. Generar audio con Azure TTS usando SSML humanizado con timeout
       logger.info(`🔊 [${streamSid}] Iniciando Azure TTS con timeout de 10s...`);
@@ -490,12 +492,11 @@ class TwilioStreamHandler {
       });
       
       const ttsResult = await Promise.race([ttsPromise, timeoutPromise]);
+      logger.info(`🔍 [${streamSid}] TTS Result: success=${ttsResult?.success}, audioBuffer length=${ttsResult?.audioBuffer?.length}`);
       
       // ECHO BLANKING: Activar blanking antes de enviar audio del bot
       this.activateEchoBlanking(streamSid);
 
-      logger.info(`🔍 [${streamSid}] TTS Result recibido: tipo=${typeof ttsResult}, success=${ttsResult?.success}, audioBuffer length=${ttsResult?.audioBuffer?.length}`);
-      
       if (ttsResult.success) {
         // Save audio to file
         const fileName = `debug_${Date.now()}_${streamSid}.wav`;
@@ -521,6 +522,9 @@ class TwilioStreamHandler {
             streamData.state = 'listening';
           }
         }, audioLengthMs + 500); // +500ms buffer
+      } else {
+        logger.error(`❌ [${streamSid}] TTS falló: ${ttsResult?.error || 'Unknown error'}`);
+        throw new Error('TTS failed');
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error TTS: ${error.message}`);
@@ -545,6 +549,7 @@ class TwilioStreamHandler {
         }
       }, 2000); // 2 segundos para fallback
     }
+    logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting`);
   }
 
   async sendExtendedGreeting(ws, streamSid, clientConfigData) {
