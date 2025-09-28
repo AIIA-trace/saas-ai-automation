@@ -210,7 +210,7 @@ class TwilioStreamHandler {
   /**
    * Maneja evento 'mark' de Twilio - CRÍTICO para activar transcripción
    */
-  handleMark(ws, data) {
+  handleMark(data) {
     const streamSid = data.streamSid;
     const markName = data.mark?.name;
     
@@ -427,11 +427,9 @@ class TwilioStreamHandler {
         case 'media':
           await this.handleMediaEvent(ws, data);
           break;
-        case 'stop':
-          await this.handleStreamStop(ws, data);
+        case 'mark':
+          await this.handleMark(ws, data);
           break;
-        default:
-          logger.warn(`⚠️ [${streamSid}] Evento desconocido: ${event}`);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error procesando evento ${event}: ${error.message}`);
