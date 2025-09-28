@@ -1282,7 +1282,7 @@ class TwilioStreamHandler {
         
         // Generar respuesta con OpenAI
         logger.info(`🤖 [${streamSid}] Enviando a OpenAI para respuesta`);
-        const openaiResponse = await this.openaiService.generateResponse(transcriptionResult.text, streamData);
+        const openaiResponse = await this.openaiService.generateReceptionistResponse(transcriptionResult.text, streamData);
         
         if (openaiResponse.success) {
           logger.info(`✅ [${streamSid}] Respuesta de OpenAI: "${openaiResponse.response.substring(0, 50)}..."`);
