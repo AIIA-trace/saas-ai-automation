@@ -1169,7 +1169,7 @@ class TwilioStreamHandler {
     // Log detallado para debug
     logger.info(`🎙️ [${streamSid}] Chunk de audio recibido: ${normalizedAudio.length} bytes, buffer size: ${streamAudioBuffer.length}`);
     
-    const vadResult = this.detectVoiceActivity(streamSid, normalizedAudio);
+    const vadResult = this.detectVoiceActivity(normalizedAudio, streamSid);
     
     logger.info(`🔍 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
     
