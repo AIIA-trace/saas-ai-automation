@@ -555,14 +555,14 @@ class TwilioStreamHandler {
     `.trim();
 
     logger.info(`🎭 SSML humanizado aplicado: ${ssmlContent.substring(0, 100)}...`);
-  }  
+    return ssmlContent;  
 
   /**
    * Stream conectado - SOLO registrar conexión
    */
 
   // Generar saludo inicial - SOLO UNA VEZ POR STREAM
-   async sendInitialGreeting(ws, { streamSid, callSid }) {
+  async sendInitialGreeting(ws, { streamSid, callSid }) {
     logger.info(`🔍 [${streamSid}] INICIANDO sendInitialGreeting`);
     const streamData = this.activeStreams.get(streamSid);
     if (!streamData?.client) {

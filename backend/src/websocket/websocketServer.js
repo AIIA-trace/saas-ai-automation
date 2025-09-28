@@ -179,7 +179,7 @@ class WebSocketServer {
       try {
         // Parse and process Twilio Stream messages
         const data = JSON.parse(message.toString());
-        await this.streamHandler.processStreamEvent(ws, data);
+        await this.streamHandler.handleMessage(ws, data);
       } catch (error) {
         logger.error(`🚨 Error processing message ${ws.connectionId}: ${error.message}`);
       }
