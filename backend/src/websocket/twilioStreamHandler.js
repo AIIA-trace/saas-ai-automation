@@ -110,6 +110,9 @@ class TwilioStreamHandler {
     // NUEVO: Set para trackear streamSids ya procesados - evita duplicados
     this.processedStreamSids = new Set();
 
+    // NUEVO: Cache de clientes para evitar consultas duplicadas
+    this.clientCache = new Map();
+
     // Configurar transcripción en tiempo real
     this.transcriptionService = new RealtimeTranscription();
     this.fallbackAudio = this.generateFallbackAudio();
@@ -118,14 +121,14 @@ class TwilioStreamHandler {
     // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
     this.defaultVoice = 'es-ES-IsidoraMultilingualNeural';
     
-    // LOGS DE DIAGNÓSTICO - Verificar inicialización
+    // LOGS DE DIAGNÓSTICO - Verificar inicialización (solo mostrar errores)
     logger.info('🔍 DIAGNÓSTICO - Servicios inicializados:');
     logger.info(`🔍 - openaiService: ${!!this.openaiService}`);
     logger.info(`🔍 - conversationState: ${!!this.conversationState}`);
     logger.info(`🔍 - pendingMarks: ${!!this.pendingMarks} (size: ${this.pendingMarks.size})`);
     logger.info(`🔍 - transcriptionActive: ${!!this.transcriptionActive}`);
     logger.info(`🔍 - transcriptionService: ${!!this.transcriptionService}`);
-    
+
     logger.info('🚀 TwilioStreamHandler inicializado con patrón Start/Stop simplificado');
   }
 
@@ -219,31 +222,37 @@ class TwilioStreamHandler {
   handleMark(data) {
     const streamSid = data.streamSid;
     const markName = data.mark?.name;
-    
+
+    // 🔧 MEJORA: Validar que tenemos streamSid
+    if (!streamSid) {
+      logger.warn(`⚠️ Mensaje mark sin streamSid recibido - IGNORANDO. Datos: ${JSON.stringify(data)}`);
+      return;
+    }
+
     if (!markName) {
       logger.warn(`⚠️ [${streamSid}] Mensaje mark sin nombre recibido - IGNORANDO`);
       return;
     }
-    
+
     logger.info(`🎯 [${streamSid}] Marca recibida: ${markName}`);
-    logger.info(`🔍 [${streamSid}] DEBUG handleMark: markData = ${JSON.stringify(data.mark)}`);
-    
+    // logger.info(`🔍 [${streamSid}] DEBUG handleMark: markData = ${JSON.stringify(data.mark)}`);
+
     // Verificar si tenemos una acción pendiente para esta marca
     if (!this.pendingMarks) {
       logger.warn(`⚠️ [${streamSid}] pendingMarks no inicializado - IGNORANDO marca ${markName}`);
       logger.error(`🔍 DEBUG: pendingMarks is undefined! Checking constructor initialization.`);
       return;
     }
-    
+
     if (!this.pendingMarks.has(markName)) {
-      logger.warn(`⚠️ [${streamSid}] Marca ${markName} no esperada (no está en pendingMarks) - IGNORANDO. pendingMarks entries: ${Array.from(this.pendingMarks.keys()).join(', ')}`);
+      // logger.warn(`⚠️ [${streamSid}] Marca ${markName} no esperada (no está en pendingMarks) - IGNORANDO. pendingMarks entries: ${Array.from(this.pendingMarks.keys()).join(', ')}`);
       return;
     }
-    
+
     const markData = this.pendingMarks.get(markName);
     logger.info(`🚀 [${streamSid}] Ejecutando acción para marca ${markName}: ${markData.action}`);
-    logger.info(`🔍 [${streamSid}] DEBUG handleMark: pendingMarks has ${this.pendingMarks.size} entries`);
-    
+    // logger.info(`🔍 [${streamSid}] DEBUG handleMark: pendingMarks has ${this.pendingMarks.size} entries`);
+
     // Ejecutar la acción correspondiente
     switch (markData.action) {
       case 'activate_transcription':
@@ -266,7 +275,7 @@ class TwilioStreamHandler {
       default:
         logger.warn(`⚠️ [${streamSid}] Acción desconocida para marca ${markName}: ${markData.action} - IGNORANDO`);
     }
-    
+
     // Limpiar la marca procesada
     this.pendingMarks.delete(markName);
     logger.info(`🧹 [${streamSid}] Marca ${markName} procesada y limpiada`);
@@ -311,7 +320,20 @@ class TwilioStreamHandler {
   async getClientForStream(streamSid, callSid) {
     try {
       logger.info(`🔍 [${streamSid}] Obteniendo cliente para callSid: ${callSid}`);
-      
+
+      // 🔧 OPTIMIZAR: Verificar cache primero para evitar consultas duplicadas
+      if (this.clientCache.has(callSid)) {
+        const cachedClient = this.clientCache.get(callSid);
+        logger.info(`⚡ [${streamSid}] Cliente obtenido de cache: ${cachedClient.name || cachedClient.id}`);
+
+        // Actualizar streamData con el cliente del cache
+        const streamData = this.activeStreams.get(streamSid);
+        if (streamData) {
+          streamData.client = cachedClient;
+        }
+        return cachedClient;
+      }
+
       // Buscar el cliente en la base de datos usando callSid
       // Nota: En producción, callSid puede no estar directamente en la DB, pero lo intentamos
       const client = await this.prisma.client.findFirst({
@@ -321,8 +343,11 @@ class TwilioStreamHandler {
           // O implementa la lógica real si tienes callSid en tu esquema
         }
       });
-      
+
       if (client) {
+        // Cachear el cliente encontrado
+        this.clientCache.set(callSid, client);
+
         // Actualizar streamData con el cliente
         const streamData = this.activeStreams.get(streamSid);
         if (streamData) {
@@ -337,6 +362,9 @@ class TwilioStreamHandler {
           where: { id: 1 }
         });
         if (defaultClient) {
+          // Cachear el cliente por defecto
+          this.clientCache.set(callSid, defaultClient);
+
           const streamData = this.activeStreams.get(streamSid);
           if (streamData) {
             streamData.client = defaultClient;
@@ -488,8 +516,8 @@ class TwilioStreamHandler {
    * @returns {string} Valid Azure TTS voice identifier
    */
   mapVoiceToAzure(voiceId, language = 'es-ES') {
-    // Siempre usar Isidora Multilingüe para todos los usuarios
-    logger.info(`🎵 Using Isidora Multilingual voice for all users: ${this.defaultVoice}`);
+    // Siempre usar Isidora Multilingüe para todos los usuarios (configuración optimizada)
+    // logger.info(`🎵 Using Isidora Multilingual voice for all users: ${this.defaultVoice}`);
     return this.defaultVoice;
   }
 
@@ -571,7 +599,7 @@ class TwilioStreamHandler {
 
     // Marcar como saludo enviado para evitar duplicados
     streamData.greetingSent = true;
-    logger.info(`🔍 [${streamSid}] Marcando saludo como enviado`);
+    // logger.info(`🔍 [${streamSid}] Marcando saludo como enviado`);
 
     const clientConfigData = await this.prisma.client.findUnique({
       where: { id: parseInt(streamData.client.id) },
@@ -591,9 +619,9 @@ class TwilioStreamHandler {
                     clientConfigData.callConfig?.language || 
                     'es-ES';
     
-    // DEBUG: Log complete callConfig structure
-    logger.info(`🔍 [${streamSid}] Complete callConfig from streamData: ${JSON.stringify(streamData.client.callConfig, null, 2)}`);
-    logger.info(`🔍 [${streamSid}] Complete callConfig from DB: ${JSON.stringify(clientConfigData.callConfig, null, 2)}`);
+    // DEBUG: Log complete callConfig structure (solo si hay problemas)
+    // logger.info(`🔍 [${streamSid}] Complete callConfig from streamData: ${JSON.stringify(streamData.client.callConfig, null, 2)}`);
+    // logger.info(`🔍 [${streamSid}] Complete callConfig from DB: ${JSON.stringify(clientConfigData.callConfig, null, 2)}`);
     
     const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
     
@@ -613,7 +641,7 @@ class TwilioStreamHandler {
     try {
       // 3. Humanizar el saludo con SSML
       const humanizedGreeting = this.humanizeTextWithSSML(greeting);
-      logger.info(`🎭 [${streamSid}] SSML generado: ${humanizedGreeting.substring(0, 100)}...`);
+      // logger.info(`🎭 [${streamSid}] SSML generado: ${humanizedGreeting.substring(0, 100)}...`);
       
       // 4. Generar audio con Azure TTS usando SSML humanizado con timeout
       logger.info(`🔊 [${streamSid}] Iniciando Azure TTS con timeout de 10s...`);
@@ -640,7 +668,7 @@ class TwilioStreamHandler {
         fs.writeFileSync(fileName, ttsResult.audioBuffer);
         logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
         
-        logger.info(`🔍 [${streamSid}] ANTES de sendRawMulawToTwilio`);
+        // logger.info(`🔍 [${streamSid}] ANTES de sendRawMulawToTwilio`);
         
         // Calcular duración aproximada del audio para timing correcto
         const audioLengthMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000); // 8kHz mulaw
@@ -682,7 +710,7 @@ class TwilioStreamHandler {
       this.pendingMarks = this.pendingMarks || new Map();
       this.pendingMarks.set(markId, {
         streamSid: streamSid,
-        action: 'activate_transcription',
+        action: 'activate_transcripción',
         timestamp: Date.now()
       });
       
@@ -690,7 +718,7 @@ class TwilioStreamHandler {
       await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, markId);
       logger.info(`✅ [${streamSid}] Audio fallback del saludo enviado con marca ${markId}`);
     }
-    logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting`);
+    // logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting`);
   }
 
   async sendExtendedGreeting(ws, streamSid, clientConfigData) {
@@ -888,11 +916,11 @@ class TwilioStreamHandler {
     
     this.speechDetection.set(streamSid, config);
     
-    // Verificar que se guardó correctamente
+    // Verificar que se guardó correctamente (solo loggear errores)
     const verification = this.speechDetection.get(streamSid);
     if (verification) {
-      logger.info(`✅ [${streamSid}] Speech detection initialized successfully`);
-      logger.info(`🔍 [${streamSid}] Config keys: ${Object.keys(verification).join(', ')}`);
+      // logger.info(`✅ [${streamSid}] Speech detection initialized successfully`);
+      // logger.info(`🔍 [${streamSid}] Config keys: ${Object.keys(verification).join(', ')}`);
     } else {
       logger.error(`❌ [${streamSid}] Failed to initialize speech detection`);
     }
@@ -1089,12 +1117,12 @@ class TwilioStreamHandler {
 
     const detection = this.speechDetection.get(streamSid);
 
-    // 🔍 DEBUG: Verificar estado del detection
-    logger.info(`🔍 [${streamSid}] VAD Debug - detection exists: ${!!detection}`);
+    // 🔍 DEBUG: Verificar estado del detection (solo si hay problemas)
+    // logger.info(`🔍 [${streamSid}] VAD Debug - detection exists: ${!!detection}`);
     if (detection) {
-      logger.info(`🔍 [${streamSid}] VAD Debug - adaptiveThreshold: ${detection.adaptiveThreshold}, type: ${typeof detection.adaptiveThreshold}`);
-      logger.info(`🔍 [${streamSid}] VAD Debug - energyThreshold: ${detection.energyThreshold}, type: ${typeof detection.energyThreshold}`);
-      logger.info(`🔍 [${streamSid}] VAD Debug - valid samples: ${validSamples}/${mulawBytes.length}`);
+      // logger.info(`🔍 [${streamSid}] VAD Debug - adaptiveThreshold: ${detection.adaptiveThreshold}, type: ${typeof detection.adaptiveThreshold}`);
+      // logger.info(`🔍 [${streamSid}] VAD Debug - energyThreshold: ${detection.energyThreshold}, type: ${typeof detection.energyThreshold}`);
+      // logger.info(`🔍 [${streamSid}] VAD Debug - valid samples: ${validSamples}/${mulawBytes.length}`);
     }
 
     if (!detection) {
@@ -1134,12 +1162,19 @@ class TwilioStreamHandler {
 
     detection.lastActivity = Date.now();
 
-    // 🔧 CRITICAL FIX: Adaptar threshold dinámicamente
+    // 🔧 OPTIMIZAR: Adaptar threshold dinámicamente con ajuste más conservador
     if (detection.energyHistory && detection.energyHistory.length > 0) {
       const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
       if (!isNaN(avgEnergy) && avgEnergy > 0) {
-        // Ajuste gradual del threshold basado en el historial
-        detection.adaptiveThreshold = detection.adaptiveThreshold * 0.9 + avgEnergy * 0.1;
+        // Ajuste GRADUAL y CONSERVADOR del threshold (95% threshold + 5% avgEnergy)
+        // Evita que baje demasiado rápido a valores muy bajos
+        detection.adaptiveThreshold = detection.adaptiveThreshold * 0.95 + avgEnergy * 0.05;
+
+        // 🔧 PROTECCIÓN: No dejar que baje por debajo de 0.1 (umbral mínimo sensato para μ-law)
+        detection.adaptiveThreshold = Math.max(detection.adaptiveThreshold, 0.1);
+
+        // 🔧 PROTECCIÓN: No dejar que suba por encima de 5.0 (umbral máximo)
+        detection.adaptiveThreshold = Math.min(detection.adaptiveThreshold, 5.0);
       }
     }
 
