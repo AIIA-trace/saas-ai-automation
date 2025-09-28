@@ -396,9 +396,11 @@ class TwilioStreamHandler {
     // VERIFICACIÓN CRÍTICA: Solo enviar saludo si no se ha enviado ya
     const existingStreamData = this.activeStreams.get(streamSid);
     if (existingStreamData?.greetingSent) {
-      logger.info(`⚠️ [${streamSid}] Saludo ya enviado, omitiendo`);
+      logger.info(`⚠️ [${streamSid}] Saludo ya enviado (greetingSent=true), omitiendo`);
       return;
     }
+
+    logger.info(`🔍 [${streamSid}] greetingSent status: ${existingStreamData?.greetingSent}`);
 
     // Inicializar sistemas necesarios
     this.initializeSpeechDetection(streamSid);
@@ -409,9 +411,11 @@ class TwilioStreamHandler {
       // Verificar de nuevo antes de enviar (doble verificación)
       const streamData = this.activeStreams.get(streamSid);
       if (streamData?.greetingSent) {
-        logger.info(`⚠️ [${streamSid}] Saludo ya enviado durante getClientForStream, omitiendo`);
+        logger.info(`⚠️ [${streamSid}] Saludo ya enviado durante getClientForStream (greetingSent=true), omitiendo`);
         return;
       }
+
+      logger.info(`🔍 [${streamSid}] Enviando saludo después de getClientForStream - greetingSent: ${streamData?.greetingSent}`);
 
       this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
         logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
