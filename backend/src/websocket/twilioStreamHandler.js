@@ -91,36 +91,14 @@ class TwilioStreamHandler {
     // Mapas para gestión de estado y audio
     this.activeStreams = new Map();
     this.audioBuffers = new Map();
-    this.vadState = new Map(); // FIX: Nombre consistente
     this.echoBlanking = new Map();
     this.transcriptionActive = new Map();
-    this.pendingMediaEvents = new Map();
-    this.consecutiveSaturatedChunks = new Map(); // Contador para evitar ciclos infinitos
-    this.audioPreprocessor = new AudioPreprocessor(); // Preprocesador de audio
-    
-    // NUEVO: Patrón start/stop transcription
-    this.silenceStartTime = new Map();
-    
-    // VAD y detección de voz
+    this.responseInProgress = new Map();
     this.speechDetection = new Map();
-    
-    // Inicializar audioBuffer como array para cada stream
-    this.audioBuffer = new Map(); // FIX: Inicializar audioBuffer
-    
-    // NUEVO: Parámetros de timeout inteligentes (inspirados en AssemblyAI)
-    this.timeoutParams = {
-      minEndOfTurnSilenceWhenConfident: 700, // ms - silencio mínimo para fin de turno cuando hay confianza
-      minEndOfTurnSilenceWhenNotConfident: 1200, // ms - silencio mínimo cuando no hay confianza
-      maxSpeechDuration: 30000, // ms - duración máxima de habla continua
-      confidenceThreshold: 0.8, // umbral de confianza para transcripción
-      energyThreshold: 100 // umbral de energía para detectar actividad
-    };
-
-    // Cache de conversiones
-    this.responseInProgress = new Map(); // Prevenir respuestas concurrentes
-    this.lastResponseTime = new Map(); // Control de tiempo entre respuestas
-    this.azureToken = null; // Token reutilizable
-    this.validateAzureConfig(); // Validación crítica al iniciar
+    this.silenceStartTime = new Map();
+    this.lastResponseTime = new Map();
+    this.pendingMarks = new Map();
+    this.audioPreprocessor = new AudioPreprocessor();
 
     // Configurar transcripción en tiempo real
     this.transcriptionService = new RealtimeTranscription();
@@ -189,7 +167,7 @@ class TwilioStreamHandler {
         this.handleMediaEvent(ws, data);
         break;
       case 'mark':
-        this.handleMark(ws, data);
+        this.handleMark(data);
         break;
       case 'stop':
         this.handleStop(ws, data);
@@ -346,14 +324,13 @@ class TwilioStreamHandler {
   cleanup(streamSid) {
     this.activeStreams.delete(streamSid);
     this.audioBuffers.delete(streamSid);
-    this.audioBuffer.delete(streamSid); // FIX: Limpiar audioBuffer también
     this.transcriptionActive.delete(streamSid);
     this.responseInProgress.delete(streamSid);
     this.silenceStartTime.delete(streamSid);
-    this.vadState.delete(streamSid);
     this.lastResponseTime.delete(streamSid);
     this.speechDetection.delete(streamSid);
     this.echoBlanking.delete(streamSid);
+    this.pendingMarks.delete(streamSid);
     
     logger.info(`🧹 [${streamSid}] Recursos limpiados`);
   }
@@ -415,202 +392,25 @@ class TwilioStreamHandler {
     const event = data.event;
     const streamSid = data.streamSid || data.start?.streamSid || 'unknown';
     
-    logger.info(`📡 [${streamSid}] Evento: ${event}`);
-    
-    // DEBUG: Registrar eventos recibidos
-    if (event === 'media') {
-      logger.debug(`🎤 [${streamSid}] Evento media recibido - payload: ${data.media?.payload ? 'presente' : 'ausente'}`);
-    } else {
-      logger.info(`📡 [${streamSid}] Evento: ${event}`);
-    }
-    
-    try {
-      switch (event) {
-        case 'connected':
-          await this.handleStreamConnected(ws, data);
-          break;
-        case 'start':
-          await this.handleStreamStart(ws, data);
-          break;
-        case 'media':
-          await this.handleMediaEvent(ws, data);
-          break;
-        case 'mark':
-          await this.handleMark(ws, data);
-          break;
-      }
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error procesando evento ${event}: ${error.message}`);
+    switch (event) {
+      case 'connected':
+        await this.handleStreamConnected(ws, data);
+        break;
+      case 'start':
+        await this.handleStreamStart(ws, data);
+        break;
+      case 'media':
+        await this.handleMediaEvent(ws, data);
+        break;
+      case 'mark':
+        await this.handleMark(ws, data);
+        break;
     }
   }
 
   /**
    * Stream conectado - SOLO registrar conexión
    */
-  async handleStreamConnected(ws, data) {
-    // En el evento 'connected', streamSid no está disponible aún
-    // Registramos la conexión con un ID temporal
-    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    logger.info(`✅ [${tempId}] Stream conectado - registrando temporalmente`);
-    
-    // Registrar con ID temporal - se actualizará en 'start'
-    this.activeStreams.set(tempId, {
-      isConnected: true,
-      greetingSent: false,
-      isInitializing: true,
-      state: 'greeting', // Estados simples: greeting, listening, processing, speaking
-      lastUserInput: null,
-      lastActivity: Date.now()
-    });
-    
-    // También guardar referencia por WebSocket para poder encontrarlo en 'start'
-    ws.tempStreamId = tempId;
-    
-    logger.info(`✅ [${tempId}] Stream registrado temporalmente - esperando 'start'`);
-  }
-
-  /**
-   * Stream iniciado - configurar cliente Y enviar saludo UNA VEZ
-   */
-  async handleStreamStart(ws, data) {
-    const { streamSid, callSid, customParameters } = data.start;
-    const clientId = customParameters?.clientId;
-
-    logger.info(`🎤 [${streamSid}] Iniciando stream para cliente: ${clientId}`);
-    
-    try {
-      // Buscar el stream - primero por streamSid, luego por tempId del WebSocket
-      let streamData = this.activeStreams.get(streamSid);
-      
-      if (!streamData && ws.tempStreamId) {
-        // Migrar desde ID temporal al streamSid real
-        streamData = this.activeStreams.get(ws.tempStreamId);
-        if (streamData) {
-          logger.info(`🔄 [${streamSid}] Migrando desde ID temporal: ${ws.tempStreamId}`);
-          this.activeStreams.delete(ws.tempStreamId);
-          this.activeStreams.set(streamSid, streamData);
-        }
-      }
-      
-      if (!streamData) {
-        logger.error(`❌ [${streamSid}] Stream no encontrado en activeStreams`);
-        return;
-      }
-
-      // Verificar si ya se envió el saludo
-      if (streamData.greetingSent) {
-        logger.warn(`⚠️ [${streamSid}] Saludo ya enviado - ignorando handleStreamStart duplicado`);
-        return;
-      }
-
-      // Si no hay clientId, usar configuración por defecto para testing
-      if (!clientId || isNaN(parseInt(clientId))) {
-        logger.warn(`⚠️ [${streamSid}] ClientId no válido (${clientId}) - usando configuración por defecto`);
-        
-        // Configuración por defecto para testing
-        const defaultConfig = {
-          id: 1,
-          companyName: 'Sistema de Prueba',
-          callConfig: {
-            enabled: true,
-            greeting: 'Hola, gracias por llamar. Soy el asistente virtual de prueba. ¿En qué puedo ayudarte?',
-            voiceId: 'lola',
-            language: 'es-ES'
-          }
-        };
-        
-        streamData.client = defaultConfig;
-        streamData.greetingSent = true;
-        streamData.streamSid = streamSid;
-        streamData.isInitializing = false;
-        
-        // Inicializar detección de voz ANTES del saludo
-        this.initializeSpeechDetection(streamSid);
-        this.initializeEchoBlanking(streamSid);
-        logger.info(`🎯 [${streamSid}] Sistemas de detección inicializados`);
-        
-        // Enviar saludo y activar transcripción
-        await this.sendInitialGreeting(ws, { streamSid, callSid });
-        logger.info(`✅ [${streamSid}] Saludo de prueba enviado correctamente`);
-        
-        // La transcripción se activará automáticamente cuando se desactive el echo blanking
-        
-        return;
-      }
-
-      // Obtener configuración COMPLETA del cliente incluyendo contexto
-      const clientConfig = await this.prisma.client.findUnique({
-        where: { id: parseInt(clientId) },
-        select: {
-          id: true,
-          callConfig: true,
-          companyName: true,
-          companyDescription: true,
-          industry: true,
-          botLanguage: true,
-          contextFiles: true,
-          faqs: true,
-          companyInfo: true,
-          businessHours: true
-        }
-      });
-
-      if (!clientConfig) {
-        logger.error(`❌ [${streamSid}] Cliente no encontrado: ${clientId}`);
-        return;
-      }
-
-      // Marcar como enviado ANTES de enviar para evitar duplicados
-      streamData.greetingSent = true;
-      
-      // Migrar de ID temporal a streamSid real
-      streamData.streamSid = streamSid;
-      streamData.client = clientConfig;
-      streamData.isInitializing = false;
-      
-      // Actualizar en el Map con la clave real
-      this.activeStreams.set(streamSid, streamData);
-
-      logger.info(`✅ [${streamSid}] Cliente configurado: ${clientConfig.companyName}`);
-      
-      // Verificar si el bot está habilitado
-      if (!clientConfig.callConfig?.enabled) {
-        logger.warn(`⚠️ [${streamSid}] Bot deshabilitado para cliente ${clientId}`);
-        return;
-      }
-      
-      // Verificar horario comercial
-      if (!this.isWithinBusinessHours(clientConfig.businessHours)) {
-        logger.warn(`⚠️ [${streamSid}] Fuera de horario comercial`);
-        return;
-      }
-
-      // Inicializar detección de voz ANTES del saludo
-      this.initializeSpeechDetection(streamSid);
-      this.initializeEchoBlanking(streamSid);
-      logger.info(`🎯 [${streamSid}] Sistemas de detección inicializados`);
-
-      // ENVÍO ÚNICO DEL SALUDO - SOLO AQUÍ
-      try {
-        logger.info(`🔊 [${streamSid}] Generando ÚNICO saludo...`);
-        await this.sendInitialGreeting(ws, { streamSid, callSid });
-        logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
-        
-        // NUEVO: Patrón start/stop simplificado - activar transcripción después del saludo
-        // La transcripción se activará automáticamente cuando se desactive el echo blanking
-        
-      } catch (error) {
-        logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
-        // Resetear flag si falla para permitir reintento
-        streamData.greetingSent = false;
-        streamData.state = 'waiting';
-      }
-
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error en handleStreamStart: ${error.message}`);
-    }
-  }
 
   /**
    * Generar saludo inicial - SOLO UNA VEZ POR STREAM
@@ -820,23 +620,8 @@ class TwilioStreamHandler {
   }
 
   async sendRawMulawToTwilio(ws, mulawBuffer, streamSid) {
-    logger.info("🔊 Sending audio to WebSocket");
-    logger.info(`🔊 Tamaño del buffer de audio: ${mulawBuffer.length} bytes`);
-    logger.info(`🔊 Primeros bytes: ${mulawBuffer.slice(0, 16).toString('hex')}`);
-    
-    // Ensure minimum audio length (1 second = 8000 bytes)
-    if (mulawBuffer.length < 8000) {
-      const padding = Buffer.alloc(8000 - mulawBuffer.length, 0xFF);
-      mulawBuffer = Buffer.concat([mulawBuffer, padding]);
-      logger.info(`🔊 [${streamSid}] Añadido padding de audio: ${padding.length} bytes`);
-    }
-    
     const chunkSize = 160;
     let offset = 0;
-    let chunkCount = 0;
-    const startTime = Date.now();
-    
-    logger.info(`🎵 [${streamSid}] Starting audio transmission (${mulawBuffer.length} bytes)`);
     
     while (offset < mulawBuffer.length) {
       const chunk = mulawBuffer.subarray(offset, offset + chunkSize);
@@ -848,19 +633,10 @@ class TwilioStreamHandler {
         media: { payload: base64Chunk }
       }));
       
-      console.log('🔌 WebSocket transmission debug:', {
-        timestamp: Date.now(),
-        chunkSize: chunk.length,
-        streamSid: streamSid,
-        isConnected: ws.readyState === ws.OPEN
-      });
-      
-      chunkCount++;
       offset += chunkSize;
     }
     
-    const duration = Date.now() - startTime;
-    logger.info(`✅ [${streamSid}] Audio transmission completed: ${chunkCount} chunks sent`);
+    logger.info(`✅ [${streamSid}] Audio enviado: ${Math.ceil(mulawBuffer.length / chunkSize)} chunks`);
   }
 
   /**
@@ -909,142 +685,8 @@ class TwilioStreamHandler {
   }
 
   generateFallbackAudio() {
-    // Implementación simple de audio de fallback
     const buffer = Buffer.alloc(160, 0xff); // Silencio digital
     return buffer;
-  }
-
-  /**
-   * Enviar audio a Twilio - FORMATO OPTIMIZADO
-   */
-  async sendAudioToTwilio(ws, audioBuffer, streamSid) {
-    if (!audioBuffer || audioBuffer.length === 0) {
-      logger.error(`❌ [${streamSid}] Buffer de audio vacío`);
-      return;
-    }
-
-    // Verificación inicial del estado de WebSocket
-    if (ws.readyState !== ws.OPEN) {
-      logger.error(`❌ [${streamSid}] WebSocket no está conectado al iniciar envío (readyState: ${ws.readyState})`);
-      
-      // Intentar esperar hasta 500ms por si se reconecta
-      let attempts = 0;
-      while (ws.readyState !== ws.OPEN && attempts < 5) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-        logger.debug(`🔄 [${streamSid}] Esperando reconexión WebSocket (intento ${attempts}/5)`);
-      }
-      
-      if (ws.readyState !== ws.OPEN) {
-        logger.error(`❌ [${streamSid}] WebSocket no se reconectó - cancelando envío de audio`);
-        return;
-      }
-      
-      logger.info(`✅ [${streamSid}] WebSocket reconectado después de ${attempts} intentos`);
-    }
-
-    try {
-      let processedBuffer = audioBuffer;
-      
-      // Detectar formato y procesar si es necesario
-      if (audioBuffer.length > 44) {
-        const header = audioBuffer.subarray(0, 4).toString('ascii');
-        
-        if (header === 'RIFF') {
-          // Es PCM, extraer datos y convertir a mulaw
-          const dataChunkIndex = audioBuffer.indexOf('data');
-          if (dataChunkIndex !== -1) {
-            const pcmData = audioBuffer.subarray(dataChunkIndex + 8);
-            processedBuffer = this.convertPCMToMulaw(pcmData);
-            logger.info(`🔄 [${streamSid}] Convertido PCM a mulaw: ${processedBuffer.length} bytes`);
-          }
-        }
-      }
-
-      console.log('🔊 Audio transmission started for stream:', streamSid);
-      console.log('🔊 Chunk size:', 160, 'bytes');
-      console.log('🔊 Total audio length:', processedBuffer.length, 'bytes');
-
-      logger.info("🔊 Sending audio to WebSocket");
-      logger.info(`🔊 Tamaño del buffer de audio: ${processedBuffer.length} bytes`);
-      logger.info(`🔊 Primeros bytes: ${processedBuffer.slice(0, 16).toString('hex')}`);
-      
-      // Enviar en chunks de 160 bytes (20ms de audio mulaw)
-      const chunkSize = 160;
-      let offset = 0;
-
-      while (offset < processedBuffer.length) {
-        const chunk = processedBuffer.subarray(offset, offset + chunkSize);
-        const base64Chunk = chunk.toString('base64');
-        
-        const mediaMessage = {
-          event: 'media',
-          streamSid: streamSid,
-          media: {
-            payload: base64Chunk
-          }
-        };
-
-        console.log('🔌 Sending chunk:', {
-          size: chunk.length,
-          position: offset,
-          streamSid: streamSid,
-          timestamp: Date.now()
-        });
-
-        // Verificación robusta del estado de WebSocket
-        const isConnected = ws.readyState === ws.OPEN;
-        
-        console.log('🔌 WebSocket transmission debug:', {
-          timestamp: Date.now(),
-          chunkSize: chunk.length,
-          streamSid: streamSid,
-          isConnected: isConnected,
-          readyState: ws.readyState
-        });
-
-        if (!isConnected) {
-          logger.error(`❌ [${streamSid}] WebSocket desconectado durante envío de audio (readyState: ${ws.readyState})`);
-          
-          // Intentar esperar un momento por si se reconecta
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          if (ws.readyState !== ws.OPEN) {
-            logger.error(`❌ [${streamSid}] WebSocket sigue desconectado - abortando envío de audio`);
-            return;
-          }
-        }
-
-        try {
-          ws.send(JSON.stringify(mediaMessage));
-        } catch (sendError) {
-          logger.error(`❌ [${streamSid}] Error enviando chunk de audio: ${sendError.message}`);
-          return;
-        }
-        
-        offset += chunkSize;
-      }
-
-      logger.info(`📤 [${streamSid}] Audio enviado: ${Math.ceil(processedBuffer.length / chunkSize)} chunks`);
-      
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error enviando audio: ${error.message}`);
-    }
-  }
-
-  /**
-   * Convertir PCM 16-bit a mulaw 8-bit
-   */
-  convertPCMToMulaw(pcmBuffer) {
-    const mulawBuffer = Buffer.alloc(pcmBuffer.length / 2);
-    
-    for (let i = 0; i < pcmBuffer.length; i += 2) {
-      const sample = pcmBuffer.readInt16LE(i);
-      const mulawByte = this.linearToMulaw(sample);
-      mulawBuffer[i / 2] = mulawByte;
-    }
-    
-    return mulawBuffer;
   }
 
   /**
@@ -1062,8 +704,8 @@ class TwilioStreamHandler {
       lastActivity: Date.now(),
       
       // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz
-      energyThreshold: 15, // Umbral base para habla real vs ruido telefónico
-      adaptiveThreshold: 15,
+      energyThreshold: 20, // Umbral base para habla real vs ruido telefónico
+      adaptiveThreshold: 20,
       
       // CONTEOS ESTÁNDAR PARA VAD
       maxSilenceDuration: 4, // 4 chunks = ~320ms de silencio para procesar
@@ -1193,306 +835,45 @@ class TwilioStreamHandler {
    * Detectar actividad de voz en tiempo real usando VAD (Voice Activity Detection)
    */
   detectVoiceActivity(audioChunk, streamSid) {
-    try {
-      let detection = this.speechDetection.get(streamSid);
-      if (!detection) {
-        logger.warn(`⚠️ [${streamSid}] No detection config found, re-initializing...`);
-        // Re-inicializar automáticamente si no existe
-        this.initializeSpeechDetection(streamSid);
-        detection = this.speechDetection.get(streamSid);
-        
-        if (!detection) {
-          logger.error(`🚨 [${streamSid}] Failed to re-initialize detection config`);
-          return { shouldProcess: false, reason: 'no_detection_config' };
-        }
-        logger.info(`✅ [${streamSid}] Detection config re-initialized successfully`);
-      }
-
-      const now = Date.now();
-
-      // ECHO BLANKING: Ignorar VAD si el bot está hablando o acabó de hablar
-      if (this.isEchoBlankingActive(streamSid)) {
-        logger.info(`🔇 [${streamSid}] VAD IGNORADO por Echo Blanking (bot hablando/eco)`);
-        return { 
-          shouldProcess: false, 
-          isActive: detection.isActive,
-          energy: 0,
-          threshold: detection.adaptiveThreshold,
-          reason: 'echo_blanking'
-        };
-      }
-
-    // PASO 1: Detectar audio saturado
     const samples = new Uint8Array(audioChunk);
-    const maxSample = Math.max(...samples);
-    const minSample = Math.min(...samples);
-    const saturationCount = samples.filter(s => s >= 126 || s <= 1).length;
-    const saturationRatio = saturationCount / samples.length;
-    
-    // Rechazar audio claramente saturado
-    if (saturationRatio > 0.3 || maxSample >= 127) {
-      logger.warn(`🚫 [${streamSid}] Audio saturado rechazado: saturation=${(saturationRatio*100).toFixed(1)}%, max=${maxSample}`);
-      return { 
-        shouldProcess: false, 
-        reason: 'saturated_audio',
-        energy: '127.0',
-        maxAmplitude: maxSample,
-        silenceRatio: (saturationRatio * 100).toFixed(1) + '%'
-      };
-    }
-    
-    // PASO 2: Calcular energía con límites realistas
     let energy = 0;
-    let maxAmplitude = 0;
-    let sampleSum = 0;
-    let zeroSamples = 0;
-    let silentSamples = 0;
     
     for (const sample of samples) {
-      // Detectar silencio real en mu-law
-      if (sample === 0xFF || sample === 127) {
-        silentSamples++;
-        sampleSum += sample;
-        continue;
-      }
-      
-      // Calcular amplitud con límites anti-saturación
       const amplitude = Math.abs(sample - 127);
-      const limitedAmplitude = Math.min(amplitude, 100); // LÍMITE CRÍTICO: máximo 100
-      
-      energy += limitedAmplitude * limitedAmplitude;
-      maxAmplitude = Math.max(maxAmplitude, limitedAmplitude);
-      sampleSum += sample;
-      
-      if (sample === 0x7F) zeroSamples++;
-      if (amplitude < 8) silentSamples++; // Umbral más alto para silencio
+      energy += amplitude * amplitude;
     }
+    energy = Math.sqrt(energy / samples.length);
     
-    // PASO 3: Calcular energía RMS con límite máximo
-    const nonSilentSamples = samples.length - silentSamples;
-    if (nonSilentSamples > 0) {
-      energy = Math.sqrt(energy / nonSilentSamples);
-      energy = Math.min(energy, 80); // LÍMITE CRÍTICO: nunca superar 80
-    } else {
-      energy = 0;
-    }
+    const detection = this.speechDetection.get(streamSid);
+    if (!detection) return { shouldProcess: false, isActive: false, energy: energy.toFixed(1) };
     
-    const avgSample = sampleSum / samples.length;
-    const silenceRatio = silentSamples / samples.length;
+    const isActive = energy > detection.adaptiveThreshold;
     
-    // LOG CRÍTICO: Análisis detallado de muestras
-    logger.info(`🔬 [${streamSid}] ANÁLISIS AUDIO: energy=${energy.toFixed(1)}, maxAmp=${maxAmplitude}, avgSample=${avgSample.toFixed(1)}, silenceRatio=${(silenceRatio*100).toFixed(1)}%`)
-    
-    // Mantener historial de energía para umbral adaptativo
-    detection.energyHistory.push(energy);
-    if (detection.energyHistory.length > 50) { // mantener últimos 50 chunks (1 segundo)
-      detection.energyHistory.shift();
-    }
-    
-    // Calcular umbral adaptativo basado en promedio del ruido de fondo
-    const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
-  
-    // CONFIGURACIÓN VAD ANTI-SATURACIÓN
-    // Umbrales más altos para evitar falsos positivos por audio saturado
-    if (energy < 20) {
-      detection.adaptiveThreshold = Math.max(12, energy * 1.5); // Ruido de fondo más estricto
-      logger.info(`🔧 [${streamSid}] UMBRAL RUIDO: energy=${energy.toFixed(1)} < 20 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
-    } else {
-      // Umbrales más altos para habla real vs ruido telefónico
-      detection.adaptiveThreshold = Math.max(20, Math.min(40, avgEnergy * 1.2));
-      logger.info(`🔧 [${streamSid}] UMBRAL HABLA: energy=${energy.toFixed(1)} ≥ 20 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
-    }
-  
-    // VAD MEJORADO: Múltiples condiciones para evitar saturación
-    const energyOK = energy > detection.adaptiveThreshold && energy <= 75; // Límite superior
-    const amplitudeOK = maxAmplitude > 8 && maxAmplitude <= 80; // Rango realista
-    const silenceOK = silenceRatio < 0.4; // Menos tolerancia al silencio
-    
-    const isSpeech = energyOK && amplitudeOK && silenceOK;
-    
-    // LOG CRÍTICO: Mostrar decisión de speech detection mejorada
-    logger.info(`🎯 [${streamSid}] SPEECH DECISION: energyOK=${energyOK} (${energy.toFixed(1)} vs ${detection.adaptiveThreshold.toFixed(1)}), ampOK=${amplitudeOK} (${maxAmplitude}), silenceOK=${silenceOK} (${(silenceRatio*100).toFixed(1)}%), isSpeech=${isSpeech}`);
-    
-    if (isSpeech) {
+    if (isActive) {
       detection.speechCount++;
       detection.silenceCount = 0;
-      detection.lastActivity = now;
-      
-      // Activar detección si no está activa
-      if (!detection.isActive) {
-        detection.isActive = true;
-        logger.info(`🎤 [${streamSid}] VAD ACTIVADO: Habla detectada`);
-      }
-      
-      // HANGOVER TIMER: Establecer timer para mantener activo después de speech
-      detection.hangoverTimer = now + detection.hangoverDuration;
-      
-      // LOG CRÍTICO: Mostrar progreso hacia activación
-      logger.info(`🔢 [${streamSid}] SPEECH COUNT: ${detection.speechCount}, isActive=${detection.isActive}`);
+      detection.isActive = true;
     } else {
       detection.silenceCount++;
-      detection.speechCount = Math.max(0, detection.speechCount - 1); // decaimiento gradual
-      
-      // LOG CRÍTICO: Mostrar por qué no es speech
-      logger.info(`❌ [${streamSid}] NO SPEECH: speechCount=${detection.speechCount} (decremented), silenceCount=${detection.silenceCount}`);
-    }
-
-    // HANGOVER TIMER: Mantener isActive si está dentro del período de hangover
-    if (!detection.isActive && now <= detection.hangoverTimer) {
-      detection.isActive = true;
-      logger.info(`⏰ [${streamSid}] HANGOVER TIMER: Manteniendo isActive por ${detection.hangoverTimer - now}ms más`);
-    }
-    
-    // Desactivar isActive si hangover timer expiró y no hay speech reciente
-    if (detection.isActive && now > detection.hangoverTimer && !isSpeech) {
-      // Solo desactivar si llevamos suficiente silencio
-      if (detection.silenceCount >= detection.maxSilenceDuration) {
-        logger.info(`⏰ [${streamSid}] HANGOVER TIMER EXPIRADO: Desactivando isActive`);
-        // No desactivar aquí, dejar que la lógica normal de shouldProcess lo maneje
-      }
-    }
-    
-    // CONFIGURACIÓN BASADA EN OPENAI DOCS: 500ms = ~6-8 chunks a 8kHz
-    const timeActive = now - detection.lastActivity;
-    const forceProcess = detection.isActive && 
-                        detection.speechCount > 8; // Basado en OpenAI: 500ms silence_duration_ms
-    
-    // Detectar final de habla - LÓGICA SIMPLIFICADA PARA TWILIO
-    // Si hay habla activa Y (suficiente silencio O tiempo máximo excedido)
-    const shouldProcess = detection.isActive && (
-      (detection.silenceCount >= detection.maxSilenceDuration && timeActive > 200) ||
-      (detection.speechCount >= 8) || // Forzar después de ~640ms de habla continua
-      forceProcess
-    );
-    
-    if (shouldProcess) {
-      const silenceChunks = detection.silenceCount; // Guardar antes de resetear
-      const speechChunks = detection.speechCount; // Guardar antes de resetear
-      const reason = forceProcess ? 'forced_timeout' : 'speech_end_detected';
-      
-      if (forceProcess) {
-        logger.warn(`⚡ [${streamSid}] PROCESAMIENTO FORZADO: speechCount=${speechChunks}, timeActive=${timeActive}ms`);
-      }
-      
-      detection.isActive = false;
-      detection.silenceCount = 0;
       detection.speechCount = 0;
-      
-      if (!forceProcess) {
-        logger.info(`🔇 [${streamSid}] Final de habla detectado (silencio: ${silenceChunks} chunks)`);
+      if (detection.silenceCount > 5) {
+        detection.isActive = false;
       }
-      
-      return { shouldProcess: true, reason: reason };
     }
     
-    // Timeout de seguridad - procesar si llevamos mucho tiempo acumulando
-    const timeoutCheck = Date.now() - detection.lastActivity;
-    if (detection.isActive && timeoutCheck > 8000) { // 8 segundos máximo
-      logger.warn(`⏰ [${streamSid}] Timeout de seguridad - procesando audio acumulado`);
-      detection.isActive = false;
-      detection.silenceCount = 0;
-      detection.speechCount = 0;
-      return { shouldProcess: true, reason: 'timeout' };
-    }
+    detection.lastActivity = Date.now();
     
-    return { 
-      shouldProcess: false, 
+    return {
+      shouldProcess: isActive,
       isActive: detection.isActive,
       energy: energy.toFixed(1),
-      threshold: detection.adaptiveThreshold.toFixed(1),
-      speechCount: detection.speechCount,
-      silenceCount: detection.silenceCount
+      threshold: detection.adaptiveThreshold.toFixed(1)
     };
-    } catch (error) {
-      logger.error(`🚨 [${streamSid}] Error in detectVoiceActivity: ${error.message}`);
-      return { 
-        shouldProcess: false, 
-        reason: 'error',
-        isActive: undefined,
-        energy: undefined,
-        threshold: undefined
-      };
-    }
   }
 
   /**
    * Analizar calidad y características del buffer de audio
    */
-  analyzeAudioBuffer(audioBuffer) {
-    const samples = new Uint8Array(audioBuffer);
-    let totalAmplitude = 0;
-    let maxAmplitude = 0;
-    let silentSamples = 0;
-    let nonZeroSamples = 0;
-    
-    for (const sample of samples) {
-      const amplitude = Math.abs(sample - 127); // mulaw center is 127
-      totalAmplitude += amplitude;
-      maxAmplitude = Math.max(maxAmplitude, amplitude);
-      
-      if (amplitude < 5) { // Very quiet threshold
-        silentSamples++;
-      }
-      if (sample !== 0xFF && sample !== 0x7F) { // Not silence markers
-        nonZeroSamples++;
-      }
-    }
-    
-    const avgAmplitude = totalAmplitude / samples.length;
-    const silenceRatio = silentSamples / samples.length;
-    const dataRatio = nonZeroSamples / samples.length;
-    
-    return {
-      totalBytes: audioBuffer.length,
-      avgAmplitude: Math.round(avgAmplitude * 100) / 100,
-      maxAmplitude,
-      silenceRatio: Math.round(silenceRatio * 100) / 100,
-      dataRatio: Math.round(dataRatio * 100) / 100,
-      quality: avgAmplitude > 10 && dataRatio > 0.3 ? 'good' : 'poor'
-    };
-  }
-
-  /**
-   * Conversión linear a mulaw
-   */
-  linearToMulaw(sample) {
-    const MULAW_MAX = 0x1FFF;
-    const MULAW_BIAS = 33;
-    let sign = (sample >> 8) & 0x80;
-    if (sign !== 0) sample = -sample;
-    if (sample > MULAW_MAX) sample = MULAW_MAX;
-    sample = sample + MULAW_BIAS;
-    let exponent = 7;
-    for (let expMask = 0x4000; (sample & expMask) === 0 && exponent > 0; exponent--, expMask >>= 1) {}
-    const mantissa = (sample >> (exponent + 3)) & 0x0F;
-    const mulawByte = ~(sign | (exponent << 4) | mantissa);
-    return mulawByte & 0xFF;
-  }
-
-  /**
-   * Procesar eventos media que llegaron durante la configuración inicial
-   */
-  async processPendingMediaEvents(ws, streamSid) {
-    const pendingEvents = this.pendingMediaEvents.get(streamSid);
-    if (!pendingEvents || pendingEvents.length === 0) {
-      return;
-    }
-
-    logger.info(`📦 [${streamSid}] Procesando ${pendingEvents.length} eventos media buffered`);
-    
-    // Procesar eventos en orden
-    for (const eventData of pendingEvents) {
-      try {
-        await this.handleMediaEvent(ws, eventData);
-      } catch (error) {
-        logger.error(`❌ [${streamSid}] Error procesando evento buffered: ${error.message}`);
-      }
-    }
-    
-    // Limpiar buffer
-    this.pendingMediaEvents.delete(streamSid);
-    logger.info(`✅ [${streamSid}] Eventos buffered procesados y buffer limpiado`);
-  }
 
   /**
    * Manejar eventos de media (audio del caller)
@@ -1501,108 +882,28 @@ class TwilioStreamHandler {
     const { streamSid } = data;
     const streamData = this.activeStreams.get(streamSid);
     
-    if (!streamData) {
-      // Buffer temporal para eventos media que llegan durante configuración inicial
-      if (!this.pendingMediaEvents.has(streamSid)) {
-        this.pendingMediaEvents.set(streamSid, []);
-        logger.info(`📦 [${streamSid}] Creando buffer temporal para eventos media durante setup`);
-      }
-      
-      const buffer = this.pendingMediaEvents.get(streamSid);
-      buffer.push(data);
-      
-      // Limitar buffer a 100 eventos para evitar memory leak
-      if (buffer.length > 100) {
-        buffer.shift();
-      }
-      
-      logger.debug(`📦 [${streamSid}] Evento media buffered durante setup (${buffer.length} eventos)`);
+    if (!streamData || streamData.state !== 'listening') {
       return;
     }
 
-    // LOGS DETALLADOS PARA DIAGNOSTICAR TRANSCRIPCIÓN
-    logger.debug(`🎤 [${streamSid}] handleMediaEvent - Recibido chunk de audio`);
-    logger.debug(`🔍 [${streamSid}] Estado transcriptionActive Map:`, this.transcriptionActive);
-    logger.debug(`🔍 [${streamSid}] transcriptionActive para este stream: ${this.transcriptionActive.get(streamSid)}`);
-    logger.debug(`🔍 [${streamSid}] echoBlanking estado: ${this.echoBlanking.get(streamSid)?.active}`);
-    logger.debug(`🔍 [${streamSid}] streamData estado: ${streamData?.state}`);
-    
-    // Verificar si la transcripción está activa (patrón start/stop)
-    const isTranscriptionActive = this.transcriptionActive && this.transcriptionActive.get(streamSid);
-    logger.debug(`🔍 [${streamSid}] Estado transcripción: ${isTranscriptionActive}, Map exists: ${!!this.transcriptionActive}`);
-    
-    if (!isTranscriptionActive) {
-      logger.warn(`🚫 [${streamSid}] Transcripción inactiva - ignorando audio del usuario`);
-      logger.warn(`🚫 [${streamSid}] - transcriptionActive Map existe: ${!!this.transcriptionActive}`);
-      logger.warn(`🚫 [${streamSid}] - transcriptionActive para stream: ${this.transcriptionActive?.get(streamSid)}`);
-      logger.warn(`🚫 [${streamSid}] - Todos los streams activos: ${Array.from(this.transcriptionActive?.keys() || [])}`);
-      logger.warn(`🚫 [${streamSid}] - Echo blanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
-      return;
-    }
+    const payload = data.media?.payload;
+    if (!payload) return;
 
-    if (streamData.state !== 'listening') {
-      logger.warn(`🚫 [${streamSid}] Estado "${streamData.state}" !== "listening" - ignorando audio`);
-      return;
-    }
+    const rawAudioChunk = Buffer.from(payload, 'base64');
+    const normalizedAudio = this.audioPreprocessor.normalizeAudio(rawAudioChunk, 0.7);
     
-    // Verificar si el bot está hablando - no procesar audio del usuario
-    if (streamData.botSpeaking) {
-      logger.warn(`🚫 [${streamSid}] BLOQUEADO por botSpeaking=true - ignorando audio del usuario`);
-      return;
-    }
+    const streamAudioBuffer = this.audioBuffers.get(streamSid) || [];
+    streamAudioBuffer.push(normalizedAudio);
+    this.audioBuffers.set(streamSid, streamAudioBuffer);
     
-    // DEBUG: Confirmar que estamos procesando audio del usuario
-    logger.info(`🔍 [DEBUG] Procesando audio del usuario en stream ${streamSid}`);
-
-    try {
-      const payload = data.media?.payload;
-      if (!payload) {
-        logger.debug(`🔇 [${streamSid}] Payload de audio vacío`);
-        return;
+    const vadResult = this.processVAD(streamSid, normalizedAudio);
+    
+    if (vadResult.shouldProcess) {
+      const collectedAudio = this.audioBuffers.get(streamSid);
+      this.audioBuffers.set(streamSid, []);
+      if (collectedAudio && collectedAudio.length > 0) {
+        this.processCollectedAudio(ws, streamSid, collectedAudio);
       }
-
-      // Decodificar audio de base64 a buffer
-      const rawAudioChunk = Buffer.from(payload, 'base64');
-      
-      // NUEVO ORDEN: Primero normalizar
-      const normalizedAudio = this.audioPreprocessor.normalizeAudio(rawAudioChunk, 0.7);
-      
-      // Detección de saturación en audio NORMALIZADO
-      const saturationCheck = this.audioPreprocessor.detectSaturation(normalizedAudio);
-      
-      // Inicializar audioBuffer para este stream si no existe
-      if (!this.audioBuffer.has(streamSid)) {
-        this.audioBuffer.set(streamSid, []);
-      }
-      
-      // Usar audio normalizado en VAD y buffer
-      const streamAudioBuffer = this.audioBuffer.get(streamSid);
-      streamAudioBuffer.push(...normalizedAudio);
-      
-      logger.debug(`🔧 [${streamSid}] Llamando processVAD con audio de ${normalizedAudio.length} bytes`);
-      const vadResult = this.processVAD(streamSid, normalizedAudio);
-      logger.info(`🎤 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
-      
-      // Acumular audio PREPROCESADO y detectar fin de turno con parámetros inteligentes
-      const audioBuffer = this.audioBuffers.get(streamSid) || [];
-      audioBuffer.push(normalizedAudio); // Usar audio preprocesado, no el original
-      this.audioBuffers.set(streamSid, audioBuffer);
-      
-      logger.debug(`🎤 [${streamSid}] Audio chunk: energía=${vadResult.energy}, umbral=${vadResult.threshold}, activo=${vadResult.isActive}, buffer=${audioBuffer.length} chunks`);
-      
-      // Detectar fin de turno usando parámetros inteligentes
-      const silenceDuration = this.calculateSilenceDuration(streamSid, vadResult);
-      
-      // Usar parámetros de timeout inteligentes
-      if (silenceDuration >= this.timeoutParams.minEndOfTurnSilenceWhenConfident) {
-        logger.info(`🔇 [${streamSid}] Fin de turno detectado (${silenceDuration}ms de silencio)`);
-        const collectedAudio = this.stopTranscription(streamSid);
-        if (collectedAudio && collectedAudio.length > 0) {
-          this.processCollectedAudio(ws, streamSid, collectedAudio);
-        }
-      }
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error procesando audio: ${error.message}`);
     }
   }
 
@@ -2018,40 +1319,19 @@ class TwilioStreamHandler {
    * Procesar audio con VAD usando la estructura existente de speechDetection
    */
   processVAD(streamSid, audioChunk) {
-    logger.debug(`🔍 [${streamSid}] processVAD iniciado con chunk de ${audioChunk.length} bytes`);
-    
     const detection = this.speechDetection.get(streamSid);
-    if (!detection) {
-      logger.error(`❌ [${streamSid}] No hay configuración de speech detection`);
-      return { shouldProcess: false, isActive: false, energy: 0, threshold: 0 };
-    }
+    if (!detection) return { shouldProcess: false, isActive: false, energy: 0, threshold: 0 };
     
-    logger.debug(`🔍 [${streamSid}] Speech detection encontrado: ${Object.keys(detection)}`);
-
-    // Calcular energía del audio
     const samples = new Uint8Array(audioChunk);
-    let totalEnergy = 0;
-    for (let i = 0; i < samples.length; i++) {
-      const sample = samples[i] - 127; // Centrar en 0
-      totalEnergy += sample * sample;
+    let energy = 0;
+    for (const sample of samples) {
+      const amplitude = Math.abs(sample - 127);
+      energy += amplitude * amplitude;
     }
-    const energy = Math.sqrt(totalEnergy / samples.length);
-
-    // Actualizar historial de energía
-    detection.energyHistory = detection.energyHistory || [];
-    detection.energyHistory.push(energy);
-    if (detection.energyHistory.length > 10) {
-      detection.energyHistory.shift();
-    }
-
-    // Calcular umbral adaptativo
-    const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
-    detection.adaptiveThreshold = Math.max(detection.energyThreshold, avgEnergy * 1.2);
-
-    // Determinar si hay actividad de voz
+    energy = Math.sqrt(energy / samples.length);
+    
     const isActive = energy > detection.adaptiveThreshold;
     
-    // Actualizar contadores
     if (isActive) {
       detection.speechCount++;
       detection.silenceCount = 0;
@@ -2063,48 +1343,20 @@ class TwilioStreamHandler {
         detection.isActive = false;
       }
     }
-
+    
     detection.lastActivity = Date.now();
-
+    
     return {
       shouldProcess: isActive,
       isActive: detection.isActive,
-      energy: Math.round(energy * 100) / 100,
-      threshold: Math.round(detection.adaptiveThreshold * 100) / 100
+      energy: energy.toFixed(1),
+      threshold: detection.adaptiveThreshold.toFixed(1)
     };
   }
 
   /**
    * Resetear estado VAD para audio constantemente saturado
    */
-  resetVADState(streamSid) {
-    logger.warn(`🔄 [${streamSid}] Reseteando estado VAD por audio saturado`);
-    
-    // Limpiar estado VAD
-    if (this.speechDetection.has(streamSid)) {
-      const detection = this.speechDetection.get(streamSid);
-      detection.isActive = false;
-      detection.speechCount = 0;
-      detection.silenceCount = 0;
-      detection.energyHistory = [];
-      detection.adaptiveThreshold = detection.energyThreshold || 15;
-      detection.lastActivity = Date.now();
-      logger.info(`🧹 [${streamSid}] Estado VAD reseteado`);
-    }
-    
-    // Limpiar buffer de audio acumulado
-    if (this.audioBuffers.has(streamSid)) {
-      this.audioBuffers.set(streamSid, []);
-      logger.info(`🧹 [${streamSid}] Buffer de audio limpiado`);
-    }
-    
-    if (this.speechDetection.has(streamSid)) {
-      this.speechDetection.delete(streamSid);
-      logger.info(`🧹 [${streamSid}] Estado VAD limpiado`);
-    }
-    
-    logger.info(`✅ [${streamSid}] Recursos del stream limpiados correctamente`);
-  }
 
   /**
    * Validar variables Azure
