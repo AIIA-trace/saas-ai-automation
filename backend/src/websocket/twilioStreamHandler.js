@@ -104,6 +104,7 @@ class TwilioStreamHandler {
     this.speechDetection = new Map();
     this.silenceStartTime = new Map();
     this.lastResponseTime = new Map();
+    this.energySamples = new Map(); // Para umbrales adaptativos VAD
     this.audioPreprocessor = new AudioPreprocessor();
 
     // Configurar transcripción en tiempo real
@@ -121,6 +122,7 @@ class TwilioStreamHandler {
     logger.info(`🔍 - pendingMarks: ${!!this.pendingMarks} (size: ${this.pendingMarks.size})`);
     logger.info(`🔍 - transcriptionActive: ${!!this.transcriptionActive}`);
     logger.info(`🔍 - transcriptionService: ${!!this.transcriptionService}`);
+    logger.info(`🔍 - energySamples: ${!!this.energySamples} (size: ${this.energySamples.size})`);
     
     logger.info('🚀 TwilioStreamHandler inicializado con patrón Start/Stop simplificado');
   }
@@ -243,8 +245,15 @@ class TwilioStreamHandler {
     // Ejecutar la acción correspondiente
     switch (markData.action) {
       case 'activate_transcription':
-        logger.info(`🎤 [${streamSid}] ACTIVANDO transcripción tras completar audio (marca: ${markName})`);
-        this.activateTranscriptionAfterAudio(streamSid);
+        logger.info(`🎤 [${streamSid}] ACTIVANDO transcripción tras saludo (marca: ${markName})`);
+        // Activar transcripción directamente
+        this.transcriptionActive.set(streamSid, true);
+        const streamData = this.activeStreams.get(streamSid);
+        if (streamData) {
+          streamData.state = 'listening';
+          streamData.greetingCompletedAt = Date.now();
+        }
+        logger.info(`✅ [${streamSid}] Transcripción activada tras saludo - usuario puede hablar`);
         break;
       case 'deactivate_echo_blanking':
         logger.info(`⚡ [${streamSid}] DESACTIVANDO echo blanking tras completar respuesta (marca: ${markName})`);
@@ -347,18 +356,18 @@ class TwilioStreamHandler {
   handleStart(ws, data) {
     const streamSid = data.start?.streamSid;
     const callSid = data.start?.callSid;
-    
+
     if (!streamSid) {
       logger.error('❌ No se recibió streamSid en evento start');
       return;
     }
 
     logger.info(`🎵 [${streamSid}] Stream iniciado para llamada ${callSid}`);
-    
+
     // Buscar el stream temporal usando connectionId
     const tempId = ws.connectionId;
     const tempStreamData = this.activeStreams.get(tempId);
-    
+
     if (tempStreamData) {
       // Migrar del ID temporal al streamSid real
       this.activeStreams.set(streamSid, {
@@ -369,28 +378,11 @@ class TwilioStreamHandler {
         startTime: Date.now(),
         lastActivity: Date.now()
       });
-      
+
       // Eliminar el registro temporal
       this.activeStreams.delete(tempId);
-      
+
       logger.info(`🔄 [${streamSid}] Migrado de ID temporal ${tempId} a streamSid real`);
-      
-      // Verificar si el saludo ya se envió para evitar duplicados
-      const existingStreamData = this.activeStreams.get(streamSid);
-      if (existingStreamData?.greetingSent) {
-        logger.info(`⚠️ [${streamSid}] Saludo ya enviado, omitiendo`);
-        return;
-      }
-      
-      // Ahora intentar obtener el cliente usando callSid si no se hizo antes
-      this.getClientForStream(streamSid, callSid).then(() => {
-        // Enviar saludo inicial después de obtener el cliente
-        this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
-          logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
-        });
-      }).catch(error => {
-        logger.error(`❌ [${streamSid}] Error obteniendo cliente: ${error.message}`);
-      });
     } else {
       // Si no hay stream temporal, inicializar directamente
       this.activeStreams.set(streamSid, {
@@ -400,24 +392,35 @@ class TwilioStreamHandler {
         startTime: Date.now(),
         lastActivity: Date.now()
       });
-      
-      // Verificar si el saludo ya se envió
-      const existingStreamData = this.activeStreams.get(streamSid);
-      if (existingStreamData?.greetingSent) {
-        logger.info(`⚠️ [${streamSid}] Saludo ya enviado, omitiendo`);
+    }
+
+    // VERIFICACIÓN CRÍTICA: Solo enviar saludo si no se ha enviado ya
+    const existingStreamData = this.activeStreams.get(streamSid);
+    if (existingStreamData?.greetingSent) {
+      logger.info(`⚠️ [${streamSid}] Saludo ya enviado, omitiendo`);
+      return;
+    }
+
+    // Inicializar sistemas necesarios
+    this.initializeSpeechDetection(streamSid);
+    this.initializeEchoBlanking(streamSid);
+
+    // Obtener cliente y enviar saludo UNA SOLA VEZ
+    this.getClientForStream(streamSid, callSid).then(() => {
+      // Verificar de nuevo antes de enviar (doble verificación)
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData?.greetingSent) {
+        logger.info(`⚠️ [${streamSid}] Saludo ya enviado durante getClientForStream, omitiendo`);
         return;
       }
-      
-      // Obtener cliente y enviar saludo
-      this.getClientForStream(streamSid, callSid).then(() => {
-        this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
-          logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
-        });
-      }).catch(error => {
-        logger.error(`❌ [${streamSid}] Error obteniendo cliente: ${error.message}`);
+
+      this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
+        logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
       });
-    }
-    
+    }).catch(error => {
+      logger.error(`❌ [${streamSid}] Error obteniendo cliente: ${error.message}`);
+    });
+
     // Inicializar buffers y estados
     this.audioBuffers.set(streamSid, []);
     this.audioBuffer.set(streamSid, []);
@@ -451,6 +454,9 @@ class TwilioStreamHandler {
     this.speechDetection.delete(streamSid);
     this.echoBlanking.delete(streamSid);
     this.pendingMarks.delete(streamSid);
+    if (this.energySamples) {
+      this.energySamples.delete(streamSid);
+    }
     
     logger.info(`🧹 [${streamSid}] Recursos limpiados`);
   }
@@ -620,19 +626,21 @@ class TwilioStreamHandler {
         const audioLengthMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000); // 8kHz mulaw
         logger.info(`🔍 [${streamSid}] Audio length: ${ttsResult.audioBuffer.length} bytes = ~${audioLengthMs}ms`);
         
-        // Enviar audio directamente (sin marca)
-        await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
-        logger.info(`✅ [${streamSid}] Audio del saludo enviado directamente`);
+        // Usar sistema de marcas para activar transcripción después del saludo
+        const markId = `greeting_end_${Date.now()}`;
+        logger.info(`🎯 [${streamSid}] Enviando saludo con marca: ${markId}`);
         
-        // Usar setTimeout para activar transcripción después del audio (versión anterior)
-        setTimeout(() => {
-          logger.info(`⏰ [${streamSid}] Activando transcripción después del saludo (setTimeout)`);
-          this.transcriptionActive.set(streamSid, true);
-          const streamData = this.activeStreams.get(streamSid);
-          if (streamData) {
-            streamData.state = 'listening';
-          }
-        }, audioLengthMs + 500); // +500ms buffer
+        // Registrar que esperamos esta marca para activar transcripción
+        this.pendingMarks = this.pendingMarks || new Map();
+        this.pendingMarks.set(markId, {
+          streamSid: streamSid,
+          action: 'activate_transcription',
+          timestamp: Date.now()
+        });
+        
+        // Enviar audio con marca al final
+        await this.sendRawMulawToTwilioWithMark(ws, ttsResult.audioBuffer, streamSid, markId);
+        logger.info(`✅ [${streamSid}] Audio del saludo enviado con marca ${markId}`);
       } else {
         logger.error(`❌ [${streamSid}] TTS falló: ${ttsResult?.error || 'Unknown error'}`);
         throw new Error('TTS failed');
@@ -646,19 +654,21 @@ class TwilioStreamHandler {
       // Activar echo blanking durante fallback
       this.activateEchoBlanking(streamSid);
       
-      // Enviar fallback directamente
-      await this.sendRawMulawToTwilio(ws, this.fallbackAudio, streamSid);
-      logger.info(`✅ [${streamSid}] Audio fallback del saludo enviado`);
+      // Usar sistema de marcas para activar transcripción después del fallback
+      const markId = `fallback_end_${Date.now()}`;
+      logger.info(`🎯 [${streamSid}] Enviando fallback con marca: ${markId}`);
       
-      // Activar transcripción con setTimeout para fallback
-      setTimeout(() => {
-        logger.info(`⏰ [${streamSid}] Activando transcripción después del fallback (setTimeout)`);
-        this.transcriptionActive.set(streamSid, true);
-        const streamData = this.activeStreams.get(streamSid);
-        if (streamData) {
-          streamData.state = 'listening';
-        }
-      }, 2000); // 2 segundos para fallback
+      // Registrar que esperamos esta marca para activar transcripción
+      this.pendingMarks = this.pendingMarks || new Map();
+      this.pendingMarks.set(markId, {
+        streamSid: streamSid,
+        action: 'activate_transcription',
+        timestamp: Date.now()
+      });
+      
+      // Enviar fallback con marca al final
+      await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, markId);
+      logger.info(`✅ [${streamSid}] Audio fallback del saludo enviado con marca ${markId}`);
     }
     logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting`);
   }
@@ -708,19 +718,21 @@ class TwilioStreamHandler {
         const audioLengthMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000); // 8kHz mulaw
         logger.info(`🔍 [${streamSid}] Audio length: ${ttsResult.audioBuffer.length} bytes = ~${audioLengthMs}ms`);
         
-        // Enviar audio directamente (sin marca)
-        await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
-        logger.info(`✅ [${streamSid}] Saludo extendido enviado directamente`);
+        // Usar sistema de marcas para activar transcripción
+        const markId = `extended_greeting_end_${Date.now()}`;
+        logger.info(`🎯 [${streamSid}] Enviando saludo extendido con marca: ${markId}`);
         
-        // Usar setTimeout para activar transcripción después del audio (versión anterior)
-        setTimeout(() => {
-          logger.info(`⏰ [${streamSid}] Activando transcripción después del saludo extendido (setTimeout)`);
-          this.transcriptionActive.set(streamSid, true);
-          const streamData = this.activeStreams.get(streamSid);
-          if (streamData) {
-            streamData.state = 'listening';
-          }
-        }, audioLengthMs + 500); // +500ms buffer
+        // Registrar que esperamos esta marca para activar transcripción
+        this.pendingMarks = this.pendingMarks || new Map();
+        this.pendingMarks.set(markId, {
+          streamSid: streamSid,
+          action: 'activate_transcription',
+          timestamp: Date.now()
+        });
+        
+        // Enviar audio con marca al final
+        await this.sendRawMulawToTwilioWithMark(ws, ttsResult.audioBuffer, streamSid, markId);
+        logger.info(`✅ [${streamSid}] Saludo extendido enviado con marca ${markId}`);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en saludo extendido: ${error.message}`);
@@ -731,19 +743,21 @@ class TwilioStreamHandler {
       // Activar echo blanking durante fallback
       this.activateEchoBlanking(streamSid);
       
-      // Enviar fallback directamente
-      await this.sendRawMulawToTwilio(ws, this.fallbackAudio, streamSid);
-      logger.info(`✅ [${streamSid}] Fallback del saludo extendido enviado`);
+      // Usar sistema de marcas para activar transcripción después del fallback extendido
+      const markId = `extended_fallback_end_${Date.now()}`;
+      logger.info(`🎯 [${streamSid}] Enviando fallback extendido con marca: ${markId}`);
       
-      // Activar transcripción con setTimeout para fallback
-      setTimeout(() => {
-        logger.info(`⏰ [${streamSid}] Activando transcripción después del fallback extendido (setTimeout)`);
-        this.transcriptionActive.set(streamSid, true);
-        const streamData = this.activeStreams.get(streamSid);
-        if (streamData) {
-          streamData.state = 'listening';
-        }
-      }, 2000); // 2 segundos para fallback
+      // Registrar que esperamos esta marca para activar transcripción
+      this.pendingMarks = this.pendingMarks || new Map();
+      this.pendingMarks.set(markId, {
+        streamSid: streamSid,
+        action: 'activate_transcription',
+        timestamp: Date.now()
+      });
+      
+      // Enviar fallback con marca al final
+      await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, markId);
+      logger.info(`✅ [${streamSid}] Fallback del saludo extendido enviado con marca ${markId}`);
     }
   }
 
@@ -1029,7 +1043,7 @@ class TwilioStreamHandler {
     // Log detallado para debug
     logger.info(`🎙️ [${streamSid}] Chunk de audio recibido: ${normalizedAudio.length} bytes, buffer size: ${streamAudioBuffer.length}`);
     
-    const vadResult = this.detectVoiceActivity(normalizedAudio, streamSid);
+    const vadResult = this.detectVoiceActivity(streamSid, normalizedAudio);
     
     logger.info(`🔍 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
     
