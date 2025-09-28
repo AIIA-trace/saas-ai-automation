@@ -1,8 +1,9 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const azureTTSRestService = require('../services/azureTTSRestService');
-const OpenAIService = require('../services/openaiService'); // Servicio de chat/GPT
+const OpenAIService = require('../services/openaiService');
 const RealtimeTranscription = require('../services/realtimeTranscription');
+// ELIMINADO: EventBasedStateManager y ProductionSafeTimeouts - reemplazados por patrón start/stop simple
 const fs = require('fs');
 
 /**
@@ -80,66 +81,64 @@ class AudioPreprocessor {
 class TwilioStreamHandler {
   constructor(prisma, ttsService) {
     this.prisma = prisma;
-    this.ttsService = ttsService;
-
-    // ✅ INICIALIZACIÓN CORREGIDA - Servicios críticos
-    try {
-      this.openaiService = new OpenAIService(); // Servicio de chat/GPT
-      logger.info('✅ OpenAIService (chat) inicializado correctamente');
-    } catch (error) {
-      logger.error(`❌ Error crítico inicializando OpenAIService: ${error.message}`);
-      this.openaiService = null;
-    }
-
-    // ✅ Inicializar todos los mapas necesarios
+    this.ttsService = ttsService; // FIX: Asignar el servicio TTS
+    
+    // INICIALIZACIÓN FALTANTE - Servicios críticos:
+    this.openaiService = new OpenAIService(); // ✅ INICIALIZAR
+    this.conversationState = new Map(); // ✅ INICIALIZAR
+    this.pendingMarks = new Map(); // ✅ INICIALIZAR
+    
+    // Mapas para gestión de estado y audio
     this.activeStreams = new Map();
     this.audioBuffers = new Map();
-    this.audioBuffer = new Map();
-    this.transcriptionActive = new Map();
-    this.responseInProgress = new Map();
-    this.conversationState = new Map();
-    this.pendingMarks = new Map();
-    this.pendingMediaEvents = new Map();
-    this.silenceStartTime = new Map();
-    this.speechDetection = new Map();
+    this.vadState = new Map(); // FIX: Nombre consistente
     this.echoBlanking = new Map();
-    this.lastResponseTime = new Map();
-    this.consecutiveSaturatedChunks = new Map();
+    this.transcriptionActive = new Map();
+    this.pendingMediaEvents = new Map();
+    this.consecutiveSaturatedChunks = new Map(); // Contador para evitar ciclos infinitos
+    this.audioPreprocessor = new AudioPreprocessor(); // Preprocesador de audio
     
-    // Preprocesador de audio
-    this.audioPreprocessor = new AudioPreprocessor();
+    // NUEVO: Patrón start/stop transcription
+    this.silenceStartTime = new Map();
     
-    // ✅ Inicializar servicios
-    this.transcriptionService = new RealtimeTranscription();
-    this.fallbackAudio = this.generateFallbackAudio();
-
-    // Voice mapping
-    this.defaultVoice = 'es-ES-IsidoraMultilingualNeural';
+    // VAD y detección de voz
+    this.speechDetection = new Map();
     
-    // Parámetros de timeout inteligentes
+    // Inicializar audioBuffer como array para cada stream
+    this.audioBuffer = new Map(); // FIX: Inicializar audioBuffer
+    
+    // NUEVO: Parámetros de timeout inteligentes (inspirados en AssemblyAI)
     this.timeoutParams = {
-      minEndOfTurnSilenceWhenConfident: 700,
-      minEndOfTurnSilenceWhenNotConfident: 1200,
-      maxSpeechDuration: 30000,
-      confidenceThreshold: 0.8,
-      energyThreshold: 100
+      minEndOfTurnSilenceWhenConfident: 700, // ms - silencio mínimo para fin de turno cuando hay confianza
+      minEndOfTurnSilenceWhenNotConfident: 1200, // ms - silencio mínimo cuando no hay confianza
+      maxSpeechDuration: 30000, // ms - duración máxima de habla continua
+      confidenceThreshold: 0.8, // umbral de confianza para transcripción
+      energyThreshold: 100 // umbral de energía para detectar actividad
     };
 
     // Cache de conversiones
-    this.azureToken = null;
-    this.validateAzureConfig();
+    this.responseInProgress = new Map(); // Prevenir respuestas concurrentes
+    this.lastResponseTime = new Map(); // Control de tiempo entre respuestas
+    this.azureToken = null; // Token reutilizable
+    this.validateAzureConfig(); // Validación crítica al iniciar
 
-    // ✅ DIAGNÓSTICO INICIAL
-    logger.info('🔍 DIAGNÓSTICO INICIALIZACIÓN:');
+    // Configurar transcripción en tiempo real
+    this.transcriptionService = new RealtimeTranscription();
+    this.fallbackAudio = this.generateFallbackAudio();
+
+    // Voice mapping from user-friendly names to Azure TTS voice identifiers
+    // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
+    this.defaultVoice = 'es-ES-IsidoraMultilingualNeural';
+    
+    // LOGS DE DIAGNÓSTICO - Verificar inicialización
+    logger.info('🔍 DIAGNÓSTICO - Servicios inicializados:');
     logger.info(`🔍 - openaiService: ${!!this.openaiService}`);
+    logger.info(`🔍 - conversationState: ${!!this.conversationState}`);
+    logger.info(`🔍 - pendingMarks: ${!!this.pendingMarks}`);
+    logger.info(`🔍 - transcriptionActive: ${!!this.transcriptionActive}`);
     logger.info(`🔍 - transcriptionService: ${!!this.transcriptionService}`);
-    logger.info(`🔍 - ttsService: ${!!this.ttsService}`);
     
-    if (this.openaiService) {
-      logger.info(`🔍 - generateReceptionistResponse existe: ${typeof this.openaiService.generateReceptionistResponse === 'function'}`);
-    }
-    
-    logger.info('🚀 TwilioStreamHandler inicializado con todos los servicios');
+    logger.info('🚀 TwilioStreamHandler inicializado con patrón Start/Stop simplificado');
   }
 
   /**
@@ -173,6 +172,8 @@ class TwilioStreamHandler {
 
   /**
    * Maneja mensajes WebSocket entrantes
+   * @param {WebSocket} ws - Conexión WebSocket
+   * @param {Object} data - Datos del mensaje
    */
   handleMessage(ws, data) {
     const { event } = data;
@@ -221,7 +222,7 @@ class TwilioStreamHandler {
     logger.info(`🎯 [${streamSid}] Marca recibida: ${markName}`);
     
     // Verificar si tenemos una acción pendiente para esta marca
-    if (!this.pendingMarks.has(markName)) {
+    if (!this.pendingMarks || !this.pendingMarks.has(markName)) {
       logger.debug(`🔍 [${streamSid}] Marca ${markName} no esperada - ignorando`);
       return;
     }
@@ -250,17 +251,18 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Activa la transcripción después de que el audio termine
+   * Activa la transcripción después de que el audio termine (llamado por handleMark)
    */
   activateTranscriptionAfterAudio(streamSid) {
     logger.info(`🔍 [${streamSid}] Estado ANTES de activar transcripción:`);
     logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
     logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
+    logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
     
     // Desactivar echo blanking (esto activa la transcripción automáticamente)
     this.deactivateEchoBlanking(streamSid);
     
-    // ✅ ACTIVACIÓN EXPLÍCITA COMO FALLBACK
+    // ACTIVACIÓN EXPLÍCITA COMO FALLBACK
     if (!this.transcriptionActive.get(streamSid)) {
       logger.warn(`⚠️ [${streamSid}] Transcripción no se activó automáticamente - activando manualmente`);
       this.transcriptionActive.set(streamSid, true);
@@ -268,11 +270,11 @@ class TwilioStreamHandler {
       const streamData = this.activeStreams.get(streamSid);
       if (streamData) {
         streamData.state = 'listening';
-        streamData.botSpeaking = false;
       }
     }
     
     logger.info(`🔍 [${streamSid}] Estado DESPUÉS de activar transcripción:`);
+    logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
     logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
     logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
     
@@ -299,25 +301,26 @@ class TwilioStreamHandler {
       streamSid,
       state: 'connected',
       startTime: Date.now(),
-      lastActivity: Date.now(),
-      greetingSent: false,
-      isInitializing: true,
-      botSpeaking: false
+      lastActivity: Date.now()
     });
 
     // Inicializar buffers
     this.audioBuffers.set(streamSid, []);
-    this.audioBuffer.set(streamSid, []);
+    this.audioBuffer.set(streamSid, []); // FIX: Inicializar audioBuffer para el stream
     this.transcriptionActive.set(streamSid, false);
     this.responseInProgress.set(streamSid, false);
 
-    // Enviar saludo inicial
+    // La transcripción se activará automáticamente cuando se desactive el echo blanking
+    // NO inicializar echo blanking aquí - se hace en initializeEchoBlanking()
+
+    // Enviar saludo inicial - la transcripción se activará automáticamente cuando termine el audio
     this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
       logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
     });
   }
 
   /**
+{{ ... }}
    * Maneja evento 'stop' de Twilio Stream
    */
   handleStop(ws, data) {
@@ -335,28 +338,35 @@ class TwilioStreamHandler {
   cleanup(streamSid) {
     this.activeStreams.delete(streamSid);
     this.audioBuffers.delete(streamSid);
-    this.audioBuffer.delete(streamSid);
+    this.audioBuffer.delete(streamSid); // FIX: Limpiar audioBuffer también
     this.transcriptionActive.delete(streamSid);
     this.responseInProgress.delete(streamSid);
     this.silenceStartTime.delete(streamSid);
-    this.speechDetection.delete(streamSid);
+    this.vadState.delete(streamSid);
     this.lastResponseTime.delete(streamSid);
+    this.speechDetection.delete(streamSid);
     this.echoBlanking.delete(streamSid);
-    this.conversationState.delete(streamSid);
     
     logger.info(`🧹 [${streamSid}] Recursos limpiados`);
   }
 
   /**
    * Maps a user-friendly voice name to a valid Azure TTS voice identifier
+   * @param {string} voiceId - User-friendly voice name
+   * @param {string} language - Language code (e.g., 'es-ES', 'en-US')
+   * @returns {string} Valid Azure TTS voice identifier
    */
   mapVoiceToAzure(voiceId, language = 'es-ES') {
+    // Siempre usar Isidora Multilingüe para todos los usuarios
     logger.info(`🎵 Using Isidora Multilingual voice for all users: ${this.defaultVoice}`);
     return this.defaultVoice;
   }
 
   /**
    * Humanizar texto con SSML para que Isidora Multilingüe suene más natural
+   * @param {string} text - Texto a humanizar
+   * @param {string} style - Estilo SSML: 'chat', 'empathetic', 'friendly', 'calm'
+   * @returns {string} Texto con SSML aplicado (solo contenido interno)
    */
   humanizeTextWithSSML(text, style = 'chat') {
     // Limpiar texto de posibles caracteres problemáticos
@@ -366,6 +376,8 @@ class TwilioStreamHandler {
     });
 
     // Solo devolver el contenido SSML interno (sin <speak> wrapper)
+    // El servicio TTS ya agrega el wrapper completo
+    // Estilos optimizados para Isidora Multilingüe - velocidad 1.1 en todos
     const styleSettings = {
       'chat': { rate: '1.1', pitch: '-2%', volume: '90%', breakTime: '400ms' },
       'empathetic': { rate: '1.1', pitch: '-3%', volume: '85%', breakTime: '500ms' },
@@ -389,9 +401,49 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Procesar eventos de Twilio Stream - FLUJO LIMPIO
+   */
+  async processStreamEvent(ws, data) {
+    const event = data.event;
+    const streamSid = data.streamSid || data.start?.streamSid || 'unknown';
+    
+    logger.info(`📡 [${streamSid}] Evento: ${event}`);
+    
+    // DEBUG: Registrar eventos recibidos
+    if (event === 'media') {
+      logger.debug(`🎤 [${streamSid}] Evento media recibido - payload: ${data.media?.payload ? 'presente' : 'ausente'}`);
+    } else {
+      logger.info(`📡 [${streamSid}] Evento: ${event}`);
+    }
+    
+    try {
+      switch (event) {
+        case 'connected':
+          await this.handleStreamConnected(ws, data);
+          break;
+        case 'start':
+          await this.handleStreamStart(ws, data);
+          break;
+        case 'media':
+          await this.handleMediaEvent(ws, data);
+          break;
+        case 'stop':
+          await this.handleStreamStop(ws, data);
+          break;
+        default:
+          logger.warn(`⚠️ [${streamSid}] Evento desconocido: ${event}`);
+      }
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error procesando evento ${event}: ${error.message}`);
+    }
+  }
+
+  /**
    * Stream conectado - SOLO registrar conexión
    */
   async handleStreamConnected(ws, data) {
+    // En el evento 'connected', streamSid no está disponible aún
+    // Registramos la conexión con un ID temporal
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     logger.info(`✅ [${tempId}] Stream conectado - registrando temporalmente`);
@@ -401,10 +453,9 @@ class TwilioStreamHandler {
       isConnected: true,
       greetingSent: false,
       isInitializing: true,
-      state: 'greeting',
+      state: 'greeting', // Estados simples: greeting, listening, processing, speaking
       lastUserInput: null,
-      lastActivity: Date.now(),
-      botSpeaking: false
+      lastActivity: Date.now()
     });
     
     // También guardar referencia por WebSocket para poder encontrarlo en 'start'
@@ -477,6 +528,8 @@ class TwilioStreamHandler {
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo de prueba enviado correctamente`);
         
+        // La transcripción se activará automáticamente cuando se desactive el echo blanking
+        
         return;
       }
 
@@ -532,11 +585,14 @@ class TwilioStreamHandler {
       this.initializeEchoBlanking(streamSid);
       logger.info(`🎯 [${streamSid}] Sistemas de detección inicializados`);
 
-      // ENVÍO ÚNICO DEL SALUDO
+      // ENVÍO ÚNICO DEL SALUDO - SOLO AQUÍ
       try {
         logger.info(`🔊 [${streamSid}] Generando ÚNICO saludo...`);
         await this.sendInitialGreeting(ws, { streamSid, callSid });
         logger.info(`✅ [${streamSid}] Saludo único enviado correctamente`);
+        
+        // NUEVO: Patrón start/stop simplificado - activar transcripción después del saludo
+        // La transcripción se activará automáticamente cuando se desactive el echo blanking
         
       } catch (error) {
         logger.error(`❌ [${streamSid}] Error en saludo: ${error.message}`);
@@ -578,6 +634,10 @@ class TwilioStreamHandler {
                     clientConfigData.callConfig?.language || 
                     'es-ES';
     
+    // DEBUG: Log complete callConfig structure
+    logger.info(`🔍 [${streamSid}] Complete callConfig from streamData: ${JSON.stringify(streamData.client.callConfig, null, 2)}`);
+    logger.info(`🔍 [${streamSid}] Complete callConfig from DB: ${JSON.stringify(clientConfigData.callConfig, null, 2)}`);
+    
     const voiceId = this.mapVoiceToAzure(rawVoiceId, language);
     
     logger.info(`🎵 [${streamSid}] Raw voice from DB: "${rawVoiceId}"`);
@@ -594,10 +654,10 @@ class TwilioStreamHandler {
     }
 
     try {
-      // Humanizar el saludo con SSML
+      // 3. Humanizar el saludo con SSML
       const humanizedGreeting = this.humanizeTextWithSSML(greeting);
       
-      // Generar audio con Azure TTS usando SSML humanizado con timeout
+      // 4. Generar audio con Azure TTS usando SSML humanizado con timeout
       logger.info(`🔊 [${streamSid}] Iniciando Azure TTS con timeout de 10s...`);
       const ttsPromise = this.ttsService.generateSpeech(
         humanizedGreeting,
@@ -623,8 +683,10 @@ class TwilioStreamHandler {
         fs.writeFileSync(fileName, ttsResult.audioBuffer);
         logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
         
+        logger.info(`🔍 [${streamSid}] ANTES de sendRawMulawToTwilio`);
+        
         // Calcular duración aproximada del audio para timing correcto
-        const audioLengthMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000);
+        const audioLengthMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000); // 8kHz mulaw
         logger.info(`🔍 [${streamSid}] Audio length: ${ttsResult.audioBuffer.length} bytes = ~${audioLengthMs}ms`);
         
         // Enviar audio con marca para detectar cuando termina
@@ -632,6 +694,7 @@ class TwilioStreamHandler {
         logger.info(`🚀 [${streamSid}] Enviando saludo con marca: ${markId}`);
         
         // Registrar que esperamos esta marca para activar transcripción
+        this.pendingMarks = this.pendingMarks || new Map();
         this.pendingMarks.set(markId, {
           streamSid: streamSid,
           action: 'activate_transcription',
@@ -645,7 +708,7 @@ class TwilioStreamHandler {
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error TTS: ${error.message}`);
       
-      // Usar fallback si TTS falla
+      // 4. Usar fallback si TTS falla
       logger.warn(`⚠️ [${streamSid}] Usando audio de fallback`);
       
       // Activar echo blanking durante fallback
@@ -656,6 +719,7 @@ class TwilioStreamHandler {
       logger.info(`🚀 [${streamSid}] Enviando fallback del saludo con marca: ${fallbackMarkId}`);
       
       // Registrar que esperamos esta marca para activar transcripción
+      this.pendingMarks = this.pendingMarks || new Map();
       this.pendingMarks.set(fallbackMarkId, {
         streamSid: streamSid,
         action: 'activate_transcription',
@@ -680,6 +744,8 @@ class TwilioStreamHandler {
     logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback`);
     logger.info(`🎵 [${streamSid}] Raw voice: "${rawVoiceId}" → Mapped: "${this.mapVoiceToAzure(rawVoiceId, language)}"`);
   
+    logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con voz: ${this.mapVoiceToAzure(rawVoiceId, language)}`);
+  
     // Humanizar el saludo de fallback con SSML
     const humanizedFallback = this.humanizeTextWithSSML(fallbackGreeting);
     
@@ -702,11 +768,17 @@ class TwilioStreamHandler {
       this.activateEchoBlanking(streamSid);
     
       if (ttsResult.success) {
+        // Save audio to file
+        const fileName = `debug_${Date.now()}_${streamSid}.wav`;
+        fs.writeFileSync(fileName, ttsResult.audioBuffer);
+        logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
+        
         // Enviar saludo extendido con marca para detectar cuando termina
         const markId = `extended_greeting_end_${Date.now()}`;
         logger.info(`🚀 [${streamSid}] Enviando saludo extendido con marca: ${markId}`);
         
         // Registrar que esperamos esta marca para activar transcripción
+        this.pendingMarks = this.pendingMarks || new Map();
         this.pendingMarks.set(markId, {
           streamSid: streamSid,
           action: 'activate_transcription',
@@ -728,6 +800,7 @@ class TwilioStreamHandler {
       logger.info(`🚀 [${streamSid}] Enviando fallback del saludo extendido con marca: ${fallbackMarkId}`);
       
       // Registrar que esperamos esta marca para activar transcripción
+      this.pendingMarks = this.pendingMarks || new Map();
       this.pendingMarks.set(fallbackMarkId, {
         streamSid: streamSid,
         action: 'activate_transcription',
@@ -738,6 +811,50 @@ class TwilioStreamHandler {
       await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, fallbackMarkId);
       logger.info(`✅ [${streamSid}] Fallback del saludo extendido enviado con marca ${fallbackMarkId}`);
     }
+  }
+
+  async sendRawMulawToTwilio(ws, mulawBuffer, streamSid) {
+    logger.info("🔊 Sending audio to WebSocket");
+    logger.info(`🔊 Tamaño del buffer de audio: ${mulawBuffer.length} bytes`);
+    logger.info(`🔊 Primeros bytes: ${mulawBuffer.slice(0, 16).toString('hex')}`);
+    
+    // Ensure minimum audio length (1 second = 8000 bytes)
+    if (mulawBuffer.length < 8000) {
+      const padding = Buffer.alloc(8000 - mulawBuffer.length, 0xFF);
+      mulawBuffer = Buffer.concat([mulawBuffer, padding]);
+      logger.info(`🔊 [${streamSid}] Añadido padding de audio: ${padding.length} bytes`);
+    }
+    
+    const chunkSize = 160;
+    let offset = 0;
+    let chunkCount = 0;
+    const startTime = Date.now();
+    
+    logger.info(`🎵 [${streamSid}] Starting audio transmission (${mulawBuffer.length} bytes)`);
+    
+    while (offset < mulawBuffer.length) {
+      const chunk = mulawBuffer.subarray(offset, offset + chunkSize);
+      const base64Chunk = chunk.toString('base64');
+      
+      ws.send(JSON.stringify({
+        event: 'media',
+        streamSid: streamSid,
+        media: { payload: base64Chunk }
+      }));
+      
+      console.log('🔌 WebSocket transmission debug:', {
+        timestamp: Date.now(),
+        chunkSize: chunk.length,
+        streamSid: streamSid,
+        isConnected: ws.readyState === ws.OPEN
+      });
+      
+      chunkCount++;
+      offset += chunkSize;
+    }
+    
+    const duration = Date.now() - startTime;
+    logger.info(`✅ [${streamSid}] Audio transmission completed: ${chunkCount} chunks sent`);
   }
 
   /**
@@ -792,25 +909,170 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Enviar audio a Twilio - FORMATO OPTIMIZADO
+   */
+  async sendAudioToTwilio(ws, audioBuffer, streamSid) {
+    if (!audioBuffer || audioBuffer.length === 0) {
+      logger.error(`❌ [${streamSid}] Buffer de audio vacío`);
+      return;
+    }
+
+    // Verificación inicial del estado de WebSocket
+    if (ws.readyState !== ws.OPEN) {
+      logger.error(`❌ [${streamSid}] WebSocket no está conectado al iniciar envío (readyState: ${ws.readyState})`);
+      
+      // Intentar esperar hasta 500ms por si se reconecta
+      let attempts = 0;
+      while (ws.readyState !== ws.OPEN && attempts < 5) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+        logger.debug(`🔄 [${streamSid}] Esperando reconexión WebSocket (intento ${attempts}/5)`);
+      }
+      
+      if (ws.readyState !== ws.OPEN) {
+        logger.error(`❌ [${streamSid}] WebSocket no se reconectó - cancelando envío de audio`);
+        return;
+      }
+      
+      logger.info(`✅ [${streamSid}] WebSocket reconectado después de ${attempts} intentos`);
+    }
+
+    try {
+      let processedBuffer = audioBuffer;
+      
+      // Detectar formato y procesar si es necesario
+      if (audioBuffer.length > 44) {
+        const header = audioBuffer.subarray(0, 4).toString('ascii');
+        
+        if (header === 'RIFF') {
+          // Es PCM, extraer datos y convertir a mulaw
+          const dataChunkIndex = audioBuffer.indexOf('data');
+          if (dataChunkIndex !== -1) {
+            const pcmData = audioBuffer.subarray(dataChunkIndex + 8);
+            processedBuffer = this.convertPCMToMulaw(pcmData);
+            logger.info(`🔄 [${streamSid}] Convertido PCM a mulaw: ${processedBuffer.length} bytes`);
+          }
+        }
+      }
+
+      console.log('🔊 Audio transmission started for stream:', streamSid);
+      console.log('🔊 Chunk size:', 160, 'bytes');
+      console.log('🔊 Total audio length:', processedBuffer.length, 'bytes');
+
+      logger.info("🔊 Sending audio to WebSocket");
+      logger.info(`🔊 Tamaño del buffer de audio: ${processedBuffer.length} bytes`);
+      logger.info(`🔊 Primeros bytes: ${processedBuffer.slice(0, 16).toString('hex')}`);
+      
+      // Enviar en chunks de 160 bytes (20ms de audio mulaw)
+      const chunkSize = 160;
+      let offset = 0;
+
+      while (offset < processedBuffer.length) {
+        const chunk = processedBuffer.subarray(offset, offset + chunkSize);
+        const base64Chunk = chunk.toString('base64');
+        
+        const mediaMessage = {
+          event: 'media',
+          streamSid: streamSid,
+          media: {
+            payload: base64Chunk
+          }
+        };
+
+        console.log('🔌 Sending chunk:', {
+          size: chunk.length,
+          position: offset,
+          streamSid: streamSid,
+          timestamp: Date.now()
+        });
+
+        // Verificación robusta del estado de WebSocket
+        const isConnected = ws.readyState === ws.OPEN;
+        
+        console.log('🔌 WebSocket transmission debug:', {
+          timestamp: Date.now(),
+          chunkSize: chunk.length,
+          streamSid: streamSid,
+          isConnected: isConnected,
+          readyState: ws.readyState
+        });
+
+        if (!isConnected) {
+          logger.error(`❌ [${streamSid}] WebSocket desconectado durante envío de audio (readyState: ${ws.readyState})`);
+          
+          // Intentar esperar un momento por si se reconecta
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          if (ws.readyState !== ws.OPEN) {
+            logger.error(`❌ [${streamSid}] WebSocket sigue desconectado - abortando envío de audio`);
+            return;
+          }
+        }
+
+        try {
+          ws.send(JSON.stringify(mediaMessage));
+        } catch (sendError) {
+          logger.error(`❌ [${streamSid}] Error enviando chunk de audio: ${sendError.message}`);
+          return;
+        }
+        
+        offset += chunkSize;
+      }
+
+      logger.info(`📤 [${streamSid}] Audio enviado: ${Math.ceil(processedBuffer.length / chunkSize)} chunks`);
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error enviando audio: ${error.message}`);
+    }
+  }
+
+  /**
+   * Convertir PCM 16-bit a mulaw 8-bit
+   */
+  convertPCMToMulaw(pcmBuffer) {
+    const mulawBuffer = Buffer.alloc(pcmBuffer.length / 2);
+    
+    for (let i = 0; i < pcmBuffer.length; i += 2) {
+      const sample = pcmBuffer.readInt16LE(i);
+      const mulawByte = this.linearToMulaw(sample);
+      mulawBuffer[i / 2] = mulawByte;
+    }
+    
+    return mulawBuffer;
+  }
+
+  /**
    * Inicializar sistema de detección de habla para un stream
    */
   initializeSpeechDetection(streamSid) {
     logger.info(`🎤 [${streamSid}] Inicializando detección de voz...`);
     
+    // CONFIGURACIÓN VAD OPTIMIZADA PARA TWILIO
+    // Basado en sistemas probados: OpenAI Whisper, Silero VAD, WebRTC
     const config = {
       isActive: false,
       silenceCount: 0,
       speechCount: 0,
       lastActivity: Date.now(),
-      energyThreshold: 15,
+      
+      // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz
+      energyThreshold: 15, // Umbral base para habla real vs ruido telefónico
       adaptiveThreshold: 15,
-      maxSilenceDuration: 4,
-      minSpeechDuration: 2,
-      hangoverDuration: 500,
+      
+      // CONTEOS ESTÁNDAR PARA VAD
+      maxSilenceDuration: 4, // 4 chunks = ~320ms de silencio para procesar
+      minSpeechDuration: 2, // 2 chunks = ~160ms mínimo de habla
+      
+      // TIMERS ESTÁNDAR
+      hangoverDuration: 500, // 500ms hangover después de habla
       hangoverTimer: 0,
+      
+      // ECHO BLANKING
       echoBlanking: false,
       echoBlankingUntil: 0,
       echoBlankingDuration: 500,
+      
+      // HISTORIAL PARA UMBRAL ADAPTATIVO
       energyHistory: []
     };
     
@@ -820,6 +1082,7 @@ class TwilioStreamHandler {
     const verification = this.speechDetection.get(streamSid);
     if (verification) {
       logger.info(`✅ [${streamSid}] Speech detection initialized successfully`);
+      logger.info(`🔍 [${streamSid}] Config keys: ${Object.keys(verification).join(', ')}`);
     } else {
       logger.error(`❌ [${streamSid}] Failed to initialize speech detection`);
     }
@@ -858,6 +1121,7 @@ class TwilioStreamHandler {
     logger.info(`🔍 [${streamSid}] INICIANDO deactivateEchoBlanking()`);
     
     const echoBlanking = this.echoBlanking.get(streamSid);
+    logger.info(`🔍 [${streamSid}] echoBlanking obtenido:`, echoBlanking);
     
     if (!echoBlanking) {
       logger.error(`❌ [${streamSid}] NO HAY echoBlanking en el mapa`);
@@ -866,7 +1130,7 @@ class TwilioStreamHandler {
     
     logger.info(`🔍 [${streamSid}] echoBlanking.active = ${echoBlanking.active}`);
     
-    if (echoBlanking.active) {
+    if (echoBlanking && echoBlanking.active) {
       logger.info(`🔍 [${streamSid}] Desactivando echo blanking...`);
       echoBlanking.active = false;
       echoBlanking.endTime = 0;
@@ -874,17 +1138,21 @@ class TwilioStreamHandler {
       
       // Activar transcripción automáticamente cuando se desactiva echo blanking
       const streamData = this.activeStreams.get(streamSid);
+      logger.info(`🔍 [${streamSid}] streamData obtenido:`, streamData ? 'EXISTS' : 'NULL');
+      
+      const currentTranscriptionState = this.transcriptionActive.get(streamSid);
+      logger.info(`🔍 [${streamSid}] Estado actual transcripción: ${currentTranscriptionState}`);
       
       if (streamData && !this.transcriptionActive.get(streamSid)) {
         logger.info(`🔍 [${streamSid}] ACTIVANDO TRANSCRIPCIÓN...`);
         this.transcriptionActive.set(streamSid, true);
         streamData.state = 'listening';
-        streamData.botSpeaking = false;
         streamData.greetingCompletedAt = Date.now();
         
         // Verificar que se activó correctamente
         const newTranscriptionState = this.transcriptionActive.get(streamSid);
         logger.info(`🚀 [${streamSid}] Transcripción activada! Nuevo estado: ${newTranscriptionState}`);
+        logger.info(`🚀 [${streamSid}] streamData.state = ${streamData.state}`);
       } else {
         logger.warn(`⚠️ [${streamSid}] NO se activó transcripción:`);
         logger.warn(`⚠️ [${streamSid}] - streamData existe: ${!!streamData}`);
@@ -892,6 +1160,8 @@ class TwilioStreamHandler {
       }
     } else {
       logger.warn(`⚠️ [${streamSid}] Echo blanking NO estaba activo o no existe`);
+      logger.warn(`⚠️ [${streamSid}] - echoBlanking existe: ${!!echoBlanking}`);
+      logger.warn(`⚠️ [${streamSid}] - echoBlanking.active: ${echoBlanking?.active}`);
     }
     
     logger.info(`🔍 [${streamSid}] FINALIZANDO deactivateEchoBlanking()`);
@@ -911,6 +1181,311 @@ class TwilioStreamHandler {
     }
     
     return echoBlanking.active;
+  }
+
+  /**
+   * Detectar actividad de voz en tiempo real usando VAD (Voice Activity Detection)
+   */
+  detectVoiceActivity(audioChunk, streamSid) {
+    try {
+      let detection = this.speechDetection.get(streamSid);
+      if (!detection) {
+        logger.warn(`⚠️ [${streamSid}] No detection config found, re-initializing...`);
+        // Re-inicializar automáticamente si no existe
+        this.initializeSpeechDetection(streamSid);
+        detection = this.speechDetection.get(streamSid);
+        
+        if (!detection) {
+          logger.error(`🚨 [${streamSid}] Failed to re-initialize detection config`);
+          return { shouldProcess: false, reason: 'no_detection_config' };
+        }
+        logger.info(`✅ [${streamSid}] Detection config re-initialized successfully`);
+      }
+
+      const now = Date.now();
+
+      // ECHO BLANKING: Ignorar VAD si el bot está hablando o acabó de hablar
+      if (this.isEchoBlankingActive(streamSid)) {
+        logger.info(`🔇 [${streamSid}] VAD IGNORADO por Echo Blanking (bot hablando/eco)`);
+        return { 
+          shouldProcess: false, 
+          isActive: detection.isActive,
+          energy: 0,
+          threshold: detection.adaptiveThreshold,
+          reason: 'echo_blanking'
+        };
+      }
+
+    // PASO 1: Detectar audio saturado
+    const samples = new Uint8Array(audioChunk);
+    const maxSample = Math.max(...samples);
+    const minSample = Math.min(...samples);
+    const saturationCount = samples.filter(s => s >= 126 || s <= 1).length;
+    const saturationRatio = saturationCount / samples.length;
+    
+    // Rechazar audio claramente saturado
+    if (saturationRatio > 0.3 || maxSample >= 127) {
+      logger.warn(`🚫 [${streamSid}] Audio saturado rechazado: saturation=${(saturationRatio*100).toFixed(1)}%, max=${maxSample}`);
+      return { 
+        shouldProcess: false, 
+        reason: 'saturated_audio',
+        energy: '127.0',
+        maxAmplitude: maxSample,
+        silenceRatio: (saturationRatio * 100).toFixed(1) + '%'
+      };
+    }
+    
+    // PASO 2: Calcular energía con límites realistas
+    let energy = 0;
+    let maxAmplitude = 0;
+    let sampleSum = 0;
+    let zeroSamples = 0;
+    let silentSamples = 0;
+    
+    for (const sample of samples) {
+      // Detectar silencio real en mu-law
+      if (sample === 0xFF || sample === 127) {
+        silentSamples++;
+        sampleSum += sample;
+        continue;
+      }
+      
+      // Calcular amplitud con límites anti-saturación
+      const amplitude = Math.abs(sample - 127);
+      const limitedAmplitude = Math.min(amplitude, 100); // LÍMITE CRÍTICO: máximo 100
+      
+      energy += limitedAmplitude * limitedAmplitude;
+      maxAmplitude = Math.max(maxAmplitude, limitedAmplitude);
+      sampleSum += sample;
+      
+      if (sample === 0x7F) zeroSamples++;
+      if (amplitude < 8) silentSamples++; // Umbral más alto para silencio
+    }
+    
+    // PASO 3: Calcular energía RMS con límite máximo
+    const nonSilentSamples = samples.length - silentSamples;
+    if (nonSilentSamples > 0) {
+      energy = Math.sqrt(energy / nonSilentSamples);
+      energy = Math.min(energy, 80); // LÍMITE CRÍTICO: nunca superar 80
+    } else {
+      energy = 0;
+    }
+    
+    const avgSample = sampleSum / samples.length;
+    const silenceRatio = silentSamples / samples.length;
+    
+    // LOG CRÍTICO: Análisis detallado de muestras
+    logger.info(`🔬 [${streamSid}] ANÁLISIS AUDIO: energy=${energy.toFixed(1)}, maxAmp=${maxAmplitude}, avgSample=${avgSample.toFixed(1)}, silenceRatio=${(silenceRatio*100).toFixed(1)}%`)
+    
+    // Mantener historial de energía para umbral adaptativo
+    detection.energyHistory.push(energy);
+    if (detection.energyHistory.length > 50) { // mantener últimos 50 chunks (1 segundo)
+      detection.energyHistory.shift();
+    }
+    
+    // Calcular umbral adaptativo basado en promedio del ruido de fondo
+    const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
+  
+    // CONFIGURACIÓN VAD ANTI-SATURACIÓN
+    // Umbrales más altos para evitar falsos positivos por audio saturado
+    if (energy < 20) {
+      detection.adaptiveThreshold = Math.max(12, energy * 1.5); // Ruido de fondo más estricto
+      logger.info(`🔧 [${streamSid}] UMBRAL RUIDO: energy=${energy.toFixed(1)} < 20 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
+    } else {
+      // Umbrales más altos para habla real vs ruido telefónico
+      detection.adaptiveThreshold = Math.max(20, Math.min(40, avgEnergy * 1.2));
+      logger.info(`🔧 [${streamSid}] UMBRAL HABLA: energy=${energy.toFixed(1)} ≥ 20 → threshold=${detection.adaptiveThreshold.toFixed(1)}`);
+    }
+  
+    // VAD MEJORADO: Múltiples condiciones para evitar saturación
+    const energyOK = energy > detection.adaptiveThreshold && energy <= 75; // Límite superior
+    const amplitudeOK = maxAmplitude > 8 && maxAmplitude <= 80; // Rango realista
+    const silenceOK = silenceRatio < 0.4; // Menos tolerancia al silencio
+    
+    const isSpeech = energyOK && amplitudeOK && silenceOK;
+    
+    // LOG CRÍTICO: Mostrar decisión de speech detection mejorada
+    logger.info(`🎯 [${streamSid}] SPEECH DECISION: energyOK=${energyOK} (${energy.toFixed(1)} vs ${detection.adaptiveThreshold.toFixed(1)}), ampOK=${amplitudeOK} (${maxAmplitude}), silenceOK=${silenceOK} (${(silenceRatio*100).toFixed(1)}%), isSpeech=${isSpeech}`);
+    
+    if (isSpeech) {
+      detection.speechCount++;
+      detection.silenceCount = 0;
+      detection.lastActivity = now;
+      
+      // Activar detección si no está activa
+      if (!detection.isActive) {
+        detection.isActive = true;
+        logger.info(`🎤 [${streamSid}] VAD ACTIVADO: Habla detectada`);
+      }
+      
+      // HANGOVER TIMER: Establecer timer para mantener activo después de speech
+      detection.hangoverTimer = now + detection.hangoverDuration;
+      
+      // LOG CRÍTICO: Mostrar progreso hacia activación
+      logger.info(`🔢 [${streamSid}] SPEECH COUNT: ${detection.speechCount}, isActive=${detection.isActive}`);
+    } else {
+      detection.silenceCount++;
+      detection.speechCount = Math.max(0, detection.speechCount - 1); // decaimiento gradual
+      
+      // LOG CRÍTICO: Mostrar por qué no es speech
+      logger.info(`❌ [${streamSid}] NO SPEECH: speechCount=${detection.speechCount} (decremented), silenceCount=${detection.silenceCount}`);
+    }
+
+    // HANGOVER TIMER: Mantener isActive si está dentro del período de hangover
+    if (!detection.isActive && now <= detection.hangoverTimer) {
+      detection.isActive = true;
+      logger.info(`⏰ [${streamSid}] HANGOVER TIMER: Manteniendo isActive por ${detection.hangoverTimer - now}ms más`);
+    }
+    
+    // Desactivar isActive si hangover timer expiró y no hay speech reciente
+    if (detection.isActive && now > detection.hangoverTimer && !isSpeech) {
+      // Solo desactivar si llevamos suficiente silencio
+      if (detection.silenceCount >= detection.maxSilenceDuration) {
+        logger.info(`⏰ [${streamSid}] HANGOVER TIMER EXPIRADO: Desactivando isActive`);
+        // No desactivar aquí, dejar que la lógica normal de shouldProcess lo maneje
+      }
+    }
+    
+    // CONFIGURACIÓN BASADA EN OPENAI DOCS: 500ms = ~6-8 chunks a 8kHz
+    const timeActive = now - detection.lastActivity;
+    const forceProcess = detection.isActive && 
+                        detection.speechCount > 8; // Basado en OpenAI: 500ms silence_duration_ms
+    
+    // Detectar final de habla - LÓGICA SIMPLIFICADA PARA TWILIO
+    // Si hay habla activa Y (suficiente silencio O tiempo máximo excedido)
+    const shouldProcess = detection.isActive && (
+      (detection.silenceCount >= detection.maxSilenceDuration && timeActive > 200) ||
+      (detection.speechCount >= 8) || // Forzar después de ~640ms de habla continua
+      forceProcess
+    );
+    
+    if (shouldProcess) {
+      const silenceChunks = detection.silenceCount; // Guardar antes de resetear
+      const speechChunks = detection.speechCount; // Guardar antes de resetear
+      const reason = forceProcess ? 'forced_timeout' : 'speech_end_detected';
+      
+      if (forceProcess) {
+        logger.warn(`⚡ [${streamSid}] PROCESAMIENTO FORZADO: speechCount=${speechChunks}, timeActive=${timeActive}ms`);
+      }
+      
+      detection.isActive = false;
+      detection.silenceCount = 0;
+      detection.speechCount = 0;
+      
+      if (!forceProcess) {
+        logger.info(`🔇 [${streamSid}] Final de habla detectado (silencio: ${silenceChunks} chunks)`);
+      }
+      
+      return { shouldProcess: true, reason: reason };
+    }
+    
+    // Timeout de seguridad - procesar si llevamos mucho tiempo acumulando
+    const timeoutCheck = Date.now() - detection.lastActivity;
+    if (detection.isActive && timeoutCheck > 8000) { // 8 segundos máximo
+      logger.warn(`⏰ [${streamSid}] Timeout de seguridad - procesando audio acumulado`);
+      detection.isActive = false;
+      detection.silenceCount = 0;
+      detection.speechCount = 0;
+      return { shouldProcess: true, reason: 'timeout' };
+    }
+    
+    return { 
+      shouldProcess: false, 
+      isActive: detection.isActive,
+      energy: energy.toFixed(1),
+      threshold: detection.adaptiveThreshold.toFixed(1),
+      speechCount: detection.speechCount,
+      silenceCount: detection.silenceCount
+    };
+    } catch (error) {
+      logger.error(`🚨 [${streamSid}] Error in detectVoiceActivity: ${error.message}`);
+      return { 
+        shouldProcess: false, 
+        reason: 'error',
+        isActive: undefined,
+        energy: undefined,
+        threshold: undefined
+      };
+    }
+  }
+
+  /**
+   * Analizar calidad y características del buffer de audio
+   */
+  analyzeAudioBuffer(audioBuffer) {
+    const samples = new Uint8Array(audioBuffer);
+    let totalAmplitude = 0;
+    let maxAmplitude = 0;
+    let silentSamples = 0;
+    let nonZeroSamples = 0;
+    
+    for (const sample of samples) {
+      const amplitude = Math.abs(sample - 127); // mulaw center is 127
+      totalAmplitude += amplitude;
+      maxAmplitude = Math.max(maxAmplitude, amplitude);
+      
+      if (amplitude < 5) { // Very quiet threshold
+        silentSamples++;
+      }
+      if (sample !== 0xFF && sample !== 0x7F) { // Not silence markers
+        nonZeroSamples++;
+      }
+    }
+    
+    const avgAmplitude = totalAmplitude / samples.length;
+    const silenceRatio = silentSamples / samples.length;
+    const dataRatio = nonZeroSamples / samples.length;
+    
+    return {
+      totalBytes: audioBuffer.length,
+      avgAmplitude: Math.round(avgAmplitude * 100) / 100,
+      maxAmplitude,
+      silenceRatio: Math.round(silenceRatio * 100) / 100,
+      dataRatio: Math.round(dataRatio * 100) / 100,
+      quality: avgAmplitude > 10 && dataRatio > 0.3 ? 'good' : 'poor'
+    };
+  }
+
+  /**
+   * Conversión linear a mulaw
+   */
+  linearToMulaw(sample) {
+    const MULAW_MAX = 0x1FFF;
+    const MULAW_BIAS = 33;
+    let sign = (sample >> 8) & 0x80;
+    if (sign !== 0) sample = -sample;
+    if (sample > MULAW_MAX) sample = MULAW_MAX;
+    sample = sample + MULAW_BIAS;
+    let exponent = 7;
+    for (let expMask = 0x4000; (sample & expMask) === 0 && exponent > 0; exponent--, expMask >>= 1) {}
+    const mantissa = (sample >> (exponent + 3)) & 0x0F;
+    const mulawByte = ~(sign | (exponent << 4) | mantissa);
+    return mulawByte & 0xFF;
+  }
+
+  /**
+   * Procesar eventos media que llegaron durante la configuración inicial
+   */
+  async processPendingMediaEvents(ws, streamSid) {
+    const pendingEvents = this.pendingMediaEvents.get(streamSid);
+    if (!pendingEvents || pendingEvents.length === 0) {
+      return;
+    }
+
+    logger.info(`📦 [${streamSid}] Procesando ${pendingEvents.length} eventos media buffered`);
+    
+    // Procesar eventos en orden
+    for (const eventData of pendingEvents) {
+      try {
+        await this.handleMediaEvent(ws, eventData);
+      } catch (error) {
+        logger.error(`❌ [${streamSid}] Error procesando evento buffered: ${error.message}`);
+      }
+    }
+    
+    // Limpiar buffer
+    this.pendingMediaEvents.delete(streamSid);
+    logger.info(`✅ [${streamSid}] Eventos buffered procesados y buffer limpiado`);
   }
 
   /**
@@ -939,13 +1514,23 @@ class TwilioStreamHandler {
       return;
     }
 
-    // ✅ VERIFICACIÓN ROBUSTA DE ESTADO DE TRANSCRIPCIÓN
-    const isTranscriptionActive = this.transcriptionActive && this.transcriptionActive.get(streamSid) === true;
+    // LOGS DETALLADOS PARA DIAGNOSTICAR TRANSCRIPCIÓN
+    logger.debug(`🎤 [${streamSid}] handleMediaEvent - Recibido chunk de audio`);
+    logger.debug(`🔍 [${streamSid}] Estado transcriptionActive Map:`, this.transcriptionActive);
+    logger.debug(`🔍 [${streamSid}] transcriptionActive para este stream: ${this.transcriptionActive.get(streamSid)}`);
+    logger.debug(`🔍 [${streamSid}] echoBlanking estado: ${this.echoBlanking.get(streamSid)?.active}`);
+    logger.debug(`🔍 [${streamSid}] streamData estado: ${streamData?.state}`);
+    
+    // Verificar si la transcripción está activa (patrón start/stop)
+    const isTranscriptionActive = this.transcriptionActive && this.transcriptionActive.get(streamSid);
+    logger.debug(`🔍 [${streamSid}] Estado transcripción: ${isTranscriptionActive}, Map exists: ${!!this.transcriptionActive}`);
     
     if (!isTranscriptionActive) {
-      logger.warn(`🚫 [${streamSid}] Transcripción inactiva - estado: ${this.transcriptionActive?.get(streamSid)}`);
-      logger.debug(`🔍 [${streamSid}] - echoBlanking: ${this.echoBlanking.get(streamSid)?.active}`);
-      logger.debug(`🔍 [${streamSid}] - streamData state: ${streamData?.state}`);
+      logger.warn(`🚫 [${streamSid}] Transcripción inactiva - ignorando audio del usuario`);
+      logger.warn(`🚫 [${streamSid}] - transcriptionActive Map existe: ${!!this.transcriptionActive}`);
+      logger.warn(`🚫 [${streamSid}] - transcriptionActive para stream: ${this.transcriptionActive?.get(streamSid)}`);
+      logger.warn(`🚫 [${streamSid}] - Todos los streams activos: ${Array.from(this.transcriptionActive?.keys() || [])}`);
+      logger.warn(`🚫 [${streamSid}] - Echo blanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
       return;
     }
 
@@ -973,7 +1558,7 @@ class TwilioStreamHandler {
       // Decodificar audio de base64 a buffer
       const rawAudioChunk = Buffer.from(payload, 'base64');
       
-      // Normalizar audio
+      // NUEVO ORDEN: Primero normalizar
       const normalizedAudio = this.audioPreprocessor.normalizeAudio(rawAudioChunk, 0.7);
       
       // Detección de saturación en audio NORMALIZADO
@@ -994,7 +1579,7 @@ class TwilioStreamHandler {
       
       // Acumular audio PREPROCESADO y detectar fin de turno con parámetros inteligentes
       const audioBuffer = this.audioBuffers.get(streamSid) || [];
-      audioBuffer.push(normalizedAudio);
+      audioBuffer.push(normalizedAudio); // Usar audio preprocesado, no el original
       this.audioBuffers.set(streamSid, audioBuffer);
       
       logger.debug(`🎤 [${streamSid}] Audio chunk: energía=${vadResult.energy}, umbral=${vadResult.threshold}, activo=${vadResult.isActive}, buffer=${audioBuffer.length} chunks`);
@@ -1016,7 +1601,7 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Procesar audio acumulado cuando se detecta fin de turno
+   * NUEVO: Procesar audio acumulado cuando se detecta fin de turno
    */
   async processCollectedAudio(ws, streamSid, collectedAudio) {
     const streamData = this.activeStreams.get(streamSid);
@@ -1039,6 +1624,7 @@ class TwilioStreamHandler {
       
       // DEBUG: Guardar audio para análisis manual
       const debugFileName = `debug_audio_${Date.now()}_${streamSid.slice(-6)}.wav`;
+      const fs = require('fs');
       fs.writeFileSync(debugFileName, combinedBuffer);
       logger.info(`🔧 [${streamSid}] Audio guardado para debug: ${debugFileName}`);
       
@@ -1066,7 +1652,7 @@ class TwilioStreamHandler {
         return;
       }
       
-      // LLAMADA REAL A TRANSCRIPCIÓN
+      // LLAMADA REAL A TRANSCRIPCIÓN - esto faltaba!
       const transcriptionResult = await this.transcriptionService.transcribeAudio(combinedBuffer);
       
       if (!transcriptionResult || !transcriptionResult.text || transcriptionResult.text.trim().length === 0) {
@@ -1075,14 +1661,20 @@ class TwilioStreamHandler {
       }
       
       logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);          
+      logger.info(`🔍 [DEBUG] Llamada a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
       
-      // CRÍTICO: Actualizar actividad del usuario
+      // CRÍTICO: Actualizar actividad del usuario en StateManager
+      // Cambiar estado a procesando
       streamData.state = 'processing';
       streamData.lastUserInput = transcriptionResult.text;
+      
+      // Guardar última transcripción
       streamData.lastTranscription = transcriptionResult.text;
       
       // Generar respuesta conversacional
       await this.generateAndSendResponse(ws, streamSid, transcriptionResult.text, streamData.client);
+      
+      // La transcripción se reactiva automáticamente cuando termina el audio (via marca)
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error procesando audio: ${error.message}`);
@@ -1093,28 +1685,10 @@ class TwilioStreamHandler {
    * Generar respuesta conversacional y enviar como audio
    */
   async generateAndSendResponse(ws, streamSid, transcribedText, clientConfig) {
-    // ✅ VERIFICACIÓN CRÍTICA DE OPENAI SERVICE
-    if (!this.openaiService) {
-      logger.error(`❌ [${streamSid}] OpenAIService (chat) no está disponible`);
-      
-      // Respuesta de fallback directa sin OpenAI
-      const fallbackText = "Gracias por su llamada. En este momento nuestro sistema de respuestas está temporalmente no disponible. Por favor, intente nuevamente en unos momentos o contacte con nosotros por otro medio.";
-      await this.sendResponseAsAudio(ws, streamSid, fallbackText, clientConfig);
-      return;
-    }
-
-    // ✅ Verificar que el método existe
-    if (typeof this.openaiService.generateReceptionistResponse !== 'function') {
-      logger.error(`❌ [${streamSid}] Método generateReceptionistResponse no existe en openaiService`);
-      
-      const fallbackText = "Disculpe, estamos teniendo dificultades técnicas. ¿Podría llamar más tarde?";
-      await this.sendResponseAsAudio(ws, streamSid, fallbackText, clientConfig);
-      return;
-    }
-
-    logger.info(`🤖 [${streamSid}] OpenAIService disponible, generando respuesta para: "${transcribedText}"`);
-    
     try {
+      logger.info(`🤖 [${streamSid}] Iniciando generación de respuesta para: "${transcribedText}"`);      
+      logger.info(`🔍 [DEBUG] ClientConfig recibido en generateAndSendResponse: ${JSON.stringify(clientConfig, null, 2)}`);
+      
       // Verificar que no hay otra respuesta en progreso
       if (this.responseInProgress.get(streamSid)) {
         logger.warn(`⚠️ [${streamSid}] Respuesta ya en progreso - abortando nueva generación`);
@@ -1129,14 +1703,24 @@ class TwilioStreamHandler {
       const streamData = this.activeStreams.get(streamSid);
       if (streamData) {
         streamData.botSpeaking = true;
-        streamData.state = 'processing';
+        streamData.conversationTurn = 'speaking';
       }
       
       // Obtener contexto de conversación
       const conversationContext = this.conversationState.get(streamSid) || { previousMessages: [], structuredHistory: [] };
       logger.info(`💭 [${streamSid}] Contexto conversación: ${conversationContext.structuredHistory?.length || 0} mensajes estructurados previos`);
       
-      // Generar respuesta con OpenAI
+      // DEBUG: Mostrar historial completo si existe
+      if (conversationContext.structuredHistory && conversationContext.structuredHistory.length > 0) {
+        logger.info(`🔍 [DEBUG] Historial conversacional existente:`);
+        conversationContext.structuredHistory.forEach((msg, index) => {
+          logger.info(`🔍 [DEBUG] ${index}: ${msg.role} - "${msg.content}"`);
+        });
+      } else {
+        logger.warn(`⚠️ [${streamSid}] NO HAY HISTORIAL CONVERSACIONAL - Primera interacción o contexto perdido`);
+      }
+      
+      // Generar respuesta con OpenAI (optimizado con GPT-3.5-turbo)
       const startTime = Date.now();
       const responseResult = await this.openaiService.generateReceptionistResponse(
         transcribedText,
@@ -1156,7 +1740,7 @@ class TwilioStreamHandler {
       const responseText = responseResult.response;
       logger.info(`📝 [${streamSid}] Respuesta generada: "${responseText}"`);
       
-      // Actualizar contexto conversacional
+      // Actualizar contexto conversacional con estructura OpenAI (optimizado)
       conversationContext.structuredHistory = conversationContext.structuredHistory || [];
       conversationContext.structuredHistory.push(
         { role: 'user', content: transcribedText },
@@ -1168,9 +1752,16 @@ class TwilioStreamHandler {
         conversationContext.structuredHistory = conversationContext.structuredHistory.slice(-6);
       }
       
+      // Mantener compatibilidad con formato anterior (opcional)
+      conversationContext.previousMessages = conversationContext.previousMessages || [];
+      conversationContext.previousMessages.push(`Usuario: ${transcribedText}`, `Asistente: ${responseText}`);
+      if (conversationContext.previousMessages.length > 4) {
+        conversationContext.previousMessages = conversationContext.previousMessages.slice(-4);
+      }
+      
       this.conversationState.set(streamSid, conversationContext);
       
-      // Convertir respuesta a audio y enviar
+      // Convertir respuesta a audio y enviar (optimizado)
       await this.sendResponseAsAudio(ws, streamSid, responseText, clientConfig);
       
     } catch (error) {
@@ -1179,6 +1770,7 @@ class TwilioStreamHandler {
       
       // Limpiar estado en caso de error
       this.responseInProgress.delete(streamSid);
+      // La transcripción se mantiene activa automáticamente
       
       // Respuesta de emergencia
       const fallbackText = "Disculpa, tengo problemas técnicos. ¿Podrías repetir tu consulta?";
@@ -1204,14 +1796,13 @@ class TwilioStreamHandler {
       logger.info(`🎵 Using Isidora Multilingual voice for all users: ${voiceId}`);
       
       // Humanizar texto con SSML
-      const humanizedText = this.humanizeTextWithSSML(responseText, 'chat');
-      logger.info(`🎭 [${streamSid}] Texto humanizado: "${humanizedText.substring(0, 100)}..."`);
+      const humanizedText = this.humanizeTextWithSSML(responseText, voiceId);
+      logger.info(`🎭 [${streamSid}] Texto humanizado: "${humanizedText}"`);
       
       // Marcar que el bot va a hablar
       const streamData = this.activeStreams.get(streamSid);
       if (streamData) {
         streamData.state = 'speaking';
-        streamData.botSpeaking = true;
       }
       
       const ttsResult = await this.ttsService.generateSpeech(
@@ -1222,6 +1813,7 @@ class TwilioStreamHandler {
       
       if (ttsResult.success && ttsResult.audioBuffer) {
         logger.info(`🔊 Tamaño del buffer de audio: ${ttsResult.audioBuffer.length} bytes`);
+        logger.info(`🔊 Primeros bytes: ${ttsResult.audioBuffer.subarray(0, 16).toString('hex')}`);
         
         // Activar echo blanking durante la reproducción
         this.activateEchoBlanking(streamSid);
@@ -1231,6 +1823,7 @@ class TwilioStreamHandler {
         logger.info(`🚀 [${streamSid}] Enviando respuesta con marca: ${markId}`);
         
         // Registrar que esperamos esta marca para desactivar echo blanking
+        this.pendingMarks = this.pendingMarks || new Map();
         this.pendingMarks.set(markId, {
           streamSid: streamSid,
           action: 'deactivate_echo_blanking',
@@ -1262,6 +1855,7 @@ class TwilioStreamHandler {
           logger.info(`🚀 [${streamSid}] Enviando fallback con marca: ${fallbackMarkId}`);
           
           // Registrar que esperamos esta marca para desactivar echo blanking
+          this.pendingMarks = this.pendingMarks || new Map();
           this.pendingMarks.set(fallbackMarkId, {
             streamSid: streamSid,
             action: 'deactivate_echo_blanking',
@@ -1280,6 +1874,7 @@ class TwilioStreamHandler {
       
       // Asegurar que se reactive la escucha en caso de error
       this.responseInProgress.delete(streamSid);
+      // La transcripción se mantiene activa automáticamente
     }
   }
 
@@ -1295,16 +1890,22 @@ class TwilioStreamHandler {
       // Enviar respuesta de fallback como audio
       await this.sendResponseAsAudio(ws, streamSid, fallbackText, clientConfig);
       
+      // La transcripción se reactiva automáticamente cuando termina el audio (via marca)
+      // No necesitamos setTimeout ya que usamos el patrón event-driven
+      
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en sendFallbackResponse: ${error.message}`);
       
       // Último recurso: limpiar estado
       this.responseInProgress.delete(streamSid);
+      // La transcripción se mantiene activa automáticamente
     }
   }
 
+  // Métodos startListening y startTranscription eliminados - ahora usamos patrón event-driven con marcas
+  
   /**
-   * Stop transcription - Detener escucha y procesar
+   * NUEVO: Stop transcription - Detener escucha y procesar
    */
   stopTranscription(streamSid) {
     if (!this.transcriptionActive || !this.transcriptionActive.get(streamSid)) {
@@ -1324,7 +1925,7 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Calcular duración de silencio para detección de fin de turno
+   * NUEVO: Calcular duración de silencio para detección de fin de turno
    */
   calculateSilenceDuration(streamSid, vadResult) {
     if (!vadResult.isActive) {
@@ -1354,16 +1955,16 @@ class TwilioStreamHandler {
     }
 
     const now = new Date();
-    const currentDay = now.getDay();
-    const currentTime = now.getHours() * 100 + now.getMinutes();
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const currentTime = now.getHours() * 100 + now.getMinutes(); // HHMM format
 
     // Mapear días de la semana
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const todayName = dayNames[currentDay];
 
-    // Detectar formato de configuración
+    // NUEVO: Detectar formato de configuración
     if (businessHours.workingDays && Array.isArray(businessHours.workingDays)) {
-      // Formato nuevo
+      // Formato nuevo: {enabled: true, workingDays: [...], openingTime: '00:00', closingTime: '23:59'}
       logger.info(`📅 Usando formato nuevo de horarios comerciales`);
       
       if (!businessHours.enabled) {
@@ -1386,7 +1987,7 @@ class TwilioStreamHandler {
       
       return isWithinHours;
     } else {
-      // Formato antiguo
+      // Formato antiguo: {sunday: {enabled: false}, monday: {enabled: true, start: '09:00', end: '18:00'}}
       logger.info(`📅 Usando formato antiguo de horarios comerciales`);
       
       const todayConfig = businessHours[todayName];
@@ -1491,44 +2092,12 @@ class TwilioStreamHandler {
       logger.info(`🧹 [${streamSid}] Buffer de audio limpiado`);
     }
     
-    logger.info(`✅ [${streamSid}] Recursos del stream limpiados correctamente`);
-  }
-
-  /**
-   * Analizar calidad y características del buffer de audio
-   */
-  analyzeAudioBuffer(audioBuffer) {
-    const samples = new Uint8Array(audioBuffer);
-    let totalAmplitude = 0;
-    let maxAmplitude = 0;
-    let silentSamples = 0;
-    let nonZeroSamples = 0;
-    
-    for (const sample of samples) {
-      const amplitude = Math.abs(sample - 127);
-      totalAmplitude += amplitude;
-      maxAmplitude = Math.max(maxAmplitude, amplitude);
-      
-      if (amplitude < 5) {
-        silentSamples++;
-      }
-      if (sample !== 0xFF && sample !== 0x7F) {
-        nonZeroSamples++;
-      }
+    if (this.speechDetection.has(streamSid)) {
+      this.speechDetection.delete(streamSid);
+      logger.info(`🧹 [${streamSid}] Estado VAD limpiado`);
     }
     
-    const avgAmplitude = totalAmplitude / samples.length;
-    const silenceRatio = silentSamples / samples.length;
-    const dataRatio = nonZeroSamples / samples.length;
-    
-    return {
-      totalBytes: audioBuffer.length,
-      avgAmplitude: Math.round(avgAmplitude * 100) / 100,
-      maxAmplitude,
-      silenceRatio: Math.round(silenceRatio * 100) / 100,
-      dataRatio: Math.round(dataRatio * 100) / 100,
-      quality: avgAmplitude > 10 && dataRatio > 0.3 ? 'good' : 'poor'
-    };
+    logger.info(`✅ [${streamSid}] Recursos del stream limpiados correctamente`);
   }
 
   /**

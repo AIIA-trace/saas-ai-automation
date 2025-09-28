@@ -319,9 +319,9 @@ Responde únicamente con el texto que dirías como recepcionista, sin formato ad
       // Construir historial estructurado de mensajes para OpenAI
       const messages = [{ role: 'system', content: systemPrompt }];
       
-      // Añadir mensajes previos de la conversación (máximo 6 mensajes = 3 intercambios para detectar repeticiones)
+      // Añadir mensajes previos de la conversación (máximo 8 mensajes = 4 intercambios para detectar repeticiones)
       if (conversationContext.structuredHistory && conversationContext.structuredHistory.length > 0) {
-        const recentHistory = conversationContext.structuredHistory.slice(-6);
+        const recentHistory = conversationContext.structuredHistory.slice(-8);
         messages.push(...recentHistory);
         logger.info(`💭 [OpenAI] Añadiendo ${recentHistory.length} mensajes de historial estructurado`);
         
@@ -458,14 +458,14 @@ Responde únicamente con el texto que dirías como recepcionista, sin formato ad
       });
 
       logger.info(`📝 [OpenAI] Enviando ${messages.length} mensajes a GPT-3.5-turbo`);
-      // Llamar a la API de GPT
+      
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
-        {
+        {  
           model: 'gpt-3.5-turbo', // Cambio a GPT-3.5 para menor latencia
           messages: messages,
-          temperature: 0.8, // Reducido para respuestas más directas
-          max_tokens: 150, // Reducido para velocidad
+          temperature: 0.9, // Más creatividad para muletillas y respuestas naturales
+          max_tokens: 180, // Aumentado para incluir muletillas
           presence_penalty: 0.4, // Aumentado para evitar más repeticiones
           frequency_penalty: 0.5, // Más variedad en respuestas
           top_p: 0.9 // Mejor calidad de respuestas
@@ -498,15 +498,7 @@ Responde únicamente con el texto que dirías como recepcionista, sin formato ad
         logger.error(`❌ [OpenAI] Response data:`, JSON.stringify(error.response.data, null, 2));
       }
       
-      // Fallbacks específicos
-      if (error.response?.status === 429) {
-        return { success: false, response: "Lo siento, estoy recibiendo muchas consultas. ¿Podrías esperar un momento?", error: "rate_limit" };
-      }
-      if (error.code === 'ECONNABORTED') {
-        return { success: false, response: "Disculpa, la respuesta está tardando. ¿Puedes repetir?", error: "timeout" };
-      }
-      
-      // Respuesta de fallback general
+      // Respuesta de fallback
       const fallbackResponses = [
         "Disculpe, ¿podría repetir su consulta? No logré entenderla completamente.",
         "Gracias por contactarnos. ¿En qué puedo ayudarle hoy?",
