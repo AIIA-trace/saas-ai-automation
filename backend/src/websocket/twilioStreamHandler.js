@@ -1213,7 +1213,7 @@ class TwilioStreamHandler {
     // Procesar audio con transcripción
     try {
       logger.info(`🎤 [${streamSid}] Enviando audio a transcripción (${combinedBuffer.length} bytes)`);
-      const transcriptionResult = await this.transcriptionService.transcribeAudio(combinedBuffer);
+      const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(combinedBuffer, 'es');
       
       logger.info(`📝 [${streamSid}] Transcripción result: ${JSON.stringify(transcriptionResult)}`);
       
