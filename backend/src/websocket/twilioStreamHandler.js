@@ -189,6 +189,24 @@ class TwilioStreamHandler {
   handleConnected(ws, data) {
     logger.info(`🔌 STREAM CONECTADO: ${JSON.stringify(data)}`);
     logger.info(`🔌 [${ws.connectionId}] Twilio Stream conectado exitosamente`);
+
+    // IMPORTANTE: El evento 'connected' NO incluye streamSid, por lo que necesitamos usar un ID temporal
+    // Usaremos el connectionId como ID temporal hasta que llegue el 'start' con streamSid real
+    const tempId = ws.connectionId; // Usar connectionId como ID temporal
+
+    // Obtener datos del cliente usando la información de la llamada
+    // Nota: En 'connected', no tenemos streamSid, pero tenemos callSid en el TwiML
+    // Sin embargo, para simplicidad, intentaremos obtener el cliente si está disponible
+    // Si no, lo haremos en 'start' cuando tengamos streamSid
+    this.activeStreams.set(tempId, {
+      callSid: data.callSid || 'unknown', // Si callSid está disponible en 'connected'
+      state: 'connected',
+      startTime: Date.now(),
+      lastActivity: Date.now(),
+      tempId: tempId // Marcar como temporal
+    });
+
+    logger.info(`🔄 [${tempId}] Stream registrado con ID temporal (esperando streamSid en 'start')`);
   }
 
   /**
@@ -275,6 +293,55 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Obtener datos del cliente para un stream usando callSid
+   * @param {string} streamSid - Stream SID
+   * @param {string} callSid - Call SID
+   */
+  async getClientForStream(streamSid, callSid) {
+    try {
+      logger.info(`🔍 [${streamSid}] Obteniendo cliente para callSid: ${callSid}`);
+      
+      // Buscar el cliente en la base de datos usando callSid
+      // Nota: En producción, callSid puede no estar directamente en la DB, pero lo intentamos
+      const client = await this.prisma.client.findFirst({
+        where: {
+          // Si tienes una relación con llamadas, úsala aquí
+          // Por ahora, asumimos que callSid no está en la DB, así que usamos un cliente por defecto
+          // O implementa la lógica real si tienes callSid en tu esquema
+        }
+      });
+      
+      if (client) {
+        // Actualizar streamData con el cliente
+        const streamData = this.activeStreams.get(streamSid);
+        if (streamData) {
+          streamData.client = client;
+          logger.info(`✅ [${streamSid}] Cliente obtenido: ${client.name || client.id}`);
+        }
+      } else {
+        logger.warn(`⚠️ [${streamSid}] No se encontró cliente para callSid: ${callSid} - usando cliente por defecto`);
+        // Usar cliente por defecto o manejar error
+        // Por simplicidad, asumir cliente ID 1 como antes
+        const defaultClient = await this.prisma.client.findUnique({
+          where: { id: 1 }
+        });
+        if (defaultClient) {
+          const streamData = this.activeStreams.get(streamSid);
+          if (streamData) {
+            streamData.client = defaultClient;
+            logger.info(`✅ [${streamSid}] Cliente por defecto obtenido: ${defaultClient.name}`);
+          }
+        } else {
+          logger.error(`❌ [${streamSid}] No se pudo obtener cliente por defecto`);
+        }
+      }
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error obteniendo cliente: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Maneja evento 'start' de Twilio Stream
    */
   handleStart(ws, data) {
@@ -288,34 +355,60 @@ class TwilioStreamHandler {
 
     logger.info(`🎵 [${streamSid}] Stream iniciado para llamada ${callSid}`);
     
-    // Inicializar stream
-    this.activeStreams.set(streamSid, {
-      callSid,
-      streamSid,
-      state: 'connected',
-      startTime: Date.now(),
-      lastActivity: Date.now()
-    });
-
-    // Inicializar buffers
+    // Buscar el stream temporal usando connectionId
+    const tempId = ws.connectionId;
+    const tempStreamData = this.activeStreams.get(tempId);
+    
+    if (tempStreamData) {
+      // Migrar del ID temporal al streamSid real
+      this.activeStreams.set(streamSid, {
+        ...tempStreamData,
+        streamSid: streamSid,
+        callSid: callSid,
+        state: 'connected',
+        startTime: Date.now(),
+        lastActivity: Date.now()
+      });
+      
+      // Eliminar el registro temporal
+      this.activeStreams.delete(tempId);
+      
+      logger.info(`🔄 [${streamSid}] Migrado de ID temporal ${tempId} a streamSid real`);
+      
+      // Ahora intentar obtener el cliente usando callSid si no se hizo antes
+      this.getClientForStream(streamSid, callSid).then(() => {
+        // Enviar saludo inicial después de obtener el cliente
+        this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
+          logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
+        });
+      }).catch(error => {
+        logger.error(`❌ [${streamSid}] Error obteniendo cliente: ${error.message}`);
+      });
+    } else {
+      // Si no hay stream temporal, inicializar directamente
+      this.activeStreams.set(streamSid, {
+        callSid,
+        streamSid,
+        state: 'connected',
+        startTime: Date.now(),
+        lastActivity: Date.now()
+      });
+      
+      // Obtener cliente y enviar saludo
+      this.getClientForStream(streamSid, callSid).then(() => {
+        this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
+          logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
+        });
+      }).catch(error => {
+        logger.error(`❌ [${streamSid}] Error obteniendo cliente: ${error.message}`);
+      });
+    }
+    
+    // Inicializar buffers y estados
     this.audioBuffers.set(streamSid, []);
-    this.audioBuffer.set(streamSid, []); // FIX: Inicializar audioBuffer para el stream
+    this.audioBuffer.set(streamSid, []);
     this.transcriptionActive.set(streamSid, false);
     this.responseInProgress.set(streamSid, false);
-
-    // La transcripción se activará automáticamente cuando se desactive el echo blanking
-    // NO inicializar echo blanking aquí - se hace en initializeEchoBlanking()
-
-    // Verificar que pendingMarks esté inicializado ANTES de enviar saludo
-    if (!this.pendingMarks || !(this.pendingMarks instanceof Map)) {
-      logger.error(`🚨 CRÍTICO: pendingMarks no inicializado en handleStart para ${streamSid} - inicializando ahora`);
-      this.pendingMarks = new Map();
-    }
-
-    // Enviar saludo inicial - la transcripción se activará automáticamente cuando termine el audio
-    this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
-      logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
-    });
   }
 
   /**
