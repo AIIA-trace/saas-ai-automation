@@ -1119,3 +1119,5 @@ class TwilioStreamHandler {
     logger.info(`🔚 [${streamSid}] FINALIZANDO processCollectedAudio`);
   }
 }
+
+module.exports = TwilioStreamHandler;
