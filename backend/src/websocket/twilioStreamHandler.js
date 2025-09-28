@@ -82,6 +82,12 @@ class TwilioStreamHandler {
   constructor(prisma, ttsService) {
     this.prisma = prisma;
     this.ttsService = ttsService; // FIX: Asignar el servicio TTS
+    
+    // INICIALIZACIÓN FALTANTE - Servicios críticos:
+    this.openaiService = new OpenAIService(); // ✅ INICIALIZAR
+    this.conversationState = new Map(); // ✅ INICIALIZAR
+    this.pendingMarks = new Map(); // ✅ INICIALIZAR
+    
     // Mapas para gestión de estado y audio
     this.activeStreams = new Map();
     this.audioBuffers = new Map();
@@ -123,6 +129,14 @@ class TwilioStreamHandler {
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
     // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
     this.defaultVoice = 'es-ES-IsidoraMultilingualNeural';
+    
+    // LOGS DE DIAGNÓSTICO - Verificar inicialización
+    logger.info('🔍 DIAGNÓSTICO - Servicios inicializados:');
+    logger.info(`🔍 - openaiService: ${!!this.openaiService}`);
+    logger.info(`🔍 - conversationState: ${!!this.conversationState}`);
+    logger.info(`🔍 - pendingMarks: ${!!this.pendingMarks}`);
+    logger.info(`🔍 - transcriptionActive: ${!!this.transcriptionActive}`);
+    logger.info(`🔍 - transcriptionService: ${!!this.transcriptionService}`);
     
     logger.info('🚀 TwilioStreamHandler inicializado con patrón Start/Stop simplificado');
   }
@@ -245,8 +259,19 @@ class TwilioStreamHandler {
     logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
     logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
     
-    // Desactivar echo blanking y activar transcripción
+    // Desactivar echo blanking (esto activa la transcripción automáticamente)
     this.deactivateEchoBlanking(streamSid);
+    
+    // ACTIVACIÓN EXPLÍCITA COMO FALLBACK
+    if (!this.transcriptionActive.get(streamSid)) {
+      logger.warn(`⚠️ [${streamSid}] Transcripción no se activó automáticamente - activando manualmente`);
+      this.transcriptionActive.set(streamSid, true);
+      
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        streamData.state = 'listening';
+      }
+    }
     
     logger.info(`🔍 [${streamSid}] Estado DESPUÉS de activar transcripción:`);
     logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
