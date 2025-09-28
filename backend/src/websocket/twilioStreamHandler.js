@@ -590,21 +590,34 @@ class TwilioStreamHandler {
         fs.writeFileSync(fileName, ttsResult.audioBuffer);
         logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
         
-        await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
+        logger.info(`🔍 [${streamSid}] ANTES de sendRawMulawToTwilio`);
         
-        // Activar transcripción inmediatamente después de enviar el saludo
-        logger.info(`🚀 [${streamSid}] Activando transcripción INMEDIATAMENTE tras enviar saludo`);
-        logger.info(`🔍 [${streamSid}] Estado ANTES de deactivateEchoBlanking:`);
-        logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
-        logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
-        logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
-        
-        this.deactivateEchoBlanking(streamSid);
-        
-        logger.info(`🔍 [${streamSid}] Estado DESPUÉS de deactivateEchoBlanking:`);
-        logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
-        logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
-        logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
+        try {
+          await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
+          logger.info(`🔍 [${streamSid}] DESPUÉS de sendRawMulawToTwilio - continuando con activación`);
+          
+          // Activar transcripción inmediatamente después de enviar el saludo
+          logger.info(`🚀 [${streamSid}] Activando transcripción INMEDIATAMENTE tras enviar saludo`);
+          logger.info(`🔍 [${streamSid}] Estado ANTES de deactivateEchoBlanking:`);
+          logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
+          logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
+          logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
+          
+          this.deactivateEchoBlanking(streamSid);
+          
+          logger.info(`🔍 [${streamSid}] Estado DESPUÉS de deactivateEchoBlanking:`);
+          logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
+          logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
+          logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
+          
+        } catch (sendError) {
+          logger.error(`❌ [${streamSid}] Error en sendRawMulawToTwilio: ${sendError.message}`);
+          logger.error(`❌ [${streamSid}] Stack trace:`, sendError.stack);
+          
+          // Activar transcripción incluso si falla el envío de audio
+          logger.info(`🚀 [${streamSid}] Activando transcripción tras error en envío de audio`);
+          this.deactivateEchoBlanking(streamSid);
+        }
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error TTS: ${error.message}`);
