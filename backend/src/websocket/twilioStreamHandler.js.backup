@@ -555,8 +555,7 @@ class TwilioStreamHandler {
     `.trim();
 
     logger.info(`🎭 SSML humanizado aplicado: ${ssmlContent.substring(0, 100)}...`);
-    return ssmlContent;
-  }  
+    return ssmlContent;  
 
   /**
    * Stream conectado - SOLO registrar conexión
@@ -663,11 +662,6 @@ class TwilioStreamHandler {
         // Enviar audio con marca al final
         await this.sendRawMulawToTwilioWithMark(ws, ttsResult.audioBuffer, streamSid, markId);
         logger.info(`✅ [${streamSid}] Audio del saludo enviado con marca ${markId}`);
-
-        // 🔧 CRÍTICO: Desactivar echo blanking después del audio
-        setTimeout(() => {
-          this.deactivateEchoBlanking(streamSid);
-        }, Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000) + 500);
       } else {
         logger.error(`❌ [${streamSid}] TTS falló: ${ttsResult?.error || 'Unknown error'}`);
         throw new Error('TTS failed');
@@ -696,11 +690,6 @@ class TwilioStreamHandler {
       // Enviar fallback con marca al final
       await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, markId);
       logger.info(`✅ [${streamSid}] Audio fallback del saludo enviado con marca ${markId}`);
-
-      // 🔧 CRÍTICO: Desactivar echo blanking después del audio de fallback
-      setTimeout(() => {
-        this.deactivateEchoBlanking(streamSid);
-      }, 2000); // 2 segundos para el audio de fallback
     }
     // logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting`);
   }
@@ -765,11 +754,6 @@ class TwilioStreamHandler {
         // Enviar audio con marca al final
         await this.sendRawMulawToTwilioWithMark(ws, ttsResult.audioBuffer, streamSid, markId);
         logger.info(`✅ [${streamSid}] Saludo extendido enviado con marca ${markId}`);
-
-        // 🔧 CRÍTICO: Desactivar echo blanking después del audio
-        setTimeout(() => {
-          this.deactivateEchoBlanking(streamSid);
-        }, Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000) + 500);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en saludo extendido: ${error.message}`);
@@ -795,11 +779,6 @@ class TwilioStreamHandler {
       // Enviar fallback con marca al final
       await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, markId);
       logger.info(`✅ [${streamSid}] Fallback del saludo extendido enviado con marca ${markId}`);
-
-      // 🔧 CRÍTICO: Desactivar echo blanking después del audio de fallback
-      setTimeout(() => {
-        this.deactivateEchoBlanking(streamSid);
-      }, 2000); // 2 segundos para el audio de fallback
     }
   }
 
@@ -869,8 +848,7 @@ class TwilioStreamHandler {
   }
 
   generateFallbackAudio() {
-    // Crear audio de 2 segundos (8000 samples * 2 = 16000 bytes) en lugar de 160 bytes
-    const buffer = Buffer.alloc(16000, 0xFF); // Silencio audible de 2 segundos
+    const buffer = Buffer.alloc(160, 0xff); // Silencio digital
     return buffer;
   };
 
