@@ -86,8 +86,14 @@ class TwilioStreamHandler {
     // INICIALIZACIÓN FALTANTE - Servicios críticos:
     this.openaiService = new OpenAIService(); // ✅ INICIALIZAR
     this.conversationState = new Map(); // ✅ INICIALIZAR
-    this.pendingMarks = new Map(); // ✅ INICIALIZAR
-    
+    this.pendingMarks = new Map(); // ✅ INICIALIZAR - CRÍTICO PARA EVITAR ERRORES
+
+    // Verificar inmediatamente después de inicializar
+    if (!this.pendingMarks || !(this.pendingMarks instanceof Map)) {
+      logger.error('🚨 CRÍTICO: pendingMarks no se inicializó correctamente en constructor');
+      throw new Error('pendingMarks initialization failed');
+    }
+
     // Mapas para gestión de estado y audio
     this.activeStreams = new Map();
     this.audioBuffers = new Map();
@@ -97,7 +103,6 @@ class TwilioStreamHandler {
     this.speechDetection = new Map();
     this.silenceStartTime = new Map();
     this.lastResponseTime = new Map();
-    this.pendingMarks = new Map(); // CRÍTICO: Inicializar pendingMarks para evitar errores
     this.audioPreprocessor = new AudioPreprocessor();
 
     // Configurar transcripción en tiempo real
@@ -299,6 +304,12 @@ class TwilioStreamHandler {
 
     // La transcripción se activará automáticamente cuando se desactive el echo blanking
     // NO inicializar echo blanking aquí - se hace en initializeEchoBlanking()
+
+    // Verificar que pendingMarks esté inicializado ANTES de enviar saludo
+    if (!this.pendingMarks || !(this.pendingMarks instanceof Map)) {
+      logger.error(`🚨 CRÍTICO: pendingMarks no inicializado en handleStart para ${streamSid} - inicializando ahora`);
+      this.pendingMarks = new Map();
+    }
 
     // Enviar saludo inicial - la transcripción se activará automáticamente cuando termine el audio
     this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
