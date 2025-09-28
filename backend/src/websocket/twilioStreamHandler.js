@@ -122,7 +122,6 @@ class TwilioStreamHandler {
     logger.info(`🔍 - pendingMarks: ${!!this.pendingMarks} (size: ${this.pendingMarks.size})`);
     logger.info(`🔍 - transcriptionActive: ${!!this.transcriptionActive}`);
     logger.info(`🔍 - transcriptionService: ${!!this.transcriptionService}`);
-    logger.info(`🔍 - energySamples: ${!!this.energySamples} (size: ${this.energySamples.size})`);
     
     logger.info('🚀 TwilioStreamHandler inicializado con patrón Start/Stop simplificado');
   }
