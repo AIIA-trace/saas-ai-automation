@@ -888,9 +888,9 @@ class TwilioStreamHandler {
       speechCount: 0,
       lastActivity: Date.now(),
       
-      // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz - MÁS SENSIBLES
-      energyThreshold: 0.02, // Reducido drásticamente de 0.5 a 0.02 para mayor sensibilidad
-      adaptiveThreshold: 0.02, // Reducido drásticamente de 0.5 a 0.02
+      // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz - ULTRA SENSIBLE
+      energyThreshold: 0.01, // Reducido drásticamente a 0.01 para detectar voz débil
+      adaptiveThreshold: 0.01, // Reducido drásticamente a 0.01
       
       // CONTEOS ESTÁNDAR PARA VAD
       maxSilenceDuration: 4, // 4 chunks = ~320ms de silencio para procesar
@@ -1122,7 +1122,7 @@ class TwilioStreamHandler {
 
     if (!detection) {
       logger.error(`❌ [${streamSid}] VAD: No hay configuración speechDetection`);
-      return { shouldProcess: false, isActive: false, energy: energy.toFixed(1), threshold: '0.5' };
+      return { shouldProcess: false, isActive: false, energy: energy.toFixed(1), threshold: '0.01' };
     }
 
     // 🔧 CRITICAL FIX: Inicializar adaptiveThreshold si es undefined
@@ -1157,19 +1157,19 @@ class TwilioStreamHandler {
 
     detection.lastActivity = Date.now();
 
-    // 🔧 OPTIMIZAR: Adaptar threshold dinámicamente con ajuste MÁS AGRESIVO
+    // 🔧 OPTIMIZAR: Adaptar threshold dinámicamente con ajuste más conservador
     if (detection.energyHistory && detection.energyHistory.length > 0) {
       const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
       if (!isNaN(avgEnergy) && avgEnergy > 0) {
-        // Ajuste MÁS RÁPIDO del threshold (70% threshold + 30% avgEnergy)
-        // Baja más rápido para detectar voz débil
-        detection.adaptiveThreshold = detection.adaptiveThreshold * 0.70 + avgEnergy * 0.30;
+        // Ajuste GRADUAL y CONSERVADOR del threshold (95% threshold + 5% avgEnergy)
+        // Evita que baje demasiado rápido a valores muy bajos
+        detection.adaptiveThreshold = detection.adaptiveThreshold * 0.95 + avgEnergy * 0.05;
 
-        // 🔧 PROTECCIÓN: No dejar que baje por debajo de 0.005 (umbral mínimo más bajo para audio débil)
-        detection.adaptiveThreshold = Math.max(detection.adaptiveThreshold, 0.005);
+        // 🔧 PROTECCIÓN: No dejar que baje por debajo de 0.003 (umbral mínimo ultra-bajo para voz débil)
+        detection.adaptiveThreshold = Math.max(detection.adaptiveThreshold, 0.003);
 
-        // 🔧 PROTECCIÓN: No dejar que suba por encima de 1.0 (umbral máximo)
-        detection.adaptiveThreshold = Math.min(detection.adaptiveThreshold, 1.0);
+        // 🔧 PROTECCIÓN: No dejar que suba por encima de 0.5 (umbral máximo conservador)
+        detection.adaptiveThreshold = Math.min(detection.adaptiveThreshold, 0.5);
       }
     }
 
@@ -1256,6 +1256,19 @@ class TwilioStreamHandler {
       logger.warn(`⚠️ [${streamSid}] Audio es casi silencio (${silencePercentage.toFixed(1)}%), omitiendo`);
       return;
     }
+
+    // 🔧 CRITICAL FIX: Verificar duración mínima del audio (OpenAI requiere mínimo 0.1s = 100ms)
+    // Para μ-law 8kHz: 8000 samples/segundo = 800 samples = 100ms
+    const minAudioLength = 800; // bytes mínimos para 100ms a 8kHz
+    const minDurationMs = 100; // milisegundos mínimos
+
+    if (combinedBuffer.length < minAudioLength) {
+      logger.warn(`⚠️ [${streamSid}] Audio demasiado corto: ${combinedBuffer.length} bytes < ${minAudioLength} bytes (${minDurationMs}ms mínimo)`);
+      logger.warn(`⚠️ [${streamSid}] OpenAI requiere mínimo ${minDurationMs}ms de audio para transcripción`);
+      return;
+    }
+
+    logger.info(`✅ [${streamSid}] Audio válido: ${combinedBuffer.length} bytes (${Math.round(combinedBuffer.length/8)}ms)`);
 
     // Procesar audio con transcripción
     try {
