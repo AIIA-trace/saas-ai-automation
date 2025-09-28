@@ -85,21 +85,21 @@ class TwilioStreamHandler {
     // Mapas para gestión de estado y audio
     this.activeStreams = new Map();
     this.audioBuffers = new Map();
-    this.vadStates = new Map();
+    this.vadState = new Map(); // FIX: Nombre consistente
     this.echoBlanking = new Map();
     this.transcriptionActive = new Map();
     this.pendingMediaEvents = new Map();
     this.consecutiveSaturatedChunks = new Map(); // Contador para evitar ciclos infinitos
     this.audioPreprocessor = new AudioPreprocessor(); // Preprocesador de audio
-    this.validateAzureConfig();
     
     // NUEVO: Patrón start/stop transcription
-    this.transcriptionActive = new Map();
     this.silenceStartTime = new Map();
     
     // VAD y detección de voz
     this.speechDetection = new Map();
-    this.echoBlanking = new Map();
+    
+    // Inicializar audioBuffer como array para cada stream
+    this.audioBuffer = new Map(); // FIX: Inicializar audioBuffer
     
     // NUEVO: Parámetros de timeout inteligentes (inspirados en AssemblyAI)
     this.timeoutParams = {
@@ -215,6 +215,7 @@ class TwilioStreamHandler {
 
     // Inicializar buffers
     this.audioBuffers.set(streamSid, []);
+    this.audioBuffer.set(streamSid, []); // FIX: Inicializar audioBuffer para el stream
     this.transcriptionActive.set(streamSid, false);
     this.responseInProgress.set(streamSid, false);
 
@@ -254,6 +255,7 @@ class TwilioStreamHandler {
   cleanup(streamSid) {
     this.activeStreams.delete(streamSid);
     this.audioBuffers.delete(streamSid);
+    this.audioBuffer.delete(streamSid); // FIX: Limpiar audioBuffer también
     this.transcriptionActive.delete(streamSid);
     this.responseInProgress.delete(streamSid);
     this.silenceStartTime.delete(streamSid);
@@ -1362,8 +1364,14 @@ class TwilioStreamHandler {
       // Detección de saturación en audio NORMALIZADO
       const saturationCheck = this.audioPreprocessor.detectSaturation(normalizedAudio);
       
+      // Inicializar audioBuffer para este stream si no existe
+      if (!this.audioBuffer.has(streamSid)) {
+        this.audioBuffer.set(streamSid, []);
+      }
+      
       // Usar audio normalizado en VAD y buffer
-      this.audioBuffer.push(...normalizedAudio);
+      const streamAudioBuffer = this.audioBuffer.get(streamSid);
+      streamAudioBuffer.push(...normalizedAudio);
       const vadResult = this.vad.processChunk(normalizedAudio);
       
       // DEBUG CRÍTICO: Logs detallados del VAD
@@ -1794,22 +1802,50 @@ class TwilioStreamHandler {
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const todayName = dayNames[currentDay];
 
-    // Verificar si el día está configurado
-    const todayConfig = businessHours[todayName];
-    if (!todayConfig || !todayConfig.enabled) {
-      logger.info(`📅 Día ${todayName} no habilitado en horario comercial`);
-      return false;
+    // NUEVO: Detectar formato de configuración
+    if (businessHours.workingDays && Array.isArray(businessHours.workingDays)) {
+      // Formato nuevo: {enabled: true, workingDays: [...], openingTime: '00:00', closingTime: '23:59'}
+      logger.info(`📅 Usando formato nuevo de horarios comerciales`);
+      
+      if (!businessHours.enabled) {
+        logger.info(`📅 Horarios comerciales deshabilitados globalmente`);
+        return false;
+      }
+      
+      if (!businessHours.workingDays.includes(todayName)) {
+        logger.info(`📅 Día ${todayName} no está en workingDays: ${businessHours.workingDays.join(', ')}`);
+        return false;
+      }
+      
+      // Verificar horario del día
+      const startTime = parseInt(businessHours.openingTime?.replace(':', '') || '0000');
+      const endTime = parseInt(businessHours.closingTime?.replace(':', '') || '2359');
+      
+      const isWithinHours = currentTime >= startTime && currentTime <= endTime;
+      
+      logger.info(`📅 Horario comercial ${todayName}: ${businessHours.openingTime}-${businessHours.closingTime}, actual: ${Math.floor(currentTime/100)}:${String(currentTime%100).padStart(2,'0')}, permitido: ${isWithinHours}`);
+      
+      return isWithinHours;
+    } else {
+      // Formato antiguo: {sunday: {enabled: false}, monday: {enabled: true, start: '09:00', end: '18:00'}}
+      logger.info(`📅 Usando formato antiguo de horarios comerciales`);
+      
+      const todayConfig = businessHours[todayName];
+      if (!todayConfig || !todayConfig.enabled) {
+        logger.info(`📅 Día ${todayName} no habilitado en horario comercial`);
+        return false;
+      }
+
+      // Verificar horario del día
+      const startTime = parseInt(todayConfig.start?.replace(':', '') || '0000');
+      const endTime = parseInt(todayConfig.end?.replace(':', '') || '2359');
+
+      const isWithinHours = currentTime >= startTime && currentTime <= endTime;
+      
+      logger.info(`📅 Horario comercial ${todayName}: ${todayConfig.start}-${todayConfig.end}, actual: ${Math.floor(currentTime/100)}:${String(currentTime%100).padStart(2,'0')}, permitido: ${isWithinHours}`);
+      
+      return isWithinHours;
     }
-
-    // Verificar horario del día
-    const startTime = parseInt(todayConfig.start?.replace(':', '') || '0000');
-    const endTime = parseInt(todayConfig.end?.replace(':', '') || '2359');
-
-    const isWithinHours = currentTime >= startTime && currentTime <= endTime;
-    
-    logger.info(`📅 Horario comercial ${todayName}: ${todayConfig.start}-${todayConfig.end}, actual: ${Math.floor(currentTime/100)}:${String(currentTime%100).padStart(2,'0')}, permitido: ${isWithinHours}`);
-    
-    return isWithinHours;
   }
 
   /**
