@@ -764,7 +764,7 @@ class TwilioStreamHandler {
     if (ws.readyState !== ws.OPEN) {
       logger.error(`❌ [${streamSid}] WebSocket no está conectado al iniciar envío (readyState: ${ws.readyState})`);
       
-      // Intentar esperar hasta 500ms por reconexión
+      // Intentar esperar hasta 500ms por si se reconecta
       let attempts = 0;
       while (ws.readyState !== ws.OPEN && attempts < 5) {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -1356,43 +1356,22 @@ class TwilioStreamHandler {
       // Decodificar audio de base64 a buffer
       const rawAudioChunk = Buffer.from(payload, 'base64');
       
-      // PASO 1: DETECCIÓN TEMPRANA DE SATURACIÓN (antes del VAD)
-      const saturationCheck = this.audioPreprocessor.detectSaturation(rawAudioChunk);
-      if (saturationCheck.isSaturated) {
-        const consecutiveCount = (this.consecutiveSaturatedChunks.get(streamSid) || 0) + 1;
-        this.consecutiveSaturatedChunks.set(streamSid, consecutiveCount);
-        
-        logger.warn(`🎙️ [${streamSid}] AUDIO SATURADO - Chunk ${consecutiveCount}: ratio=${(saturationCheck.ratio*100).toFixed(1)}%, max=${saturationCheck.stats.max}, min=${saturationCheck.stats.min}, avg=${saturationCheck.stats.avg.toFixed(1)}, reasons=[${saturationCheck.rejectionReasons.join(',')}]`);
-        
-        // Si llevamos 5+ chunks consecutivos saturados, resetear VAD
-        if (consecutiveCount >= 5) {
-          logger.error(`🔴 [${streamSid}] AUDIO CONSTANTEMENTE SATURADO (${consecutiveCount} chunks) - Reiniciando VAD`);
-          this.resetVADState(streamSid);
-          this.consecutiveSaturatedChunks.set(streamSid, 0);
-          return { shouldProcess: false, reset: true };
-        }
-        
-        return { shouldProcess: false, reason: 'saturated_audio' };
-      }
-      
-      // Resetear contador si el audio no está saturado
-      this.consecutiveSaturatedChunks.set(streamSid, 0);
-      
-      // PASO 2: PREPROCESAMIENTO CON REDUCCIÓN DE GANANCIA
+      // NUEVO ORDEN: Primero normalizar
       const normalizedAudio = this.audioPreprocessor.normalizeAudio(rawAudioChunk, 0.7);
-      const processedAudioChunk = Buffer.from(normalizedAudio);
       
-      logger.info(`🔧 [${streamSid}] Audio preprocesado: original_max=${saturationCheck.stats.max}, processed_max=${Math.max(...normalizedAudio)}, gain_reduction=70%`);
+      // Detección de saturación en audio NORMALIZADO
+      const saturationCheck = this.audioPreprocessor.detectSaturation(normalizedAudio);
       
-      // PASO 3: PROCESAR CON VAD (usando audio preprocesado)
-      const vadResult = this.detectVoiceActivity(processedAudioChunk, streamSid);
+      // Usar audio normalizado en VAD y buffer
+      this.audioBuffer.push(...normalizedAudio);
+      const vadResult = this.vad.processChunk(normalizedAudio);
       
       // DEBUG CRÍTICO: Logs detallados del VAD
       logger.info(`🎤 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
       
       // Acumular audio PREPROCESADO y detectar fin de turno con parámetros inteligentes
       const audioBuffer = this.audioBuffers.get(streamSid) || [];
-      audioBuffer.push(processedAudioChunk); // Usar audio preprocesado, no el original
+      audioBuffer.push(normalizedAudio); // Usar audio preprocesado, no el original
       this.audioBuffers.set(streamSid, audioBuffer);
       
       logger.debug(`🎤 [${streamSid}] Audio chunk: energía=${vadResult.energy}, umbral=${vadResult.threshold}, activo=${vadResult.isActive}, buffer=${audioBuffer.length} chunks`);
@@ -1465,96 +1444,25 @@ class TwilioStreamHandler {
         return;
       }
       
-      // Marcar transcripción en progreso para bloquear otras
-      this.responseInProgress.set(streamSid, true);
-      logger.info(`🔒 [${streamSid}] Transcripción iniciada - bloqueando otras transcripciones`);
+      logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);          
+      logger.info(`🔍 [DEBUG] Llamada a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
       
-      // Transcribir audio con servicio optimizado y manejo robusto de errores
-      try {
-        const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(
-          combinedBuffer,
-          streamData.client.callConfig?.language || 'es'
-        );
-        
-        if (transcriptionResult.success && transcriptionResult.text && transcriptionResult.text.trim().length > 0) {
-          const currentText = transcriptionResult.text.trim();
-          
-          // Filtrar repeticiones exactas
-          if (streamData.lastTranscription === currentText) {
-            logger.warn(`🔁 [${streamSid}] Transcripción repetida ignorada: "${currentText}"`);
-            this.responseInProgress.delete(streamSid);
-            return;
-          }
-          
-          // Filtrar ecos del bot (frases específicas que el bot suele decir)
-          const botPhrases = [
-            'hola', 'gracias por llamar', 'en qué puedo ayudarte', 'un momento por favor',
-            'te ayudo', 'dime', 'cuéntame', 'perfecto', 'entiendo', 'claro',
-            'disculpa', 'lo siento', 'problemas técnicos', 'repetir tu consulta'
-          ];
-          
-          const containsSpecificBotPhrase = botPhrases.some(phrase => 
-            currentText.toLowerCase().includes(phrase.toLowerCase())
-          );
-          
-          if (containsSpecificBotPhrase) {
-            logger.warn(`🔊 [${streamSid}] Eco específico del bot detectado - ignorando: "${transcriptionResult.text}"`);
-            this.responseInProgress.delete(streamSid);
-            return;
-          }
-          
-          // DEBUG: Log para confirmar que transcripciones válidas pasan el filtro
-          logger.info(`✅ [${streamSid}] Transcripción válida pasó filtros: "${transcriptionResult.text}"`);
-          
-          // Filtrar transcripciones muy cortas que probablemente sean ruido
-          if (transcriptionResult.text.trim().length < 3) {
-            logger.debug(`🔇 [${streamSid}] Transcripción muy corta ignorada: "${transcriptionResult.text}"`);
-            this.responseInProgress.delete(streamSid);
-            return;
-          }
-          
-          // Control de tiempo mínimo entre respuestas (anti-spam)
-          const lastResponse = this.lastResponseTime.get(streamSid) || 0;
-          const timeSinceLastResponse = Date.now() - lastResponse;
-          if (timeSinceLastResponse < 3000) { // Mínimo 3 segundos entre respuestas
-            logger.warn(`⏰ [${streamSid}] Muy pronto para nueva respuesta (${timeSinceLastResponse}ms) - ignorando`);
-            this.responseInProgress.delete(streamSid);
-            return;
-          }
-          
-          logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);          
-          logger.info(`🔍 [DEBUG] Llamando a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
-          
-          // CRÍTICO: Actualizar actividad del usuario en StateManager
-          // Cambiar estado a procesando
-          streamData.state = 'processing';
-          streamData.lastUserInput = transcriptionResult.text;
-          
-          // Guardar última transcripción
-          streamData.lastTranscription = currentText;
-          
-          // Generar respuesta conversacional
-          await this.generateAndSendResponse(ws, streamSid, transcriptionResult.text, streamData.client);
-          
-          // NUEVO: Después de enviar respuesta, reactivar listening
-          setTimeout(() => {
-            this.startListening(streamSid);
-          }, 1000); // 1 segundo de delay
-          
-        } else {
-          // Transcripción falló pero no es un error crítico - solo log debug
-          logger.debug(`🔇 [${streamSid}] Sin transcripción válida: ${transcriptionResult.error || 'silencio detectado'}`);
-          
-          // CRÍTICO: Liberar bloqueo si transcripción vacía
-          this.responseInProgress.delete(streamSid);
-        }
-      } catch (transcriptionError) {
-        logger.error(`❌ [${streamSid}] Error crítico en transcripción: ${transcriptionError.message}`);
-        logger.error(`❌ [${streamSid}] Stack trace transcripción:`, transcriptionError.stack);
-        
-        // CRÍTICO: Liberar bloqueo en caso de error
-        this.responseInProgress.delete(streamSid);
-      }
+      // CRÍTICO: Actualizar actividad del usuario en StateManager
+      // Cambiar estado a procesando
+      streamData.state = 'processing';
+      streamData.lastUserInput = transcriptionResult.text;
+      
+      // Guardar última transcripción
+      streamData.lastTranscription = currentText;
+      
+      // Generar respuesta conversacional
+      await this.generateAndSendResponse(ws, streamSid, transcriptionResult.text, streamData.client);
+      
+      // NUEVO: Después de enviar respuesta, reactivar listening
+      setTimeout(() => {
+        this.startListening(streamSid);
+      }, 1000); // 1 segundo de delay
+      
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error procesando audio: ${error.message}`);
     }

@@ -1,4 +1,4 @@
-DEPLOY_TIMESTAMP=2025-09-27T12:30:32+02:00
+DEPLOY_TIMESTAMP=2025-09-27T14:40:50+02:00
 Deploy requerido a las 2025-09-27T14:06:00+02:00
 Razón: Correcciones críticas del bot - horarios comerciales, speechDetection y voces
 Cambios:
