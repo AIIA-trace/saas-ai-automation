@@ -107,6 +107,9 @@ class TwilioStreamHandler {
     this.energySamples = new Map(); // Para umbrales adaptativos VAD
     this.audioPreprocessor = new AudioPreprocessor();
 
+    // NUEVO: Set para trackear streamSids ya procesados - evita duplicados
+    this.processedStreamSids = new Set();
+
     // Configurar transcripción en tiempo real
     this.transcriptionService = new RealtimeTranscription();
     this.fallbackAudio = this.generateFallbackAudio();
@@ -361,6 +364,12 @@ class TwilioStreamHandler {
       return;
     }
 
+    // 🔒 VERIFICACIÓN CRÍTICA: Evitar procesamiento duplicado de streamSid
+    if (this.processedStreamSids.has(streamSid)) {
+      logger.warn(`⚠️ [${streamSid}] StreamSid ya procesado anteriormente - IGNORANDO DUPLICADO`);
+      return;
+    }
+
     logger.info(`🎵 [${streamSid}] Stream iniciado para llamada ${callSid}`);
 
     // Buscar el stream temporal usando connectionId
@@ -375,7 +384,8 @@ class TwilioStreamHandler {
         callSid: callSid,
         state: 'connected',
         startTime: Date.now(),
-        lastActivity: Date.now()
+        lastActivity: Date.now(),
+        greetingSent: false // 🔧 EXPLÍCITO: Inicializar como false
       });
 
       // Eliminar el registro temporal
@@ -389,9 +399,13 @@ class TwilioStreamHandler {
         streamSid,
         state: 'connected',
         startTime: Date.now(),
-        lastActivity: Date.now()
+        lastActivity: Date.now(),
+        greetingSent: false // 🔧 EXPLÍCITO: Inicializar como false
       });
     }
+
+    // ✅ Marcar streamSid como procesado para evitar duplicados
+    this.processedStreamSids.add(streamSid);
 
     // VERIFICACIÓN CRÍTICA: Solo enviar saludo si no se ha enviado ya
     const existingStreamData = this.activeStreams.get(streamSid);
@@ -460,7 +474,10 @@ class TwilioStreamHandler {
     if (this.energySamples) {
       this.energySamples.delete(streamSid);
     }
-    
+
+    // 🔧 CRÍTICO: Limpiar processedStreamSids para evitar memory leaks
+    this.processedStreamSids.delete(streamSid);
+
     logger.info(`🧹 [${streamSid}] Recursos limpiados`);
   }
 
