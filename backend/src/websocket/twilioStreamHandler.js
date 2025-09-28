@@ -220,14 +220,15 @@ class TwilioStreamHandler {
     this.responseInProgress.set(streamSid, false);
 
     // La transcripción se activará automáticamente cuando se desactive el echo blanking
-    this.echoBlanking.set(streamSid, true);
+    // NO inicializar echo blanking aquí - se hace en initializeEchoBlanking()
 
     // Enviar saludo inicial
     this.sendInitialGreeting(ws, { streamSid, callSid }).then(() => {
       // Esperar un poco más para asegurar que el audio termine de reproducirse
       setTimeout(() => {
-        logger.info(`🚀 [${streamSid}] Desactivando echo blanking...`);
-        this.echoBlanking.set(streamSid, false);
+        logger.info(`⏰ [${streamSid}] TIMEOUT EJECUTADO - Desactivando echo blanking tras 3 segundos...`);
+        this.deactivateEchoBlanking(streamSid);
+        logger.info(`✅ [${streamSid}] deactivateEchoBlanking() llamado desde setTimeout`);
       }, 3000); // Delay de 3 segundos para asegurar que el saludo termine
     }).catch(error => {
       logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
