@@ -97,6 +97,7 @@ class TwilioStreamHandler {
     // Mapas para gestión de estado y audio
     this.activeStreams = new Map();
     this.audioBuffers = new Map();
+    this.audioBuffer = new Map(); // FIX: Inicializar audioBuffer para evitar error 'set' undefined
     this.echoBlanking = new Map();
     this.transcriptionActive = new Map();
     this.responseInProgress = new Map();
