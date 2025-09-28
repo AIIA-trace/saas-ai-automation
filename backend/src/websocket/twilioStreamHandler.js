@@ -888,9 +888,9 @@ class TwilioStreamHandler {
       speechCount: 0,
       lastActivity: Date.now(),
       
-      // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz - MUCHO MÁS SENSIBLE
-      energyThreshold: 0.5, // Reducido drásticamente de 5 a 0.5 para mayor sensibilidad
-      adaptiveThreshold: 0.5, // Reducido drásticamente de 5 a 0.5
+      // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz - MÁS SENSIBLES
+      energyThreshold: 0.02, // Reducido drásticamente de 0.5 a 0.02 para mayor sensibilidad
+      adaptiveThreshold: 0.02, // Reducido drásticamente de 0.5 a 0.02
       
       // CONTEOS ESTÁNDAR PARA VAD
       maxSilenceDuration: 4, // 4 chunks = ~320ms de silencio para procesar
@@ -1133,7 +1133,7 @@ class TwilioStreamHandler {
         detection.adaptiveThreshold = detection.energyThreshold;
         logger.info(`✅ [${streamSid}] VAD: Usando energyThreshold como fallback: ${detection.adaptiveThreshold}`);
       } else {
-        detection.adaptiveThreshold = 0.1; // Valor optimizado para μ-law normalizado (0-1)
+        detection.adaptiveThreshold = 0.01; // Valor optimizado para μ-law normalizado (0-1)
         logger.info(`✅ [${streamSid}] VAD: Usando valor por defecto: ${detection.adaptiveThreshold}`);
       }
     }
@@ -1157,19 +1157,19 @@ class TwilioStreamHandler {
 
     detection.lastActivity = Date.now();
 
-    // 🔧 OPTIMIZAR: Adaptar threshold dinámicamente con ajuste más conservador
+    // 🔧 OPTIMIZAR: Adaptar threshold dinámicamente con ajuste MÁS AGRESIVO
     if (detection.energyHistory && detection.energyHistory.length > 0) {
       const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
       if (!isNaN(avgEnergy) && avgEnergy > 0) {
-        // Ajuste GRADUAL y CONSERVADOR del threshold (95% threshold + 5% avgEnergy)
-        // Evita que baje demasiado rápido a valores muy bajos
-        detection.adaptiveThreshold = detection.adaptiveThreshold * 0.95 + avgEnergy * 0.05;
+        // Ajuste MÁS RÁPIDO del threshold (70% threshold + 30% avgEnergy)
+        // Baja más rápido para detectar voz débil
+        detection.adaptiveThreshold = detection.adaptiveThreshold * 0.70 + avgEnergy * 0.30;
 
-        // 🔧 PROTECCIÓN: No dejar que baje por debajo de 0.05 (umbral mínimo más bajo para audio débil)
-        detection.adaptiveThreshold = Math.max(detection.adaptiveThreshold, 0.05);
+        // 🔧 PROTECCIÓN: No dejar que baje por debajo de 0.005 (umbral mínimo más bajo para audio débil)
+        detection.adaptiveThreshold = Math.max(detection.adaptiveThreshold, 0.005);
 
-        // 🔧 PROTECCIÓN: No dejar que suba por encima de 2.0 (umbral máximo más bajo)
-        detection.adaptiveThreshold = Math.min(detection.adaptiveThreshold, 2.0);
+        // 🔧 PROTECCIÓN: No dejar que suba por encima de 1.0 (umbral máximo)
+        detection.adaptiveThreshold = Math.min(detection.adaptiveThreshold, 1.0);
       }
     }
 
