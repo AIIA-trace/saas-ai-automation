@@ -555,40 +555,13 @@ class TwilioStreamHandler {
           </mstts:express-as>
     `.trim();
 
-    logger.info(`🎭 SSML humanizado aplicado: ${ssmlContent.substring(0, 100)}...`);
-    return ssmlContent;
-  }
-
-  /**
-   * Procesar eventos de Twilio Stream - FLUJO LIMPIO
-   */
-  async processStreamEvent(ws, data) {
-    const event = data.event;
-    const streamSid = data.streamSid || data.start?.streamSid || 'unknown';
-    
-    switch (event) {
-      case 'connected':
-        await this.handleConnected(ws, data);
-        break;
-      case 'start':
-        await this.handleStart(ws, data);
-        break;
-      case 'media':
-        await this.handleMediaEvent(ws, data);
-        break;
-      case 'mark':
-        await this.handleMark(ws, data);
-        break;
-    }
-  }
+    logger.info(`🎭 SSML humanizado aplicado: ${ssmlContent.substring(0, 100)}...`);  
 
   /**
    * Stream conectado - SOLO registrar conexión
    */
 
-  /**
-   * Generar saludo inicial - SOLO UNA VEZ POR STREAM
-   */
+  // Generar saludo inicial - SOLO UNA VEZ POR STREAM
   async sendInitialGreeting(ws, { streamSid, callSid }) {
     logger.info(`🔍 [${streamSid}] INICIANDO sendInitialGreeting`);
     const streamData = this.activeStreams.get(streamSid);
@@ -710,7 +683,7 @@ class TwilioStreamHandler {
       this.pendingMarks = this.pendingMarks || new Map();
       this.pendingMarks.set(markId, {
         streamSid: streamSid,
-        action: 'activate_transcripción',
+        action: 'activate_transcription',
         timestamp: Date.now()
       });
       
@@ -893,9 +866,9 @@ class TwilioStreamHandler {
       speechCount: 0,
       lastActivity: Date.now(),
       
-      // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz
-      energyThreshold: 5, // Bajado de 10 a 5 para mayor sensibilidad
-      adaptiveThreshold: 5, // Bajado de 10 a 5
+      // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz - MUCHO MÁS SENSIBLE
+      energyThreshold: 0.5, // Reducido drásticamente de 5 a 0.5 para mayor sensibilidad
+      adaptiveThreshold: 0.5, // Reducido drásticamente de 5 a 0.5
       
       // CONTEOS ESTÁNDAR PARA VAD
       maxSilenceDuration: 4, // 4 chunks = ~320ms de silencio para procesar
@@ -1066,7 +1039,7 @@ class TwilioStreamHandler {
     // 🔧 CRITICAL FIX: Validar datos de entrada
     if (!mulawBytes || mulawBytes.length === 0) {
       logger.warn(`⚠️ [${streamSid}] VAD: Datos μ-law inválidos o vacíos`);
-      return { shouldProcess: false, isActive: false, energy: '0.0', threshold: '5.0' };
+      return { shouldProcess: false, isActive: false, energy: '0.0', threshold: '0.5' };
     }
 
     let energy = 0;
@@ -1127,7 +1100,7 @@ class TwilioStreamHandler {
 
     if (!detection) {
       logger.error(`❌ [${streamSid}] VAD: No hay configuración speechDetection`);
-      return { shouldProcess: false, isActive: false, energy: energy.toFixed(1), threshold: '5.0' };
+      return { shouldProcess: false, isActive: false, energy: energy.toFixed(1), threshold: '0.5' };
     }
 
     // 🔧 CRITICAL FIX: Inicializar adaptiveThreshold si es undefined
@@ -1170,11 +1143,11 @@ class TwilioStreamHandler {
         // Evita que baje demasiado rápido a valores muy bajos
         detection.adaptiveThreshold = detection.adaptiveThreshold * 0.95 + avgEnergy * 0.05;
 
-        // 🔧 PROTECCIÓN: No dejar que baje por debajo de 0.1 (umbral mínimo sensato para μ-law)
-        detection.adaptiveThreshold = Math.max(detection.adaptiveThreshold, 0.1);
+        // 🔧 PROTECCIÓN: No dejar que baje por debajo de 0.05 (umbral mínimo más bajo para audio débil)
+        detection.adaptiveThreshold = Math.max(detection.adaptiveThreshold, 0.05);
 
-        // 🔧 PROTECCIÓN: No dejar que suba por encima de 5.0 (umbral máximo)
-        detection.adaptiveThreshold = Math.min(detection.adaptiveThreshold, 5.0);
+        // 🔧 PROTECCIÓN: No dejar que suba por encima de 2.0 (umbral máximo más bajo)
+        detection.adaptiveThreshold = Math.min(detection.adaptiveThreshold, 2.0);
       }
     }
 
