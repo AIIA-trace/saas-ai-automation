@@ -1372,7 +1372,7 @@ class TwilioStreamHandler {
       // Usar audio normalizado en VAD y buffer
       const streamAudioBuffer = this.audioBuffer.get(streamSid);
       streamAudioBuffer.push(...normalizedAudio);
-      const vadResult = this.vad.processChunk(normalizedAudio);
+      const vadResult = this.processVAD(streamSid, normalizedAudio);
       
       // DEBUG CRÍTICO: Logs detallados del VAD
       logger.info(`🎤 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
@@ -1849,19 +1849,75 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Procesar audio con VAD usando la estructura existente de speechDetection
+   */
+  processVAD(streamSid, audioChunk) {
+    const detection = this.speechDetection.get(streamSid);
+    if (!detection) {
+      logger.error(`❌ [${streamSid}] No hay configuración de speech detection`);
+      return { shouldProcess: false, isActive: false, energy: 0, threshold: 0 };
+    }
+
+    // Calcular energía del audio
+    const samples = new Uint8Array(audioChunk);
+    let totalEnergy = 0;
+    for (let i = 0; i < samples.length; i++) {
+      const sample = samples[i] - 127; // Centrar en 0
+      totalEnergy += sample * sample;
+    }
+    const energy = Math.sqrt(totalEnergy / samples.length);
+
+    // Actualizar historial de energía
+    detection.energyHistory = detection.energyHistory || [];
+    detection.energyHistory.push(energy);
+    if (detection.energyHistory.length > 10) {
+      detection.energyHistory.shift();
+    }
+
+    // Calcular umbral adaptativo
+    const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
+    detection.adaptiveThreshold = Math.max(detection.energyThreshold, avgEnergy * 1.2);
+
+    // Determinar si hay actividad de voz
+    const isActive = energy > detection.adaptiveThreshold;
+    
+    // Actualizar contadores
+    if (isActive) {
+      detection.speechCount++;
+      detection.silenceCount = 0;
+      detection.isActive = true;
+    } else {
+      detection.silenceCount++;
+      detection.speechCount = 0;
+      if (detection.silenceCount > 5) {
+        detection.isActive = false;
+      }
+    }
+
+    detection.lastActivity = Date.now();
+
+    return {
+      shouldProcess: isActive,
+      isActive: detection.isActive,
+      energy: Math.round(energy * 100) / 100,
+      threshold: Math.round(detection.adaptiveThreshold * 100) / 100
+    };
+  }
+
+  /**
    * Resetear estado VAD para audio constantemente saturado
    */
   resetVADState(streamSid) {
     logger.warn(`🔄 [${streamSid}] Reseteando estado VAD por audio saturado`);
     
     // Limpiar estado VAD
-    if (this.vadStates.has(streamSid)) {
-      const detection = this.vadStates.get(streamSid);
+    if (this.speechDetection.has(streamSid)) {
+      const detection = this.speechDetection.get(streamSid);
       detection.isActive = false;
       detection.speechCount = 0;
       detection.silenceCount = 0;
       detection.energyHistory = [];
-      detection.adaptiveThreshold = 15;
+      detection.adaptiveThreshold = detection.energyThreshold || 15;
       detection.lastActivity = Date.now();
       logger.info(`🧹 [${streamSid}] Estado VAD reseteado`);
     }
@@ -1887,8 +1943,8 @@ class TwilioStreamHandler {
         logger.info(`🧹 [${streamSid}] Buffer de audio limpiado`);
       }
       
-      if (this.vadStates.has(streamSid)) {
-        this.vadStates.delete(streamSid);
+      if (this.speechDetection.has(streamSid)) {
+        this.speechDetection.delete(streamSid);
         logger.info(`🧹 [${streamSid}] Estado VAD limpiado`);
       }
       
