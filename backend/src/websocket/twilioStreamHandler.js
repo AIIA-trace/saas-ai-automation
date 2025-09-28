@@ -1627,6 +1627,14 @@ class TwilioStreamHandler {
         return;
       }
       
+      // LLAMADA REAL A TRANSCRIPCIÓN - esto faltaba!
+      const transcriptionResult = await this.transcriptionService.transcribeAudio(combinedBuffer);
+      
+      if (!transcriptionResult || !transcriptionResult.text || transcriptionResult.text.trim().length === 0) {
+        logger.warn(`🚫 [${streamSid}] Transcripción vacía o inválida - ignorando`);
+        return;
+      }
+      
       logger.info(`📝 [${streamSid}] Transcripción exitosa: "${transcriptionResult.text}"`);          
       logger.info(`🔍 [DEBUG] Llamada a generateAndSendResponse con transcripción: "${transcriptionResult.text}"`);
       
@@ -1636,7 +1644,7 @@ class TwilioStreamHandler {
       streamData.lastUserInput = transcriptionResult.text;
       
       // Guardar última transcripción
-      streamData.lastTranscription = currentText;
+      streamData.lastTranscription = transcriptionResult.text;
       
       // Generar respuesta conversacional
       await this.generateAndSendResponse(ws, streamSid, transcriptionResult.text, streamData.client);
