@@ -394,10 +394,10 @@ class TwilioStreamHandler {
     
     switch (event) {
       case 'connected':
-        await this.handleStreamConnected(ws, data);
+        await this.handleConnected(ws, data);
         break;
       case 'start':
-        await this.handleStreamStart(ws, data);
+        await this.handleStart(ws, data);
         break;
       case 'media':
         await this.handleMediaEvent(ws, data);
