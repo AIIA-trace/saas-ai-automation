@@ -97,7 +97,7 @@ class TwilioStreamHandler {
     this.speechDetection = new Map();
     this.silenceStartTime = new Map();
     this.lastResponseTime = new Map();
-    this.pendingMarks = new Map();
+    this.pendingMarks = new Map(); // CRÍTICO: Inicializar pendingMarks para evitar errores
     this.audioPreprocessor = new AudioPreprocessor();
 
     // Configurar transcripción en tiempo real
@@ -112,7 +112,7 @@ class TwilioStreamHandler {
     logger.info('🔍 DIAGNÓSTICO - Servicios inicializados:');
     logger.info(`🔍 - openaiService: ${!!this.openaiService}`);
     logger.info(`🔍 - conversationState: ${!!this.conversationState}`);
-    logger.info(`🔍 - pendingMarks: ${!!this.pendingMarks}`);
+    logger.info(`🔍 - pendingMarks: ${!!this.pendingMarks} (size: ${this.pendingMarks.size})`);
     logger.info(`🔍 - transcriptionActive: ${!!this.transcriptionActive}`);
     logger.info(`🔍 - transcriptionService: ${!!this.transcriptionService}`);
     
@@ -203,6 +203,7 @@ class TwilioStreamHandler {
     // Verificar si tenemos una acción pendiente para esta marca
     if (!this.pendingMarks) {
       logger.warn(`⚠️ [${streamSid}] pendingMarks no inicializado - IGNORANDO marca ${markName}`);
+      logger.error(`🔍 DEBUG: pendingMarks is undefined! Checking constructor initialization.`);
       return;
     }
     
@@ -501,11 +502,13 @@ class TwilioStreamHandler {
         
         // Registrar que esperamos esta marca para activar transcripción
         this.pendingMarks = this.pendingMarks || new Map();
+        logger.info(`🔍 [${streamSid}] DEBUG: pendingMarks inicializado (size: ${this.pendingMarks.size}) antes de set`);
         this.pendingMarks.set(markId, {
           streamSid: streamSid,
           action: 'activate_transcription',
           timestamp: Date.now()
         });
+        logger.info(`🔍 [${streamSid}] DEBUG: pendingMarks después de set (size: ${this.pendingMarks.size}), keys: ${Array.from(this.pendingMarks.keys()).join(', ')}`);
         
         // Enviar audio con marca al final
         await this.sendRawMulawToTwilioWithMark(ws, ttsResult.audioBuffer, streamSid, markId);
@@ -585,11 +588,13 @@ class TwilioStreamHandler {
         
         // Registrar que esperamos esta marca para activar transcripción
         this.pendingMarks = this.pendingMarks || new Map();
+        logger.info(`🔍 [${streamSid}] DEBUG: pendingMarks inicializado (size: ${this.pendingMarks.size}) antes de set`);
         this.pendingMarks.set(markId, {
           streamSid: streamSid,
           action: 'activate_transcription',
           timestamp: Date.now()
         });
+        logger.info(`🔍 [${streamSid}] DEBUG: pendingMarks después de set (size: ${this.pendingMarks.size}), keys: ${Array.from(this.pendingMarks.keys()).join(', ')}`);
         
         // Enviar audio con marca al final
         await this.sendRawMulawToTwilioWithMark(ws, ttsResult.audioBuffer, streamSid, markId);
