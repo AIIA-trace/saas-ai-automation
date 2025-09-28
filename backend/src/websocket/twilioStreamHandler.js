@@ -594,26 +594,35 @@ class TwilioStreamHandler {
         
         logger.info(`🔍 [${streamSid}] ANTES de sendRawMulawToTwilio`);
         
-        // Enviar audio de forma no bloqueante y activar transcripción inmediatamente
+        // Calcular duración aproximada del audio para timing correcto
+        const audioLengthMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000); // 8kHz mulaw
+        logger.info(`🔍 [${streamSid}] Audio length: ${ttsResult.audioBuffer.length} bytes = ~${audioLengthMs}ms`);
+        
+        // Enviar audio de forma no bloqueante
         this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid).then(() => {
           logger.info(`🔍 [${streamSid}] DESPUÉS de sendRawMulawToTwilio - audio enviado completamente`);
         }).catch(sendError => {
           logger.error(`❌ [${streamSid}] Error en sendRawMulawToTwilio: ${sendError.message}`);
         });
         
-        // Activar transcripción INMEDIATAMENTE sin esperar a que termine el envío de audio
-        logger.info(`🚀 [${streamSid}] Activando transcripción INMEDIATAMENTE (sin esperar audio)`);
-        logger.info(`🔍 [${streamSid}] Estado ANTES de deactivateEchoBlanking:`);
-        logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
-        logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
-        logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
+        // ESPERAR a que termine el audio antes de activar transcripción
+        const activationDelay = audioLengthMs + 500; // Audio duration + 500ms buffer
+        logger.info(`🚀 [${streamSid}] Programando activación de transcripción en ${activationDelay}ms`);
         
-        this.deactivateEchoBlanking(streamSid);
-        
-        logger.info(`🔍 [${streamSid}] Estado DESPUÉS de deactivateEchoBlanking:`);
-        logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
-        logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
-        logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
+        setTimeout(() => {
+          logger.info(`🚀 [${streamSid}] ACTIVANDO transcripción tras completar saludo`);
+          logger.info(`🔍 [${streamSid}] Estado ANTES de deactivateEchoBlanking:`);
+          logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
+          logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
+          logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
+          
+          this.deactivateEchoBlanking(streamSid);
+          
+          logger.info(`🔍 [${streamSid}] Estado DESPUÉS de deactivateEchoBlanking:`);
+          logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
+          logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
+          logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
+        }, activationDelay);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error TTS: ${error.message}`);
