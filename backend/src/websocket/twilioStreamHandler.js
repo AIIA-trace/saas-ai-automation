@@ -977,36 +977,92 @@ class TwilioStreamHandler {
   }
 
   /**
+   * Decodificar byte μ-law a valor PCM lineal de 16-bit
+   * @param {number} mulawByte - Byte μ-law (0-255)
+   * @returns {number} Valor PCM lineal (-32768 a 32767)
+   */
+  decodeMulaw(mulawByte) {
+    // μ-law decoding algorithm
+    mulawByte = ~mulawByte & 0xFF; // Invertir bits
+
+    let sign = (mulawByte & 0x80) ? -1 : 1;
+    let exponent = (mulawByte >> 4) & 0x07;
+    let mantissa = mulawByte & 0x0F;
+
+    let value = mantissa << 4; // Base value
+
+    // Agregar bias basado en exponent
+    switch (exponent) {
+      case 0: value += 0; break;
+      case 1: value += 16; break;
+      case 2: value += 32; break;
+      case 3: value += 64; break;
+      case 4: value += 128; break;
+      case 5: value += 256; break;
+      case 6: value += 512; break;
+      case 7: value += 1024; break;
+    }
+
+    // Ajustar para rango completo
+    if (exponent > 1) {
+      value += 33; // Bias para μ-law
+    }
+
+    return sign * value * 4; // Escalar a 16-bit range
+  }
+
+  /**
    * Detectar actividad de voz en tiempo real usando VAD (Voice Activity Detection)
+   * Ahora con correcta decodificación μ-law
    */
   detectVoiceActivity(audioChunk, streamSid) {
-    const samples = new Uint8Array(audioChunk);
+    const mulawBytes = new Uint8Array(audioChunk);
 
     // 🔧 CRITICAL FIX: Validar datos de entrada
-    if (!samples || samples.length === 0) {
-      logger.warn(`⚠️ [${streamSid}] VAD: Datos de audio inválidos o vacíos`);
+    if (!mulawBytes || mulawBytes.length === 0) {
+      logger.warn(`⚠️ [${streamSid}] VAD: Datos μ-law inválidos o vacíos`);
       return { shouldProcess: false, isActive: false, energy: '0.0', threshold: '5.0' };
     }
 
     let energy = 0;
+    let validSamples = 0;
 
     try {
-      // Calcular energía con validación
-      for (let i = 0; i < samples.length; i++) {
-        const sample = samples[i];
-        if (typeof sample !== 'number' || isNaN(sample)) {
-          logger.warn(`⚠️ [${streamSid}] VAD: Sample inválido en posición ${i}: ${sample}`);
+      // 🔧 CRITICAL FIX: Decodificar μ-law a PCM lineal correctamente
+      for (let i = 0; i < mulawBytes.length; i++) {
+        const mulawByte = mulawBytes[i];
+
+        // Validar que sea un byte válido (0-255)
+        if (typeof mulawByte !== 'number' || mulawByte < 0 || mulawByte > 255) {
+          logger.warn(`⚠️ [${streamSid}] VAD: Byte μ-law inválido en posición ${i}: ${mulawByte}`);
           continue;
         }
-        const amplitude = Math.abs(sample - 127);
-        energy += amplitude * amplitude;
+
+        // Decodificar μ-law a PCM lineal
+        const pcmValue = this.decodeMulaw(mulawByte);
+
+        // Validar resultado de decodificación
+        if (isNaN(pcmValue) || !isFinite(pcmValue)) {
+          logger.warn(`⚠️ [${streamSid}] VAD: Valor PCM inválido de byte ${mulawByte}: ${pcmValue}`);
+          continue;
+        }
+
+        // Calcular energía del valor PCM (normalizar a 0-1)
+        const normalizedValue = Math.abs(pcmValue) / 32768.0;
+        energy += normalizedValue * normalizedValue;
+        validSamples++;
       }
 
-      energy = Math.sqrt(energy / samples.length);
+      // Calcular energía promedio
+      if (validSamples > 0) {
+        energy = Math.sqrt(energy / validSamples);
+      } else {
+        energy = 0;
+      }
 
-      // Validar resultado de energía
+      // Validar resultado final de energía
       if (isNaN(energy) || !isFinite(energy)) {
-        logger.warn(`⚠️ [${streamSid}] VAD: Energía inválida calculada: ${energy}, usando fallback`);
+        logger.warn(`⚠️ [${streamSid}] VAD: Energía final inválida: ${energy}, usando 0`);
         energy = 0;
       }
     } catch (error) {
@@ -1021,6 +1077,7 @@ class TwilioStreamHandler {
     if (detection) {
       logger.info(`🔍 [${streamSid}] VAD Debug - adaptiveThreshold: ${detection.adaptiveThreshold}, type: ${typeof detection.adaptiveThreshold}`);
       logger.info(`🔍 [${streamSid}] VAD Debug - energyThreshold: ${detection.energyThreshold}, type: ${typeof detection.energyThreshold}`);
+      logger.info(`🔍 [${streamSid}] VAD Debug - valid samples: ${validSamples}/${mulawBytes.length}`);
     }
 
     if (!detection) {
@@ -1036,14 +1093,14 @@ class TwilioStreamHandler {
         detection.adaptiveThreshold = detection.energyThreshold;
         logger.info(`✅ [${streamSid}] VAD: Usando energyThreshold como fallback: ${detection.adaptiveThreshold}`);
       } else {
-        detection.adaptiveThreshold = 5; // Valor por defecto estándar para μ-law
+        detection.adaptiveThreshold = 0.1; // Valor optimizado para μ-law normalizado (0-1)
         logger.info(`✅ [${streamSid}] VAD: Usando valor por defecto: ${detection.adaptiveThreshold}`);
       }
     }
 
     const isActive = energy > detection.adaptiveThreshold;
 
-    logger.info(`🎤 [${streamSid}] VAD: energy=${energy.toFixed(1)}, threshold=${detection.adaptiveThreshold.toFixed(1)}, isActive=${isActive}`);
+    logger.info(`🎤 [${streamSid}] VAD: energy=${energy.toFixed(3)}, threshold=${detection.adaptiveThreshold.toFixed(3)}, isActive=${isActive}, samples=${validSamples}`);
 
     // Actualizar contadores
     if (isActive) {
@@ -1079,8 +1136,8 @@ class TwilioStreamHandler {
     return {
       shouldProcess: isActive,
       isActive: detection.isActive,
-      energy: energy.toFixed(1),
-      threshold: detection.adaptiveThreshold.toFixed(1)
+      energy: energy.toFixed(3),
+      threshold: detection.adaptiveThreshold.toFixed(3)
     };
   }
 
