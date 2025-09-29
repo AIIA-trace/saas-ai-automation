@@ -1259,8 +1259,8 @@ class TwilioStreamHandler {
 
     // 🔧 CRITICAL FIX: Verificar duración mínima del audio (OpenAI requiere mínimo 0.1s = 100ms)
     // Para μ-law 8kHz: 8000 samples/segundo = 800 samples = 100ms
-    const minAudioLength = 800; // bytes mínimos para 100ms a 8kHz
-    const minDurationMs = 100; // milisegundos mínimos
+    const minAudioLength = 160; // Reducido de 640 a 160 bytes para 20ms (tamaño real de chunks de Twilio)
+    const minDurationMs = 20; // Reducido de 80ms a 20ms
 
     if (combinedBuffer.length < minAudioLength) {
       logger.warn(`⚠️ [${streamSid}] Audio demasiado corto: ${combinedBuffer.length} bytes < ${minAudioLength} bytes (${minDurationMs}ms mínimo)`);
