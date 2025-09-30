@@ -702,6 +702,10 @@ class TwilioStreamHandler {
         this.deactivateEchoBlanking(streamSid);
       }, 2000); // 2 segundos para el audio de fallback
     }
+    
+    // Conectar con OpenAI Realtime API después del saludo
+    this.connectToOpenAI(ws, streamSid);
+    
     // logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting`);
   }
 
@@ -1317,6 +1321,128 @@ class TwilioStreamHandler {
       logger.error(`❌ [${streamSid}] Error procesando audio: ${error.message}`);
     }
     logger.info(`🔚 [${streamSid}] FINALIZANDO processCollectedAudio`);
+  }
+
+  /**
+   * Conectar con OpenAI Realtime API (IMPLEMENTACIÓN OFICIAL SIMPLE)
+   * Basado en: https://platform.openai.com/docs/guides/realtime
+   */
+  connectToOpenAI(ws, streamSid) {
+    const streamData = this.activeStreams.get(streamSid);
+    if (!streamData) {
+      logger.error(`❌ [${streamSid}] No se encontró streamData para conectar OpenAI`);
+      return;
+    }
+
+    // Verificar que tenemos la API key
+    if (!process.env.OPENAI_API_KEY) {
+      logger.error(`❌ [${streamSid}] OPENAI_API_KEY no definida`);
+      return;
+    }
+
+    logger.info(`🤖 [${streamSid}] Iniciando conexión a OpenAI Realtime API`);
+    logger.info(`🔧 [${streamSid}] Model: gpt-4o-realtime-preview-2024-10-01`);
+
+    const openAiWs = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01', {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'OpenAI-Beta': 'realtime=v1'
+      }
+    });
+
+    streamData.openAiWs = openAiWs;
+
+    // Manejar apertura de conexión
+    openAiWs.on('open', () => {
+      logger.info(`✅ [${streamSid}] Conexión OpenAI establecida exitosamente`);
+      
+      // Enviar configuración de sesión
+      const sessionConfig = {
+        type: 'session.update',
+        session: {
+          modalities: ['text', 'audio'],
+          instructions: 'Eres una recepcionista profesional. Sé amable y útil.',
+          voice: 'alloy',
+          input_audio_format: 'pcm16',
+          output_audio_format: 'pcm16',
+          input_audio_transcription: {
+            model: 'whisper-1'
+          },
+          turn_detection: {
+            type: 'server_vad',
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 800
+          }
+        }
+      };
+
+      logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión a OpenAI`);
+      openAiWs.send(JSON.stringify(sessionConfig));
+    });
+
+    // Manejar mensajes de OpenAI
+    openAiWs.on('message', (data) => {
+      try {
+        const response = JSON.parse(data);
+
+        if (response.type === 'response.audio.delta' && response.delta) {
+          logger.info(`🔊 [${streamSid}] Recibiendo audio de respuesta de OpenAI`);
+          const audioResponse = {
+            event: 'media',
+            streamSid: streamSid,
+            media: {
+              payload: Buffer.from(response.delta, 'base64').toString('base64')
+            }
+          };
+          ws.send(JSON.stringify(audioResponse));
+        }
+
+        if (response.type === 'error') {
+          logger.error(`❌ [${streamSid}] Error de OpenAI: ${JSON.stringify(response)}`);
+        } else if (['session.updated', 'input_audio_buffer.speech_started'].includes(response.type)) {
+          logger.info(`🎵 [${streamSid}] OpenAI Event: ${response.type}`);
+        } else {
+          logger.debug(`📨 [${streamSid}] OpenAI Message: ${response.type}`);
+        }
+
+      } catch (error) {
+        logger.error(`❌ [${streamSid}] Error procesando mensaje de OpenAI: ${error.message}`);
+      }
+    });
+
+    // Manejar cierre y errores
+    openAiWs.on('close', (code, reason) => {
+      logger.warn(`⚠️ [${streamSid}] Conexión OpenAI cerrada - Code: ${code}, Reason: ${reason}`);
+    });
+
+    openAiWs.on('error', (error) => {
+      logger.error(`❌ [${streamSid}] Error en conexión OpenAI: ${error.message}`);
+    });
+  }
+
+  /**
+   * Manejar eventos de media - VERSIÓN SIMPLE PARA OPENAI
+   */
+  async handleMedia(ws, data, connectionId) {
+    const streamData = this.activeStreams.get(connectionId);
+    if (!streamData) {
+      logger.warn(`⚠️ Media recibido pero no hay conexión activa: ${connectionId}`);
+      return;
+    }
+
+    // Si OpenAI no está listo, ignorar (el saludo aún se está reproduciendo)
+    if (!streamData.openAiWs || streamData.openAiWs.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    // Enviar audio directamente a OpenAI
+    const audioMessage = {
+      type: 'input_audio_buffer.append',
+      audio: data.media.payload
+    };
+    
+    streamData.openAiWs.send(JSON.stringify(audioMessage));
   }
 }
 
