@@ -70,11 +70,14 @@ class OpenAIRealtimeService {
         clientConfig: clientConfig,
         messageCount: 0,
         startTime: Date.now(),
-        // VARIABLES DEL CÓDIGO OFICIAL
+        // VARIABLES DEL CÓDIGO OFICIAL COMPLETAS
         latestMediaTimestamp: 0,
         lastAssistantItem: null,
         markQueue: [],
-        responseStartTimestampTwilio: null
+        responseStartTimestampTwilio: null,
+        // NUEVAS VARIABLES PARA TRACKING
+        accumulatedAudio: [],
+        accumulatedChunks: []
       };
 
       this.activeConnections.set(streamSid, connectionData);
@@ -228,6 +231,9 @@ class OpenAIRealtimeService {
 
             // DIFERENCIA CLAVE: Acumular para Azure TTS en lugar de enviar directamente
             this.accumulateAudioDelta(streamSid, response.delta);
+            
+            // ✅ CÓDIGO OFICIAL: Enviar mark para tracking
+            this.sendMark(streamSid);
           }
           break;
 
@@ -280,10 +286,18 @@ class OpenAIRealtimeService {
     const connectionData = this.activeConnections.get(streamSid);
     if (!connectionData) return;
 
-    // CÁLCULO EXACTO del código oficial
+    // 🔍 DEBUG: Estado actual antes de procesar interrupción
+    logger.info(`🎤 [${streamSid}] SPEECH STARTED - Estado del stream:`);
+    logger.info(`🎤 [${streamSid}] ├── markQueue.length: ${connectionData.markQueue.length}`);
+    logger.info(`🎤 [${streamSid}] ├── responseStartTimestamp: ${connectionData.responseStartTimestampTwilio}`);
+    logger.info(`🎤 [${streamSid}] ├── lastAssistantItem: ${connectionData.lastAssistantItem}`);
+    logger.info(`🎤 [${streamSid}] └── latestMediaTimestamp: ${connectionData.latestMediaTimestamp}`);
+
+    // CÁLCULO EXACTO del código oficial - SOLO interrumpir si hay respuesta activa
     if (connectionData.markQueue.length > 0 && connectionData.responseStartTimestampTwilio != null) {
       const elapsedTime = connectionData.latestMediaTimestamp - connectionData.responseStartTimestampTwilio;
-      logger.info(`⏱️ [${streamSid}] Calculating elapsed time for truncation: ${connectionData.latestMediaTimestamp} - ${connectionData.responseStartTimestampTwilio} = ${elapsedTime}ms`);
+      logger.info(`⏱️ [${streamSid}] ✅ HAY RESPUESTA ACTIVA - Interrumpiendo`);
+      logger.info(`⏱️ [${streamSid}] Calculating elapsed time: ${connectionData.latestMediaTimestamp} - ${connectionData.responseStartTimestampTwilio} = ${elapsedTime}ms`);
 
       if (connectionData.lastAssistantItem) {
         const truncateEvent = {
@@ -305,6 +319,12 @@ class OpenAIRealtimeService {
       connectionData.markQueue = [];
       connectionData.lastAssistantItem = null;
       connectionData.responseStartTimestampTwilio = null;
+      
+      logger.info(`✅ [${streamSid}] Interrupción procesada y estado reseteado`);
+    } else {
+      // 🎯 CLAVE: Si no hay respuesta activa, NO interrumpir
+      logger.info(`⚠️ [${streamSid}] NO HAY RESPUESTA ACTIVA - Ignorando speech_started`);
+      logger.info(`⚠️ [${streamSid}] markQueue: ${connectionData.markQueue.length}, responseStart: ${connectionData.responseStartTimestampTwilio}`);
     }
   }
 
