@@ -4,9 +4,15 @@ const fs = require('fs');
 
 class AzureTTSRestService {
   constructor() {
-    // DEBUG: Credenciales hardcodeadas
-    this.subscriptionKey = '3iouAt5oVcf6Nu91XSU9Igrpfjy6iLhD4W9YgKxZArDjS8Fhdnb7JQQJ99BIAC5RqLJXJ3w3AAAYACOGorTt';
-    this.region = 'westeurope';
+    // 🔒 SEGURIDAD: Usar variables de entorno
+    this.subscriptionKey = process.env.AZURE_TTS_SUBSCRIPTION_KEY;
+    this.region = process.env.AZURE_TTS_REGION || 'westeurope';
+    
+    // Validación crítica para producción
+    if (!this.subscriptionKey) {
+      throw new Error('❌ AZURE_TTS_SUBSCRIPTION_KEY no definida en variables de entorno');
+    }
+    
     this.token = null;
     this.tokenExpiration = 0;
     this.isWarmedUp = false;

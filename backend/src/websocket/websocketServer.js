@@ -5,7 +5,7 @@ const twilio = require('twilio');
 const logger = require('../utils/logger');
 const TwilioStreamHandler = require('./twilioStreamHandler');
 const azureTTSRestService = require('../services/azureTTSRestService');
-const OpenAI = require('openai');
+// REMOVIDO: OpenAI import (obsoleto - TwilioStreamHandler usa openaiRealtimeService)
 const { PrismaClient } = require('@prisma/client');
 
 class WebSocketServer {
@@ -15,9 +15,7 @@ class WebSocketServer {
     
     // Initialize required services for TwilioStreamHandler
     this.ttsService = azureTTSRestService;
-    this.openaiService = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    // REMOVIDO: openaiService obsoleto - TwilioStreamHandler usa openaiRealtimeService directamente
     this.prisma = new PrismaClient();
     
     // Initialize TwilioStreamHandler with required services
@@ -42,10 +40,8 @@ class WebSocketServer {
         this.handleNewConnection(ws, req);
       });
 
-      // Iniciar limpieza automática de transcripciones
-      const transcriptionService = require('../services/realtimeTranscription');
-      const transcription = new transcriptionService();
-      transcription.startAutoCleanup();
+      // REMOVIDO: Limpieza de transcripciones obsoleta (ahora usa OpenAI Realtime)
+      // El nuevo sistema OpenAI Realtime no requiere limpieza manual
 
       logger.info('✅ Servidor WebSocket inicializado en /websocket/twilio-stream');
       return true;
@@ -197,7 +193,9 @@ class WebSocketServer {
       activeConnections,
       activeStreams,
       uptime: process.uptime(),
-      memoryUsage: process.memoryUsage()
+      memoryUsage: process.memoryUsage(),
+      // 📊 INCLUIR MÉTRICAS DETALLADAS DEL STREAM HANDLER
+      streamMetrics: this.streamHandler.getMetrics()
     };
   }
 

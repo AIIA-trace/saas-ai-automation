@@ -88,31 +88,48 @@ logger.info(`Sirviendo frontend desde: ${frontendDir}`);
 
 // Rutas principales
 app.use('/api/auth', authRouter);
-app.use('/api', apiRouter);
 app.use('/api/setup', setupRouter);
 app.use('/api/test-voices', testVoicesRouter);
 app.use('/api/twilio', twilioRouter);
 app.use('/api/azure-tts', azureTTSRouter);
 app.use('/api/test-audio', testAudioRouter);
-app.use('/webhooks', webhooksRouter);
 
-// Ruta principal
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'API de Bot de Llamadas y Emails con IA',
-    version: '1.0.0',
-    status: 'online'
-  });
+// 📊 RUTA DE MÉTRICAS PARA MONITOREO
+let wsServer = null; // La asignaremos después de inicializar
+app.get('/metrics', (req, res) => {
+  try {
+    if (wsServer) {
+      const stats = wsServer.getStats();
+      res.json({
+        success: true,
+        timestamp: Date.now(),
+        server: {
+          uptime: stats.uptime,
+          memory: stats.memoryUsage
+        },
+        websocket: {
+          activeConnections: stats.activeConnections,
+          activeStreams: stats.activeStreams
+        },
+        calls: stats.streamMetrics || {}
+      });
+    } else {
+      res.json({
+        success: false,
+        error: 'WebSocket server not initialized'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
-// Servir archivos HTML específicos o index.html para rutas no API
-app.get('*', (req, res, next) => {
-  // Si la ruta empieza con /api o /webhooks, continuar al siguiente middleware
-  if (req.path.startsWith('/api') || req.path.startsWith('/webhooks')) {
-    return next();
-  }
-  
-  // Comprobar si existe un archivo HTML específico para la ruta solicitada
+// Capturar todas las rutas y servir frontend
+app.get('*', (req, res) => {
+  // Determinar el archivo a servir basado en la ruta
   const requestedPage = req.path.endsWith('.html') 
     ? req.path 
     : req.path === '/' 
@@ -150,7 +167,7 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
     logger.info('Conexión a base de datos exitosa');
     
     // Inicializar servidor WebSocket
-    const wsServer = new WebSocketServer(server);
+    wsServer = new WebSocketServer(server); // 📊 Asignar a variable global para métricas
     const wsInitialized = wsServer.initialize();
     
     if (wsInitialized) {

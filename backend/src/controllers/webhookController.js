@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 const twilioService = require('../services/twilioService');
 const StreamingTwiMLService = require('../services/streamingTwiMLService');
 const streamingTwiMLService = new StreamingTwiMLService();
-const openaiService = require('../services/openaiService');
+// REMOVIDO: openaiService obsoleto - ahora usa OpenAI Realtime en TwilioStreamHandler
 const emailService = require('../services/emailService');
 
 const prisma = new PrismaClient();

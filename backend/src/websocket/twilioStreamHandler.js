@@ -1,92 +1,19 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const azureTTSRestService = require('../services/azureTTSRestService');
-const OpenAIService = require('../services/openaiService');
-const RealtimeTranscription = require('../services/realtimeTranscription');
-// ELIMINADO: EventBasedStateManager y ProductionSafeTimeouts - reemplazados por patrón start/stop simple
+const OpenAIRealtimeService = require('../services/openaiRealtimeService');
 const fs = require('fs');
-
-/**
- * Preprocesador de audio para detectar y corregir saturación
- */
-class AudioPreprocessor {
-  constructor() {
-    this.gainReduction = 0.7; // Reducir ganancia al 70%
-  }
-  
-  /**
-   * Detectar saturación temprana en el audio
-   */
-  detectSaturation(audioData, threshold = 254) {
-    const samples = new Uint8Array(audioData);
-    const saturatedSamples = samples.filter(s => s >= threshold || s <= 3).length;
-    const ratio = saturatedSamples / samples.length;
-    
-    const stats = {
-      max: Math.max(...samples),
-      min: Math.min(...samples),
-      avg: samples.reduce((a, b) => a + b) / samples.length
-    };
-    
-    // Condiciones múltiples para detectar saturación (umbrales más permisivos)
-    const rejectionConditions = [
-      stats.max >= 254 && stats.min >= 240,  // Solo si REALMENTE saturado (max Y min altos)
-      stats.min >= 230,                      // Mínimo extremadamente alto
-      stats.avg >= 230,                      // Promedio extremadamente alto
-      stats.max - stats.min < 5,             // Rango dinámico casi nulo
-      ratio > 0.3                            // >30% de muestras saturadas
-    ];
-    
-    return {
-      isSaturated: rejectionConditions.some(condition => condition),
-      ratio: ratio,
-      saturatedCount: saturatedSamples,
-      stats: stats,
-      rejectionReasons: rejectionConditions.map((cond, i) => cond ? i : null).filter(x => x !== null)
-    };
-  }
-  
-  /**
-   * Aplicar reducción de ganancia agresiva
-   */
-  applyGainReduction(audioData) {
-    const samples = new Uint8Array(audioData);
-    return samples.map(sample => {
-      // Convertir de uint8 a int8, aplicar ganancia, volver a uint8
-      const intSample = sample - 128;
-      const reduced = intSample * this.gainReduction;
-      return Math.max(0, Math.min(255, reduced + 128));
-    });
-  }
-  
-  /**
-   * Normalización agresiva para audio saturado
-   */
-  normalizeAudio(audioData, targetGain = 0.7) {
-    const samples = new Uint8Array(audioData);
-    const maxVal = Math.max(...samples.map(s => Math.abs(s - 127)));
-    
-    if (maxVal === 0) return samples;
-    
-    // Normalización agresiva para reducir saturación
-    const scaleFactor = Math.min(targetGain, 80 / maxVal);
-    return samples.map(sample => {
-      const centered = sample - 127;
-      const scaled = centered * scaleFactor;
-      return Math.round(Math.max(0, Math.min(255, scaled + 127)));
-    });
-  }
-}
 
 class TwilioStreamHandler {
   constructor(prisma, ttsService) {
     this.prisma = prisma;
     this.ttsService = ttsService; // FIX: Asignar el servicio TTS
     
-    // INICIALIZACIÓN FALTANTE - Servicios críticos:
-    this.openaiService = new OpenAIService(); // ✅ INICIALIZAR
-    this.conversationState = new Map(); // ✅ INICIALIZAR
-    this.pendingMarks = new Map(); // ✅ INICIALIZAR - CRÍTICO PARA EVITAR ERRORES
+    // NUEVO: Servicio OpenAI Realtime (reemplaza sistema conversacional complejo)
+    this.openaiRealtimeService = new OpenAIRealtimeService();
+    
+    // CRÍTICO PARA SISTEMA DE MARCAS: Conservar para saludo inicial
+    this.pendingMarks = new Map(); // ✅ CRÍTICO PARA EVITAR ERRORES
 
     // Verificar inmediatamente después de inicializar
     if (!this.pendingMarks || !(this.pendingMarks instanceof Map)) {
@@ -101,11 +28,9 @@ class TwilioStreamHandler {
     this.echoBlanking = new Map();
     this.transcriptionActive = new Map();
     this.responseInProgress = new Map();
-    this.speechDetection = new Map();
+    // REMOVIDO: speechDetection (VAD obsoleto - ahora usa OpenAI server VAD)
     this.silenceStartTime = new Map();
     this.lastResponseTime = new Map();
-    this.energySamples = new Map(); // Para umbrales adaptativos VAD
-    this.audioPreprocessor = new AudioPreprocessor();
 
     // NUEVO: Set para trackear streamSids ya procesados - evita duplicados
     this.processedStreamSids = new Set();
@@ -113,23 +38,126 @@ class TwilioStreamHandler {
     // NUEVO: Cache de clientes para evitar consultas duplicadas
     this.clientCache = new Map();
 
-    // Configurar transcripción en tiempo real
-    this.transcriptionService = new RealtimeTranscription();
     this.fallbackAudio = this.generateFallbackAudio();
 
     // Voice mapping from user-friendly names to Azure TTS voice identifiers
     // Voz única para todos los usuarios: Isidora Multilingüe (soporte SSML completo)
     this.defaultVoice = 'es-ES-IsidoraMultilingualNeural';
     
-    // LOGS DE DIAGNÓSTICO - Verificar inicialización (solo mostrar errores)
+    // 📊 MÉTRICAS PARA MONITOREO PRODUCCIÓN
+    this.metrics = {
+      totalCalls: 0,
+      activeCalls: 0,
+      successfulCalls: 0,
+      failedCalls: 0,
+      averageCallDuration: 0,
+      openaiFailures: 0,
+      azureFailures: 0,
+      lastReset: Date.now()
+    };
+
+    // Configurar event listeners para OpenAI Realtime Service
+    this.openaiRealtimeService.on('audioResponse', (data) => {
+      this.handleOpenAIAudioResponse(data);
+    });
+
+    // NUEVOS EVENT LISTENERS del código oficial
+    this.openaiRealtimeService.on('clearAudio', (data) => {
+      this.handleClearAudio(data);
+    });
+
+    this.openaiRealtimeService.on('sendMark', (data) => {
+      this.handleSendMark(data);
+    });
+
+    this.openaiRealtimeService.on('processAudioWithAzure', (data) => {
+      this.handleProcessAudioWithAzure(data);
+    });
+
+    // LOGS DE DIAGNÓSTICO - Verificar inicialización
     logger.info('🔍 DIAGNÓSTICO - Servicios inicializados:');
-    logger.info(`🔍 - openaiService: ${!!this.openaiService}`);
-    logger.info(`🔍 - conversationState: ${!!this.conversationState}`);
+    logger.info(`🔍 - openaiRealtimeService: ${!!this.openaiRealtimeService}`);
     logger.info(`🔍 - pendingMarks: ${!!this.pendingMarks} (size: ${this.pendingMarks.size})`);
     logger.info(`🔍 - transcriptionActive: ${!!this.transcriptionActive}`);
-    logger.info(`🔍 - transcriptionService: ${!!this.transcriptionService}`);
 
-    logger.info('🚀 TwilioStreamHandler inicializado con patrón Start/Stop simplificado');
+    logger.info('🚀 TwilioStreamHandler inicializado con OpenAI Realtime API');
+  }
+
+  /**
+   * Manejar respuesta de audio desde OpenAI Realtime Service
+   * @param {Object} data - Datos del audio response {streamSid, audioBuffer}
+   */
+  async handleOpenAIAudioResponse(data) {
+    const { streamSid, audioBuffer } = data;
+    const streamData = this.activeStreams.get(streamSid);
+    
+    if (!streamData || !streamData.twilioWs) {
+      logger.warn(`⚠️ [${streamSid}] No hay conexión Twilio activa para enviar respuesta OpenAI`);
+      return;
+    }
+
+    logger.info(`🤖 [${streamSid}] Enviando respuesta de audio OpenAI a Twilio (${audioBuffer.length} bytes)`);
+
+    try {
+      // Activar echo blanking durante respuesta del bot
+      this.activateEchoBlanking(streamSid);
+      
+      // Enviar audio de OpenAI a Twilio usando el sistema de marcas
+      const markId = `openai_response_${Date.now()}`;
+      this.pendingMarks.set(markId, {
+        streamSid: streamSid,
+        action: 'deactivate_echo_blanking',
+        timestamp: Date.now()
+      });
+      
+      await this.sendRawMulawToTwilioWithMark(streamData.twilioWs, audioBuffer, streamSid, markId);
+      logger.info(`✅ [${streamSid}] Respuesta OpenAI enviada con marca ${markId}`);
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error enviando respuesta OpenAI: ${error.message}`);
+      // Desactivar echo blanking en caso de error
+      this.deactivateEchoBlanking(streamSid);
+    }
+  }
+
+  /**
+   * Inicializar conexión OpenAI Realtime después del saludo inicial
+   * @param {string} streamSid - ID del stream
+   */
+  async initializeOpenAIRealtimeConnection(streamSid) {
+    const streamData = this.activeStreams.get(streamSid);
+    if (!streamData) {
+      logger.error(`❌ [${streamSid}] No se encontró streamData para conectar OpenAI Realtime`);
+      return;
+    }
+
+    try {
+      logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime Service con configuración del cliente`);
+      
+      // Preparar configuración del cliente
+      const clientConfig = {
+        companyName: streamData.client?.companyName || 'la empresa',
+        companyDescription: streamData.client?.companyDescription || '',
+        industry: streamData.client?.industry || '',
+        ...streamData.client // Incluir toda la configuración disponible
+      };
+
+      // Inicializar conexión OpenAI Realtime
+      await this.openaiRealtimeService.initializeConnection(streamSid, clientConfig);
+      logger.info(`✅ [${streamSid}] OpenAI Realtime Service inicializado correctamente`);
+
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error crítico inicializando OpenAI Realtime: ${error.message}`, error.stack);
+      
+      // 🔧 MANEJO ROBUSTO: El sistema puede funcionar sin OpenAI Realtime (solo saludo inicial)
+      logger.warn(`⚠️ [${streamSid}] Sistema continuará solo con saludo inicial - conversación inteligente deshabilitada`);
+      
+      // Marcar que OpenAI falló para el futuro
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        streamData.openaiRealtimeFailed = true;
+      }
+    }
   }
 
   /**
@@ -155,9 +183,9 @@ class TwilioStreamHandler {
       logger.error(`❌ Error en WebSocket ${ws.connectionId}: ${error.message}`);
     });
 
-    ws.on('close', () => {
+    ws.on('close', async () => {
       logger.info(`🔌 Conexión WebSocket cerrada: ${ws.connectionId}`);
-      this.cleanup(ws.connectionId);
+      await this.cleanup(ws.connectionId);
     });
   }
 
@@ -166,7 +194,7 @@ class TwilioStreamHandler {
    * @param {WebSocket} ws - Conexión WebSocket
    * @param {Object} data - Datos del mensaje
    */
-  handleMessage(ws, data) {
+  async handleMessage(ws, data) {
     const { event } = data;
     
     switch (event) {
@@ -177,13 +205,13 @@ class TwilioStreamHandler {
         this.handleStart(ws, data);
         break;
       case 'media':
-        this.handleMediaEvent(ws, data);
+        await this.handleMediaEvent(ws, data);
         break;
       case 'mark':
         this.handleMark(data);
         break;
       case 'stop':
-        this.handleStop(ws, data);
+        await this.handleStop(ws, data);
         break;
       default:
         logger.warn(`⚠️ Evento WebSocket no reconocido: ${event}`);
@@ -274,6 +302,14 @@ class TwilioStreamHandler {
         break;
       default:
         logger.warn(`⚠️ [${streamSid}] Acción desconocida para marca ${markName}: ${markData.action} - IGNORANDO`);
+    }
+
+    // CÓDIGO OFICIAL: Manejar marks del sistema OpenAI Realtime (responsePart)
+    if (markName === 'responsePart') {
+      logger.debug(`📍 [${streamSid}] Procesando marca responsePart del código oficial`);
+      // Notificar al OpenAI Realtime Service que la marca fue procesada
+      this.openaiRealtimeService.processMarkCompletion(streamSid, markName);
+      logger.debug(`✅ [${streamSid}] Marca responsePart procesada y removida del queue`);
     }
 
     // Limpiar la marca procesada
@@ -398,6 +434,9 @@ class TwilioStreamHandler {
       return;
     }
 
+    // 📊 INCREMENTAR MÉTRICAS
+    this.updateMetrics('start');
+    
     logger.info(`🎵 [${streamSid}] Stream iniciado para llamada ${callSid}`);
 
     // Buscar el stream temporal usando connectionId
@@ -413,7 +452,8 @@ class TwilioStreamHandler {
         state: 'connected',
         startTime: Date.now(),
         lastActivity: Date.now(),
-        greetingSent: false // 🔧 EXPLÍCITO: Inicializar como false
+        greetingSent: false, // 🔧 EXPLÍCITO: Inicializar como false
+        twilioWs: ws // NUEVO: Almacenar referencia WebSocket para OpenAI Realtime
       });
 
       // Eliminar el registro temporal
@@ -428,7 +468,8 @@ class TwilioStreamHandler {
         state: 'connected',
         startTime: Date.now(),
         lastActivity: Date.now(),
-        greetingSent: false // 🔧 EXPLÍCITO: Inicializar como false
+        greetingSent: false, // 🔧 EXPLÍCITO: Inicializar como false
+        twilioWs: ws // NUEVO: Almacenar referencia WebSocket para OpenAI Realtime
       });
     }
 
@@ -445,7 +486,7 @@ class TwilioStreamHandler {
     logger.info(`🔍 [${streamSid}] greetingSent status: ${existingStreamData?.greetingSent}`);
 
     // Inicializar sistemas necesarios
-    this.initializeSpeechDetection(streamSid);
+    // REMOVIDO: initializeSpeechDetection (VAD obsoleto - ahora usa OpenAI server VAD)
     this.initializeEchoBlanking(streamSid);
 
     // Obtener cliente y enviar saludo UNA SOLA VEZ
@@ -476,36 +517,123 @@ class TwilioStreamHandler {
   /**
    * Maneja evento 'stop' de Twilio Stream
    */
-  handleStop(ws, data) {
+  async handleStop(ws, data) {
     const streamSid = data.stop?.streamSid;
 
     if (streamSid) {
       logger.info(`🛑 [${streamSid}] Stream detenido`);
-      this.cleanup(streamSid);
+      await this.cleanup(streamSid);
     }
   }
 
   /**
    * Limpia recursos asociados a un stream
    */
-  cleanup(streamSid) {
+  async cleanup(streamSid) {
+    // 📊 CALCULAR DURACIÓN DE LLAMADA PARA MÉTRICAS
+    const streamData = this.activeStreams.get(streamSid);
+    const callDuration = streamData ? Date.now() - streamData.startTime : 0;
+    const companyName = streamData?.client?.companyName || 'UNKNOWN';
+    const callSid = streamData?.callSid || 'NO-SID';
+    
+    // 🔍 CORRELATION ID PARA DEBUGGING
+    const correlationId = this.generateCorrelationId(streamSid, callSid, companyName);
+    
+    logger.info(`🧹 [${correlationId}] Iniciando limpieza de recursos (duration: ${callDuration}ms)`);
+
+    // 📊 ACTUALIZAR MÉTRICAS DE FINALIZACIÓN
+    if (callDuration > 0) {
+      this.updateMetrics('success', callDuration);
+    }
+
+    // NUEVO: Cerrar conexión OpenAI Realtime
+    if (this.openaiRealtimeService.isConnectionActive(streamSid)) {
+      logger.info(`🤖 [${correlationId}] Cerrando conexión OpenAI Realtime`);
+      await this.openaiRealtimeService.closeConnection(streamSid);
+    }
+
+    // 🔧 NUEVO: Limpiar clientCache entries relacionadas ANTES de borrar streamData
+    if (streamData?.callSid) {
+      this.clientCache.delete(streamData.callSid);
+      logger.debug(`🧹 [${correlationId}] ClientCache limpiado para callSid: ${streamData.callSid}`);
+    }
+
+    // Limpiar todos los mapas y recursos
     this.activeStreams.delete(streamSid);
     this.audioBuffers.delete(streamSid);
     this.transcriptionActive.delete(streamSid);
     this.responseInProgress.delete(streamSid);
     this.silenceStartTime.delete(streamSid);
     this.lastResponseTime.delete(streamSid);
-    this.speechDetection.delete(streamSid);
+    // REMOVIDO: speechDetection y energySamples (VAD obsoleto)
     this.echoBlanking.delete(streamSid);
     this.pendingMarks.delete(streamSid);
-    if (this.energySamples) {
-      this.energySamples.delete(streamSid);
-    }
 
     // 🔧 CRÍTICO: Limpiar processedStreamSids para evitar memory leaks
     this.processedStreamSids.delete(streamSid);
 
-    logger.info(`🧹 [${streamSid}] Recursos limpiados`);
+    logger.info(`✅ [${streamSid}] Recursos limpiados correctamente`);
+  }
+
+  /**
+   * 🔍 GENERAR CORRELATION ID PARA DEBUGGING
+   * @param {string} streamSid - Stream SID
+   * @param {string} callSid - Call SID  
+   * @param {string} companyName - Nombre de empresa
+   * @returns {string} Correlation ID único
+   */
+  generateCorrelationId(streamSid, callSid, companyName = 'UNKNOWN') {
+    const shortStreamSid = streamSid ? streamSid.slice(-8) : 'NO-SID';
+    const shortCallSid = callSid ? callSid.slice(-8) : 'NO-CALL';
+    const company = companyName.substring(0, 10).toUpperCase();
+    return `${company}|${shortStreamSid}|${shortCallSid}`;
+  }
+
+  /**
+   * 📊 OBTENER MÉTRICAS PARA MONITOREO
+   * @returns {Object} Métricas actuales del sistema
+   */
+  getMetrics() {
+    return {
+      ...this.metrics,
+      activeStreams: this.activeStreams.size,
+      pendingMarks: this.pendingMarks.size,
+      clientCacheSize: this.clientCache.size,
+      uptime: Date.now() - this.metrics.lastReset
+    };
+  }
+
+  /**
+   * 📊 ACTUALIZAR MÉTRICAS DE LLAMADA
+   * @param {string} type - Tipo de evento (start|success|fail)
+   * @param {number} duration - Duración en ms (opcional)
+   */
+  updateMetrics(type, duration = 0) {
+    switch (type) {
+      case 'start':
+        this.metrics.totalCalls++;
+        this.metrics.activeCalls++;
+        break;
+      case 'success':
+        this.metrics.successfulCalls++;
+        this.metrics.activeCalls--;
+        if (duration > 0) {
+          const avgDuration = this.metrics.averageCallDuration;
+          const totalSuccessful = this.metrics.successfulCalls;
+          this.metrics.averageCallDuration = ((avgDuration * (totalSuccessful - 1)) + duration) / totalSuccessful;
+        }
+        break;
+      case 'fail':
+        this.metrics.failedCalls++;
+        this.metrics.activeCalls--;
+        break;
+      case 'openai_fail':
+        this.metrics.openaiFailures++;
+        break;
+      case 'azure_fail':
+        this.metrics.azureFailures++;
+        break;
+    }
   }
 
   /**
@@ -703,8 +831,8 @@ class TwilioStreamHandler {
       }, 2000); // 2 segundos para el audio de fallback
     }
     
-    // Conectar con OpenAI Realtime API después del saludo
-    this.connectToOpenAI(ws, streamSid);
+    // NUEVO: Conectar con OpenAI Realtime API usando nuestro servicio especializado
+    this.initializeOpenAIRealtimeConnection(streamSid);
     
     // logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting`);
   }
@@ -878,52 +1006,7 @@ class TwilioStreamHandler {
     return buffer;
   };
 
-  /**
-   * Inicializar sistema de detección de habla para un stream
-   */
-  initializeSpeechDetection(streamSid) {
-    logger.info(`🎤 [${streamSid}] Inicializando detección de voz...`);
-    
-    // CONFIGURACIÓN VAD OPTIMIZADA PARA TWILIO
-    // Basado en sistemas probados: OpenAI Whisper, Silero VAD, WebRTC
-    const config = {
-      isActive: false,
-      silenceCount: 0,
-      speechCount: 0,
-      lastActivity: Date.now(),
-      
-      // UMBRALES OPTIMIZADOS PARA μ-LAW 8kHz - ULTRA SENSIBLE
-      energyThreshold: 0.01, // Reducido drásticamente a 0.01 para detectar voz débil
-      adaptiveThreshold: 0.01, // Reducido drásticamente a 0.01
-      
-      // CONTEOS ESTÁNDAR PARA VAD
-      maxSilenceDuration: 4, // 4 chunks = ~320ms de silencio para procesar
-      minSpeechDuration: 2, // 2 chunks = ~160ms mínimo de habla
-      
-      // TIMERS ESTÁNDAR
-      hangoverDuration: 500, // 500ms hangover después de habla
-      hangoverTimer: 0,
-      
-      // ECHO BLANKING
-      echoBlanking: false,
-      echoBlankingUntil: 0,
-      echoBlankingDuration: 500,
-      
-      // HISTORIAL PARA UMBRAL ADAPTATIVO
-      energyHistory: []
-    };
-    
-    this.speechDetection.set(streamSid, config);
-    
-    // Verificar que se guardó correctamente (solo loggear errores)
-    const verification = this.speechDetection.get(streamSid);
-    if (verification) {
-      // logger.info(`✅ [${streamSid}] Speech detection initialized successfully`);
-      // logger.info(`🔍 [${streamSid}] Config keys: ${Object.keys(verification).join(', ')}`);
-    } else {
-      logger.error(`❌ [${streamSid}] Failed to initialize speech detection`);
-    }
-  }
+  // REMOVIDO: initializeSpeechDetection() - VAD obsoleto, ahora usa OpenAI server VAD
 
   /**
    * Inicializar sistema de echo blanking para un stream
@@ -1021,429 +1104,166 @@ class TwilioStreamHandler {
   }
 
   /**
-   * Decodificar byte μ-law a valor PCM lineal de 16-bit
-   * @param {number} mulawByte - Byte μ-law (0-255)
-   * @returns {number} Valor PCM lineal (-32768 a 32767)
-   */
-  decodeMulaw(mulawByte) {
-    // μ-law decoding algorithm
-    mulawByte = ~mulawByte & 0xFF; // Invertir bits
-
-    let sign = (mulawByte & 0x80) ? -1 : 1;
-    let exponent = (mulawByte >> 4) & 0x07;
-    let mantissa = mulawByte & 0x0F;
-
-    let value = mantissa << 4; // Base value
-
-    // Agregar bias basado en exponent
-    switch (exponent) {
-      case 0: value += 0; break;
-      case 1: value += 16; break;
-      case 2: value += 32; break;
-      case 3: value += 64; break;
-      case 4: value += 128; break;
-      case 5: value += 256; break;
-      case 6: value += 512; break;
-      case 7: value += 1024; break;
-    }
-
-    // Ajustar para rango completo
-    if (exponent > 1) {
-      value += 33; // Bias para μ-law
-    }
-
-    return sign * value * 4; // Escalar a 16-bit range
-  }
-
-  /**
-   * Detectar actividad de voz en tiempo real usando VAD (Voice Activity Detection)
-   * Ahora con correcta decodificación μ-law
-   */
-  detectVoiceActivity(audioChunk, streamSid) {
-    const mulawBytes = new Uint8Array(audioChunk);
-
-    // 🔧 CRITICAL FIX: Validar datos de entrada
-    if (!mulawBytes || mulawBytes.length === 0) {
-      logger.warn(`⚠️ [${streamSid}] VAD: Datos μ-law inválidos o vacíos`);
-      return { shouldProcess: false, isActive: false, energy: '0.0', threshold: '0.5' };
-    }
-
-    let energy = 0;
-    let validSamples = 0;
-
-    try {
-      // 🔧 CRITICAL FIX: Decodificar μ-law a PCM lineal correctamente
-      for (let i = 0; i < mulawBytes.length; i++) {
-        const mulawByte = mulawBytes[i];
-
-        // Validar que sea un byte válido (0-255)
-        if (typeof mulawByte !== 'number' || mulawByte < 0 || mulawByte > 255) {
-          logger.warn(`⚠️ [${streamSid}] VAD: Byte μ-law inválido en posición ${i}: ${mulawByte}`);
-          continue;
-        }
-
-        // Decodificar μ-law a PCM lineal
-        const pcmValue = this.decodeMulaw(mulawByte);
-
-        // Validar resultado de decodificación
-        if (isNaN(pcmValue) || !isFinite(pcmValue)) {
-          logger.warn(`⚠️ [${streamSid}] VAD: Valor PCM inválido de byte ${mulawByte}: ${pcmValue}`);
-          continue;
-        }
-
-        // Calcular energía del valor PCM (normalizar a 0-1)
-        const normalizedValue = Math.abs(pcmValue) / 32768.0;
-        energy += normalizedValue * normalizedValue;
-        validSamples++;
-      }
-
-      // Calcular energía promedio
-      if (validSamples > 0) {
-        energy = Math.sqrt(energy / validSamples);
-      } else {
-        energy = 0;
-      }
-
-      // Validar resultado final de energía
-      if (isNaN(energy) || !isFinite(energy)) {
-        logger.warn(`⚠️ [${streamSid}] VAD: Energía final inválida: ${energy}, usando 0`);
-        energy = 0;
-      }
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] VAD: Error calculando energía: ${error.message}`);
-      energy = 0;
-    }
-
-    const detection = this.speechDetection.get(streamSid);
-
-    // 🔍 DEBUG: Verificar estado del detection (solo si hay problemas)
-    // logger.info(`🔍 [${streamSid}] VAD Debug - detection exists: ${!!detection}`);
-    if (detection) {
-      // logger.info(`🔍 [${streamSid}] VAD Debug - adaptiveThreshold: ${detection.adaptiveThreshold}, type: ${typeof detection.adaptiveThreshold}`);
-      // logger.info(`🔍 [${streamSid}] VAD Debug - energyThreshold: ${detection.energyThreshold}, type: ${typeof detection.energyThreshold}`);
-      // logger.info(`🔍 [${streamSid}] VAD Debug - valid samples: ${validSamples}/${mulawBytes.length}`);
-    }
-
-    if (!detection) {
-      logger.error(`❌ [${streamSid}] VAD: No hay configuración speechDetection`);
-      return { shouldProcess: false, isActive: false, energy: energy.toFixed(1), threshold: '0.01' };
-    }
-
-    // 🔧 CRITICAL FIX: Inicializar adaptiveThreshold si es undefined
-    if (typeof detection.adaptiveThreshold !== 'number' || isNaN(detection.adaptiveThreshold)) {
-      logger.warn(`⚠️ [${streamSid}] VAD: adaptiveThreshold inválido (${detection.adaptiveThreshold}), inicializando...`);
-
-      if (typeof detection.energyThreshold === 'number' && !isNaN(detection.energyThreshold)) {
-        detection.adaptiveThreshold = detection.energyThreshold;
-        logger.info(`✅ [${streamSid}] VAD: Usando energyThreshold como fallback: ${detection.adaptiveThreshold}`);
-      } else {
-        detection.adaptiveThreshold = 0.01; // Valor optimizado para μ-law normalizado (0-1)
-        logger.info(`✅ [${streamSid}] VAD: Usando valor por defecto: ${detection.adaptiveThreshold}`);
-      }
-    }
-
-    const isActive = energy > detection.adaptiveThreshold;
-
-    logger.info(`🎤 [${streamSid}] VAD: energy=${energy.toFixed(3)}, threshold=${detection.adaptiveThreshold.toFixed(3)}, isActive=${isActive}, samples=${validSamples}`);
-
-    // Actualizar contadores
-    if (isActive) {
-      detection.speechCount++;
-      detection.silenceCount = 0;
-      detection.isActive = true;
-    } else {
-      detection.silenceCount++;
-      detection.speechCount = 0;
-      if (detection.silenceCount > 5) {
-        detection.isActive = false;
-      }
-    }
-
-    detection.lastActivity = Date.now();
-
-    // 🔧 OPTIMIZAR: Adaptar threshold dinámicamente con ajuste más conservador
-    if (detection.energyHistory && detection.energyHistory.length > 0) {
-      const avgEnergy = detection.energyHistory.reduce((a, b) => a + b, 0) / detection.energyHistory.length;
-      if (!isNaN(avgEnergy) && avgEnergy > 0) {
-        // Ajuste GRADUAL y CONSERVADOR del threshold (95% threshold + 5% avgEnergy)
-        // Evita que baje demasiado rápido a valores muy bajos
-        detection.adaptiveThreshold = detection.adaptiveThreshold * 0.95 + avgEnergy * 0.05;
-
-        // 🔧 PROTECCIÓN: No dejar que baje por debajo de 0.003 (umbral mínimo ultra-bajo para voz débil)
-        detection.adaptiveThreshold = Math.max(detection.adaptiveThreshold, 0.003);
-
-        // 🔧 PROTECCIÓN: No dejar que suba por encima de 0.5 (umbral máximo conservador)
-        detection.adaptiveThreshold = Math.min(detection.adaptiveThreshold, 0.5);
-      }
-    }
-
-    // Mantener historial de energía para adaptación
-    if (!detection.energyHistory) detection.energyHistory = [];
-    detection.energyHistory.push(energy);
-    if (detection.energyHistory.length > 50) {
-      detection.energyHistory.shift(); // Mantener solo los últimos 50 valores
-    }
-
-    return {
-      shouldProcess: isActive,
-      isActive: detection.isActive,
-      energy: energy.toFixed(3),
-      threshold: detection.adaptiveThreshold.toFixed(3)
-    };
-  }
-
-  /**
    * Analizar calidad y características del buffer de audio
    */
 
   /**
-   * Manejar eventos de media (audio del caller)
+   * HÍBRIDO: Manejar eventos de media con timestamps del código oficial
    */
   async handleMediaEvent(ws, data) {
     const { streamSid } = data;
     const streamData = this.activeStreams.get(streamSid);
     
-    if (!streamData || streamData.state !== 'listening') {
+    // Solo procesar si transcripción está activa (después del saludo)
+    if (!streamData || !this.transcriptionActive.get(streamSid)) {
+      return;
+    }
+
+    // No procesar si echo blanking está activo (bot hablando)
+    if (this.isEchoBlankingActive(streamSid)) {
       return;
     }
 
     const payload = data.media?.payload;
-    if (!payload) return;
-
-    const rawAudioChunk = Buffer.from(payload, 'base64');
-    const normalizedAudio = this.audioPreprocessor.normalizeAudio(rawAudioChunk, 0.7);
+    const mediaTimestamp = data.media?.timestamp; // CÓDIGO OFICIAL: Capturar timestamp
+    const track = data.media?.track; // VALIDACIÓN: Verificar track type
     
-    const streamAudioBuffer = this.audioBuffers.get(streamSid) || [];
-    streamAudioBuffer.push(normalizedAudio);
-    this.audioBuffers.set(streamSid, streamAudioBuffer);
-    
-    // Log detallado para debug
-    logger.info(`🎙️ [${streamSid}] Chunk de audio recibido: ${normalizedAudio.length} bytes, buffer size: ${streamAudioBuffer.length}`);
-    
-    const vadResult = this.detectVoiceActivity(normalizedAudio, streamSid);
-    
-    logger.info(`🔍 [${streamSid}] VAD Result: shouldProcess=${vadResult.shouldProcess}, isActive=${vadResult.isActive}, energy=${vadResult.energy}, threshold=${vadResult.threshold}`);
-    
-    if (vadResult.shouldProcess) {
-      const collectedAudio = this.audioBuffers.get(streamSid);
-      this.audioBuffers.set(streamSid, []);
-      if (collectedAudio && collectedAudio.length > 0) {
-        logger.info(`🚀 [${streamSid}] Procesando ${collectedAudio.length} chunks de audio acumulado`);
-        this.processCollectedAudio(ws, streamSid, collectedAudio);
-      }
-    }
-  }
-
-  /**
-   * NUEVO: Procesar audio acumulado cuando se detecta fin de turno
-   */
-  async processCollectedAudio(ws, streamSid, collectedAudio) {
-    const streamData = this.activeStreams.get(streamSid);
-    logger.info(`🚀 [${streamSid}] INICIANDO processCollectedAudio con ${collectedAudio.length} chunks`);
-    
-    if (!collectedAudio || collectedAudio.length === 0) {
-      logger.warn(`⚠️ [${streamSid}] No hay audio acumulado para procesar`);
+    // 🔧 VALIDACIÓN: Solo procesar audio inbound según estándares Twilio
+    if (!payload || track !== 'inbound') {
+      logger.debug(`🔍 [${streamSid}] Ignorando media: payload=${!!payload}, track=${track}`);
       return;
     }
 
-    // Combinar chunks en un solo buffer
-    const combinedBuffer = Buffer.concat(collectedAudio);
-    logger.info(`🔧 [${streamSid}] Audio combinado: ${combinedBuffer.length} bytes`);
-
-    // Verificar si el audio tiene contenido (no es silencio)
-    const silentBytes = combinedBuffer.filter(byte => byte === 0xFF).length;
-    const totalBytes = combinedBuffer.length;
-    const silencePercentage = (silentBytes / totalBytes) * 100;
-    logger.info(`🔇 [${streamSid}] Silencio: ${silencePercentage.toFixed(1)}% (${silentBytes}/${totalBytes} bytes)`);
-
-    if (silencePercentage > 95) {
-      logger.warn(`⚠️ [${streamSid}] Audio es casi silencio (${silencePercentage.toFixed(1)}%), omitiendo`);
-      return;
-    }
-
-    // 🔧 CRITICAL FIX: Verificar duración mínima del audio (OpenAI requiere mínimo 0.1s = 100ms)
-    // Para μ-law 8kHz: 8000 samples/segundo = 800 samples = 100ms
-    const minAudioLength = 160; // Reducido de 640 a 160 bytes para 20ms (tamaño real de chunks de Twilio)
-    const minDurationMs = 20; // Reducido de 80ms a 20ms
-
-    if (combinedBuffer.length < minAudioLength) {
-      logger.warn(`⚠️ [${streamSid}] Audio demasiado corto: ${combinedBuffer.length} bytes < ${minAudioLength} bytes (${minDurationMs}ms mínimo)`);
-      logger.warn(`⚠️ [${streamSid}] OpenAI requiere mínimo ${minDurationMs}ms de audio para transcripción`);
-      return;
-    }
-
-    logger.info(`✅ [${streamSid}] Audio válido: ${combinedBuffer.length} bytes (${Math.round(combinedBuffer.length/8)}ms)`);
-
-    // Procesar audio con transcripción
+    // 🔧 SEGURIDAD: Validar tamaño de chunk según límites Twilio (16KB máximo)
     try {
-      logger.info(`🎤 [${streamSid}] Enviando audio a transcripción (${combinedBuffer.length} bytes)`);
-      const transcriptionResult = await this.transcriptionService.transcribeAudioBuffer(combinedBuffer, 'es');
-      
-      logger.info(`📝 [${streamSid}] Transcripción result: ${JSON.stringify(transcriptionResult)}`);
-      
-      if (transcriptionResult.success && transcriptionResult.text) {
-        logger.info(`💬 [${streamSid}] Texto transcrito: "${transcriptionResult.text}"`);
-        
-        // Generar respuesta con OpenAI
-        logger.info(`🤖 [${streamSid}] Enviando a OpenAI para respuesta`);
-        const openaiResponse = await this.openaiService.generateReceptionistResponse(transcriptionResult.text, streamData);
-        
-        if (openaiResponse.success) {
-          logger.info(`✅ [${streamSid}] Respuesta de OpenAI: "${openaiResponse.response.substring(0, 50)}..."`);
-          
-          // Generar TTS con la respuesta
-          logger.info(`🔊 [${streamSid}] Generando TTS para respuesta`);
-          const ttsResult = await this.ttsService.generateSpeech(openaiResponse.response, 'es-ES-IsidoraMultilingualNeural', 'raw-8khz-8bit-mono-mulaw');
-          
-          if (ttsResult.success) {
-            logger.info(`✅ [${streamSid}] TTS generado, enviando audio`);
-            
-            // Activar echo blanking
-            this.activateEchoBlanking(streamSid);
-            
-            // Enviar audio de respuesta
-            await this.sendRawMulawToTwilio(ws, ttsResult.audioBuffer, streamSid);
-            
-            // Desactivar echo blanking después
-            setTimeout(() => {
-              this.deactivateEchoBlanking(streamSid);
-            }, Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000) + 500);
-          } else {
-            logger.error(`❌ [${streamSid}] Error en TTS de respuesta: ${ttsResult.error}`);
-          }
-        } else {
-          logger.error(`❌ [${streamSid}] Error en OpenAI: ${openaiResponse.error}`);
-        }
-      } else {
-        logger.warn(`⚠️ [${streamSid}] Transcripción fallida o sin texto: ${transcriptionResult.error}`);
+      const audioBuffer = Buffer.from(payload, 'base64');
+      if (audioBuffer.length > 16384) { // 16KB máximo por chunk Twilio
+        logger.warn(`⚠️ [${streamSid}] Chunk de audio demasiado grande: ${audioBuffer.length} bytes (máximo: 16KB)`);
+        return;
       }
     } catch (error) {
-      logger.error(`❌ [${streamSid}] Error procesando audio: ${error.message}`);
+      logger.warn(`⚠️ [${streamSid}] Error decodificando payload de audio: ${error.message}`);
+      return;
     }
-    logger.info(`🔚 [${streamSid}] FINALIZANDO processCollectedAudio`);
+
+    // Verificar si OpenAI Realtime está conectado
+    if (!this.openaiRealtimeService.isConnectionActive(streamSid)) {
+      logger.warn(`⚠️ [${streamSid}] OpenAI Realtime no está activo, ignorando audio`);
+      return;
+    }
+
+    // CÓDIGO OFICIAL: Log timestamps para debugging
+    if (mediaTimestamp) {
+      logger.debug(`⏱️ [${streamSid}] Received media with timestamp: ${mediaTimestamp}ms`);
+    }
+
+    // Enviar audio a OpenAI Realtime con timestamp
+    try {
+      this.openaiRealtimeService.sendAudioToOpenAI(streamSid, payload, mediaTimestamp);
+      logger.debug(`🎙️ [${streamSid}] Audio enviado a OpenAI Realtime`);
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error enviando audio a OpenAI: ${error.message}`);
+    }
   }
 
   /**
-   * Conectar con OpenAI Realtime API (IMPLEMENTACIÓN OFICIAL SIMPLE)
-   * Basado en: https://platform.openai.com/docs/guides/realtime
+   * CÓDIGO OFICIAL: Handle clear audio event (interrupciones)
+   * @param {Object} data - {streamSid}
    */
-  connectToOpenAI(ws, streamSid) {
+  handleClearAudio(data) {
+    const { streamSid } = data;
     const streamData = this.activeStreams.get(streamSid);
-    if (!streamData) {
-      logger.error(`❌ [${streamSid}] No se encontró streamData para conectar OpenAI`);
-      return;
-    }
-
-    // Verificar que tenemos la API key
-    if (!process.env.OPENAI_API_KEY) {
-      logger.error(`❌ [${streamSid}] OPENAI_API_KEY no definida`);
-      return;
-    }
-
-    logger.info(`🤖 [${streamSid}] Iniciando conexión a OpenAI Realtime API`);
-    logger.info(`🔧 [${streamSid}] Model: gpt-4o-realtime-preview-2024-10-01`);
-
-    const openAiWs = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01', {
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'OpenAI-Beta': 'realtime=v1'
-      }
-    });
-
-    streamData.openAiWs = openAiWs;
-
-    // Manejar apertura de conexión
-    openAiWs.on('open', () => {
-      logger.info(`✅ [${streamSid}] Conexión OpenAI establecida exitosamente`);
+    
+    if (streamData && streamData.twilioWs) {
+      logger.info(`🔄 [${streamSid}] Enviando clear event a Twilio (interrupción)`);
       
-      // Enviar configuración de sesión
-      const sessionConfig = {
-        type: 'session.update',
-        session: {
-          modalities: ['text', 'audio'],
-          instructions: 'Eres una recepcionista profesional. Sé amable y útil.',
-          voice: 'alloy',
-          input_audio_format: 'pcm16',
-          output_audio_format: 'pcm16',
-          input_audio_transcription: {
-            model: 'whisper-1'
-          },
-          turn_detection: {
-            type: 'server_vad',
-            threshold: 0.5,
-            prefix_padding_ms: 300,
-            silence_duration_ms: 800
-          }
-        }
-      };
-
-      logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión a OpenAI`);
-      openAiWs.send(JSON.stringify(sessionConfig));
-    });
-
-    // Manejar mensajes de OpenAI
-    openAiWs.on('message', (data) => {
-      try {
-        const response = JSON.parse(data);
-
-        if (response.type === 'response.audio.delta' && response.delta) {
-          logger.info(`🔊 [${streamSid}] Recibiendo audio de respuesta de OpenAI`);
-          const audioResponse = {
-            event: 'media',
-            streamSid: streamSid,
-            media: {
-              payload: Buffer.from(response.delta, 'base64').toString('base64')
-            }
-          };
-          ws.send(JSON.stringify(audioResponse));
-        }
-
-        if (response.type === 'error') {
-          logger.error(`❌ [${streamSid}] Error de OpenAI: ${JSON.stringify(response)}`);
-        } else if (['session.updated', 'input_audio_buffer.speech_started'].includes(response.type)) {
-          logger.info(`🎵 [${streamSid}] OpenAI Event: ${response.type}`);
-        } else {
-          logger.debug(`📨 [${streamSid}] OpenAI Message: ${response.type}`);
-        }
-
-      } catch (error) {
-        logger.error(`❌ [${streamSid}] Error procesando mensaje de OpenAI: ${error.message}`);
-      }
-    });
-
-    // Manejar cierre y errores
-    openAiWs.on('close', (code, reason) => {
-      logger.warn(`⚠️ [${streamSid}] Conexión OpenAI cerrada - Code: ${code}, Reason: ${reason}`);
-    });
-
-    openAiWs.on('error', (error) => {
-      logger.error(`❌ [${streamSid}] Error en conexión OpenAI: ${error.message}`);
-    });
+      streamData.twilioWs.send(JSON.stringify({
+        event: 'clear',
+        streamSid: streamSid
+      }));
+    }
   }
 
   /**
-   * Manejar eventos de media - VERSIÓN SIMPLE PARA OPENAI
+   * CÓDIGO OFICIAL: Handle send mark event
+   * @param {Object} data - {streamSid, markName}
    */
-  async handleMedia(ws, data, connectionId) {
-    const streamData = this.activeStreams.get(connectionId);
-    if (!streamData) {
-      logger.warn(`⚠️ Media recibido pero no hay conexión activa: ${connectionId}`);
-      return;
-    }
-
-    // Si OpenAI no está listo, ignorar (el saludo aún se está reproduciendo)
-    if (!streamData.openAiWs || streamData.openAiWs.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    // Enviar audio directamente a OpenAI
-    const audioMessage = {
-      type: 'input_audio_buffer.append',
-      audio: data.media.payload
-    };
+  handleSendMark(data) {
+    const { streamSid, markName } = data;
+    const streamData = this.activeStreams.get(streamSid);
     
-    streamData.openAiWs.send(JSON.stringify(audioMessage));
+    if (streamData && streamData.twilioWs) {
+      logger.debug(`📍 [${streamSid}] Enviando marca a Twilio: ${markName}`);
+      
+      streamData.twilioWs.send(JSON.stringify({
+        event: 'mark',
+        streamSid: streamSid,
+        mark: { name: markName }
+      }));
+    }
   }
+
+  /**
+   * HÍBRIDO: Procesar audio OpenAI con Azure TTS
+   * @param {Object} data - {streamSid, audioData, markQueue}
+   */
+  async handleProcessAudioWithAzure(data) {
+    const { streamSid, audioData, markQueue } = data;
+    const streamData = this.activeStreams.get(streamSid);
+    
+    if (!streamData) {
+      logger.warn(`⚠️ [${streamSid}] No hay streamData para procesar audio con Azure`);
+      return;
+    }
+
+    logger.info(`🔄 [${streamSid}] Procesando respuesta OpenAI con Azure TTS`);
+
+    try {
+      // PLACEHOLDER: Aquí necesitaríamos convertir el audio de OpenAI a texto
+      // Por ahora, usamos un texto de ejemplo
+      const responseText = "Entiendo tu consulta, déjame ayudarte con eso.";
+      
+      // Generar TTS con Azure (conservamos nuestro sistema)
+      const ttsResult = await this.ttsService.generateSpeech(
+        responseText, 
+        this.defaultVoice, 
+        'raw-8khz-8bit-mono-mulaw'
+      );
+      
+      if (ttsResult.success) {
+        logger.info(`✅ [${streamSid}] Azure TTS generado, enviando audio`);
+        
+        // Activar echo blanking
+        this.activateEchoBlanking(streamSid);
+        
+        // Enviar audio con marca (como nuestro sistema actual)
+        const markId = `azure_response_${Date.now()}`;
+        this.pendingMarks.set(markId, {
+          streamSid: streamSid,
+          action: 'deactivate_echo_blanking',
+          timestamp: Date.now()
+        });
+        
+        await this.sendRawMulawToTwilioWithMark(streamData.twilioWs, ttsResult.audioBuffer, streamSid, markId);
+        logger.info(`✅ [${streamSid}] Respuesta Azure TTS enviada con marca ${markId}`);
+        
+      } else {
+        logger.error(`❌ [${streamSid}] Error en Azure TTS: ${ttsResult.error}`);
+      }
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error crítico procesando audio con Azure: ${error.message}`, error.stack);
+      
+      // 🔧 CRÍTICO: En caso de error, desactivar echo blanking para que el usuario pueda seguir hablando
+      try {
+        this.deactivateEchoBlanking(streamSid);
+        logger.warn(`⚡ [${streamSid}] Echo blanking desactivado de emergencia tras error en Azure TTS`);
+      } catch (emergencyError) {
+        logger.error(`💥 [${streamSid}] Error también en desactivación de emergencia: ${emergencyError.message}`);
+      }
+    }
+  }
+
 }
 
 module.exports = TwilioStreamHandler;
