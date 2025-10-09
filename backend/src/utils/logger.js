@@ -50,7 +50,7 @@ const transports = [
 
 // Crear el logger
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  level: 'debug', // ✅ TEMPORALMENTE: Debug habilitado para diagnosticar transcripción
   levels,
   format,
   transports,

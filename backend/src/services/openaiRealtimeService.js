@@ -261,9 +261,11 @@ class OpenAIRealtimeService {
         case 'response.text.done':
           // ✅ NUEVO FLUJO: Texto completo listo para Azure TTS
           logger.info(`📝 [${streamSid}] ✅ TEXTO COMPLETO de OpenAI - Enviando a Azure TTS`);
+          logger.debug(`🔍 [${streamSid}] 📊 Text.done DETAILS: ${JSON.stringify(response)}`);
           
           if (connectionData.accumulatedText) {
             logger.info(`🚀 [${streamSid}] Texto para Azure TTS: "${connectionData.accumulatedText}"`);
+            logger.debug(`🔍 [${streamSid}] 📊 AccumulatedText length: ${connectionData.accumulatedText.length} chars`);
             
             // Enviar texto completo a Azure TTS (como saludo inicial)
             this.processTextWithAzureTTS(streamSid, connectionData.accumulatedText);
@@ -272,6 +274,7 @@ class OpenAIRealtimeService {
             connectionData.accumulatedText = '';
           } else {
             logger.warn(`⚠️ [${streamSid}] No hay texto acumulado para Azure TTS`);
+            logger.debug(`🔍 [${streamSid}] 📊 ConnectionData keys: ${Object.keys(connectionData)}`);
           }
           break;
 
@@ -296,6 +299,7 @@ class OpenAIRealtimeService {
         case 'input_audio_buffer.speech_stopped':
           logger.info(`🎤 [${streamSid}] OpenAI detectó fin de habla del usuario`);
           logger.info(`🚀 [${streamSid}] ESPERANDO respuesta automática de OpenAI...`);
+          logger.debug(`🔍 [${streamSid}] 📊 Speech_stopped DETAILS: ${JSON.stringify(response)}`);
           break;
 
         case 'conversation.item.input_audio_transcription.completed':
@@ -308,6 +312,7 @@ class OpenAIRealtimeService {
 
         case 'response.created':
           logger.info(`🚀 [${streamSid}] ✅ OpenAI GENERANDO RESPUESTA: ${response.response?.id || 'N/A'}`);
+          logger.debug(`🔍 [${streamSid}] 📊 Response.created DETAILS: ${JSON.stringify(response)}`);
           break;
 
         case 'response.output_audio.started':
