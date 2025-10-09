@@ -86,6 +86,9 @@ class OpenAIRealtimeService {
         // Manejar conexión establecida
         openAiWs.on('open', () => {
           logger.info(`✅ [${streamSid}] Conexión OpenAI Realtime establecida`);
+          logger.info(`🔍 [${streamSid}] URL conectada: ${wsUrl}`);
+          logger.info(`🔍 [${streamSid}] Modelo: ${this.model}`);
+          logger.info(`🔍 [${streamSid}] Temperature: ${this.temperature}`);
           connectionData.status = 'connected';
           
           // Enviar inicialización de sesión (formato oficial)
@@ -178,19 +181,26 @@ class OpenAIRealtimeService {
     };
 
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
-    logger.info(`🔧 [${streamSid}] Config: ${JSON.stringify(sessionUpdate)}`);
+    logger.info(`🔧 [${streamSid}] Config completo: ${JSON.stringify(sessionUpdate, null, 2)}`);
     
-    // ✅ CONFIGURACIÓN OFICIAL según documentación OpenAI
-    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI:`);
-    logger.info(`🔍 [${streamSid}] ├── OpenAI INPUT: ${sessionUpdate.session.audio.input.format.type}`);
-    logger.info(`🔍 [${streamSid}] ├── Transcripción: ${sessionUpdate.session.audio.input.transcription.model}`);
-    logger.info(`🔍 [${streamSid}] ├── Turn Detection: ${sessionUpdate.session.audio.input.turn_detection.type} (solo en audio.input)`);
+    // ✅ CONFIGURACIÓN OFICIAL según documentación OpenAI - LOGS DETALLADOS
+    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI - DEBUG COMPLETO:`);
+    logger.info(`🔍 [${streamSid}] ├── OpenAI INPUT Format: ${sessionUpdate.session.audio.input.format.type}`);
+    logger.info(`🔍 [${streamSid}] ├── Transcripción Model: ${sessionUpdate.session.audio.input.transcription.model}`);
+    logger.info(`🔍 [${streamSid}] ├── Turn Detection Type: ${sessionUpdate.session.audio.input.turn_detection.type}`);
     logger.info(`🔍 [${streamSid}] ├── VAD Threshold: ${sessionUpdate.session.audio.input.turn_detection.threshold}`);
-    logger.info(`🔍 [${streamSid}] ├── OpenAI OUTPUT: texto solamente`);
-    logger.info(`🔍 [${streamSid}] ├── Azure TTS: texto → audio mulaw`);
-    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Usuario (audio) → OpenAI (transcribe + texto) → Azure TTS → Twilio`);
+    logger.info(`🔍 [${streamSid}] ├── VAD Silence Duration: ${sessionUpdate.session.audio.input.turn_detection.silence_duration_ms}ms`);
+    logger.info(`🔍 [${streamSid}] ├── VAD Prefix Padding: ${sessionUpdate.session.audio.input.turn_detection.prefix_padding_ms}ms`);
+    logger.info(`🔍 [${streamSid}] ├── Output Modalities: [${sessionUpdate.session.output_modalities.join(', ')}]`);
+    logger.info(`🔍 [${streamSid}] ├── Session Type: ${sessionUpdate.session.type}`);
+    logger.info(`🔍 [${streamSid}] ├── Model: ${sessionUpdate.session.model}`);
+    logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
+    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Usuario (mulaw) → OpenAI (transcribe + texto) → Azure TTS → Twilio`);
     
+    // ENVÍO CON LOG ADICIONAL
+    logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
     connectionData.ws.send(JSON.stringify(sessionUpdate));
+    logger.info(`✅ [${streamSid}] session.update enviado - Esperando session.updated...`);
   }
 
   /**
@@ -234,7 +244,22 @@ class OpenAIRealtimeService {
       switch (response.type) {
         case 'session.updated':
           logger.info(`✅ [${streamSid}] Sesión OpenAI configurada correctamente`);
+          logger.info(`🔍 [${streamSid}] 📊 SESSION.UPDATED COMPLETO: ${JSON.stringify(response, null, 2)}`);
+          
+          // DEBUG: Verificar configuración aplicada
+          if (response.session) {
+            logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN APLICADA POR OPENAI:`);
+            logger.info(`🔍 [${streamSid}] ├── Model aplicado: ${response.session.model || 'N/A'}`);
+            logger.info(`🔍 [${streamSid}] ├── Output modalities: ${JSON.stringify(response.session.output_modalities || [])}`);
+            logger.info(`🔍 [${streamSid}] ├── Input audio format: ${response.session.audio?.input?.format?.type || 'N/A'}`);
+            logger.info(`🔍 [${streamSid}] ├── Transcription model: ${response.session.audio?.input?.transcription?.model || 'N/A'}`);
+            logger.info(`🔍 [${streamSid}] ├── Turn detection type: ${response.session.audio?.input?.turn_detection?.type || 'N/A'}`);
+            logger.info(`🔍 [${streamSid}] ├── VAD threshold: ${response.session.audio?.input?.turn_detection?.threshold || 'N/A'}`);
+            logger.info(`🔍 [${streamSid}] └── Silence duration: ${response.session.audio?.input?.turn_detection?.silence_duration_ms || 'N/A'}ms`);
+          }
+          
           connectionData.status = 'ready';
+          logger.info(`🚀 [${streamSid}] ✅ OpenAI LISTO para recibir audio - Status: ready`);
           break;
 
         case 'response.text.delta':
@@ -290,6 +315,7 @@ class OpenAIRealtimeService {
 
         case 'input_audio_buffer.speech_started':
           logger.info(`🎤 [${streamSid}] OpenAI detectó inicio de habla del usuario`);
+          logger.info(`🔍 [${streamSid}] 📊 SPEECH_STARTED COMPLETO: ${JSON.stringify(response, null, 2)}`);
           // CÓDIGO OFICIAL: Manejar interrupciones
           this.handleSpeechStartedEvent(streamSid);
           break;
@@ -297,20 +323,41 @@ class OpenAIRealtimeService {
         case 'input_audio_buffer.speech_stopped':
           logger.info(`🎤 [${streamSid}] OpenAI detectó fin de habla del usuario`);
           logger.info(`🚀 [${streamSid}] ESPERANDO respuesta automática de OpenAI...`);
-          logger.debug(`🔍 [${streamSid}] 📊 Speech_stopped DETAILS: ${JSON.stringify(response)}`);
+          logger.info(`🔍 [${streamSid}] 📊 SPEECH_STOPPED COMPLETO: ${JSON.stringify(response, null, 2)}`);
+          
+          // DEBUG CRÍTICO: Estado de la sesión cuando se detecta fin de habla
+          logger.info(`🔍 [${streamSid}] ✅ ESTADO ESPERADO DESPUÉS DE SPEECH_STOPPED:`);
+          logger.info(`🔍 [${streamSid}] ├── Debería llegar: conversation.item.input_audio_transcription.completed`);
+          logger.info(`🔍 [${streamSid}] ├── Luego debería llegar: response.created`);
+          logger.info(`🔍 [${streamSid}] ├── Luego debería llegar: response.text.delta(s)`);
+          logger.info(`🔍 [${streamSid}] └── Finalmente: response.text.done`);
           break;
 
         case 'conversation.item.input_audio_transcription.completed':
-          logger.info(`📝 [${streamSid}] TRANSCRIPCIÓN COMPLETADA: ${JSON.stringify(response)}`);
+          logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETADA - ÉXITO!`);
+          logger.info(`🔍 [${streamSid}] 📊 TRANSCRIPTION COMPLETA: ${JSON.stringify(response, null, 2)}`);
+          
+          // Extraer texto transcrito
+          const transcript = response.transcript || response.content || 'N/A';
+          logger.info(`🗣️ [${streamSid}] TEXTO TRANSCRITO: "${transcript}"`);
           break;
 
         case 'conversation.item.input_audio_transcription.failed':
-          logger.error(`❌ [${streamSid}] TRANSCRIPCIÓN FALLÓ: ${JSON.stringify(response)}`);
+          logger.error(`❌ [${streamSid}] TRANSCRIPCIÓN FALLÓ - ERROR CRÍTICO!`);
+          logger.error(`🔍 [${streamSid}] 📊 TRANSCRIPTION ERROR: ${JSON.stringify(response, null, 2)}`);
+          
+          // Diagnóstico del error
+          const error = response.error || 'Error desconocido';
+          logger.error(`💥 [${streamSid}] CAUSA DEL ERROR: ${JSON.stringify(error)}`);
           break;
 
         case 'response.created':
-          logger.info(`🚀 [${streamSid}] ✅ OpenAI GENERANDO RESPUESTA: ${response.response?.id || 'N/A'}`);
-          logger.debug(`🔍 [${streamSid}] 📊 Response.created DETAILS: ${JSON.stringify(response)}`);
+          logger.info(`🚀 [${streamSid}] ✅ OpenAI GENERANDO RESPUESTA - ÉXITO!`);
+          logger.info(`🔍 [${streamSid}] 📊 RESPONSE.CREATED COMPLETO: ${JSON.stringify(response, null, 2)}`);
+          
+          // Debug del response ID
+          const responseId = response.response?.id || 'N/A';
+          logger.info(`🆔 [${streamSid}] Response ID: ${responseId}`);
           break;
 
         case 'response.output_audio.started':
@@ -318,11 +365,30 @@ class OpenAIRealtimeService {
           break;
 
         case 'error':
-          logger.error(`❌ [${streamSid}] Error de OpenAI: ${JSON.stringify(response.error)}`);
+          logger.error(`❌ [${streamSid}] ERROR CRÍTICO DE OPENAI`);
+          logger.error(`🔍 [${streamSid}] 📊 ERROR COMPLETO: ${JSON.stringify(response, null, 2)}`);
+          
+          // Diagnóstico específico del error
+          if (response.error) {
+            logger.error(`💥 [${streamSid}] Error Type: ${response.error.type || 'N/A'}`);
+            logger.error(`💥 [${streamSid}] Error Code: ${response.error.code || 'N/A'}`);
+            logger.error(`💥 [${streamSid}] Error Message: ${response.error.message || 'N/A'}`);
+            
+            // Errores específicos de configuración
+            if (response.error.message && response.error.message.includes('Unknown parameter')) {
+              logger.error(`⚠️ [${streamSid}] PROBLEMA DE CONFIGURACIÓN detectado!`);
+            }
+          }
           break;
 
         default:
-          logger.debug(`📨 [${streamSid}] Mensaje OpenAI: ${response.type}`);
+          // Capturar eventos no esperados que podrían ser importantes
+          if (!['rate_limits.updated', 'conversation.item.done', 'response.output_item.done'].includes(response.type)) {
+            logger.info(`📨 [${streamSid}] Evento OpenAI no manejado: ${response.type}`);
+            logger.debug(`🔍 [${streamSid}] 📊 Evento completo: ${JSON.stringify(response, null, 2)}`);
+          } else {
+            logger.debug(`📨 [${streamSid}] Mensaje OpenAI: ${response.type}`);
+          }
       }
 
     } catch (error) {
@@ -440,7 +506,15 @@ class OpenAIRealtimeService {
 
       connectionData.ws.send(JSON.stringify(audioMessage));
       logger.debug(`✅ [${streamSid}] Audio mulaw enviado directamente (${audioPayload.length} chars base64)`);
-
+      logger.debug(`🎙️ [${streamSid}] Audio enviado a OpenAI Realtime`);
+      
+      // DEBUG ADICIONAL: Estado de la conexión y contadores
+      connectionData.audioSent = (connectionData.audioSent || 0) + 1;
+      if (connectionData.audioSent % 50 === 0) {  // Log cada 50 chunks
+        logger.info(`📊 [${streamSid}] Audio chunks enviados: ${connectionData.audioSent}`);
+        logger.info(`📊 [${streamSid}] Conexión status: ${connectionData.status}`);
+        logger.info(`📊 [${streamSid}] WebSocket readyState: ${connectionData.ws.readyState}`);
+      }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando audio a OpenAI: ${error.message}`);
     }
@@ -448,7 +522,7 @@ class OpenAIRealtimeService {
 
   /**
    * 🚨 DEBUG: Extraer texto de respuesta OpenAI para análisis
-   * @param {Object} response - Respuesta de OpenAI
+{{ ... }}
    * @returns {string} - Texto extraído
    */
   extractTextFromResponse(response) {
