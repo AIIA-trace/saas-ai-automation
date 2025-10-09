@@ -153,6 +153,7 @@ class OpenAIRealtimeService {
     const sessionUpdate = {
       type: 'session.update',
       session: {
+        type: 'realtime',  // ✅ OBLIGATORIO: session.type faltaba
         model: this.model,
         modalities: ['text', 'audio'], // ✅ NECESARIO para transcripción
         
