@@ -149,42 +149,10 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ ESTRUCTURA CORRECTA según session.created de OpenAI
+    // ✅ CONFIGURACIÓN MINIMALISTA - SOLO PARÁMETROS OBLIGATORIOS
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        type: 'realtime',  // ✅ OBLIGATORIO: session.type
-        model: this.model,
-        
-        // ✅ ESTRUCTURA DE AUDIO OFICIAL según logs session.created
-        audio: {
-          input: {
-            format: {
-              type: 'audio/pcm',  // ✅ Formato base PCM
-              rate: 24000         // ✅ Rate estándar OpenAI
-            },
-            transcription: {
-              model: "gpt-4o-mini-transcribe"
-            },
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 200,
-              create_response: true,
-              interrupt_response: true
-            }
-          },
-          output: {
-            format: {
-              type: 'audio/pcm',  // ✅ Formato salida PCM
-              rate: 24000         // ✅ Rate estándar OpenAI
-            },
-            voice: this.voice,
-            speed: 1
-          }
-        },
-        
         instructions: customSystemMessage
       },
     };
@@ -192,20 +160,10 @@ class OpenAIRealtimeService {
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
     logger.info(`🔧 [${streamSid}] Config completo: ${JSON.stringify(sessionUpdate, null, 2)}`);
     
-    // ✅ CONFIGURACIÓN ESTRUCTURA AUDIO OFICIAL
-    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN ESTRUCTURA AUDIO OFICIAL:`);
-    logger.info(`🔍 [${streamSid}] ├── Session Type: ${sessionUpdate.session.type}`);
-    logger.info(`🔍 [${streamSid}] ├── Model: ${sessionUpdate.session.model}`);
-    logger.info(`🔍 [${streamSid}] ├── Input Format: ${sessionUpdate.session.audio.input.format.type}@${sessionUpdate.session.audio.input.format.rate}Hz`);
-    logger.info(`🔍 [${streamSid}] ├── Output Format: ${sessionUpdate.session.audio.output.format.type}@${sessionUpdate.session.audio.output.format.rate}Hz`);
-    logger.info(`🔍 [${streamSid}] ├── Transcripción Model: ${sessionUpdate.session.audio.input.transcription.model}`);
-    logger.info(`🔍 [${streamSid}] ├── Turn Detection Type: ${sessionUpdate.session.audio.input.turn_detection.type}`);
-    logger.info(`🔍 [${streamSid}] ├── VAD Threshold: ${sessionUpdate.session.audio.input.turn_detection.threshold}`);
-    logger.info(`🔍 [${streamSid}] ├── Prefix Padding: ${sessionUpdate.session.audio.input.turn_detection.prefix_padding_ms}ms`);
-    logger.info(`🔍 [${streamSid}] ├── Silence Duration: ${sessionUpdate.session.audio.input.turn_detection.silence_duration_ms}ms`);
-    logger.info(`🔍 [${streamSid}] ├── Voice: ${sessionUpdate.session.audio.output.voice}`);
+    // ✅ CONFIGURACIÓN MINIMALISTA
+    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN MINIMALISTA OPENAI:`);
     logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
-    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Twilio (mulaw) → PCM → OpenAI (transcribe + VAD) → PCM → Text Response`);
+    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: OpenAI usa defaults + custom instructions`);
     
     // ENVÍO CON LOG ADICIONAL
     logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
@@ -256,19 +214,17 @@ class OpenAIRealtimeService {
           logger.info(`✅ [${streamSid}] Sesión OpenAI configurada correctamente`);
           logger.info(`🔍 [${streamSid}] 📊 SESSION.UPDATED COMPLETO: ${JSON.stringify(response, null, 2)}`);
           
-          // DEBUG: Verificar configuración aplicada ESTRUCTURA AUDIO
+          // DEBUG: Verificar configuración aplicada MINIMALISTA
           if (response.session) {
             logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN APLICADA POR OPENAI:`);
             logger.info(`🔍 [${streamSid}] ├── Session Type: ${response.session.type || 'N/A'}`);
             logger.info(`🔍 [${streamSid}] ├── Model aplicado: ${response.session.model || 'N/A'}`);
+            logger.info(`🔍 [${streamSid}] ├── Instructions aplicadas: ${response.session.instructions ? 'SI' : 'NO'}`);
             if (response.session.audio) {
-              logger.info(`🔍 [${streamSid}] ├── Input Format: ${response.session.audio.input?.format?.type || 'N/A'}@${response.session.audio.input?.format?.rate || 'N/A'}Hz`);
-              logger.info(`🔍 [${streamSid}] ├── Output Format: ${response.session.audio.output?.format?.type || 'N/A'}@${response.session.audio.output?.format?.rate || 'N/A'}Hz`);
-              logger.info(`🔍 [${streamSid}] ├── Input Transcription: ${JSON.stringify(response.session.audio.input?.transcription || {})}`);
-              logger.info(`🔍 [${streamSid}] ├── Turn Detection: ${JSON.stringify(response.session.audio.input?.turn_detection || {})}`);
-              logger.info(`🔍 [${streamSid}] ├── Voice: ${response.session.audio.output?.voice || 'N/A'}`);
+              logger.info(`🔍 [${streamSid}] ├── Audio config: DEFAULTS aplicados por OpenAI`);
+              logger.info(`🔍 [${streamSid}] ├── VAD: ${response.session.audio.input?.turn_detection?.type || 'default'}`);
             }
-            logger.info(`🔍 [${streamSid}] └── ✅ CONFIGURACIÓN ESTRUCTURA AUDIO APLICADA CORRECTAMENTE`);
+            logger.info(`🔍 [${streamSid}] └── ✅ CONFIGURACIÓN MINIMALISTA APLICADA CORRECTAMENTE`);
           }
           
           connectionData.status = 'ready';
