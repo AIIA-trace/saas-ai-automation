@@ -4,13 +4,13 @@ const fs = require('fs');
 
 class AzureTTSRestService {
   constructor() {
-    // 🔒 SEGURIDAD: Usar variables de entorno
-    this.subscriptionKey = process.env.AZURE_TTS_SUBSCRIPTION_KEY;
-    this.region = process.env.AZURE_TTS_REGION || 'westeurope';
+    // 🔒 SEGURIDAD: Usar variables de entorno (nombres correctos del .env)
+    this.subscriptionKey = process.env.AZURE_SPEECH_KEY;
+    this.region = process.env.AZURE_SPEECH_REGION || 'westeurope';
     
     // Validación crítica para producción
     if (!this.subscriptionKey) {
-      throw new Error('❌ AZURE_TTS_SUBSCRIPTION_KEY no definida en variables de entorno');
+      throw new Error('❌ AZURE_SPEECH_KEY no definida en variables de entorno');
     }
     
     this.token = null;
