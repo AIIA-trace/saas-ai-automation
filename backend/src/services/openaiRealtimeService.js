@@ -582,4 +582,20 @@ class OpenAIRealtimeService {
   }
 }
 
-module.exports = OpenAIRealtimeService;
+// Agregar EventEmitter para compatibilidad con listeners
+const { EventEmitter } = require('events');
+
+// Hacer que la clase herede de EventEmitter correctamente
+class OpenAIRealtimeServiceWithEvents extends OpenAIRealtimeService {
+  constructor() {
+    super();
+    // Inicializar EventEmitter
+    EventEmitter.call(this);
+  }
+}
+
+// Aplicar EventEmitter prototype
+Object.setPrototypeOf(OpenAIRealtimeServiceWithEvents.prototype, EventEmitter.prototype);
+Object.setPrototypeOf(OpenAIRealtimeServiceWithEvents, EventEmitter);
+
+module.exports = OpenAIRealtimeServiceWithEvents;
