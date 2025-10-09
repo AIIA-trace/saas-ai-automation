@@ -161,12 +161,12 @@ class OpenAIRealtimeService {
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
     logger.info(`🔧 [${streamSid}] Config: ${JSON.stringify(sessionUpdate)}`);
     
-    // 🚨 DEBUG CRÍTICO: FORMATO DE AUDIO
-    logger.error(`🔍 [${streamSid}] 🚨 AUDIO FORMAT DEBUG:`);
-    logger.error(`🔍 [${streamSid}] ├── OpenAI INPUT esperado: ${sessionUpdate.session.audio.input.format.type}`);
-    logger.error(`🔍 [${streamSid}] ├── OpenAI OUTPUT esperado: ${sessionUpdate.session.audio.output.format.type}`);
-    logger.error(`🔍 [${streamSid}] ├── Twilio envía: audio/mulaw (8kHz, 8-bit)`);
-    logger.error(`🔍 [${streamSid}] └── Conversión actual: mulaw → PCM16 (CONFLICTO!)`);
+    // ✅ FORMATO DE AUDIO CORREGIDO
+    logger.info(`🔍 [${streamSid}] ✅ AUDIO FORMAT ALIGNED:`);
+    logger.info(`🔍 [${streamSid}] ├── OpenAI INPUT esperado: ${sessionUpdate.session.audio.input.format.type}`);
+    logger.info(`🔍 [${streamSid}] ├── OpenAI OUTPUT esperado: ${sessionUpdate.session.audio.output.format.type}`);
+    logger.info(`🔍 [${streamSid}] ├── Twilio envía: audio/mulaw (8kHz, 8-bit)`);
+    logger.info(`🔍 [${streamSid}] └── ✅ PERFECTO MATCH: mulaw → mulaw directo!`);
     
     connectionData.ws.send(JSON.stringify(sessionUpdate));
   }
@@ -375,34 +375,18 @@ class OpenAIRealtimeService {
         logger.debug(`⏱️ [${streamSid}] Updated media timestamp: ${mediaTimestamp}ms`);
       }
 
-      // 🚨 DEBUG CRÍTICO: ANTES DE CONVERSIÓN
+      // 🎯 FIX APLICADO: Enviar mulaw directo a OpenAI (formato correcto)
       const mulawBuffer = Buffer.from(audioPayload, 'base64');
-      logger.error(`🔍 [${streamSid}] 🚨 AUDIO CONVERSION DEBUG:`);
-      logger.error(`🔍 [${streamSid}] ├── Twilio mulaw bytes: ${mulawBuffer.length}`);
-      logger.error(`🔍 [${streamSid}] ├── Mulaw sample: [${mulawBuffer.slice(0, 8).join(', ')}]`);
+      logger.debug(`🔍 [${streamSid}] Twilio mulaw: ${mulawBuffer.length} bytes → OpenAI directamente`);
       
-      // Convertir mulaw (Twilio) a PCM16 (OpenAI) - PROBLEMA POTENCIAL
-      const pcm16Buffer = this.convertMulawToPCM16(mulawBuffer);
-      const pcm16Base64 = pcm16Buffer.toString('base64');
-      
-      logger.error(`🔍 [${streamSid}] ├── PCM16 bytes: ${pcm16Buffer.length}`);
-      logger.error(`🔍 [${streamSid}] ├── PCM16 sample: [${pcm16Buffer.slice(0, 16).join(', ')}]`);
-      logger.error(`🔍 [${streamSid}] └── 🚨 ENVIANDO PCM16 pero OpenAI espera MULAW!`);
-
-      // OPCIÓN A: ACTUAL - Enviar PCM16 (CONFLICTO con config)
+      // ✅ SOLUCIÓN: OpenAI espera audio/pcmu (mulaw), enviamos mulaw directo
       const audioMessage = {
         type: 'input_audio_buffer.append',
-        audio: pcm16Base64
+        audio: audioPayload  // mulaw directo de Twilio - NO conversion needed!
       };
 
-      // 🚨 OPCIÓN B: EXPERIMENTAL - Enviar mulaw directo
-      // const audioMessage = {
-      //   type: 'input_audio_buffer.append',
-      //   audio: audioPayload  // mulaw directo de Twilio
-      // };
-
       connectionData.ws.send(JSON.stringify(audioMessage));
-      logger.error(`🔍 [${streamSid}] ✅ Audio enviado como PCM16 (${pcm16Base64.length} chars base64)`);
+      logger.debug(`✅ [${streamSid}] Audio mulaw enviado directamente (${audioPayload.length} chars base64)`);
 
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando audio a OpenAI: ${error.message}`);
