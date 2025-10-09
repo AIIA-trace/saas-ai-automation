@@ -167,12 +167,10 @@ class OpenAIRealtimeService {
               model: "gpt-4o-mini-transcribe"  // ✅ Modelo correcto para GA
             },
             
-            // ✅ TURN DETECTION SOLO AQUÍ según documentación oficial
+            // ✅ TURN DETECTION SIMPLIFICADO como código oficial
             turn_detection: { 
-              type: "server_vad",
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 200
+              type: "server_vad"
+              // ✅ Sin parámetros específicos - usar defaults de OpenAI
             }
           }
         },
@@ -183,19 +181,17 @@ class OpenAIRealtimeService {
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
     logger.info(`🔧 [${streamSid}] Config completo: ${JSON.stringify(sessionUpdate, null, 2)}`);
     
-    // ✅ CONFIGURACIÓN OFICIAL según documentación OpenAI - LOGS DETALLADOS
-    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI - DEBUG COMPLETO:`);
+    // ✅ CONFIGURACIÓN SIMPLIFICADA como código oficial
+    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN SIMPLIFICADA OPENAI (como código oficial):`);
     logger.info(`🔍 [${streamSid}] ├── OpenAI INPUT Format: ${sessionUpdate.session.audio.input.format.type}`);
     logger.info(`🔍 [${streamSid}] ├── Transcripción Model: ${sessionUpdate.session.audio.input.transcription.model}`);
     logger.info(`🔍 [${streamSid}] ├── Turn Detection Type: ${sessionUpdate.session.audio.input.turn_detection.type}`);
-    logger.info(`🔍 [${streamSid}] ├── VAD Threshold: ${sessionUpdate.session.audio.input.turn_detection.threshold}`);
-    logger.info(`🔍 [${streamSid}] ├── VAD Silence Duration: ${sessionUpdate.session.audio.input.turn_detection.silence_duration_ms}ms`);
-    logger.info(`🔍 [${streamSid}] ├── VAD Prefix Padding: ${sessionUpdate.session.audio.input.turn_detection.prefix_padding_ms}ms`);
+    logger.info(`🔍 [${streamSid}] ├── VAD Settings: DEFAULT (sin overrides específicos)`);
     logger.info(`🔍 [${streamSid}] ├── Output Modalities: [${sessionUpdate.session.output_modalities.join(', ')}]`);
     logger.info(`🔍 [${streamSid}] ├── Session Type: ${sessionUpdate.session.type}`);
     logger.info(`🔍 [${streamSid}] ├── Model: ${sessionUpdate.session.model}`);
     logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
-    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Usuario (mulaw) → OpenAI (transcribe + texto) → Azure TTS → Twilio`);
+    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Usuario (mulaw) → OpenAI (VAD default + transcribe + texto) → Azure TTS → Twilio`);
     
     // ENVÍO CON LOG ADICIONAL
     logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
@@ -254,8 +250,8 @@ class OpenAIRealtimeService {
             logger.info(`🔍 [${streamSid}] ├── Input audio format: ${response.session.audio?.input?.format?.type || 'N/A'}`);
             logger.info(`🔍 [${streamSid}] ├── Transcription model: ${response.session.audio?.input?.transcription?.model || 'N/A'}`);
             logger.info(`🔍 [${streamSid}] ├── Turn detection type: ${response.session.audio?.input?.turn_detection?.type || 'N/A'}`);
-            logger.info(`🔍 [${streamSid}] ├── VAD threshold: ${response.session.audio?.input?.turn_detection?.threshold || 'N/A'}`);
-            logger.info(`🔍 [${streamSid}] └── Silence duration: ${response.session.audio?.input?.turn_detection?.silence_duration_ms || 'N/A'}ms`);
+            logger.info(`🔍 [${streamSid}] ├── VAD settings: DEFAULT (${JSON.stringify(response.session.audio?.input?.turn_detection || {})})`);
+            logger.info(`🔍 [${streamSid}] └── Configuración aplicada exitosamente`);
           }
           
           connectionData.status = 'ready';
