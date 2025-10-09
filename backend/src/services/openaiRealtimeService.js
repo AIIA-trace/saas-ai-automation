@@ -153,7 +153,7 @@ class OpenAIRealtimeService {
       session: {
         type: 'realtime',
         model: this.model,
-        output_modalities: ["text"], // ✅ SOLO TEXTO (no audio)
+        output_modalities: ["audio", "text"], // ✅ AMBOS: Necesario para Realtime API
         audio: {
           input: { 
             format: { type: 'audio/pcmu' }, 
@@ -163,8 +163,8 @@ class OpenAIRealtimeService {
               prefix_padding_ms: 300,
               silence_duration_ms: 200
             }
-          }
-          // ❌ ELIMINADO: output audio (Azure TTS se encarga)
+          },
+          output: { format: { type: 'audio/pcmu' }, voice: this.voice }
         },
         // ✅ CRÍTICO: Activar transcripción para respuestas automáticas
         input_audio_transcription: {
@@ -270,6 +270,11 @@ class OpenAIRealtimeService {
           } else {
             logger.warn(`⚠️ [${streamSid}] No hay texto acumulado para Azure TTS`);
           }
+          break;
+
+        case 'response.output_audio.delta':
+          // ❌ IGNORAR: OpenAI genera audio pero nosotros usamos Azure TTS
+          logger.debug(`🔇 [${streamSid}] Ignorando audio delta de OpenAI (usamos Azure TTS)`);
           break;
 
         case 'response.done':
