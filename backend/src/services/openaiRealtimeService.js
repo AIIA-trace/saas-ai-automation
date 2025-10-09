@@ -185,8 +185,7 @@ class OpenAIRealtimeService {
           }
         },
         
-        instructions: customSystemMessage,
-        temperature: this.temperature
+        instructions: customSystemMessage
       },
     };
 
@@ -205,7 +204,6 @@ class OpenAIRealtimeService {
     logger.info(`🔍 [${streamSid}] ├── Prefix Padding: ${sessionUpdate.session.audio.input.turn_detection.prefix_padding_ms}ms`);
     logger.info(`🔍 [${streamSid}] ├── Silence Duration: ${sessionUpdate.session.audio.input.turn_detection.silence_duration_ms}ms`);
     logger.info(`🔍 [${streamSid}] ├── Voice: ${sessionUpdate.session.audio.output.voice}`);
-    logger.info(`🔍 [${streamSid}] ├── Temperature: ${sessionUpdate.session.temperature}`);
     logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
     logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Twilio (mulaw) → PCM → OpenAI (transcribe + VAD) → PCM → Text Response`);
     
