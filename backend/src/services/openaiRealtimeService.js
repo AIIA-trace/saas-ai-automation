@@ -582,20 +582,17 @@ class OpenAIRealtimeService {
   }
 }
 
-// Agregar EventEmitter para compatibilidad con listeners
+// Agregar EventEmitter CORRECTO - mixina en la clase original
 const { EventEmitter } = require('events');
 
-// Hacer que la clase herede de EventEmitter correctamente
-class OpenAIRealtimeServiceWithEvents extends OpenAIRealtimeService {
-  constructor() {
-    super();
-    // Inicializar EventEmitter
-    EventEmitter.call(this);
-  }
-}
+// MIXINA CORRECTA: Agregar EventEmitter a la clase existente sin herencia
+Object.assign(OpenAIRealtimeService.prototype, EventEmitter.prototype);
 
-// Aplicar EventEmitter prototype
-Object.setPrototypeOf(OpenAIRealtimeServiceWithEvents.prototype, EventEmitter.prototype);
-Object.setPrototypeOf(OpenAIRealtimeServiceWithEvents, EventEmitter);
+// Llamar constructor EventEmitter en constructor original
+const originalConstructor = OpenAIRealtimeService.prototype.constructor;
+OpenAIRealtimeService.prototype.constructor = function(...args) {
+  originalConstructor.apply(this, args);
+  EventEmitter.call(this);
+};
 
-module.exports = OpenAIRealtimeServiceWithEvents;
+module.exports = OpenAIRealtimeService;
