@@ -153,7 +153,7 @@ class OpenAIRealtimeService {
       session: {
         type: 'realtime',
         model: this.model,
-        output_modalities: ["audio", "text"], // ✅ AMBOS: Necesario para Realtime API
+        output_modalities: ["text"], // ✅ SOLO TEXTO: OpenAI → Azure TTS
         audio: {
           input: { 
             format: { type: 'audio/pcmu' }, 
@@ -163,8 +163,7 @@ class OpenAIRealtimeService {
               prefix_padding_ms: 300,
               silence_duration_ms: 200
             }
-          },
-          output: { format: { type: 'audio/pcmu' }, voice: this.voice }
+          }
         },
         instructions: customSystemMessage,
       },
@@ -173,12 +172,12 @@ class OpenAIRealtimeService {
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
     logger.info(`🔧 [${streamSid}] Config: ${JSON.stringify(sessionUpdate)}`);
     
-    // ✅ FORMATO DE AUDIO CORREGIDO
-    logger.info(`🔍 [${streamSid}] ✅ AUDIO FORMAT ALIGNED:`);
-    logger.info(`🔍 [${streamSid}] ├── OpenAI INPUT esperado: ${sessionUpdate.session.audio.input.format.type}`);
-    logger.info(`🔍 [${streamSid}] ├── OpenAI OUTPUT esperado: ${sessionUpdate.session.audio.output.format.type}`);
-    logger.info(`🔍 [${streamSid}] ├── Twilio envía: audio/mulaw (8kHz, 8-bit)`);
-    logger.info(`🔍 [${streamSid}] └── ✅ PERFECTO MATCH: mulaw → mulaw directo!`);
+    // ✅ FLUJO CORREGIDO: OpenAI TEXTO → Azure TTS AUDIO
+    logger.info(`🔍 [${streamSid}] ✅ FLUJO SIMPLIFICADO:`);
+    logger.info(`🔍 [${streamSid}] ├── OpenAI INPUT: ${sessionUpdate.session.audio.input.format.type}`);
+    logger.info(`🔍 [${streamSid}] ├── OpenAI OUTPUT: texto solamente`);
+    logger.info(`🔍 [${streamSid}] ├── Azure TTS: texto → audio mulaw`);
+    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Usuario → OpenAI (texto) → Azure TTS → Twilio`);
     
     connectionData.ws.send(JSON.stringify(sessionUpdate));
   }
