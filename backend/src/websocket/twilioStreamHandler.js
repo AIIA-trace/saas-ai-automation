@@ -70,8 +70,9 @@ class TwilioStreamHandler {
       this.handleSendMark(data);
     });
 
-    this.openaiRealtimeService.on('processAudioWithAzure', (data) => {
-      this.handleProcessAudioWithAzure(data);
+    // ✅ NUEVO FLUJO SIMPLE: Texto de OpenAI → Azure TTS (como saludo inicial)
+    this.openaiRealtimeService.on('processTextWithAzure', (data) => {
+      this.handleProcessTextWithAzure(data);
     });
 
     // LOGS DE DIAGNÓSTICO - Verificar inicialización
@@ -1204,40 +1205,37 @@ class TwilioStreamHandler {
   }
 
   /**
-   * HÍBRIDO: Procesar audio OpenAI con Azure TTS
-   * @param {Object} data - {streamSid, audioData, markQueue}
+   * ✅ NUEVO FLUJO SIMPLE: Procesar texto de OpenAI con Azure TTS (como saludo inicial)
+   * @param {Object} data - {streamSid, text, timestamp}
    */
-  async handleProcessAudioWithAzure(data) {
-    const { streamSid, audioData, markQueue } = data;
+  async handleProcessTextWithAzure(data) {
+    const { streamSid, text, timestamp } = data;
     const streamData = this.activeStreams.get(streamSid);
     
     if (!streamData) {
-      logger.warn(`⚠️ [${streamSid}] No hay streamData para procesar audio con Azure`);
+      logger.warn(`⚠️ [${streamSid}] No hay streamData para procesar texto con Azure`);
       return;
     }
 
-    logger.info(`🔄 [${streamSid}] Procesando respuesta OpenAI con Azure TTS`);
+    logger.info(`🚀 [${streamSid}] ✅ PROCESANDO TEXTO con Azure TTS`);
+    logger.info(`📝 [${streamSid}] Texto: "${text}"`);
 
     try {
-      // PLACEHOLDER: Aquí necesitaríamos convertir el audio de OpenAI a texto
-      // Por ahora, usamos un texto de ejemplo
-      const responseText = "Entiendo tu consulta, déjame ayudarte con eso.";
-      
-      // Generar TTS con Azure (conservamos nuestro sistema)
+      // ✅ EXACTAMENTE como sendInitialGreeting: texto → Azure TTS → Twilio
       const ttsResult = await this.ttsService.generateSpeech(
-        responseText, 
+        text, 
         this.defaultVoice, 
         'raw-8khz-8bit-mono-mulaw'
       );
       
       if (ttsResult.success) {
-        logger.info(`✅ [${streamSid}] Azure TTS generado, enviando audio`);
+        logger.info(`✅ [${streamSid}] Azure TTS completado (${ttsResult.audioBuffer.length} bytes)`);
         
-        // Activar echo blanking
+        // Activar echo blanking para respuesta
         this.activateEchoBlanking(streamSid);
         
-        // Enviar audio con marca (como nuestro sistema actual)
-        const markId = `azure_response_${Date.now()}`;
+        // Enviar audio con marca (como saludo inicial)
+        const markId = `response_${Date.now()}`;
         this.pendingMarks.set(markId, {
           streamSid: streamSid,
           action: 'deactivate_echo_blanking',
@@ -1245,24 +1243,27 @@ class TwilioStreamHandler {
         });
         
         await this.sendRawMulawToTwilioWithMark(streamData.twilioWs, ttsResult.audioBuffer, streamSid, markId);
-        logger.info(`✅ [${streamSid}] Respuesta Azure TTS enviada con marca ${markId}`);
+        logger.info(`✅ [${streamSid}] Respuesta enviada con marca ${markId}`);
         
       } else {
         logger.error(`❌ [${streamSid}] Error en Azure TTS: ${ttsResult.error}`);
       }
       
     } catch (error) {
-      logger.error(`❌ [${streamSid}] Error crítico procesando audio con Azure: ${error.message}`, error.stack);
+      logger.error(`❌ [${streamSid}] Error procesando texto con Azure: ${error.message}`, error.stack);
       
-      // 🔧 CRÍTICO: En caso de error, desactivar echo blanking para que el usuario pueda seguir hablando
+      // En caso de error, desactivar echo blanking
       try {
         this.deactivateEchoBlanking(streamSid);
-        logger.warn(`⚡ [${streamSid}] Echo blanking desactivado de emergencia tras error en Azure TTS`);
+        logger.warn(`⚡ [${streamSid}] Echo blanking desactivado tras error`);
       } catch (emergencyError) {
-        logger.error(`💥 [${streamSid}] Error también en desactivación de emergencia: ${emergencyError.message}`);
+        logger.error(`💥 [${streamSid}] Error en desactivación de emergencia: ${emergencyError.message}`);
       }
     }
   }
+
+  // 🗑️ MÉTODO OBSOLETO ELIMINADO: processAudioDeltaWithAzure
+  // Ya no procesamos audio deltas, solo texto completo
 
 }
 

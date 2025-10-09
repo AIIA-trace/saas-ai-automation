@@ -75,9 +75,9 @@ class OpenAIRealtimeService {
         lastAssistantItem: null,
         markQueue: [],
         responseStartTimestampTwilio: null,
-        // NUEVAS VARIABLES PARA TRACKING
-        accumulatedAudio: [],
-        accumulatedChunks: []
+        // ✅ NUEVAS VARIABLES PARA FLUJO TEXTO
+        accumulatedText: '', // Texto acumulado de OpenAI
+        textResponseCount: 0 // Contador de respuestas de texto
       };
 
       this.activeConnections.set(streamSid, connectionData);
@@ -147,15 +147,32 @@ class OpenAIRealtimeService {
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
     // FORMATO OFICIAL EXACTO del código que me pasaste
+    // ✅ CONFIGURACIÓN CORRECTA: OpenAI genera TEXTO, Azure TTS genera AUDIO
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: 'realtime',
         model: this.model,
-        output_modalities: ["audio"],
+        output_modalities: ["text"], // ✅ SOLO TEXTO (no audio)
         audio: {
-          input: { format: { type: 'audio/pcmu' }, turn_detection: { type: "server_vad" } },
-          output: { format: { type: 'audio/pcmu' }, voice: this.voice },
+          input: { 
+            format: { type: 'audio/pcmu' }, 
+            turn_detection: { 
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 200
+            }
+          }
+          // ❌ ELIMINADO: output audio (Azure TTS se encarga)
+        },
+        // ✅ CRÍTICO: Activar transcripción para respuestas automáticas
+        input_audio_transcription: {
+          model: "whisper-1"
+        },
+        // ✅ CRÍTICO: Configurar respuesta automática
+        turn_detection: {
+          type: "server_vad"
         },
         instructions: customSystemMessage,
       },
@@ -189,17 +206,23 @@ class OpenAIRealtimeService {
         return;
       }
 
-      // LOGS DEL CÓDIGO OFICIAL - Solo eventos importantes
+      // ✅ EVENTOS PARA FLUJO TEXTO (OpenAI → Azure TTS)
       const LOG_EVENT_TYPES = [
         'error',
         'response.content.done',
+        'response.text.done',        // ✅ NUEVO: Texto completado
+        'response.text.delta',       // ✅ NUEVO: Texto streaming
         'rate_limits.updated',
         'response.done',
         'input_audio_buffer.committed',
         'input_audio_buffer.speech_stopped',
         'input_audio_buffer.speech_started',
         'session.created',
-        'session.updated'
+        'session.updated',
+        'conversation.item.input_audio_transcription.completed',
+        'conversation.item.input_audio_transcription.failed',
+        'response.created'
+        // ❌ ELIMINADOS: response.output_audio.* (no necesarios)
       ];
 
       if (LOG_EVENT_TYPES.includes(response.type)) {
@@ -213,46 +236,54 @@ class OpenAIRealtimeService {
           connectionData.status = 'ready';
           break;
 
-        case 'response.output_audio.delta':
-          // ADAPTACIÓN: En lugar de enviar audio OpenAI directamente, 
-          // acumulamos y convertimos con Azure TTS
+        case 'response.text.delta':
+          // ✅ NUEVO FLUJO: Acumular texto de OpenAI para Azure TTS
           if (response.delta) {
-            logger.info(`🔊 [${streamSid}] Recibiendo audio delta de OpenAI (será convertido con Azure TTS)`);
+            logger.info(`📝 [${streamSid}] ✅ RECIBIENDO texto delta de OpenAI`);
+            logger.debug(`🔍 [${streamSid}] Texto delta: "${response.delta}"`);
             
-            // Actualizar timestamps como en código oficial
-            if (!connectionData.responseStartTimestampTwilio) {
-              connectionData.responseStartTimestampTwilio = connectionData.latestMediaTimestamp;
-              logger.debug(`⏱️ [${streamSid}] Setting start timestamp: ${connectionData.responseStartTimestampTwilio}ms`);
+            // Acumular texto (como código oficial acumula audio)
+            if (!connectionData.accumulatedText) {
+              connectionData.accumulatedText = '';
             }
-
+            connectionData.accumulatedText += response.delta;
+            
             if (response.item_id) {
               connectionData.lastAssistantItem = response.item_id;
+              logger.debug(`🆔 [${streamSid}] Assistant item ID: ${response.item_id}`);
             }
+          }
+          break;
 
-            // DIFERENCIA CLAVE: Acumular para Azure TTS en lugar de enviar directamente
-            this.accumulateAudioDelta(streamSid, response.delta);
+        case 'response.text.done':
+          // ✅ NUEVO FLUJO: Texto completo listo para Azure TTS
+          logger.info(`📝 [${streamSid}] ✅ TEXTO COMPLETO de OpenAI - Enviando a Azure TTS`);
+          
+          if (connectionData.accumulatedText) {
+            logger.info(`🚀 [${streamSid}] Texto para Azure TTS: "${connectionData.accumulatedText}"`);
             
-            // ✅ CÓDIGO OFICIAL: Enviar mark para tracking
-            this.sendMark(streamSid);
+            // Enviar texto completo a Azure TTS (como saludo inicial)
+            this.processTextWithAzureTTS(streamSid, connectionData.accumulatedText);
+            
+            // Limpiar texto acumulado
+            connectionData.accumulatedText = '';
+          } else {
+            logger.warn(`⚠️ [${streamSid}] No hay texto acumulado para Azure TTS`);
           }
           break;
 
         case 'response.done':
-          logger.info(`✅ [${streamSid}] Respuesta OpenAI completada - procesando con Azure TTS`);
+          logger.info(`✅ [${streamSid}] 📝 OpenAI response.done - Solo logging (NO procesamos audio aquí)`);
           
-          // 🚨 DEBUG CRÍTICO: ANALIZAR RESPUESTA OPENAI
-          logger.error(`🔍 [${streamSid}] 🚨 OPENAI RESPONSE DEBUG:`);
-          logger.error(`🔍 [${streamSid}] ├── Response ID: ${response.response?.id || 'N/A'}`);
-          logger.error(`🔍 [${streamSid}] ├── Status: ${response.response?.status || 'N/A'}`);
+          // 🔍 DEBUG: ANALIZAR RESPUESTA OPENAI para logs
+          logger.info(`🔍 [${streamSid}] 📊 RESPONSE STATS:`);
+          logger.info(`🔍 [${streamSid}] ├── Response ID: ${response.response?.id || 'N/A'}`);
+          logger.info(`🔍 [${streamSid}] ├── Status: ${response.response?.status || 'N/A'}`);
+          logger.info(`🔍 [${streamSid}] └── ✅ Audio YA PROCESADO por deltas individuales`);
           
-          // Buscar contenido de texto en la respuesta
-          const textContent = this.extractTextFromResponse(response);
-          logger.error(`🔍 [${streamSid}] ├── Texto transcrito: "${textContent}"`);
-          logger.error(`🔍 [${streamSid}] ├── Audio chunks recibidos: ${connectionData.accumulatedChunks?.length || 0}`);
-          logger.error(`🔍 [${streamSid}] └── 🚨 ${textContent.includes('Entiendo tu consulta') ? 'RESPUESTA GENÉRICA!' : 'TRANSCRIPCIÓN REAL'}`);
-          
-          // Cuando OpenAI termina, procesamos el audio acumulado con Azure TTS
-          this.processAccumulatedAudio(streamSid);
+          // 🚨 CÓDIGO OBSOLETO ELIMINADO: YA NO esperamos response.done para procesar audio
+          // El audio se procesa inmediatamente en cada delta (como código oficial)
+          logger.debug(`🗑️ [${streamSid}] OBSOLETO: processAccumulatedAudio() eliminado`);
           break;
 
         case 'input_audio_buffer.speech_started':
@@ -263,6 +294,23 @@ class OpenAIRealtimeService {
 
         case 'input_audio_buffer.speech_stopped':
           logger.info(`🎤 [${streamSid}] OpenAI detectó fin de habla del usuario`);
+          logger.info(`🚀 [${streamSid}] ESPERANDO respuesta automática de OpenAI...`);
+          break;
+
+        case 'conversation.item.input_audio_transcription.completed':
+          logger.info(`📝 [${streamSid}] TRANSCRIPCIÓN COMPLETADA: ${JSON.stringify(response)}`);
+          break;
+
+        case 'conversation.item.input_audio_transcription.failed':
+          logger.error(`❌ [${streamSid}] TRANSCRIPCIÓN FALLÓ: ${JSON.stringify(response)}`);
+          break;
+
+        case 'response.created':
+          logger.info(`🚀 [${streamSid}] ✅ OpenAI GENERANDO RESPUESTA: ${response.response?.id || 'N/A'}`);
+          break;
+
+        case 'response.output_audio.started':
+          logger.info(`🎵 [${streamSid}] ✅ OpenAI INICIANDO AUDIO DE RESPUESTA`);
           break;
 
         case 'error':
@@ -328,52 +376,36 @@ class OpenAIRealtimeService {
     }
   }
 
-  /**
-   * NUEVO: Acumular audio delta para procesar con Azure TTS
-   * @param {string} streamSid - Stream ID  
-   * @param {string} delta - Audio delta de OpenAI
-   */
-  accumulateAudioDelta(streamSid, delta) {
-    const connectionData = this.activeConnections.get(streamSid);
-    if (!connectionData) return;
+  // 🗑️ MÉTODOS OBSOLETOS ELIMINADOS:
+  // - accumulateAudioDelta: Ya no necesario (procesamos texto, no audio deltas)
+  // - processAccumulatedAudio: Ya no necesario (procesamos texto, no audio deltas)
 
-    // Inicializar acumulador si no existe
-    if (!connectionData.accumulatedAudio) {
-      connectionData.accumulatedAudio = [];
+  /**
+   * ✅ NUEVO FLUJO SIMPLE: Procesar texto de OpenAI con Azure TTS (como saludo inicial)
+   * @param {string} streamSid - Stream ID
+   * @param {string} text - Texto completo de OpenAI
+   */
+  async processTextWithAzureTTS(streamSid, text) {
+    const connectionData = this.activeConnections.get(streamSid);
+    if (!connectionData) {
+      logger.error(`❌ [${streamSid}] No connection data para procesar texto`);
+      return;
     }
 
-    connectionData.accumulatedAudio.push(delta);
-    logger.debug(`📦 [${streamSid}] Audio delta acumulado (${connectionData.accumulatedAudio.length} chunks)`);
-  }
-
-  /**
-   * HÍBRIDO: Procesar audio acumulado con Azure TTS (en lugar de OpenAI TTS)
-   * @param {string} streamSid - Stream ID
-   */
-  async processAccumulatedAudio(streamSid) {
-    const connectionData = this.activeConnections.get(streamSid);
-    if (!connectionData || !connectionData.accumulatedAudio) return;
-
-    logger.info(`🔄 [${streamSid}] Procesando ${connectionData.accumulatedAudio.length} chunks con Azure TTS`);
-
     try {
-      // Combinar todos los chunks de audio
-      const combinedAudio = connectionData.accumulatedAudio.join('');
+      logger.info(`🚀 [${streamSid}] ✅ PROCESANDO texto con Azure TTS: "${text}"`);
       
-      // NOTA: Aquí necesitaríamos convertir el audio de OpenAI a texto
-      // y luego usar Azure TTS. Por ahora, emitimos el evento para que 
-      // TwilioStreamHandler lo maneje
-      this.emit('processAudioWithAzure', {
+      // Emitir evento simple para TwilioStreamHandler (como saludo inicial)
+      this.emit('processTextWithAzure', {
         streamSid: streamSid,
-        audioData: combinedAudio,
-        markQueue: [...connectionData.markQueue] // Copia del mark queue
+        text: text, // ✅ SIMPLE: Solo texto
+        timestamp: Date.now()
       });
-
-      // Limpiar acumulador
-      connectionData.accumulatedAudio = [];
+      
+      logger.debug(`✅ [${streamSid}] Texto enviado para Azure TTS`);
 
     } catch (error) {
-      logger.error(`❌ [${streamSid}] Error procesando audio acumulado: ${error.message}`);
+      logger.error(`❌ [${streamSid}] Error procesando texto: ${error.message}`);
     }
   }
 
