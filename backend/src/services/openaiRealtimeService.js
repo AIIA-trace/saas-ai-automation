@@ -149,49 +149,52 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ CONFIGURACIÓN OFICIAL según documentación OpenAI
-    // Solo turn_detection en audio.input, NO a nivel raíz
+    // ✅ CONFIGURACIÓN OFICIAL según ejemplos Twilio + OpenAI
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        type: 'realtime',
         model: this.model,
-        output_modalities: ["text"], // ✅ SOLO TEXTO: OpenAI → Azure TTS
+        modalities: ['text', 'audio'], // ✅ NECESARIO para transcripción
         
-        audio: {
-          input: { 
-            format: { type: 'audio/pcmu' },
-            
-            // ✅ TRANSCRIPCIÓN CORRECTA según documentación oficial
-            transcription: {
-              model: "gpt-4o-mini-transcribe"  // ✅ Modelo correcto para GA
-            },
-            
-            // ✅ TURN DETECTION SIMPLIFICADO como código oficial
-            turn_detection: { 
-              type: "server_vad"
-              // ✅ Sin parámetros específicos - usar defaults de OpenAI
-            }
-          }
+        // ✅ FORMATO CORRECTO según issues oficiales GitHub
+        input_audio_format: 'g711_ulaw',   // ✅ Twilio envía g711_ulaw
+        output_audio_format: 'g711_ulaw',  // ✅ Para compatibilidad
+        
+        // ✅ TRANSCRIPCIÓN AUTOMÁTICA
+        input_audio_transcription: {
+          model: "gpt-4o-mini-transcribe"
         },
+        
+        // ✅ TURN DETECTION según ejemplos oficiales
+        turn_detection: { 
+          type: "server_vad",
+          prefix_padding_ms: 300,
+          silence_duration_ms: 200
+        },
+        
+        voice: this.voice,
         instructions: customSystemMessage,
+        temperature: this.temperature
       },
     };
 
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
     logger.info(`🔧 [${streamSid}] Config completo: ${JSON.stringify(sessionUpdate, null, 2)}`);
     
-    // ✅ CONFIGURACIÓN SIMPLIFICADA como código oficial
-    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN SIMPLIFICADA OPENAI (como código oficial):`);
-    logger.info(`🔍 [${streamSid}] ├── OpenAI INPUT Format: ${sessionUpdate.session.audio.input.format.type}`);
-    logger.info(`🔍 [${streamSid}] ├── Transcripción Model: ${sessionUpdate.session.audio.input.transcription.model}`);
-    logger.info(`🔍 [${streamSid}] ├── Turn Detection Type: ${sessionUpdate.session.audio.input.turn_detection.type}`);
-    logger.info(`🔍 [${streamSid}] ├── VAD Settings: DEFAULT (sin overrides específicos)`);
-    logger.info(`🔍 [${streamSid}] ├── Output Modalities: [${sessionUpdate.session.output_modalities.join(', ')}]`);
-    logger.info(`🔍 [${streamSid}] ├── Session Type: ${sessionUpdate.session.type}`);
+    // ✅ CONFIGURACIÓN OFICIAL según ejemplos Twilio + OpenAI
+    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL TWILIO + OPENAI:`);
+    logger.info(`🔍 [${streamSid}] ├── Input Audio Format: ${sessionUpdate.session.input_audio_format}`);
+    logger.info(`🔍 [${streamSid}] ├── Output Audio Format: ${sessionUpdate.session.output_audio_format}`);
+    logger.info(`🔍 [${streamSid}] ├── Transcripción Model: ${sessionUpdate.session.input_audio_transcription.model}`);
+    logger.info(`🔍 [${streamSid}] ├── Turn Detection Type: ${sessionUpdate.session.turn_detection.type}`);
+    logger.info(`🔍 [${streamSid}] ├── Prefix Padding: ${sessionUpdate.session.turn_detection.prefix_padding_ms}ms`);
+    logger.info(`🔍 [${streamSid}] ├── Silence Duration: ${sessionUpdate.session.turn_detection.silence_duration_ms}ms`);
+    logger.info(`🔍 [${streamSid}] ├── Modalities: [${sessionUpdate.session.modalities.join(', ')}]`);
     logger.info(`🔍 [${streamSid}] ├── Model: ${sessionUpdate.session.model}`);
+    logger.info(`🔍 [${streamSid}] ├── Voice: ${sessionUpdate.session.voice}`);
+    logger.info(`🔍 [${streamSid}] ├── Temperature: ${sessionUpdate.session.temperature}`);
     logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
-    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Usuario (mulaw) → OpenAI (VAD default + transcribe + texto) → Azure TTS → Twilio`);
+    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Twilio (g711_ulaw) → OpenAI (transcribe + audio) → TTS`);
     
     // ENVÍO CON LOG ADICIONAL
     logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
@@ -242,16 +245,17 @@ class OpenAIRealtimeService {
           logger.info(`✅ [${streamSid}] Sesión OpenAI configurada correctamente`);
           logger.info(`🔍 [${streamSid}] 📊 SESSION.UPDATED COMPLETO: ${JSON.stringify(response, null, 2)}`);
           
-          // DEBUG: Verificar configuración aplicada
+          // DEBUG: Verificar configuración aplicada con FORMATO OFICIAL
           if (response.session) {
             logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN APLICADA POR OPENAI:`);
             logger.info(`🔍 [${streamSid}] ├── Model aplicado: ${response.session.model || 'N/A'}`);
-            logger.info(`🔍 [${streamSid}] ├── Output modalities: ${JSON.stringify(response.session.output_modalities || [])}`);
-            logger.info(`🔍 [${streamSid}] ├── Input audio format: ${response.session.audio?.input?.format?.type || 'N/A'}`);
-            logger.info(`🔍 [${streamSid}] ├── Transcription model: ${response.session.audio?.input?.transcription?.model || 'N/A'}`);
-            logger.info(`🔍 [${streamSid}] ├── Turn detection type: ${response.session.audio?.input?.turn_detection?.type || 'N/A'}`);
-            logger.info(`🔍 [${streamSid}] ├── VAD settings: DEFAULT (${JSON.stringify(response.session.audio?.input?.turn_detection || {})})`);
-            logger.info(`🔍 [${streamSid}] └── Configuración aplicada exitosamente`);
+            logger.info(`🔍 [${streamSid}] ├── Modalities: ${JSON.stringify(response.session.modalities || [])}`);
+            logger.info(`🔍 [${streamSid}] ├── Input Audio Format: ${response.session.input_audio_format || 'N/A'}`);
+            logger.info(`🔍 [${streamSid}] ├── Output Audio Format: ${response.session.output_audio_format || 'N/A'}`);
+            logger.info(`🔍 [${streamSid}] ├── Input Audio Transcription: ${JSON.stringify(response.session.input_audio_transcription || {})}`);
+            logger.info(`🔍 [${streamSid}] ├── Turn Detection: ${JSON.stringify(response.session.turn_detection || {})}`);
+            logger.info(`🔍 [${streamSid}] ├── Voice: ${response.session.voice || 'N/A'}`);
+            logger.info(`🔍 [${streamSid}] └── ✅ CONFIGURACIÓN OFICIAL APLICADA CORRECTAMENTE`);
           }
           
           connectionData.status = 'ready';
