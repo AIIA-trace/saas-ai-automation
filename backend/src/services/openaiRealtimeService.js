@@ -149,10 +149,11 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ CONFIGURACIÓN MINIMALISTA - SOLO PARÁMETROS OBLIGATORIOS
+    // ✅ CONFIGURACIÓN OFICIAL SEGÚN DOCUMENTACIÓN OPENAI
     const sessionUpdate = {
       type: 'session.update',
       session: {
+        type: 'realtime',
         instructions: customSystemMessage
       },
     };
@@ -160,10 +161,11 @@ class OpenAIRealtimeService {
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
     logger.info(`🔧 [${streamSid}] Config completo: ${JSON.stringify(sessionUpdate, null, 2)}`);
     
-    // ✅ CONFIGURACIÓN MINIMALISTA
-    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN MINIMALISTA OPENAI:`);
+    // ✅ CONFIGURACIÓN OFICIAL OPENAI
+    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI:`);
+    logger.info(`🔍 [${streamSid}] ├── Session Type: ${sessionUpdate.session.type}`);
     logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
-    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: OpenAI usa defaults + custom instructions`);
+    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Documentación oficial OpenAI - Solo type + instructions`);
     
     // ENVÍO CON LOG ADICIONAL
     logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
@@ -214,7 +216,7 @@ class OpenAIRealtimeService {
           logger.info(`✅ [${streamSid}] Sesión OpenAI configurada correctamente`);
           logger.info(`🔍 [${streamSid}] 📊 SESSION.UPDATED COMPLETO: ${JSON.stringify(response, null, 2)}`);
           
-          // DEBUG: Verificar configuración aplicada MINIMALISTA
+          // DEBUG: Verificar configuración aplicada OFICIAL
           if (response.session) {
             logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN APLICADA POR OPENAI:`);
             logger.info(`🔍 [${streamSid}] ├── Session Type: ${response.session.type || 'N/A'}`);
@@ -224,7 +226,7 @@ class OpenAIRealtimeService {
               logger.info(`🔍 [${streamSid}] ├── Audio config: DEFAULTS aplicados por OpenAI`);
               logger.info(`🔍 [${streamSid}] ├── VAD: ${response.session.audio.input?.turn_detection?.type || 'default'}`);
             }
-            logger.info(`🔍 [${streamSid}] └── ✅ CONFIGURACIÓN MINIMALISTA APLICADA CORRECTAMENTE`);
+            logger.info(`🔍 [${streamSid}] └── ✅ CONFIGURACIÓN OFICIAL APLICADA CORRECTAMENTE`);
           }
           
           connectionData.status = 'ready';
