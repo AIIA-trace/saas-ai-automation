@@ -166,10 +166,6 @@ class OpenAIRealtimeService {
           },
           output: { format: { type: 'audio/pcmu' }, voice: this.voice }
         },
-        // ✅ CRÍTICO: Activar transcripción para respuestas automáticas
-        input_audio_transcription: {
-          model: "whisper-1"
-        },
         // ✅ CRÍTICO: Configurar respuesta automática
         turn_detection: {
           type: "server_vad"
