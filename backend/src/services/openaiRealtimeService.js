@@ -146,19 +146,14 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ CONFIGURACIÓN CORREGIDA según documentación oficial OpenAI
-    // Fix: transcription debe estar en audio.input.transcription con modelo correcto
+    // ✅ CONFIGURACIÓN OFICIAL según documentación OpenAI
+    // Solo turn_detection en audio.input, NO a nivel raíz
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: 'realtime',
         model: this.model,
         output_modalities: ["text"], // ✅ SOLO TEXTO: OpenAI → Azure TTS
-        
-        // ✅ TURN DETECTION GLOBAL para respuestas automáticas
-        turn_detection: {
-          type: "server_vad"
-        },
         
         audio: {
           input: { 
@@ -169,6 +164,7 @@ class OpenAIRealtimeService {
               model: "gpt-4o-mini-transcribe"  // ✅ Modelo correcto para GA
             },
             
+            // ✅ TURN DETECTION SOLO AQUÍ según documentación oficial
             turn_detection: { 
               type: "server_vad",
               threshold: 0.5,
@@ -184,12 +180,12 @@ class OpenAIRealtimeService {
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
     logger.info(`🔧 [${streamSid}] Config: ${JSON.stringify(sessionUpdate)}`);
     
-    // ✅ CONFIGURACIÓN CORREGIDA según documentación oficial
-    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN TRANSCRIPCIÓN CORREGIDA:`);
+    // ✅ CONFIGURACIÓN OFICIAL según documentación OpenAI
+    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI:`);
     logger.info(`🔍 [${streamSid}] ├── OpenAI INPUT: ${sessionUpdate.session.audio.input.format.type}`);
     logger.info(`🔍 [${streamSid}] ├── Transcripción: ${sessionUpdate.session.audio.input.transcription.model}`);
-    logger.info(`🔍 [${streamSid}] ├── Turn Detection Global: ${sessionUpdate.session.turn_detection.type}`);
-    logger.info(`🔍 [${streamSid}] ├── Turn Detection Input: ${sessionUpdate.session.audio.input.turn_detection.type}`);
+    logger.info(`🔍 [${streamSid}] ├── Turn Detection: ${sessionUpdate.session.audio.input.turn_detection.type} (solo en audio.input)`);
+    logger.info(`🔍 [${streamSid}] ├── VAD Threshold: ${sessionUpdate.session.audio.input.turn_detection.threshold}`);
     logger.info(`🔍 [${streamSid}] ├── OpenAI OUTPUT: texto solamente`);
     logger.info(`🔍 [${streamSid}] ├── Azure TTS: texto → audio mulaw`);
     logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Usuario (audio) → OpenAI (transcribe + texto) → Azure TTS → Twilio`);
