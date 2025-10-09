@@ -188,12 +188,12 @@ class OpenAIRealtimeService {
         return;
       }
 
-      // ✅ EVENTOS PARA FLUJO TEXTO (OpenAI → Azure TTS)
+      // ✅ EVENTOS PARA DIAGNÓSTICO COMPLETO
       const LOG_EVENT_TYPES = [
         'error',
         'response.content.done',
-        'response.text.done',        // ✅ NUEVO: Texto completado
-        'response.text.delta',       // ✅ NUEVO: Texto streaming
+        'response.text.done',        
+        'response.text.delta',       
         'rate_limits.updated',
         'response.done',
         'input_audio_buffer.committed',
@@ -203,11 +203,20 @@ class OpenAIRealtimeService {
         'session.updated',
         'conversation.item.input_audio_transcription.completed',
         'conversation.item.input_audio_transcription.failed',
-        'response.created'
+        'response.created',
+        'input_audio_buffer.cleared',
+        'conversation.item.created',
+        'response.output_item.added',
+        'response.output_item.done'
       ];
 
       if (LOG_EVENT_TYPES.includes(response.type)) {
         logger.info(`📨 [${streamSid}] OpenAI Event: ${response.type}`, response);
+      }
+
+      // 🔍 LOG TODOS LOS EVENTOS PARA DIAGNÓSTICO
+      if (!LOG_EVENT_TYPES.includes(response.type)) {
+        logger.debug(`🔍 [${streamSid}] OpenAI Event (no filtrado): ${response.type}`);
       }
 
       // Procesar diferentes tipos de mensajes
@@ -231,6 +240,22 @@ class OpenAIRealtimeService {
           
           connectionData.status = 'ready';
           logger.info(`🚀 [${streamSid}] ✅ OpenAI LISTO para recibir audio - Status: ready`);
+          break;
+
+        case 'input_audio_buffer.speech_started':
+          logger.info(`🎤 [${streamSid}] ✅ VAD DETECTÓ VOZ - Speech started!`);
+          break;
+
+        case 'input_audio_buffer.speech_stopped':
+          logger.info(`🔇 [${streamSid}] ✅ VAD TERMINÓ VOZ - Speech stopped!`);
+          break;
+
+        case 'conversation.item.input_audio_transcription.completed':
+          logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETADA: ${response.transcript || 'N/A'}`);
+          break;
+
+        case 'response.created':
+          logger.info(`🚀 [${streamSid}] ✅ OPENAI CREANDO RESPUESTA`);
           break;
 
         case 'response.text.delta':
@@ -481,10 +506,25 @@ class OpenAIRealtimeService {
       
       // DEBUG ADICIONAL: Estado de la conexión y contadores
       connectionData.audioSent = (connectionData.audioSent || 0) + 1;
+      
+      // 🔍 ANÁLISIS CRÍTICO: Detectar si audio tiene contenido real
+      const mulawBytes = Buffer.from(audioPayload, 'base64');
+      const silentBytes = mulawBytes.filter(byte => byte === 0xFF).length;
+      const audioPercent = ((mulawBytes.length - silentBytes) / mulawBytes.length * 100).toFixed(1);
+      
       if (connectionData.audioSent % 50 === 0) {  // Log cada 50 chunks
-        logger.info(`📊 [${streamSid}] Audio chunks enviados: ${connectionData.audioSent}`);
-        logger.info(`📊 [${streamSid}] Conexión status: ${connectionData.status}`);
-        logger.info(`📊 [${streamSid}] WebSocket readyState: ${connectionData.ws.readyState}`);
+        logger.info(`📊 [${streamSid}] ===== DIAGNÓSTICO VAD CRÍTICO =====`);
+        logger.info(`📊 [${streamSid}] ├── Audio chunks enviados: ${connectionData.audioSent}`);
+        logger.info(`📊 [${streamSid}] ├── Conexión status: ${connectionData.status}`);
+        logger.info(`📊 [${streamSid}] ├── WebSocket readyState: ${connectionData.ws.readyState}`);
+        logger.info(`📊 [${streamSid}] ├── Audio content: ${audioPercent}% non-silent`);
+        logger.info(`📊 [${streamSid}] ├── Último chunk: ${mulawBytes.length} bytes, ${silentBytes} silent`);
+        logger.info(`📊 [${streamSid}] └── 🚨 Si >30% audio y NO hay speech_started = PROBLEMA VAD`);
+      }
+      
+      // 🚨 ALERTA CRÍTICA: Si hay mucho contenido pero no speech_started
+      if (audioPercent > 30) {
+        logger.warn(`🚨 [${streamSid}] AUDIO REAL DETECTADO: ${audioPercent}% content - VAD debería detectar!`);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando audio a OpenAI: ${error.message}`);
