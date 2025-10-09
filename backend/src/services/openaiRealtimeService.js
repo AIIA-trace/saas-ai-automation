@@ -582,13 +582,4 @@ class OpenAIRealtimeService {
   }
 }
 
-// Heredar EventEmitter para poder emitir eventos
-const { EventEmitter } = require('events');
-class OpenAIRealtimeServiceWithEvents extends EventEmitter {
-  constructor() {
-    super();
-    Object.assign(this, new OpenAIRealtimeService());
-  }
-}
-
-module.exports = OpenAIRealtimeServiceWithEvents;
+module.exports = OpenAIRealtimeService;
