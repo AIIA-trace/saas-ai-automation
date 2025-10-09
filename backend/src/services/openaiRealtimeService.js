@@ -160,6 +160,14 @@ class OpenAIRealtimeService {
 
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
     logger.info(`🔧 [${streamSid}] Config: ${JSON.stringify(sessionUpdate)}`);
+    
+    // 🚨 DEBUG CRÍTICO: FORMATO DE AUDIO
+    logger.error(`🔍 [${streamSid}] 🚨 AUDIO FORMAT DEBUG:`);
+    logger.error(`🔍 [${streamSid}] ├── OpenAI INPUT esperado: ${sessionUpdate.session.audio.input.format.type}`);
+    logger.error(`🔍 [${streamSid}] ├── OpenAI OUTPUT esperado: ${sessionUpdate.session.audio.output.format.type}`);
+    logger.error(`🔍 [${streamSid}] ├── Twilio envía: audio/mulaw (8kHz, 8-bit)`);
+    logger.error(`🔍 [${streamSid}] └── Conversión actual: mulaw → PCM16 (CONFLICTO!)`);
+    
     connectionData.ws.send(JSON.stringify(sessionUpdate));
   }
 
@@ -225,6 +233,18 @@ class OpenAIRealtimeService {
 
         case 'response.done':
           logger.info(`✅ [${streamSid}] Respuesta OpenAI completada - procesando con Azure TTS`);
+          
+          // 🚨 DEBUG CRÍTICO: ANALIZAR RESPUESTA OPENAI
+          logger.error(`🔍 [${streamSid}] 🚨 OPENAI RESPONSE DEBUG:`);
+          logger.error(`🔍 [${streamSid}] ├── Response ID: ${response.response?.id || 'N/A'}`);
+          logger.error(`🔍 [${streamSid}] ├── Status: ${response.response?.status || 'N/A'}`);
+          
+          // Buscar contenido de texto en la respuesta
+          const textContent = this.extractTextFromResponse(response);
+          logger.error(`🔍 [${streamSid}] ├── Texto transcrito: "${textContent}"`);
+          logger.error(`🔍 [${streamSid}] ├── Audio chunks recibidos: ${connectionData.accumulatedChunks?.length || 0}`);
+          logger.error(`🔍 [${streamSid}] └── 🚨 ${textContent.includes('Entiendo tu consulta') ? 'RESPUESTA GENÉRICA!' : 'TRANSCRIPCIÓN REAL'}`);
+          
           // Cuando OpenAI termina, procesamos el audio acumulado con Azure TTS
           this.processAccumulatedAudio(streamSid);
           break;
@@ -355,21 +375,69 @@ class OpenAIRealtimeService {
         logger.debug(`⏱️ [${streamSid}] Updated media timestamp: ${mediaTimestamp}ms`);
       }
 
-      // Convertir mulaw (Twilio) a PCM16 (OpenAI) - MANTENEMOS NUESTRA LÓGICA
+      // 🚨 DEBUG CRÍTICO: ANTES DE CONVERSIÓN
       const mulawBuffer = Buffer.from(audioPayload, 'base64');
+      logger.error(`🔍 [${streamSid}] 🚨 AUDIO CONVERSION DEBUG:`);
+      logger.error(`🔍 [${streamSid}] ├── Twilio mulaw bytes: ${mulawBuffer.length}`);
+      logger.error(`🔍 [${streamSid}] ├── Mulaw sample: [${mulawBuffer.slice(0, 8).join(', ')}]`);
+      
+      // Convertir mulaw (Twilio) a PCM16 (OpenAI) - PROBLEMA POTENCIAL
       const pcm16Buffer = this.convertMulawToPCM16(mulawBuffer);
       const pcm16Base64 = pcm16Buffer.toString('base64');
+      
+      logger.error(`🔍 [${streamSid}] ├── PCM16 bytes: ${pcm16Buffer.length}`);
+      logger.error(`🔍 [${streamSid}] ├── PCM16 sample: [${pcm16Buffer.slice(0, 16).join(', ')}]`);
+      logger.error(`🔍 [${streamSid}] └── 🚨 ENVIANDO PCM16 pero OpenAI espera MULAW!`);
 
-      // FORMATO OFICIAL: Enviar a OpenAI
+      // OPCIÓN A: ACTUAL - Enviar PCM16 (CONFLICTO con config)
       const audioMessage = {
         type: 'input_audio_buffer.append',
         audio: pcm16Base64
       };
 
+      // 🚨 OPCIÓN B: EXPERIMENTAL - Enviar mulaw directo
+      // const audioMessage = {
+      //   type: 'input_audio_buffer.append',
+      //   audio: audioPayload  // mulaw directo de Twilio
+      // };
+
       connectionData.ws.send(JSON.stringify(audioMessage));
+      logger.error(`🔍 [${streamSid}] ✅ Audio enviado como PCM16 (${pcm16Base64.length} chars base64)`);
 
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando audio a OpenAI: ${error.message}`);
+    }
+  }
+
+  /**
+   * 🚨 DEBUG: Extraer texto de respuesta OpenAI para análisis
+   * @param {Object} response - Respuesta de OpenAI
+   * @returns {string} - Texto extraído
+   */
+  extractTextFromResponse(response) {
+    try {
+      // Buscar en diferentes ubicaciones donde OpenAI puede poner el texto
+      if (response.response?.output?.[0]?.content?.[0]?.transcript) {
+        return response.response.output[0].content[0].transcript;
+      }
+      
+      // Buscar en items de la respuesta
+      if (response.response?.output?.[0]?.content) {
+        const content = response.response.output[0].content;
+        for (const item of content) {
+          if (item.transcript) return item.transcript;
+          if (item.text) return item.text;
+        }
+      }
+      
+      // Buscar en el texto acumulado (si existe)
+      if (this.accumulatedText) {
+        return this.accumulatedText;
+      }
+      
+      return 'N/A';
+    } catch (error) {
+      return `Error: ${error.message}`;
     }
   }
 
