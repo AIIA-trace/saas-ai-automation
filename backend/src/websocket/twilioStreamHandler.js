@@ -286,6 +286,11 @@ class TwilioStreamHandler {
     switch (markData.action) {
       case 'activate_transcription':
         logger.info(`🎤 [${streamSid}] ACTIVANDO transcripción tras saludo (marca: ${markName})`);
+        
+        // ✅ CRÍTICO: Inicializar OpenAI SOLO cuando el saludo termine completamente
+        logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime API tras completar saludo`);
+        this.initializeOpenAIRealtimeConnection(streamSid);
+        
         // Activar transcripción directamente
         this.transcriptionActive.set(streamSid, true);
         const streamData = this.activeStreams.get(streamSid);
@@ -293,7 +298,7 @@ class TwilioStreamHandler {
           streamData.state = 'listening';
           streamData.greetingCompletedAt = Date.now();
         }
-        logger.info(`✅ [${streamSid}] Transcripción activada tras saludo - usuario puede hablar`);
+        logger.info(`✅ [${streamSid}] OpenAI inicializado y transcripción activada - usuario puede hablar`);
         break;
       case 'deactivate_echo_blanking':
         logger.info(`⚡ [${streamSid}] DESACTIVANDO echo blanking tras completar respuesta (marca: ${markName})`);
@@ -793,10 +798,9 @@ class TwilioStreamHandler {
         await this.sendRawMulawToTwilioWithMark(ws, ttsResult.audioBuffer, streamSid, markId);
         logger.info(`✅ [${streamSid}] Audio del saludo enviado con marca ${markId}`);
 
-        // 🔧 CRÍTICO: Desactivar echo blanking después del audio
-        setTimeout(() => {
-          this.deactivateEchoBlanking(streamSid);
-        }, Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000) + 500);
+        // 🚫 REMOVIDO: setTimeout para desactivar echo blanking
+        // RAZÓN: Ahora usamos SOLO el sistema de marcas para mayor precisión
+        // El echo blanking se mantendrá activo hasta que Twilio confirme que terminó de reproducir
       } else {
         logger.error(`❌ [${streamSid}] TTS falló: ${ttsResult?.error || 'Unknown error'}`);
         throw new Error('TTS failed');
@@ -826,16 +830,14 @@ class TwilioStreamHandler {
       await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, markId);
       logger.info(`✅ [${streamSid}] Audio fallback del saludo enviado con marca ${markId}`);
 
-      // 🔧 CRÍTICO: Desactivar echo blanking después del audio de fallback
-      setTimeout(() => {
-        this.deactivateEchoBlanking(streamSid);
-      }, 2000); // 2 segundos para el audio de fallback
+      // 🚫 REMOVIDO: setTimeout para desactivar echo blanking del fallback
+      // RAZÓN: Consistente con saludo normal, usamos SOLO sistema de marcas
     }
     
-    // NUEVO: Conectar con OpenAI Realtime API usando nuestro servicio especializado
-    this.initializeOpenAIRealtimeConnection(streamSid);
+    // 🚫 REMOVIDO: NO inicializar OpenAI aquí - se hará cuando termine el saludo
+    // Motivo: Evitar que OpenAI detecte el echo del saludo como voz del usuario
     
-    // logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting`);
+    logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting - OpenAI se inicializará al terminar el saludo`);
   }
 
   async sendExtendedGreeting(ws, streamSid, clientConfigData) {
@@ -900,9 +902,17 @@ class TwilioStreamHandler {
         logger.info(`✅ [${streamSid}] Saludo extendido enviado con marca ${markId}`);
 
         // 🔧 CRÍTICO: Desactivar echo blanking después del audio
+        // Cálculo correcto: audio mulaw 8kHz = 1 byte per sample = 8000 bytes/segundo
+        const audioDurationMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000);
+        const safetyMarginMs = 3000; // 3 segundos de margen de seguridad  
+        const totalBlankingTime = audioDurationMs + safetyMarginMs;
+        
+        logger.info(`🔊 [${streamSid}] EXTENDIDO: Echo blanking calculado: ${audioDurationMs}ms audio + ${safetyMarginMs}ms margen = ${totalBlankingTime}ms total`);
+        
         setTimeout(() => {
           this.deactivateEchoBlanking(streamSid);
-        }, Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000) + 500);
+          logger.info(`🔊 [${streamSid}] EXTENDIDO: Echo blanking TIMEOUT desactivado tras ${totalBlankingTime}ms`);
+        }, totalBlankingTime);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en saludo extendido: ${error.message}`);
@@ -1262,8 +1272,11 @@ class TwilioStreamHandler {
     }
   }
 
-  // 🗑️ MÉTODO OBSOLETO ELIMINADO: processAudioDeltaWithAzure
-  // Ya no procesamos audio deltas, solo texto completo
+  // 🗑️ FUNCIONES OBSOLETAS ELIMINADAS: 
+  // - handleProcessAudioWithAzure() 
+  // - processAudioDeltaWithAzure()
+  // 
+  // RAZÓN: Solo usamos transcripción de OpenAI → Azure TTS, no audio directo
 
 }
 

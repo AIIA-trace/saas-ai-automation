@@ -297,16 +297,52 @@ class OpenAIRealtimeService {
           }
           break;
 
+        case 'response.output_audio.delta':
+          // ✅ NO PROCESAMOS: Solo logueamos para diagnóstico
+          logger.info(`🎵 [${streamSid}] Audio delta recibido pero NO procesado (usamos solo transcripción)`);
+          logger.debug(`🔍 [${streamSid}] Audio delta size: ${response.delta ? response.delta.length : 0} chars base64`);
+          // Flujo: Solo procesamos transcripción → Azure TTS, no audio directo de OpenAI
+          break;
+
+        case 'response.output_audio_transcript.delta':
+          // ✅ PROCESAR transcripción de audio generado por OpenAI
+          logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN AUDIO DELTA de OpenAI`);
+          if (response.delta) {
+            logger.debug(`🔍 [${streamSid}] Transcripción delta: "${response.delta}"`);
+            
+            // Acumular transcripción del audio generado
+            if (!connectionData.audioTranscript) {
+              connectionData.audioTranscript = '';
+            }
+            connectionData.audioTranscript += response.delta;
+            logger.debug(`🔍 [${streamSid}] Transcripción acumulada: "${connectionData.audioTranscript}"`);
+          }
+          break;
+
 
         case 'response.done':
-          logger.info(`✅ [${streamSid}] 📝 OpenAI response.done - Solo logging (NO procesamos audio aquí)`);
+          logger.info(`✅ [${streamSid}] 📝 OpenAI response.done - Procesando transcripción acumulada`);
           
           // 🔍 DEBUG: ANALIZAR RESPUESTA OPENAI para logs
           logger.info(`🔍 [${streamSid}] 📊 RESPONSE STATS:`);
           logger.info(`🔍 [${streamSid}] ├── Response ID: ${response.response?.id || 'N/A'}`);
           logger.info(`🔍 [${streamSid}] ├── Status: ${response.response?.status || 'N/A'}`);
-          logger.info(`🔍 [${streamSid}] └── ✅ Audio YA PROCESADO por deltas individuales`);
           
+          // ✅ PROCESAR TRANSCRIPCIÓN ACUMULADA → Azure TTS
+          if (connectionData.audioTranscript) {
+            logger.info(`🚀 [${streamSid}] Enviando transcripción completa a Azure TTS: "${connectionData.audioTranscript}"`);
+            logger.debug(`🔍 [${streamSid}] 📊 Transcripción length: ${connectionData.audioTranscript.length} chars`);
+            
+            // Enviar transcripción completa a Azure TTS (como texto normal)
+            this.processTextWithAzureTTS(streamSid, connectionData.audioTranscript);
+            
+            // Limpiar transcripción acumulada
+            connectionData.audioTranscript = '';
+          } else {
+            logger.warn(`⚠️ [${streamSid}] No hay transcripción acumulada para procesar`);
+          }
+          
+          logger.info(`🔍 [${streamSid}] └── ✅ Respuesta procesada completamente`);
           break;
 
         case 'input_audio_buffer.speech_started':
@@ -442,6 +478,9 @@ class OpenAIRealtimeService {
     }
   }
 
+
+  // 🗑️ MÉTODO OBSOLETO ELIMINADO: processAudioDeltaImmediate()
+  // RAZÓN: Solo usamos transcripción de OpenAI → Azure TTS, no audio directo
 
   /**
    * ✅ NUEVO FLUJO SIMPLE: Procesar texto de OpenAI con Azure TTS (como saludo inicial)
