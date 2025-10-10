@@ -518,7 +518,9 @@ class OpenAIRealtimeService {
    */
   sendAudioToOpenAI(streamSid, audioPayload, mediaTimestamp) {
     const connectionData = this.activeConnections.get(streamSid);
-    if (!connectionData || connectionData.status !== 'ready') {
+    // ✅ PERMITIR audio en 'connected' Y 'ready' - conexión WebSocket ya está abierta
+    if (!connectionData || (connectionData.status !== 'connected' && connectionData.status !== 'ready')) {
+      logger.debug(`⚠️ [${streamSid}] Conexión no lista para audio - Status: ${connectionData?.status || 'N/A'}`);
       return; // No hay conexión lista
     }
 
@@ -664,7 +666,8 @@ class OpenAIRealtimeService {
    */
   isConnectionActive(streamSid) {
     const connectionData = this.activeConnections.get(streamSid);
-    return connectionData && connectionData.status === 'ready';
+    // ✅ PERMITIR audio en 'connected' Y 'ready' - conexión WebSocket ya está abierta
+    return connectionData && (connectionData.status === 'connected' || connectionData.status === 'ready');
   }
 
   /**
