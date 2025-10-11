@@ -54,8 +54,8 @@ class OpenAIRealtimeService {
 
       logger.info(`🤖 [${streamSid}] Inicializando conexión OpenAI Realtime (formato oficial)`);
 
-      // ✅ CONFIGURAR OUTPUT_MODALITIES EN URL INICIAL (único momento posible)
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=${this.model}&modalities=text&max_response_output_tokens=150`;
+      // ✅ URL SIMPLE OFICIAL - configuración por session.update
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=${this.model}`;
       const openAiWs = new WebSocket(wsUrl, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`
@@ -149,16 +149,17 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ❌ PROBLEMA: OpenAI Realtime API NO permite cambiar output_modalities después de conectar
-    // ✅ SOLUCIÓN: Solo podemos cambiar instructions, voice, turn_detection
+    // ✅ SOLUCIÓN FINAL: Configuración correcta según documentación OpenAI
     const sessionUpdate = {
       type: 'session.update',
       session: {
+        modalities: ['text'],  // ✅ CORRECTO: Cambiar output a solo texto
         instructions: customSystemMessage,
-        // ❌ REMOVIDO: modalities no se puede cambiar después de conexión
-        // ❌ REMOVIDO: input_audio_transcription no se puede cambiar  
-        // ❌ REMOVIDO: max_response_output_tokens no válido en session.update
-        turn_detection: null  // ✅ Desactivar VAD automático para control manual
+        input_audio_transcription: {
+          model: 'whisper-1'    // ✅ CORRECTO: Activar transcripción de entrada
+        },
+        turn_detection: null,   // ✅ Desactivar VAD automático 
+        max_response_output_tokens: 150  // ✅ Límite de tokens
       },
     };
 
