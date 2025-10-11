@@ -158,9 +158,8 @@ class OpenAIRealtimeService {
         // ✅ CRÍTICO: Solo texto, NO audio para evitar bucles
         output_modalities: ['text'],
         // ✅ LÍMITE: Máximo tokens por respuesta
-        max_output_tokens: 150,
-        // ✅ CONFIGURACIÓN ADICIONAL
-        temperature: 0.7
+        max_output_tokens: 150
+        // ❌ REMOVIDO: temperature no es válido en session.update
       },
     };
 
