@@ -54,8 +54,8 @@ class OpenAIRealtimeService {
 
       logger.info(`🤖 [${streamSid}] Inicializando conexión OpenAI Realtime (formato oficial)`);
 
-      // FORMATO OFICIAL: URL con temperature y model
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=${this.model}&temperature=${this.temperature}`;
+      // FORMATO OFICIAL: URL básica (configuración en session.update)
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=${this.model}`;
       const openAiWs = new WebSocket(wsUrl, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`
@@ -150,16 +150,16 @@ class OpenAIRealtimeService {
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
     // ✅ CONFIGURACIÓN OFICIAL SEGÚN DOCUMENTACIÓN OPENAI
+    // FLUJO OFICIAL: Audio → OpenAI Realtime (Whisper integrado) → GPT-4 → Texto → Azure TTS → Audio
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        type: 'realtime',
+        modalities: ['text'],  // ✅ OFICIAL: OUTPUT solo texto (NO audio para evitar bucles)
         instructions: customSystemMessage,
-        // ✅ CRÍTICO: Solo texto, NO audio para evitar bucles
-        output_modalities: ['text'],
-        // ✅ LÍMITE: Máximo tokens por respuesta
-        max_output_tokens: 150
-        // ❌ REMOVIDO: temperature no es válido en session.update
+        input_audio_transcription: {
+          model: 'whisper-1'  // ✅ OFICIAL: INPUT Whisper integrado (NO separado)
+        },
+        max_response_output_tokens: 150  // ✅ LÍMITE de tokens por respuesta
       },
     };
 
@@ -290,6 +290,18 @@ class OpenAIRealtimeService {
               logger.debug(`🆔 [${streamSid}] Assistant item ID: ${response.item_id}`);
             }
           }
+          break;
+
+        case 'session.updated':
+          // ✅ CONFIRMAR que configuración fue aceptada
+          logger.info(`⚙️ [${streamSid}] ✅ SESSION UPDATED - Configuración aplicada exitosamente`);
+          logger.info(`⚙️ [${streamSid}] 📊 Modalities: ${JSON.stringify(response.session.modalities)}`);
+          logger.info(`⚙️ [${streamSid}] 📊 Max tokens: ${response.session.max_response_output_tokens}`);
+          logger.info(`⚙️ [${streamSid}] 📊 Input transcription: ${response.session.input_audio_transcription ? 'enabled' : 'disabled'}`);
+          
+          // Marcar sesión como lista para recibir audio
+          connectionData.status = 'ready';
+          logger.info(`✅ [${streamSid}] OpenAI listo para recibir audio del usuario`);
           break;
 
         case 'response.text.done':
