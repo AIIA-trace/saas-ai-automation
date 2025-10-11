@@ -154,7 +154,13 @@ class OpenAIRealtimeService {
       type: 'session.update',
       session: {
         type: 'realtime',
-        instructions: customSystemMessage
+        instructions: customSystemMessage,
+        // ✅ CRÍTICO: Solo texto, NO audio para evitar bucles
+        output_modalities: ['text'],
+        // ✅ LÍMITE: Máximo tokens por respuesta
+        max_output_tokens: 150,
+        // ✅ CONFIGURACIÓN ADICIONAL
+        temperature: 0.7
       },
     };
 
@@ -268,6 +274,16 @@ class OpenAIRealtimeService {
             if (!connectionData.accumulatedText) {
               connectionData.accumulatedText = '';
             }
+            
+            // ✅ PROTECCIÓN ANTI-BUCLE: Límite de texto por respuesta
+            if (connectionData.accumulatedText.length > 1500) {
+              logger.warn(`⚠️ [${streamSid}] LÍMITE DE TEXTO ALCANZADO - Interrumpiendo respuesta (${connectionData.accumulatedText.length} chars)`);
+              // Forzar finalización de respuesta inmediata
+              this.processTextWithAzureTTS(streamSid, connectionData.accumulatedText);
+              connectionData.accumulatedText = '';
+              break;
+            }
+            
             connectionData.accumulatedText += response.delta;
             
             if (response.item_id) {
@@ -283,7 +299,16 @@ class OpenAIRealtimeService {
           logger.debug(`🔍 [${streamSid}] 📊 Text.done DETAILS: ${JSON.stringify(response)}`);
           
           if (connectionData.accumulatedText) {
-            logger.info(`🚀 [${streamSid}] Texto para Azure TTS: "${connectionData.accumulatedText}"`);
+            logger.info(`🎯 [${streamSid}] 📝 RESPUESTA OPENAI COMPLETA (${connectionData.accumulatedText.length} chars):`);
+            logger.info(`🎯 [${streamSid}] "${connectionData.accumulatedText}"`);
+            
+            // ✅ PROTECCIÓN: Solo textos razonables para TTS
+            if (connectionData.accumulatedText.length > 500) {
+              logger.warn(`⚠️ [${streamSid}] TEXTO DEMASIADO LARGO - Truncando a 500 chars`);
+              connectionData.accumulatedText = connectionData.accumulatedText.substring(0, 500);
+            }
+            
+            logger.info(`🚀 [${streamSid}] Texto final para Azure TTS: "${connectionData.accumulatedText}"`);
             logger.debug(`🔍 [${streamSid}] 📊 AccumulatedText length: ${connectionData.accumulatedText.length} chars`);
             
             // Enviar texto completo a Azure TTS (como saludo inicial)
