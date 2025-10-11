@@ -176,6 +176,21 @@ class OpenAIRealtimeService {
     logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
     connectionData.ws.send(JSON.stringify(sessionUpdate));
     logger.info(`✅ [${streamSid}] session.update enviado - Esperando session.updated...`);
+
+    // ✅ SOLUCIÓN OFICIAL: Forzar comportamiento con response.create
+    // Según documentación: "I found the most reliable way to do this is to use response.create"
+    const forceTextResponse = {
+      type: 'response.create',
+      response: {
+        modalities: ['text'],  // ✅ Forzar solo texto
+        instructions: "You must respond ONLY with text, never with audio. Always provide text-only responses.",
+        max_output_tokens: 150
+      }
+    };
+
+    logger.info(`🔧 [${streamSid}] Enviando response.create para forzar solo texto (solución oficial)`);
+    connectionData.ws.send(JSON.stringify(forceTextResponse));
+    logger.info(`✅ [${streamSid}] response.create enviado - Comportamiento de solo texto forzado`);
   }
 
   /**
@@ -333,11 +348,15 @@ class OpenAIRealtimeService {
           }
           break;
 
+        case 'response.audio.delta':
+        case 'response.audio.done':
+        case 'response.audio_transcript.delta':
+        case 'response.audio_transcript.done':
         case 'response.output_audio.delta':
-          // ✅ NO PROCESAMOS: Solo logueamos para diagnóstico
-          logger.info(`🎵 [${streamSid}] Audio delta recibido pero NO procesado (usamos solo transcripción)`);
-          logger.debug(`🔍 [${streamSid}] Audio delta size: ${response.delta ? response.delta.length : 0} chars base64`);
-          // Flujo: Solo procesamos transcripción → Azure TTS, no audio directo de OpenAI
+          // ✅ SOLUCIÓN OFICIAL: Ignorar audio según documentación 
+          logger.warn(`⚠️ [${streamSid}] Audio detectado (bug OpenAI conocido) - Ignorando: ${response.type}`);
+          logger.debug(`🔍 [${streamSid}] Audio ignorado - Solo procesamos texto con response.create`);
+          // Descartamos cualquier respuesta de audio para forzar solo texto
           break;
 
         case 'response.output_audio_transcript.delta':
