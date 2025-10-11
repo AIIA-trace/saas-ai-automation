@@ -54,8 +54,8 @@ class OpenAIRealtimeService {
 
       logger.info(`🤖 [${streamSid}] Inicializando conexión OpenAI Realtime (formato oficial)`);
 
-      // FORMATO OFICIAL: URL básica (configuración en session.update)
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=${this.model}`;
+      // ✅ CONFIGURAR OUTPUT_MODALITIES EN URL INICIAL (único momento posible)
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=${this.model}&modalities=text&max_response_output_tokens=150`;
       const openAiWs = new WebSocket(wsUrl, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`
@@ -149,17 +149,16 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ CONFIGURACIÓN OFICIAL SEGÚN DOCUMENTACIÓN OPENAI
-    // FLUJO OFICIAL: Audio → OpenAI Realtime (Whisper integrado) → GPT-4 → Texto → Azure TTS → Audio
+    // ❌ PROBLEMA: OpenAI Realtime API NO permite cambiar output_modalities después de conectar
+    // ✅ SOLUCIÓN: Solo podemos cambiar instructions, voice, turn_detection
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        modalities: ['text'],  // ✅ OFICIAL: OUTPUT solo texto (NO audio para evitar bucles)
         instructions: customSystemMessage,
-        input_audio_transcription: {
-          model: 'whisper-1'  // ✅ OFICIAL: INPUT Whisper integrado (NO separado)
-        },
-        max_response_output_tokens: 150  // ✅ LÍMITE de tokens por respuesta
+        // ❌ REMOVIDO: modalities no se puede cambiar después de conexión
+        // ❌ REMOVIDO: input_audio_transcription no se puede cambiar  
+        // ❌ REMOVIDO: max_response_output_tokens no válido en session.update
+        turn_detection: null  // ✅ Desactivar VAD automático para control manual
       },
     };
 
