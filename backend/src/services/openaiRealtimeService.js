@@ -204,9 +204,13 @@ INSTRUCCIONES IMPORTANTES:
       return;
     }
 
-    // ✅ response.create NO acepta parámetros según documentación oficial
+    // ✅ FORZAR modalidad TEXTO para que genere response.audio_transcript.delta
     const responseConfig = {
-      type: 'response.create'
+      type: 'response.create',
+      response: {
+        modalities: ['text'],  // 🚀 SOLO TEXTO - no generar audio
+        instructions: 'Responde ÚNICAMENTE con texto. NO generes audio.'
+      }
     };
 
     try {
