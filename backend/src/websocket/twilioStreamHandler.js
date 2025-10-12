@@ -292,18 +292,19 @@ class TwilioStreamHandler {
       case 'activate_transcription':
         logger.info(`🎤 [${streamSid}] ACTIVANDO transcripción tras saludo (marca: ${markName})`);
         
-        // ✅ CRÍTICO: Inicializar OpenAI SOLO cuando el saludo termine completamente
-        logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime API tras completar saludo`);
-        this.initializeOpenAIRealtimeConnection(streamSid);
-        
-        // Activar transcripción directamente
+        // ✅ NO reinicializar OpenAI - la conexión ya existe desde el saludo
+        // Solo activar transcripción
         this.transcriptionActive.set(streamSid, true);
         const streamData = this.activeStreams.get(streamSid);
         if (streamData) {
           streamData.state = 'listening';
           streamData.greetingCompletedAt = Date.now();
         }
-        logger.info(`✅ [${streamSid}] OpenAI inicializado y transcripción activada - usuario puede hablar`);
+        
+        // Desactivar echo blanking
+        this.deactivateEchoBlanking(streamSid);
+        
+        logger.info(`✅ [${streamSid}] Transcripción activada - usuario puede hablar`);
         break;
       case 'deactivate_echo_blanking':
         logger.info(`⚡ [${streamSid}] DESACTIVANDO echo blanking tras completar respuesta (marca: ${markName})`);

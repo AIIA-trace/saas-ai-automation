@@ -263,19 +263,36 @@ class OpenAIRealtimeService {
       // Agregar listener temporal
       connectionData.ws.on('message', audioListener);
 
-      // Enviar texto para generar audio
-      const responseConfig = {
-        type: 'response.create',
-        response: {
-          modalities: ['audio', 'text'],  // ✅ OpenAI requiere ambos
-          instructions: `Di exactamente esto en español con voz femenina natural: "${greetingText}"`
-        }
-      };
-
       try {
+        // 1. Crear un mensaje del asistente con el texto del saludo
+        const conversationItem = {
+          type: 'conversation.item.create',
+          item: {
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'input_text',
+                text: greetingText
+              }
+            ]
+          }
+        };
+        
+        connectionData.ws.send(JSON.stringify(conversationItem));
+        logger.info(`📝 [${streamSid}] Mensaje de saludo creado en conversación`);
+        
+        // 2. Generar audio del mensaje (sin instructions adicionales)
+        const responseConfig = {
+          type: 'response.create',
+          response: {
+            modalities: ['audio', 'text']
+          }
+        };
+        
         connectionData.ws.send(JSON.stringify(responseConfig));
         isCollecting = true;
-        logger.info(`🚀 [${streamSid}] Solicitando generación de saludo a OpenAI`);
+        logger.info(`🚀 [${streamSid}] Solicitando generación de audio del saludo`);
         
         // Timeout de 10 segundos
         setTimeout(() => {
