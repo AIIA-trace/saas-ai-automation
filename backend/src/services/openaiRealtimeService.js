@@ -114,9 +114,9 @@ class OpenAIRealtimeService {
               },
               turn_detection: {
                 type: 'server_vad',
-                threshold: 0.5,
-                prefix_padding_ms: 300,
-                silence_duration_ms: 500
+                threshold: 0.3,              // ← Bajado de 0.5 a 0.3 (más sensible)
+                prefix_padding_ms: 300,      // Audio antes de detectar voz
+                silence_duration_ms: 700     // ← Aumentado de 500ms a 700ms (más tolerante al silencio)
               },
               temperature: this.temperature
             }
@@ -270,23 +270,29 @@ class OpenAIRealtimeService {
           // ✅ UNIFICADO  
           logger.info(`🔇 [${streamSid}] VAD DETECTÓ FIN DE VOZ - Esperando respuesta...`);
           
-          // ✅ ENVIAR chunks restantes si hay
-          if (connectionData.audioBuffer && connectionData.audioBuffer.length > 0) {
-            const combinedBuffer = Buffer.concat(connectionData.audioBuffer);
-            connectionData.ws.send(JSON.stringify({
-              type: 'input_audio_buffer.append',
-              audio: combinedBuffer.toString('base64')
-            }));
-            logger.info(`✅ [${streamSid}] Chunks restantes enviados (${combinedBuffer.length} bytes)`);
+          // ✅ VERIFICAR si hay audio acumulado antes de procesar
+          const hasAudioToCommit = connectionData.audioBuffer && connectionData.audioBuffer.length > 0;
+          
+          if (!hasAudioToCommit) {
+            logger.warn(`⚠️ [${streamSid}] No hay audio en buffer para commit - ignorando speech_stopped`);
+            break;
           }
+          
+          // ✅ ENVIAR chunks restantes
+          const combinedBuffer = Buffer.concat(connectionData.audioBuffer);
+          connectionData.ws.send(JSON.stringify({
+            type: 'input_audio_buffer.append',
+            audio: combinedBuffer.toString('base64')
+          }));
+          logger.info(`✅ [${streamSid}] Chunks restantes enviados (${combinedBuffer.length} bytes)`);
+          
+          // ✅ Limpiar buffer ANTES del commit
+          connectionData.audioBuffer = [];
           
           // ✅ COMMIT con retardo de 200ms
           setTimeout(() => {
             connectionData.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
             logger.info(`✅ [${streamSid}] Audio buffer commit enviado`);
-            
-            // ✅ Limpiar buffer DESPUÉS del commit
-            connectionData.audioBuffer = [];
             
             // ✅ CREAR RESPUESTA con retardo adicional de 100ms
             setTimeout(() => {
