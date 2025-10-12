@@ -156,27 +156,14 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN COMPLETA Y EXPLÍCITA
+    // ✅ CONFIGURACIÓN MÍNIMA OFICIAL (solo parámetros soportados)
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        type: 'realtime',
-        model: this.model,
         instructions: customSystemMessage,
-        temperature: this.temperature,
-        voice: 'alloy', // ✅ Necesario aunque no se use audio output
-        
-        // 🔥 CRÍTICO: USAR FORMATO DIRECTO DE TWILIO (MuLaw)
-        input_audio_format: "g711_ulaw", // ✅ FORMATO NATIVO DE TWILIO
+        input_audio_format: "g711_ulaw",
         input_audio_transcription: {
-          model: "whisper-1",
-          turn_detection: {
-            type: "server_vad",
-            threshold: 0.3, // ✅ MÁS SENSIBLE
-            prefix_padding_ms: 500,
-            silence_duration_ms: 800,
-            create_response: true
-          }
+          model: "whisper-1"
         }
       }
     };
