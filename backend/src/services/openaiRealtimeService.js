@@ -254,6 +254,7 @@ INSTRUCCIONES IMPORTANTES:
       switch (response.type) {
         case 'session.created':
           logger.info(`🔍 [${streamSid}] Sesión creada por OpenAI - Verificando configuración inicial`);
+          logger.info(`🔍 [${streamSid}] Session created event completo: ${JSON.stringify(response)}`);
           
           // Verificar qué configuró OpenAI por defecto
           if (response.session && response.session.output_modalities) {
@@ -264,6 +265,16 @@ INSTRUCCIONES IMPORTANTES:
               logger.warn(`⚠️ [${streamSid}] OpenAI está configurado con audio por defecto - nuestra configuración se enviará ahora`);
             }
           }
+          
+          // ✅ FALLBACK: Si no llega session.updated en 2 segundos, activar de todos modos
+          setTimeout(() => {
+            if (connectionData.status === 'connected' && connectionData.sessionReadyResolver) {
+              logger.warn(`⚠️ [${streamSid}] session.updated no llegó - activando de todos modos`);
+              connectionData.status = 'ready';
+              connectionData.sessionReadyResolver();
+              delete connectionData.sessionReadyResolver;
+            }
+          }, 2000);
           break;
 
         case 'session.updated':
