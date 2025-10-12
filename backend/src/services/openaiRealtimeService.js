@@ -245,18 +245,33 @@ class OpenAIRealtimeService {
           // ✅ UNIFICADO  
           logger.info(`🔇 [${streamSid}] VAD DETECTÓ FIN DE VOZ - Esperando respuesta...`);
           
-          // ✅ COMMIT del buffer de audio
-          connectionData.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-          logger.info(`✅ [${streamSid}] Audio buffer commit enviado`);
+          // ✅ ENVIAR chunks restantes si hay
+          if (connectionData.audioBuffer && connectionData.audioBuffer.length > 0) {
+            const combinedBuffer = Buffer.concat(connectionData.audioBuffer);
+            connectionData.audioBuffer = [];
+            connectionData.ws.send(JSON.stringify({
+              type: 'input_audio_buffer.append',
+              audio: combinedBuffer.toString('base64')
+            }));
+            logger.info(`✅ [${streamSid}] Chunks restantes enviados (${combinedBuffer.length} bytes)`);
+          }
           
-          // ✅ CREAR RESPUESTA texto-only
-          this.createOpenAIResponse(streamSid);
+          // ✅ COMMIT con retardo de 200ms
+          setTimeout(() => {
+            connectionData.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+            logger.info(`✅ [${streamSid}] Audio buffer commit enviado`);
+            
+            // ✅ CREAR RESPUESTA con retardo adicional de 100ms
+            setTimeout(() => {
+              this.createOpenAIResponse(streamSid);
+            }, 100);
+          }, 200);
           
-          // Timeout para respuesta
+          // ✅ Timeout aumentado a 15 segundos
           this.responseTimeouts.set(streamSid, setTimeout(() => {
-            logger.error(`⏰ [${streamSid}] TIMEOUT: OpenAI no respondió en 10 segundos`);
+            logger.error(`⏰ [${streamSid}] TIMEOUT: OpenAI no respondió en 15 segundos`);
             this.responseTimeouts.delete(streamSid);
-          }, 10000));
+          }, 15000));
           break;
 
         case 'conversation.item.input_audio_transcription.completed':
@@ -553,14 +568,25 @@ class OpenAIRealtimeService {
       }
       connectionData.audioSent++;
       
-      // ✅ ENVIAR MULAW DIRECTO
-      const audioMessage = {
-        type: 'input_audio_buffer.append',
-        audio: audioPayload
-      };
-
-      connectionData.ws.send(JSON.stringify(audioMessage));
-      logger.debug(`🎙️ [${streamSid}] Audio enviado a OpenAI Realtime`);
+      // ✅ ACUMULAR CHUNKS (mínimo 300ms = 15 chunks de 20ms)
+      if (!connectionData.audioBuffer) {
+        connectionData.audioBuffer = [];
+      }
+      connectionData.audioBuffer.push(mulawBuffer);
+      
+      // ✅ ENVIAR solo cuando tenemos suficiente audio acumulado
+      if (connectionData.audioBuffer.length >= 15) {
+        const combinedBuffer = Buffer.concat(connectionData.audioBuffer);
+        connectionData.audioBuffer = [];
+        
+        const audioMessage = {
+          type: 'input_audio_buffer.append',
+          audio: combinedBuffer.toString('base64')
+        };
+        
+        connectionData.ws.send(JSON.stringify(audioMessage));
+        logger.debug(`🎙️ [${streamSid}] Audio acumulado enviado a OpenAI Realtime (${combinedBuffer.length} bytes)`);
+      }
       
       // 📊 DIAGNÓSTICO PERIÓDICO
       if (connectionData.audioSent % 50 === 0) {
