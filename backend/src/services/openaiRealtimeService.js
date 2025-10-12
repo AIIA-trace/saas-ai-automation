@@ -137,11 +137,19 @@ class OpenAIRealtimeService {
    * @param {Object} clientConfig - Configuración del cliente
    */
   initializeSession(streamSid, clientConfig) {
+    logger.info(`🔥 [${streamSid}] INICIO initializeSession() - DEBUG`);
+    
     const connectionData = this.activeConnections.get(streamSid);
+    logger.info(`🔍 [${streamSid}] connectionData existe: ${!!connectionData}`);
+    logger.info(`🔍 [${streamSid}] status: ${connectionData?.status || 'undefined'}`);
+    
     if (!connectionData || connectionData.status !== 'connected') {
       logger.error(`❌ [${streamSid}] No hay conexión OpenAI activa para configurar`);
+      logger.error(`❌ [${streamSid}] connectionData: ${!!connectionData}, status: ${connectionData?.status}`);
       return;
     }
+    
+    logger.info(`🔥 [${streamSid}] CONEXIÓN VÁLIDA - Continuando con configuración`);
 
     // Personalizar mensaje del sistema según el cliente
     const companyName = clientConfig.companyName || 'la empresa';
