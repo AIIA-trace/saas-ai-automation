@@ -132,7 +132,7 @@ class OpenAIRealtimeService {
   }
 
   /**
-   * FORMATO OFICIAL: Inicializar sesión OpenAI (copiado exacto del código oficial)
+   * Inicializar sesión OpenAI con parámetros válidos de la API
    * @param {string} streamSid - ID del stream
    * @param {Object} clientConfig - Configuración del cliente
    */
@@ -140,16 +140,11 @@ class OpenAIRealtimeService {
     logger.info(`🔥 [${streamSid}] INICIO initializeSession() - DEBUG`);
     
     const connectionData = this.activeConnections.get(streamSid);
-    logger.info(`🔍 [${streamSid}] connectionData existe: ${!!connectionData}`);
-    logger.info(`🔍 [${streamSid}] status: ${connectionData?.status || 'undefined'}`);
     
     if (!connectionData || connectionData.status !== 'connected') {
       logger.error(`❌ [${streamSid}] No hay conexión OpenAI activa para configurar`);
-      logger.error(`❌ [${streamSid}] connectionData: ${!!connectionData}, status: ${connectionData?.status}`);
       return;
     }
-    
-    logger.info(`🔥 [${streamSid}] CONEXIÓN VÁLIDA - Continuando con configuración`);
 
     // Personalizar mensaje del sistema según el cliente
     const companyName = clientConfig.companyName || 'la empresa';
@@ -157,33 +152,23 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ FORMATO OFICIAL según ejemplos OpenAI + Twilio
+    // ✅ CONFIGURACIÓN CORRECTA - SIN PARÁMETROS DESCONOCIDOS
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        type: 'realtime',       // ✅ REQUERIDO por OpenAI API
-        modalities: ['text'],   // ✅ Solo output de texto
+        type: 'realtime',
         instructions: customSystemMessage,
         input_audio_transcription: {
-          model: 'whisper-1'    // ✅ Activar transcripción Whisper
+          model: 'whisper-1'
         },
-        turn_detection: null    // ✅ Desactivar VAD automático (control manual)
+        turn_detection: null,
+        voice: null,  // ✅ Desactiva audio output
+        output_audio_format: null  // ✅ No generar audio
       }
     };
 
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
-    logger.info(`🔧 [${streamSid}] Config completo: ${JSON.stringify(sessionUpdate, null, 2)}`);
-    
-    // ✅ CONFIGURACIÓN OFICIAL OPENAI
-    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI:`);
-    logger.info(`🔍 [${streamSid}] ├── Session Type: ${sessionUpdate.session.type}`);
-    logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
-    logger.info(`🔍 [${streamSid}] └── ✅ FLUJO: Documentación oficial OpenAI - Solo type + instructions`);
-    
-    // ENVÍO CON LOG ADICIONAL
-    logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
     connectionData.ws.send(JSON.stringify(sessionUpdate));
-    logger.info(`✅ [${streamSid}] session.update enviado - Esperando session.updated...`);
 
     // ✅ FORMATO OFICIAL response.create según ejemplos OpenAI
     const forceTextResponse = {
@@ -194,9 +179,8 @@ class OpenAIRealtimeService {
       }
     };
 
-    logger.info(`🔧 [${streamSid}] Enviando response.create para forzar solo texto (solución oficial)`);
+    logger.info(`🔧 [${streamSid}] Enviando response.create para forzar solo texto`);
     connectionData.ws.send(JSON.stringify(forceTextResponse));
-    logger.info(`✅ [${streamSid}] response.create enviado - Comportamiento de solo texto forzado`);
   }
 
   /**
