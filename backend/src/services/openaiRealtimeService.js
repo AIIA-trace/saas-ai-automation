@@ -126,10 +126,10 @@ INSTRUCCIONES IMPORTANTES:
             type: 'session.update',
             session: {
               modalities: ['text', 'audio'],  // ✅ NECESARIO para procesar audio de entrada
-              instructions: customSystemMessage,
+              instructions: customSystemMessage + '\n\nIMPORTANTE: Responde SIEMPRE en español (castellano). Usa un tono natural y profesional.',
               voice: this.voice,
               input_audio_format: 'g711_ulaw',
-              output_audio_format: 'pcm16',
+              output_audio_format: 'g711_ulaw',  // 🚀 CAMBIO: mulaw directo compatible con Twilio
               input_audio_transcription: {
                 model: 'whisper-1'
               },
@@ -137,7 +137,7 @@ INSTRUCCIONES IMPORTANTES:
                 type: 'server_vad',
                 threshold: 0.3,              // Sensibilidad ajustada
                 prefix_padding_ms: 300,
-                silence_duration_ms: 500     // 🚀 Reducido para respuestas más rápidas (antes: 700ms)
+                silence_duration_ms: 300     // 🚀 Más agresivo para respuestas rápidas
               },
               temperature: this.temperature
             }
@@ -204,12 +204,12 @@ INSTRUCCIONES IMPORTANTES:
       return;
     }
 
-    // ✅ FORZAR modalidad TEXTO para que genere response.audio_transcript.delta
+    // 🚀 AUDIO NATIVO: OpenAI genera audio directamente (sin Azure TTS)
     const responseConfig = {
       type: 'response.create',
       response: {
-        modalities: ['text'],  // 🚀 SOLO TEXTO - no generar audio
-        instructions: 'Responde ÚNICAMENTE con texto. NO generes audio.'
+        modalities: ['audio'],  // 🚀 SOLO AUDIO - streaming directo
+        instructions: 'Responde en español (castellano) con un tono natural y profesional.'
       }
     };
 
@@ -468,13 +468,19 @@ INSTRUCCIONES IMPORTANTES:
                 connectionData.lastSentLength = lastPunctuation + 1;
               }
             }
-            // Si no hay puntuación pero ya tenemos mucho texto (30+ chars), enviar igual
-            else if (text.length - connectionData.lastSentLength >= 30) {
-              const chunk = text.substring(connectionData.lastSentLength).trim();
-              if (chunk.length > 0) {
-                logger.info(`🚀 [${streamSid}] ⚡ STREAMING chunk forzado (${chunk.length} chars): "${chunk}"`);
-                this.processTextWithAzureTTS(streamSid, chunk);
-                connectionData.lastSentLength = text.length;
+            // Si no hay puntuación pero ya tenemos mucho texto (40+ chars), enviar hasta último espacio
+            else if (text.length - connectionData.lastSentLength >= 40) {
+              // Buscar último espacio para NO cortar palabras
+              const textToSend = text.substring(connectionData.lastSentLength);
+              const lastSpace = textToSend.lastIndexOf(' ');
+              
+              if (lastSpace > 20) { // Solo si hay al menos 20 chars antes del espacio
+                const chunk = textToSend.substring(0, lastSpace).trim();
+                if (chunk.length > 0) {
+                  logger.info(`🚀 [${streamSid}] ⚡ STREAMING chunk forzado (${chunk.length} chars): "${chunk}"`);
+                  this.processTextWithAzureTTS(streamSid, chunk);
+                  connectionData.lastSentLength += lastSpace + 1; // +1 para saltar el espacio
+                }
               }
             }
           }
@@ -495,10 +501,26 @@ INSTRUCCIONES IMPORTANTES:
           break;
 
         case 'response.audio.delta':
+          // 🚀 AUDIO NATIVO: Enviar directamente a Twilio (mulaw)
+          if (response.delta) {
+            const audioData = response.delta; // Base64 mulaw de OpenAI
+            logger.debug(`🎵 [${streamSid}] Audio delta recibido (${audioData.length} chars base64)`);
+            
+            // Enviar directamente a Twilio via evento
+            this.emit('audioFromOpenAI', {
+              streamSid: streamSid,
+              audio: audioData,
+              timestamp: Date.now()
+            });
+          }
+          break;
+
         case 'response.audio.done':
+          logger.info(`✅ [${streamSid}] Audio de OpenAI completado`);
+          break;
+
         case 'response.output_audio_transcript.done':
-          // ✅ No deberían llegar (modalities=['text']) pero los ignoramos por seguridad
-          logger.debug(`🔇 [${streamSid}] Evento de audio ignorado: ${response.type}`);
+          // Ignorar - ya no usamos transcripción
           break;
 
         case 'response.output_audio_transcript.delta':

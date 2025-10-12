@@ -75,6 +75,11 @@ class TwilioStreamHandler {
       this.handleProcessTextWithAzure(data);
     });
 
+    // 🚀 AUDIO NATIVO: Audio directo de OpenAI → Twilio (sin Azure TTS)
+    this.openaiRealtimeService.on('audioFromOpenAI', (data) => {
+      this.handleAudioFromOpenAI(data);
+    });
+
     // LOGS DE DIAGNÓSTICO - Verificar inicialización
     logger.info('🔍 DIAGNÓSTICO - Servicios inicializados:');
     logger.info(`🔍 - openaiRealtimeService: ${!!this.openaiRealtimeService}`);
@@ -1269,6 +1274,37 @@ class TwilioStreamHandler {
       } catch (emergencyError) {
         logger.error(`💥 [${streamSid}] Error en desactivación de emergencia: ${emergencyError.message}`);
       }
+    }
+  }
+
+  /**
+   * 🚀 AUDIO NATIVO: Manejar audio directo de OpenAI (sin Azure TTS)
+   * @param {Object} data - {streamSid, audio, timestamp}
+   */
+  async handleAudioFromOpenAI(data) {
+    const { streamSid, audio, timestamp } = data;
+    const streamData = this.activeStreams.get(streamSid);
+    
+    if (!streamData || !streamData.twilioWs) {
+      logger.warn(`⚠️ [${streamSid}] No hay conexión Twilio para audio de OpenAI`);
+      return;
+    }
+
+    try {
+      // Enviar audio mulaw directamente a Twilio (sin conversión)
+      const mediaMessage = {
+        event: 'media',
+        streamSid: streamSid,
+        media: {
+          payload: audio  // Base64 mulaw de OpenAI
+        }
+      };
+
+      streamData.twilioWs.send(JSON.stringify(mediaMessage));
+      logger.debug(`🎵 [${streamSid}] Audio chunk enviado a Twilio (${audio.length} chars)`);
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error enviando audio de OpenAI a Twilio: ${error.message}`);
     }
   }
 
