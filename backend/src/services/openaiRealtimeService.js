@@ -383,6 +383,8 @@ INSTRUCCIONES IMPORTANTES:
           logger.info(`🆔 [${streamSid}] Response ID: ${responseId}`);
           // Guardar el ID de la respuesta activa
           connectionData.activeResponseId = responseId;
+          // Resetear flag de cancelación de audio
+          connectionData.audioCancelled = false;
           break;
 
         case 'response.text.delta':
@@ -451,28 +453,29 @@ INSTRUCCIONES IMPORTANTES:
           break;
 
         case 'response.audio_transcript.delta':
-          // ✅ SOLO LOGUEAR - NO ENVIAR A TTS (son palabras sueltas)
-          logger.debug(`📝 [${streamSid}] Delta de transcripción: "${response.delta}"`);
-          break;
-
         case 'response.audio_transcript.done':
-          // ✅ ESTE ES EL EVENTO CORRECTO - Transcripción completa
-          logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETA DE AUDIO GENERADO POR OPENAI`);
-          
-          const audioTranscript = response.transcript;
-          
-          if (audioTranscript) {
-            logger.info(`🎯 [${streamSid}] Transcripción OpenAI completa: "${audioTranscript}"`);
-
-            // ✅ ENVIAR A AZURE TTS (solo la transcripción completa)
-            this.processTextWithAzureTTS(streamSid, audioTranscript);
-          } else {
-            logger.warn(`⚠️ [${streamSid}] No hay transcripción en evento done`);
-            logger.debug(`🔍 [${streamSid}] Evento completo: ${JSON.stringify(response)}`);
-          }
+          // ✅ Ya no necesitamos estos eventos - cancelamos el audio antes
+          logger.debug(`📝 [${streamSid}] Evento de transcripción ignorado (audio cancelado): ${response.type}`);
           break;
 
         case 'response.audio.delta':
+          // ❌ OpenAI está generando audio - CANCELAR y usar solo texto
+          if (!connectionData.audioCancelled) {
+            logger.warn(`⚠️ [${streamSid}] OpenAI generando audio - CANCELANDO para usar solo texto`);
+            
+            // Cancelar la respuesta actual
+            if (connectionData.activeResponseId) {
+              const cancelEvent = {
+                type: 'response.cancel'
+              };
+              connectionData.ws.send(JSON.stringify(cancelEvent));
+              logger.info(`🛑 [${streamSid}] Respuesta ${connectionData.activeResponseId} cancelada`);
+            }
+            
+            connectionData.audioCancelled = true;
+          }
+          break;
+
         case 'response.audio.done':
         case 'response.output_audio_transcript.done':
           // ✅ Eventos de audio que no necesitamos procesar (usamos texto)
