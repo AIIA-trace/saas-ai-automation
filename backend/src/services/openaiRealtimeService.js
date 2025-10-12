@@ -227,11 +227,18 @@ class OpenAIRealtimeService {
     return new Promise((resolve, reject) => {
       const audioChunks = [];
       let isCollecting = false;
+      let greetingResponseId = null;  // ✅ Guardar el ID de la respuesta del saludo
 
       // Listener temporal para recolectar audio
       const audioListener = (data) => {
         try {
           const response = JSON.parse(data.toString());
+          
+          // ✅ Capturar el response ID cuando empieza la respuesta
+          if (response.type === 'response.created' && !greetingResponseId) {
+            greetingResponseId = response.response.id;
+            logger.debug(`🎯 [${streamSid}] Saludo response ID: ${greetingResponseId}`);
+          }
           
           if (response.type === 'response.audio.delta' && isCollecting) {
             // Convertir base64 a Buffer
@@ -240,8 +247,8 @@ class OpenAIRealtimeService {
             logger.debug(`🎵 [${streamSid}] Chunk de saludo recibido: ${audioBuffer.length} bytes`);
           }
           
-          // ✅ CAMBIO: Detectar cuando termina la respuesta completa (no solo el audio)
-          if (response.type === 'response.done' && isCollecting) {
+          // ✅ SOLO capturar response.done del saludo (verificar responseId)
+          if (response.type === 'response.done' && isCollecting && response.response?.id === greetingResponseId) {
             isCollecting = false;
             
             // Combinar todos los chunks
