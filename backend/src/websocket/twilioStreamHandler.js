@@ -332,31 +332,22 @@ class TwilioStreamHandler {
    * Activa la transcripción después de que el audio termine (llamado por handleMark)
    */
   activateTranscriptionAfterAudio(streamSid) {
-    logger.info(`🔍 [${streamSid}] Estado ANTES de activar transcripción:`);
-    logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
-    logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
-    logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
+    logger.info(`🎤 [${streamSid}] ACTIVANDO transcripción tras saludo (marca: greeting_end)`);
     
-    // Desactivar echo blanking (esto activa la transcripción automáticamente)
+    // Desactivar echo blanking
     this.deactivateEchoBlanking(streamSid);
     
-    // ACTIVACIÓN EXPLÍCITA COMO FALLBACK
-    if (!this.transcriptionActive.get(streamSid)) {
-      logger.warn(`⚠️ [${streamSid}] Transcripción no se activó automáticamente - activando manualmente`);
-      this.transcriptionActive.set(streamSid, true);
-      
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.state = 'listening';
-      }
+    // Activar transcripción
+    this.transcriptionActive.set(streamSid, true);
+    
+    const streamData = this.activeStreams.get(streamSid);
+    if (streamData) {
+      streamData.state = 'listening';
+      streamData.greetingCompletedAt = Date.now();
     }
     
-    logger.info(`🔍 [${streamSid}] Estado DESPUÉS de activar transcripción:`);
-    logger.info(`🔍 [${streamSid}] - echoBlanking activo: ${this.echoBlanking.get(streamSid)?.active}`);
-    logger.info(`🔍 [${streamSid}] - transcripción activa: ${this.transcriptionActive.get(streamSid)}`);
-    logger.info(`🔍 [${streamSid}] - streamData state: ${this.activeStreams.get(streamSid)?.state}`);
-    
-    logger.info(`✅ [${streamSid}] Transcripción activada exitosamente - el usuario ya puede hablar`);
+    // ✅ NO REINICIALIZAR OPENAI - La conexión ya existe desde el saludo
+    logger.info(`✅ [${streamSid}] OpenAI inicializado y transcripción activada - usuario puede hablar`);
   }
 
   /**
