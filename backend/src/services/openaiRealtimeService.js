@@ -9,9 +9,9 @@ const logger = require('../utils/logger');
 class OpenAIRealtimeService {
   constructor() {
     this.apiKey = process.env.OPENAI_API_KEY;
-    this.model = process.env.OPENAI_MODEL || 'gpt-4o-realtime-preview-2024-10-01'; // MODELO OFICIAL CORRECTO
-    this.temperature = parseFloat(process.env.OPENAI_TEMPERATURE) || 0.8; // Del código oficial
-    this.voice = process.env.OPENAI_VOICE || 'alloy'; // Del código oficial
+    this.model = process.env.OPENAI_MODEL || 'gpt-realtime'; // ✅ MODELO GA OFICIAL
+    this.temperature = parseFloat(process.env.OPENAI_TEMPERATURE) || 0.8;
+    this.voice = process.env.OPENAI_VOICE || 'alloy';
     this.activeConnections = new Map(); // streamSid -> connection data
     this.messageCount = 0;
     this.responseTimeouts = new Map(); // streamSid -> timeout ID
@@ -156,10 +156,12 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN EXACTA SEGÚN DOCUMENTACIÓN OFICIAL VAD
+    // ✅ CONFIGURACIÓN GA OFICIAL COMPLETA
     const sessionUpdate = {
       type: 'session.update',
       session: {
+        type: "realtime",  // ✅ REQUERIDO en GA API
+        model: "gpt-realtime",  // ✅ Modelo GA oficial
         instructions: customSystemMessage,
         turn_detection: {
           type: "server_vad",
@@ -175,22 +177,13 @@ class OpenAIRealtimeService {
     
     try {
       connectionData.ws.send(JSON.stringify(sessionUpdate));
-      logger.info(`✅ [${streamSid}] Configuración texto-only enviada correctamente`);
-      
-      // Verificar envío
-      logger.info(`🔍 [${streamSid}] Configuración enviada:`);
-      logger.info(`🔍 [${streamSid}] - output_modalities: ["text"]`);
-      logger.info(`🔍 [${streamSid}] - instructions: ${customSystemMessage.substring(0, 100)}...`);
+      logger.info(`✅ [${streamSid}] Configuración GA enviada correctamente`);
+      logger.info(`🔍 [${streamSid}] - Model: gpt-realtime`);
+      logger.info(`🔍 [${streamSid}] - VAD: server_vad con create_response=true`);
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando configuración: ${error.message}`);
     }
-    
-    // ✅ EXPLICACIÓN: Cómo funciona ahora
-    logger.info(`📋 [${streamSid}] ℹ️  CONFIGURACIÓN ACTUAL:`);
-    logger.info(`📋 [${streamSid}] ℹ️  - Transcripción automática con Whisper (por defecto)`);
-    logger.info(`📋 [${streamSid}] ℹ️  - Respuesta SOLO TEXTO forzada por output_modalities=["text"]`);
-    logger.info(`📋 [${streamSid}] ℹ️  - VAD automático del servidor (por defecto)`);
   }
 
   /**
@@ -559,60 +552,42 @@ class OpenAIRealtimeService {
         logger.debug(`⏱️ [${streamSid}] Updated media timestamp: ${mediaTimestamp}ms`);
       }
 
-      // 🎯 NUEVO: ENVIAR MULAW DIRECTO (SIN CONVERSIÓN)
+      // 🎯 ENVIAR MULAW DIRECTO (SIN CONVERSIÓN)
       const mulawBuffer = Buffer.from(audioPayload, 'base64');
       
       // ✅ VALIDACIÓN DE CALIDAD DE AUDIO
       const silentBytes = mulawBuffer.filter(byte => byte === 0xFF || byte === 0x00).length;
       const audioPercent = ((mulawBuffer.length - silentBytes) / mulawBuffer.length * 100);
       
-      // Inicializar contador si no existe
+      // Inicializar y actualizar contador
       if (!connectionData.audioSent) {
         connectionData.audioSent = 0;
       }
       connectionData.audioSent++;
       
-      // 🔥 SOLO LOG CADA 100 CHUNKS PARA NO SATURAR
-      if (connectionData.audioSent % 100 === 0) {
-        logger.info(`📊 [${streamSid}] MuLaw directo: ${audioPercent.toFixed(1)}% contenido, ${connectionData.audioSent} chunks enviados`);
-      }
-      
-      // 🚨 ALERTA SOLO SI ES MUY ALTO Y NO HAY DETECCIÓN
-      if (audioPercent > 50 && !this.vadDetectedRecently(streamSid)) {
-        logger.warn(`🚨 [${streamSid}] MUCHO CONTENIDO (${audioPercent}%) pero VAD no detecta`);
-      }
-      
-      // ✅ ENVIAR MULAW DIRECTO - OpenAI acepta g711_ulaw nativo
+      // ✅ ENVIAR MULAW DIRECTO
       const audioMessage = {
         type: 'input_audio_buffer.append',
-        audio: audioPayload  // ✅ MuLaw directo de Twilio (ya en base64)
+        audio: audioPayload
       };
 
       connectionData.ws.send(JSON.stringify(audioMessage));
-      logger.debug(`✅ [${streamSid}] Audio MuLaw directo enviado (${audioPayload.length} chars base64, ${mulawBuffer.length} bytes)`);
-      logger.debug(`🎙️ [${streamSid}] Audio MuLaw enviado a OpenAI Realtime`);
+      logger.debug(`🎙️ [${streamSid}] Audio enviado a OpenAI Realtime`);
       
-      // DEBUG ADICIONAL: Estado de la conexión y contadores
-      connectionData.audioSent = (connectionData.audioSent || 0) + 1;
-      
-      // 🔍 ANÁLISIS CRÍTICO: Detectar si audio tiene contenido real (variables renombradas)
-      const mulawBytes2 = Buffer.from(audioPayload, 'base64');
-      const silentBytes2 = mulawBytes2.filter(byte => byte === 0xFF).length;
-      const audioPercent2 = ((mulawBytes2.length - silentBytes2) / mulawBytes2.length * 100).toFixed(1);
-      
-      if (connectionData.audioSent % 50 === 0) {  // Log cada 50 chunks
+      // 📊 DIAGNÓSTICO PERIÓDICO
+      if (connectionData.audioSent % 50 === 0) {
         logger.info(`📊 [${streamSid}] ===== DIAGNÓSTICO VAD CRÍTICO =====`);
         logger.info(`📊 [${streamSid}] ├── Audio chunks enviados: ${connectionData.audioSent}`);
         logger.info(`📊 [${streamSid}] ├── Conexión status: ${connectionData.status}`);
         logger.info(`📊 [${streamSid}] ├── WebSocket readyState: ${connectionData.ws.readyState}`);
-        logger.info(`📊 [${streamSid}] ├── Audio content: ${audioPercent2}% non-silent`);
-        logger.info(`📊 [${streamSid}] ├── Último chunk: ${mulawBytes2.length} bytes, ${silentBytes2} silent`);
+        logger.info(`📊 [${streamSid}] ├── Audio content: ${audioPercent.toFixed(1)}% non-silent`);
+        logger.info(`📊 [${streamSid}] ├── Último chunk: ${mulawBuffer.length} bytes, ${silentBytes} silent`);
         logger.info(`📊 [${streamSid}] └── 🚨 Si >30% audio y NO hay speech_started = PROBLEMA VAD`);
       }
       
-      // 🚨 ALERTA CRÍTICA: Si hay mucho contenido pero no speech_started
-      if (audioPercent2 > 30) {
-        logger.warn(`🚨 [${streamSid}] AUDIO REAL DETECTADO: ${audioPercent2}% content - VAD debería detectar!`);
+      // 🚨 ALERTA CRÍTICA
+      if (audioPercent > 30) {
+        logger.warn(`🚨 [${streamSid}] AUDIO REAL DETECTADO: ${audioPercent.toFixed(1)}% content - VAD debería detectar!`);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando audio a OpenAI: ${error.message}`);
