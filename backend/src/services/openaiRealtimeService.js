@@ -163,7 +163,8 @@ class OpenAIRealtimeService {
                 silence_duration_ms: 300
               },
               temperature: 0.9,  // 🔥 Aumentado para respuestas más variadas y naturales (antes: 0.8)
-              max_response_output_tokens: 150  // 🚀 Limitar respuestas cortas
+              max_response_output_tokens: 150,  // 🚀 Limitar respuestas cortas
+              speed: 1.25  // ⚡ Velocidad de habla: 1.0 = normal, 1.25 = 25% más rápido (rango: 0.25 - 4.0)
             }
           };
           
