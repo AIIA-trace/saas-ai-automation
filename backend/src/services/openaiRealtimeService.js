@@ -68,7 +68,16 @@ class OpenAIRealtimeService {
       // Preparar customSystemMessage
       const companyName = clientConfig.companyName || 'la empresa';
       const companyDescription = clientConfig.companyDescription || '';
-      const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
+      const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} 
+
+INSTRUCCIONES IMPORTANTES:
+- Sé útil, amigable y directa
+- Responde SOLO cuando el usuario haga una pregunta clara o solicitud específica
+- NO generes respuestas genéricas si no entiendes lo que dijo el usuario
+- Si no entiendes algo, di "No te he entendido bien, ¿puedes repetir?"
+- Mantén un tono profesional pero cálido
+- Si te preguntan sobre servicios, información de contacto u horarios, proporciona la información disponible
+- SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio`;
 
       // Almacenar datos de conexión + variables del código oficial
       const connectionData = {
@@ -113,10 +122,10 @@ class OpenAIRealtimeService {
                 model: 'whisper-1'
               },
               turn_detection: {
-                type: 'semantic_vad',        // ✅ Detección semántica (más inteligente)
-                eagerness: 'medium'          // Velocidad de respuesta (low/medium/high/auto)
-                // ❌ NO usar create_response en modo texto-only
-                // ❌ NO usar interrupt_response en modo texto-only
+                type: 'server_vad',
+                threshold: 0.5,              // Balanceado para evitar falsos positivos
+                prefix_padding_ms: 300,
+                silence_duration_ms: 700     // Espera más silencio para confirmar fin
               },
               temperature: this.temperature
             }
@@ -309,8 +318,23 @@ class OpenAIRealtimeService {
 
         case 'conversation.item.input_audio_transcription.completed':
           logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETADA`);
-          const transcript = response.transcript || response.content || 'N/A';
-          logger.info(`🗣️ [${streamSid}] TEXTO TRANSCRITO: "${transcript}"`);
+          const transcript = response.transcript || response.content || '';
+          const transcriptClean = transcript.trim();
+          
+          logger.info(`🗣️ [${streamSid}] TEXTO TRANSCRITO: "${transcriptClean}"`);
+          
+          // ⚠️ VALIDAR: Si la transcripción está vacía, cancelar generación de respuesta
+          if (!transcriptClean || transcriptClean.length < 2) {
+            logger.warn(`⚠️ [${streamSid}] Transcripción vacía o muy corta - probablemente ruido. Ignorando.`);
+            
+            // Cancelar cualquier respuesta en progreso
+            if (connectionData.ws && connectionData.ws.readyState === 1) {
+              connectionData.ws.send(JSON.stringify({
+                type: 'response.cancel'
+              }));
+              logger.info(`🚫 [${streamSid}] Respuesta cancelada por transcripción vacía`);
+            }
+          }
           break;
 
         case 'response.created':
