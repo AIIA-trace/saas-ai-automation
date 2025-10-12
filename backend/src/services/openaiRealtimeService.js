@@ -168,18 +168,17 @@ class OpenAIRealtimeService {
         temperature: this.temperature,
         voice: 'alloy', // ✅ Necesario aunque no se use audio output
         
-        // 🔥 CRÍTICO: Configuración de audio input
+        // 🔥 CRÍTICO: USAR FORMATO DIRECTO DE TWILIO (MuLaw)
+        input_audio_format: "g711_ulaw", // ✅ FORMATO NATIVO DE TWILIO
         input_audio_transcription: {
-          model: "whisper-1"
-        },
-        
-        // 🔥 CRÍTICO: Configuración VAD explícita
-        turn_detection: {
-          type: "server_vad",
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
-          create_response: true
+          model: "whisper-1",
+          turn_detection: {
+            type: "server_vad",
+            threshold: 0.3, // ✅ MÁS SENSIBLE
+            prefix_padding_ms: 500,
+            silence_duration_ms: 800,
+            create_response: true
+          }
         }
       }
     };
@@ -589,10 +588,10 @@ class OpenAIRealtimeService {
         logger.debug(`⏱️ [${streamSid}] Updated media timestamp: ${mediaTimestamp}ms`);
       }
 
-      // 🎯 CONVERSIÓN CRÍTICA: mulaw (Twilio) → PCM (OpenAI)
+      // 🎯 NUEVO: ENVIAR MULAW DIRECTO (SIN CONVERSIÓN)
       const mulawBuffer = Buffer.from(audioPayload, 'base64');
       
-      // ✅ MEJOR VALIDACIÓN DE CALIDAD DE AUDIO
+      // ✅ VALIDACIÓN DE CALIDAD DE AUDIO
       const silentBytes = mulawBuffer.filter(byte => byte === 0xFF || byte === 0x00).length;
       const audioPercent = ((mulawBuffer.length - silentBytes) / mulawBuffer.length * 100);
       
@@ -604,7 +603,7 @@ class OpenAIRealtimeService {
       
       // 🔥 SOLO LOG CADA 100 CHUNKS PARA NO SATURAR
       if (connectionData.audioSent % 100 === 0) {
-        logger.info(`📊 [${streamSid}] Audio: ${audioPercent.toFixed(1)}% contenido, ${connectionData.audioSent} chunks enviados`);
+        logger.info(`📊 [${streamSid}] MuLaw directo: ${audioPercent.toFixed(1)}% contenido, ${connectionData.audioSent} chunks enviados`);
       }
       
       // 🚨 ALERTA SOLO SI ES MUY ALTO Y NO HAY DETECCIÓN
@@ -612,18 +611,15 @@ class OpenAIRealtimeService {
         logger.warn(`🚨 [${streamSid}] MUCHO CONTENIDO (${audioPercent}%) pero VAD no detecta`);
       }
       
-      // ✅ CONVERSIÓN: mulaw 8kHz → PCM 24kHz (formato requerido por OpenAI)
-      const pcmBuffer = this.convertMulawToPCM24k(mulawBuffer);
-      const pcmBase64 = pcmBuffer.toString('base64');
-      
+      // ✅ ENVIAR MULAW DIRECTO - OpenAI acepta g711_ulaw nativo
       const audioMessage = {
         type: 'input_audio_buffer.append',
-        audio: pcmBase64  // PCM convertido para OpenAI
+        audio: audioPayload  // ✅ MuLaw directo de Twilio (ya en base64)
       };
 
       connectionData.ws.send(JSON.stringify(audioMessage));
-      logger.debug(`✅ [${streamSid}] Audio PCM enviado (${pcmBase64.length} chars base64, ${pcmBuffer.length} bytes PCM)`);
-      logger.debug(`🎙️ [${streamSid}] Audio enviado a OpenAI Realtime`);
+      logger.debug(`✅ [${streamSid}] Audio MuLaw directo enviado (${audioPayload.length} chars base64, ${mulawBuffer.length} bytes)`);
+      logger.debug(`🎙️ [${streamSid}] Audio MuLaw enviado a OpenAI Realtime`);
       
       // DEBUG ADICIONAL: Estado de la conexión y contadores
       connectionData.audioSent = (connectionData.audioSent || 0) + 1;
