@@ -95,7 +95,10 @@ INSTRUCCIONES IMPORTANTES:
         responseStartTimestampTwilio: null,
         // ✅ NUEVAS VARIABLES PARA FLUJO TEXTO
         accumulatedText: '', // Texto acumulado de OpenAI
-        textResponseCount: 0 // Contador de respuestas de texto
+        textResponseCount: 0, // Contador de respuestas de texto
+        // 🚀 STREAMING: Variables para envío incremental a Azure
+        audioTranscript: '', // Buffer de transcripción
+        lastSentLength: 0 // Última posición enviada
       };
 
       this.activeConnections.set(streamSid, connectionData);
@@ -134,7 +137,7 @@ INSTRUCCIONES IMPORTANTES:
                 type: 'server_vad',
                 threshold: 0.3,              // Sensibilidad ajustada
                 prefix_padding_ms: 300,
-                silence_duration_ms: 700     // Espera más silencio para confirmar fin
+                silence_duration_ms: 500     // 🚀 Reducido para respuestas más rápidas (antes: 700ms)
               },
               temperature: this.temperature
             }
@@ -427,22 +430,63 @@ INSTRUCCIONES IMPORTANTES:
           break;
 
         case 'response.audio_transcript.delta':
-          // ✅ Acumular transcripción del audio generado
+          // 🚀 STREAMING: Enviar a Azure TTS en cuanto tengamos una frase completa
           if (!connectionData.audioTranscript) {
             connectionData.audioTranscript = '';
+            connectionData.lastSentLength = 0;
           }
           if (response.delta) {
             connectionData.audioTranscript += response.delta;
-            logger.debug(`📝 [${streamSid}] Transcripción delta: "${response.delta}"`);
+            logger.debug(`📝 [${streamSid}] Delta (+${response.delta.length} chars): "${response.delta}"`);
+            
+            // ✅ DETECTAR PUNTO DE CORTE para enviar a Azure
+            const text = connectionData.audioTranscript;
+            const minChunkSize = 15; // Mínimo 15 caracteres
+            
+            // Buscar última puntuación fuerte (. ! ? ,)
+            const lastPunctuation = Math.max(
+              text.lastIndexOf('.'),
+              text.lastIndexOf('!'),
+              text.lastIndexOf('?'),
+              text.lastIndexOf(',')
+            );
+            
+            // Si hay puntuación Y suficiente texto nuevo
+            if (lastPunctuation > connectionData.lastSentLength && 
+                lastPunctuation >= minChunkSize) {
+              
+              // Extraer frase completa hasta la puntuación
+              const chunk = text.substring(connectionData.lastSentLength, lastPunctuation + 1).trim();
+              
+              if (chunk.length > 0) {
+                logger.info(`🚀 [${streamSid}] ⚡ STREAMING chunk (${chunk.length} chars): "${chunk}"`);
+                this.processTextWithAzureTTS(streamSid, chunk);
+                connectionData.lastSentLength = lastPunctuation + 1;
+              }
+            }
+            // Si no hay puntuación pero ya tenemos mucho texto (30+ chars), enviar igual
+            else if (text.length - connectionData.lastSentLength >= 30) {
+              const chunk = text.substring(connectionData.lastSentLength).trim();
+              if (chunk.length > 0) {
+                logger.info(`🚀 [${streamSid}] ⚡ STREAMING chunk forzado (${chunk.length} chars): "${chunk}"`);
+                this.processTextWithAzureTTS(streamSid, chunk);
+                connectionData.lastSentLength = text.length;
+              }
+            }
           }
           break;
 
         case 'response.audio_transcript.done':
-          // ✅ Transcripción completa - enviar a Azure TTS
+          // ✅ Enviar cualquier texto restante que no se envió
           if (connectionData.audioTranscript) {
-            logger.info(`🎯 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETA: "${connectionData.audioTranscript}"`);
-            this.processTextWithAzureTTS(streamSid, connectionData.audioTranscript);
-            connectionData.audioTranscript = ''; // Limpiar
+            const remainingText = connectionData.audioTranscript.substring(connectionData.lastSentLength).trim();
+            if (remainingText.length > 0) {
+              logger.info(`🎯 [${streamSid}] ✅ FINAL chunk (${remainingText.length} chars): "${remainingText}"`);
+              this.processTextWithAzureTTS(streamSid, remainingText);
+            }
+            // Limpiar para próxima respuesta
+            connectionData.audioTranscript = '';
+            connectionData.lastSentLength = 0;
           }
           break;
 
