@@ -333,17 +333,6 @@ class OpenAIRealtimeService {
           }
           break;
 
-        case 'session.updated':
-          // ✅ CONFIRMAR que configuración fue aceptada
-          logger.info(`⚙️ [${streamSid}] ✅ SESSION UPDATED - Configuración aplicada exitosamente`);
-          logger.info(`⚙️ [${streamSid}] 📊 Modalities: ${JSON.stringify(response.session.modalities)}`);
-          logger.info(`⚙️ [${streamSid}] 📊 Max tokens: ${response.session.max_response_output_tokens}`);
-          logger.info(`⚙️ [${streamSid}] 📊 Input transcription: ${response.session.input_audio_transcription ? 'enabled' : 'disabled'}`);
-          
-          // Marcar sesión como lista para recibir audio
-          connectionData.status = 'ready';
-          logger.info(`✅ [${streamSid}] OpenAI listo para recibir audio del usuario`);
-          break;
 
         case 'response.text.done':
           // 🔥 CLEAR TIMEOUT
@@ -432,25 +421,7 @@ class OpenAIRealtimeService {
           logger.info(`🔍 [${streamSid}] └── ✅ Respuesta procesada completamente`);
           break;
 
-        case 'input_audio_buffer.speech_started':
-          logger.info(`🎤 [${streamSid}] OpenAI detectó inicio de habla del usuario`);
-          logger.info(`🔍 [${streamSid}] 📊 SPEECH_STARTED COMPLETO: ${JSON.stringify(response, null, 2)}`);
-          // CÓDIGO OFICIAL: Manejar interrupciones
-          this.handleSpeechStartedEvent(streamSid);
-          break;
 
-        case 'input_audio_buffer.speech_stopped':
-          logger.info(`🎤 [${streamSid}] OpenAI detectó fin de habla del usuario`);
-          logger.info(`🚀 [${streamSid}] ESPERANDO respuesta automática de OpenAI...`);
-          logger.info(`🔍 [${streamSid}] 📊 SPEECH_STOPPED COMPLETO: ${JSON.stringify(response, null, 2)}`);
-          
-          // DEBUG CRÍTICO: Estado de la sesión cuando se detecta fin de habla
-          logger.info(`🔍 [${streamSid}] ✅ ESTADO ESPERADO DESPUÉS DE SPEECH_STOPPED:`);
-          logger.info(`🔍 [${streamSid}] ├── Debería llegar: conversation.item.input_audio_transcription.completed`);
-          logger.info(`🔍 [${streamSid}] ├── Luego debería llegar: response.created`);
-          logger.info(`🔍 [${streamSid}] ├── Luego debería llegar: response.text.delta(s)`);
-          logger.info(`🔍 [${streamSid}] └── Finalmente: response.text.done`);
-          break;
 
         case 'conversation.item.input_audio_transcription.completed':
           logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETADA - ÉXITO!`);
