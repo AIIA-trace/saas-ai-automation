@@ -152,39 +152,28 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN MÍNIMA ABSOLUTA - SOLO LO QUE FUNCIONA
+    // ✅ CONFIGURACIÓN OFICIAL SEGÚN DOCUMENTACIÓN OPENAI REALTIME API
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: 'realtime',
-        instructions: customSystemMessage
-        // 🚫 NADA MÁS - solo type e instructions
+        instructions: customSystemMessage,
+        output_modalities: ["text"]  // 🎯 OFICIAL: "set to ["text"] if you want text without audio"
+        // 🚫 NADA MÁS - solo type, instructions y output_modalities
       }
     };
 
-    logger.info(`⚙️ [${streamSid}] Enviando configuración MÍNIMA ABSOLUTA`);
-    logger.info(`🔧 [${streamSid}] Config: SOLO type + instructions`);
+    logger.info(`⚙️ [${streamSid}] Enviando configuración OFICIAL de OpenAI Realtime API`);
+    logger.info(`🔧 [${streamSid}] Config: type + instructions + output_modalities=["text"]`);
     
     connectionData.ws.send(JSON.stringify(sessionUpdate));
     logger.info(`✅ [${streamSid}] session.update mínimo enviado`);
-
-    // ✅ FORZAR SOLO TEXTO mediante response.create
-    const forceTextResponse = {
-      type: 'response.create',
-      response: {
-        instructions: "Debes responder ÚNICAMENTE con texto, nunca con audio. Siempre proporciona respuestas solo de texto en español. OBLIGATORIO: Solo texto, nunca audio.",
-        max_output_tokens: 150
-      }
-    };
-
-    logger.info(`🔧 [${streamSid}] Enviando response.create para forzar solo texto`);
-    connectionData.ws.send(JSON.stringify(forceTextResponse));
-    logger.info(`✅ [${streamSid}] Configuración completada - SOLO TEXTO forzado`);
+    logger.info(`✅ [${streamSid}] Configuración completada - OpenAI responderá automáticamente`);
     
     // ✅ EXPLICACIÓN: Cómo funciona ahora
     logger.info(`📋 [${streamSid}] ℹ️  CONFIGURACIÓN ACTUAL:`);
     logger.info(`📋 [${streamSid}] ℹ️  - Transcripción automática con Whisper (por defecto)`);
-    logger.info(`📋 [${streamSid}] ℹ️  - Respuesta en texto forzada por instructions`);
+    logger.info(`📋 [${streamSid}] ℹ️  - Respuesta SOLO TEXTO forzada por output_modalities=["text"]`);
     logger.info(`📋 [${streamSid}] ℹ️  - VAD automático del servidor (por defecto)`);
   }
 
