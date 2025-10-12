@@ -213,6 +213,54 @@ class OpenAIRealtimeService {
   }
 
   /**
+   * Enviar trigger para que OpenAI genere el saludo automáticamente
+   * @param {string} streamSid - ID del stream
+   * @param {string} greetingText - Texto del saludo a decir
+   * @returns {Promise<void>}
+   */
+  async sendGreetingTrigger(streamSid, greetingText) {
+    const connectionData = this.activeConnections.get(streamSid);
+    if (!connectionData || !connectionData.ws) {
+      throw new Error('No active OpenAI connection');
+    }
+
+    try {
+      // Crear un mensaje del sistema que instruya a OpenAI a decir el saludo
+      const greetingMessage = {
+        type: 'conversation.item.create',
+        item: {
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: `[INSTRUCCIÓN INTERNA: Di exactamente este saludo al usuario: "${greetingText}"]`
+            }
+          ]
+        }
+      };
+      
+      connectionData.ws.send(JSON.stringify(greetingMessage));
+      logger.info(`📝 [${streamSid}] Mensaje de saludo enviado a OpenAI`);
+      
+      // Crear respuesta para que OpenAI procese el mensaje
+      const createResponse = {
+        type: 'response.create',
+        response: {
+          modalities: ['audio', 'text'],
+          instructions: `Di exactamente: "${greetingText}". No agregues nada más.`
+        }
+      };
+      
+      connectionData.ws.send(JSON.stringify(createResponse));
+      logger.info(`🎤 [${streamSid}] Respuesta de saludo solicitada a OpenAI`);
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error enviando trigger de saludo: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Generar audio de saludo usando OpenAI TTS
    * @param {string} streamSid - ID del stream
    * @param {string} greetingText - Texto del saludo

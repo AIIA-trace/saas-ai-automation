@@ -746,8 +746,7 @@ class TwilioStreamHandler {
     // 🎯 ESTRATEGIA: Inicializar OpenAI PRIMERO, generar saludo, enviarlo, y LUEGO activar transcripción
     // Esto evita que OpenAI detecte su propio saludo como voz del usuario
     
-    // ✅ SOLUCIÓN SIMPLE: Inicializar OpenAI y dejar que genere el saludo automáticamente
-    // OpenAI dirá un saludo natural UNA SOLA VEZ sin necesidad de capturarlo
+    // ✅ SOLUCIÓN: Inicializar OpenAI y enviar mensaje para que genere el saludo
     
     try {
       // 1. Inicializar OpenAI Realtime
@@ -755,11 +754,15 @@ class TwilioStreamHandler {
       await this.openaiRealtimeService.initializeConnection(streamSid, streamData.client);
       logger.info(`✅ [${streamSid}] OpenAI Realtime inicializado`);
       
-      // 2. Activar transcripción inmediatamente (OpenAI generará saludo automáticamente)
+      // 2. Enviar mensaje para activar el saludo
+      logger.info(`📤 [${streamSid}] Enviando trigger para generar saludo: "${greeting}"`);
+      await this.openaiRealtimeService.sendGreetingTrigger(streamSid, greeting);
+      
+      // 3. Activar transcripción para que el usuario pueda hablar después
       this.transcriptionActive.set(streamSid, true);
       streamData.state = 'listening';
       
-      logger.info(`✅ [${streamSid}] Sistema listo - OpenAI generará saludo automáticamente`);
+      logger.info(`✅ [${streamSid}] Sistema listo - OpenAI generará saludo`);
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error inicializando OpenAI: ${error.message}`);
     }
