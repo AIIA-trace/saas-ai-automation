@@ -746,65 +746,25 @@ class TwilioStreamHandler {
     // 🎯 ESTRATEGIA: Inicializar OpenAI PRIMERO, generar saludo, enviarlo, y LUEGO activar transcripción
     // Esto evita que OpenAI detecte su propio saludo como voz del usuario
     
+    // ✅ SOLUCIÓN SIMPLE: Inicializar OpenAI y dejar que genere el saludo automáticamente
+    // OpenAI dirá un saludo natural UNA SOLA VEZ sin necesidad de capturarlo
+    
     try {
-      // 1. Inicializar OpenAI Realtime (pero sin activar transcripción todavía)
-      logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime para generar saludo...`);
+      // 1. Inicializar OpenAI Realtime
+      logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime...`);
       await this.openaiRealtimeService.initializeConnection(streamSid, streamData.client);
       logger.info(`✅ [${streamSid}] OpenAI Realtime inicializado`);
       
-      // 2. Generar audio del saludo con OpenAI TTS
-      logger.info(`🔊 [${streamSid}] Generando saludo con OpenAI TTS (voz shimmer)...`);
-      const openaiTTSResult = await this.openaiRealtimeService.generateGreetingAudio(streamSid, greeting);
+      // 2. Activar transcripción inmediatamente (OpenAI generará saludo automáticamente)
+      this.transcriptionActive.set(streamSid, true);
+      streamData.state = 'listening';
       
-      if (openaiTTSResult.success) {
-        logger.info(`✅ [${streamSid}] Audio de saludo generado con OpenAI (${openaiTTSResult.audioBuffer.length} bytes)`);
-        
-        // 3. ECHO BLANKING: Activar blanking antes de enviar audio del bot
-        this.activateEchoBlanking(streamSid);
-        
-        // 4. Usar sistema de marcas para activar transcripción después del saludo
-        const markId = `greeting_end_${Date.now()}`;
-        logger.info(`🎯 [${streamSid}] Enviando saludo con marca: ${markId}`);
-        
-        // Registrar que esperamos esta marca para activar transcripción
-        this.pendingMarks = this.pendingMarks || new Map();
-        this.pendingMarks.set(markId, {
-          streamSid: streamSid,
-          action: 'activate_transcription',
-          timestamp: Date.now()
-        });
-        
-        // 5. Enviar audio con marca al final
-        await this.sendRawMulawToTwilioWithMark(ws, openaiTTSResult.audioBuffer, streamSid, markId);
-        logger.info(`✅ [${streamSid}] Audio del saludo enviado con marca ${markId}`);
-      } else {
-        logger.error(`❌ [${streamSid}] OpenAI TTS falló: ${openaiTTSResult?.error || 'Unknown error'}`);
-        throw new Error('OpenAI TTS failed');
-      }
+      logger.info(`✅ [${streamSid}] Sistema listo - OpenAI generará saludo automáticamente`);
     } catch (error) {
-      logger.error(`❌ [${streamSid}] Error generando saludo con OpenAI: ${error.message}`);
-      
-      // Usar fallback simple
-      logger.warn(`⚠️ [${streamSid}] Usando audio de fallback`);
-      
-      this.activateEchoBlanking(streamSid);
-      
-      const markId = `fallback_end_${Date.now()}`;
-      this.pendingMarks = this.pendingMarks || new Map();
-      this.pendingMarks.set(markId, {
-        streamSid: streamSid,
-        action: 'activate_transcription',
-        timestamp: Date.now()
-      });
-      
-      await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, markId);
-      logger.info(`✅ [${streamSid}] Audio fallback enviado con marca ${markId}`);
+      logger.error(`❌ [${streamSid}] Error inicializando OpenAI: ${error.message}`);
     }
     
-    // 🚫 REMOVIDO: NO inicializar OpenAI aquí - se hará cuando termine el saludo
-    // Motivo: Evitar que OpenAI detecte el echo del saludo como voz del usuario
-    
-    logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting - OpenAI se inicializará al terminar el saludo`);
+    logger.info(`🔍 [${streamSid}] FINALIZANDO sendInitialGreeting`);
   }
 
   async sendExtendedGreeting(ws, streamSid, clientConfigData) {
