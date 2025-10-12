@@ -91,8 +91,10 @@ class OpenAIRealtimeService {
           logger.info(`🔍 [${streamSid}] Temperature: ${this.temperature}`);
           connectionData.status = 'connected';
           
-          // Enviar inicialización de sesión (formato oficial)
-          setTimeout(() => this.initializeSession(streamSid, clientConfig), 100);
+          // 🔥 CRÍTICO: Enviar configuración INMEDIATAMENTE después de open
+          setTimeout(() => {
+            this.initializeSession(streamSid, clientConfig);
+          }, 50); // Reducido a 50ms para ser más inmediato
           
           resolve(openAiWs);
         });
@@ -137,38 +139,47 @@ class OpenAIRealtimeService {
    * @param {Object} clientConfig - Configuración del cliente
    */
   initializeSession(streamSid, clientConfig) {
-    logger.info(`🔥 [${streamSid}] INICIO initializeSession() - CONFIG MÍNIMA`);
+    logger.info(`🔥 [${streamSid}] ENVIANDO CONFIGURACIÓN INMEDIATA`);
     
     const connectionData = this.activeConnections.get(streamSid);
     
     if (!connectionData || connectionData.status !== 'connected') {
-      logger.error(`❌ [${streamSid}] No hay conexión OpenAI activa para configurar`);
+      logger.error(`❌ [${streamSid}] No hay conexión activa para configurar`);
       return;
     }
 
-    // Personalizar mensaje del sistema según el cliente
+    // Preparar configuración COMPLETA y EXPLÍCITA
     const companyName = clientConfig.companyName || 'la empresa';
     const companyDescription = clientConfig.companyDescription || '';
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN OFICIAL SEGÚN DOCUMENTACIÓN OPENAI REALTIME API
+    // ✅ CONFIGURACIÓN COMPLETA Y EXPLÍCITA
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: 'realtime',
         instructions: customSystemMessage,
-        output_modalities: ["text"]  // 🎯 OFICIAL: "set to ["text"] if you want text without audio"
-        // 🚫 NADA MÁS - solo type, instructions y output_modalities
+        output_modalities: ["text"],  // 🔥 CRÍTICO: forzar solo texto
+        temperature: this.temperature
+        // 🚫 Mantener configuración como estaba originalmente
       }
     };
 
-    logger.info(`⚙️ [${streamSid}] Enviando configuración OFICIAL de OpenAI Realtime API`);
-    logger.info(`🔧 [${streamSid}] Config: type + instructions + output_modalities=["text"]`);
+    logger.info(`⚙️ [${streamSid}] Enviando configuración COMPLETA para forzar texto-only`);
     
-    connectionData.ws.send(JSON.stringify(sessionUpdate));
-    logger.info(`✅ [${streamSid}] session.update mínimo enviado`);
-    logger.info(`✅ [${streamSid}] Configuración completada - OpenAI responderá automáticamente`);
+    try {
+      connectionData.ws.send(JSON.stringify(sessionUpdate));
+      logger.info(`✅ [${streamSid}] Configuración texto-only enviada correctamente`);
+      
+      // Verificar envío
+      logger.info(`🔍 [${streamSid}] Configuración enviada:`);
+      logger.info(`🔍 [${streamSid}] - output_modalities: ["text"]`);
+      logger.info(`🔍 [${streamSid}] - instructions: ${customSystemMessage.substring(0, 100)}...`);
+      
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error enviando configuración: ${error.message}`);
+    }
     
     // ✅ EXPLICACIÓN: Cómo funciona ahora
     logger.info(`📋 [${streamSid}] ℹ️  CONFIGURACIÓN ACTUAL:`);
@@ -225,25 +236,41 @@ class OpenAIRealtimeService {
 
       // Procesar diferentes tipos de mensajes
       switch (response.type) {
+        case 'session.created':
+          logger.info(`🔍 [${streamSid}] Sesión creada por OpenAI - Verificando configuración inicial`);
+          
+          // Verificar qué configuró OpenAI por defecto
+          if (response.session && response.session.output_modalities) {
+            const defaultModalities = response.session.output_modalities;
+            logger.info(`🔍 [${streamSid}] OpenAI configuró por defecto: ${JSON.stringify(defaultModalities)}`);
+            
+            if (defaultModalities.includes('audio')) {
+              logger.warn(`⚠️ [${streamSid}] OpenAI está configurado con audio por defecto - nuestra configuración se enviará ahora`);
+            }
+          }
+          break;
+
         case 'session.updated':
           logger.info(`✅ [${streamSid}] Sesión OpenAI configurada correctamente`);
-          logger.info(`🔍 [${streamSid}] 📊 SESSION.UPDATED COMPLETO: ${JSON.stringify(response, null, 2)}`);
           
-          // DEBUG: Verificar configuración aplicada OFICIAL
+          // 🔍 VERIFICAR CRÍTICA: Que se aplicó nuestra configuración
           if (response.session) {
-            logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN APLICADA POR OPENAI:`);
-            logger.info(`🔍 [${streamSid}] ├── Session Type: ${response.session.type || 'N/A'}`);
-            logger.info(`🔍 [${streamSid}] ├── Model aplicado: ${response.session.model || 'N/A'}`);
-            logger.info(`🔍 [${streamSid}] ├── Instructions aplicadas: ${response.session.instructions ? 'SI' : 'NO'}`);
-            if (response.session.audio) {
-              logger.info(`🔍 [${streamSid}] ├── Audio config: DEFAULTS aplicados por OpenAI`);
-              logger.info(`🔍 [${streamSid}] ├── VAD: ${response.session.audio.input?.turn_detection?.type || 'default'}`);
+            const appliedModalities = response.session.output_modalities;
+            const appliedInstructions = response.session.instructions;
+            
+            logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN APLICADA:`);
+            logger.info(`🔍 [${streamSid}] ├── Output modalities: ${JSON.stringify(appliedModalities)}`);
+            logger.info(`🔍 [${streamSid}] ├── Instructions aplicadas: ${appliedInstructions ? 'SÍ' : 'NO'}`);
+            
+            // 🔥 ALERTA SI NO SE APLICÓ NUESTRA CONFIGURACIÓN
+            if (!appliedModalities || !appliedModalities.includes('text') || appliedModalities.includes('audio')) {
+              logger.error(`🚨 [${streamSid}] CONFIGURACIÓN NO APLICADA - OpenAI está usando: ${JSON.stringify(appliedModalities)}`);
+            } else {
+              logger.info(`🎯 [${streamSid}] ✅ TEXTO-ONLY CONFIGURADO CORRECTAMENTE`);
             }
-            logger.info(`🔍 [${streamSid}] └── ✅ CONFIGURACIÓN OFICIAL APLICADA CORRECTAMENTE`);
           }
           
           connectionData.status = 'ready';
-          logger.info(`🚀 [${streamSid}] ✅ OpenAI LISTO para recibir audio - Status: ready`);
           break;
 
         case 'input_audio_buffer.speech_started':
