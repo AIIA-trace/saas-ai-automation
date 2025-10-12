@@ -156,23 +156,21 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN GA OFICIAL COMPLETA
+    // ✅ CONFIGURACIÓN SEGÚN DOC VAD (más simple)
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: "realtime",
         model: "gpt-realtime",
         instructions: customSystemMessage,
+        turn_detection: {
+          type: "server_vad",
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 500,
+          create_response: true
+        },
         audio: {
-          input: {
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 500,
-              create_response: true
-            }
-          },
           output: {
             voice: "alloy"
           }
