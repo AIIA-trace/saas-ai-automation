@@ -442,16 +442,22 @@ INSTRUCCIONES IMPORTANTES:
         case 'response.audio.delta':
         case 'response.audio.done':
         case 'response.audio_transcript.delta':
+        case 'response.audio_transcript.done':  // ✅ ESTE ES EL EVENTO CORRECTO
         case 'response.output_audio_transcript.done':
           // ✅ CAPTURAR TRANSCRIPCIÓN cuando OpenAI genera audio inesperadamente (bug conocido)
           logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETA DE AUDIO GENERADO POR OPENAI`);
-          if (response.transcript) {
-            logger.info(`🎯 [${streamSid}] TRANScripción OpenAI: "${response.transcript}"`);
+          
+          // ✅ Buscar transcripción en diferentes ubicaciones según el evento
+          const audioTranscript = response.transcript || response.delta;
+          
+          if (audioTranscript) {
+            logger.info(`🎯 [${streamSid}] Transcripción OpenAI: "${audioTranscript}"`);
 
             // ✅ ENVIAR A AZURE TTS (como si fuera respuesta de texto normal)
-            this.processTextWithAzureTTS(streamSid, response.transcript);
+            this.processTextWithAzureTTS(streamSid, audioTranscript);
           } else {
             logger.warn(`⚠️ [${streamSid}] No hay transcripción en evento de audio completado`);
+            logger.debug(`🔍 [${streamSid}] Evento completo: ${JSON.stringify(response)}`);
           }
           break;
 
