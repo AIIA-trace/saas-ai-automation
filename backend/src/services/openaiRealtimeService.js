@@ -122,9 +122,11 @@ INSTRUCCIONES IMPORTANTES:
           const sessionConfig = {
             type: 'session.update',
             session: {
-              modalities: ['text'],  // ✅ SOLO TEXTO - No generar audio (usamos Azure TTS)
+              modalities: ['text', 'audio'],  // ✅ NECESARIO para procesar audio de entrada
               instructions: customSystemMessage,
+              voice: this.voice,
               input_audio_format: 'g711_ulaw',
+              output_audio_format: 'pcm16',
               input_audio_transcription: {
                 model: 'whisper-1'
               },
