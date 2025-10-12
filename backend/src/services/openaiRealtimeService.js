@@ -162,7 +162,9 @@ class OpenAIRealtimeService {
       session: {
         type: "realtime",
         model: "gpt-4o-realtime-preview",
-        instructions: customSystemMessage
+        instructions: customSystemMessage,
+        modalities: ["text"],
+        output_modalities: ["text"]
       }
     };
 
@@ -348,12 +350,17 @@ class OpenAIRealtimeService {
         case 'response.audio.delta':
         case 'response.audio.done':
         case 'response.audio_transcript.delta':
-        case 'response.audio_transcript.done':
-        case 'response.output_audio.delta':
-          // ✅ SOLUCIÓN OFICIAL: Ignorar audio según documentación 
-          logger.warn(`⚠️ [${streamSid}] Audio detectado (bug OpenAI conocido) - Ignorando: ${response.type}`);
-          logger.debug(`🔍 [${streamSid}] Audio ignorado - Solo procesamos texto con response.create`);
-          // Descartamos cualquier respuesta de audio para forzar solo texto
+        case 'response.output_audio_transcript.done':
+          // ✅ CAPTURAR TRANSCRIPCIÓN cuando OpenAI genera audio inesperadamente (bug conocido)
+          logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETA DE AUDIO GENERADO POR OPENAI`);
+          if (response.transcript) {
+            logger.info(`🎯 [${streamSid}] TRANScripción OpenAI: "${response.transcript}"`);
+
+            // ✅ ENVIAR A AZURE TTS (como si fuera respuesta de texto normal)
+            this.processTextWithAzureTTS(streamSid, response.transcript);
+          } else {
+            logger.warn(`⚠️ [${streamSid}] No hay transcripción en evento de audio completado`);
+          }
           break;
 
         case 'response.output_audio_transcript.delta':
