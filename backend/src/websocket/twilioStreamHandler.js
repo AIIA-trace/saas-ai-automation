@@ -214,7 +214,7 @@ class TwilioStreamHandler {
         await this.handleMediaEvent(ws, data);
         break;
       case 'mark':
-        this.handleMark(data);
+        await this.handleMark(data);
         break;
       case 'stop':
         await this.handleStop(ws, data);
@@ -253,7 +253,7 @@ class TwilioStreamHandler {
   /**
    * Maneja evento 'mark' de Twilio - CRÍTICO para activar transcripción
    */
-  handleMark(data) {
+  async handleMark(data) {
     const streamSid = data.streamSid;
     const markName = data.mark?.name;
 
@@ -292,7 +292,7 @@ class TwilioStreamHandler {
       case 'activate_transcription':
         logger.info(`🎤 [${streamSid}] ACTIVANDO transcripción tras saludo (marca: ${markName})`);
         
-        // ✅ NO reinicializar OpenAI - la conexión ya existe desde el saludo
+        // ✅ OpenAI ya está inicializado desde antes del saludo
         // Solo activar transcripción
         this.transcriptionActive.set(streamSid, true);
         const streamData = this.activeStreams.get(streamSid);
@@ -743,24 +743,26 @@ class TwilioStreamHandler {
       return;
     }
 
+    // 🎯 ESTRATEGIA: Inicializar OpenAI PRIMERO, generar saludo, enviarlo, y LUEGO activar transcripción
+    // Esto evita que OpenAI detecte su propio saludo como voz del usuario
+    
     try {
-      // 🚀 USAR OPENAI TTS PARA SALUDO (voz shimmer)
-      logger.info(`🔊 [${streamSid}] Generando saludo con OpenAI TTS (voz shimmer)...`);
-      
-      // Inicializar OpenAI Realtime ANTES del saludo para usar su TTS
+      // 1. Inicializar OpenAI Realtime (pero sin activar transcripción todavía)
+      logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime para generar saludo...`);
       await this.openaiRealtimeService.initializeConnection(streamSid, streamData.client);
-      logger.info(`✅ [${streamSid}] OpenAI Realtime inicializado para saludo`);
+      logger.info(`✅ [${streamSid}] OpenAI Realtime inicializado`);
       
-      // Generar audio del saludo con OpenAI TTS
+      // 2. Generar audio del saludo con OpenAI TTS
+      logger.info(`🔊 [${streamSid}] Generando saludo con OpenAI TTS (voz shimmer)...`);
       const openaiTTSResult = await this.openaiRealtimeService.generateGreetingAudio(streamSid, greeting);
       
       if (openaiTTSResult.success) {
         logger.info(`✅ [${streamSid}] Audio de saludo generado con OpenAI (${openaiTTSResult.audioBuffer.length} bytes)`);
         
-        // ECHO BLANKING: Activar blanking antes de enviar audio del bot
+        // 3. ECHO BLANKING: Activar blanking antes de enviar audio del bot
         this.activateEchoBlanking(streamSid);
         
-        // Usar sistema de marcas para activar transcripción después del saludo
+        // 4. Usar sistema de marcas para activar transcripción después del saludo
         const markId = `greeting_end_${Date.now()}`;
         logger.info(`🎯 [${streamSid}] Enviando saludo con marca: ${markId}`);
         
@@ -772,7 +774,7 @@ class TwilioStreamHandler {
           timestamp: Date.now()
         });
         
-        // Enviar audio con marca al final
+        // 5. Enviar audio con marca al final
         await this.sendRawMulawToTwilioWithMark(ws, openaiTTSResult.audioBuffer, streamSid, markId);
         logger.info(`✅ [${streamSid}] Audio del saludo enviado con marca ${markId}`);
       } else {
@@ -782,20 +784,21 @@ class TwilioStreamHandler {
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error generando saludo con OpenAI: ${error.message}`);
       
-      // ✅ NO enviar fallback - OpenAI generará el audio directamente en streaming
-      // El audio ya se está enviando via handleOpenAIMessage -> response.audio.delta
-      logger.info(`🎵 [${streamSid}] OpenAI generará el saludo en streaming (sin pre-generación)`);
+      // Usar fallback simple
+      logger.warn(`⚠️ [${streamSid}] Usando audio de fallback`);
       
-      // Activar transcripción después de un breve delay (OpenAI ya está activo)
-      setTimeout(() => {
-        this.transcriptionActive.set(streamSid, true);
-        const streamData = this.activeStreams.get(streamSid);
-        if (streamData) {
-          streamData.state = 'listening';
-          streamData.greetingCompletedAt = Date.now();
-        }
-        logger.info(`✅ [${streamSid}] Transcripción activada tras error de pre-generación`);
-      }, 3000);
+      this.activateEchoBlanking(streamSid);
+      
+      const markId = `fallback_end_${Date.now()}`;
+      this.pendingMarks = this.pendingMarks || new Map();
+      this.pendingMarks.set(markId, {
+        streamSid: streamSid,
+        action: 'activate_transcription',
+        timestamp: Date.now()
+      });
+      
+      await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, markId);
+      logger.info(`✅ [${streamSid}] Audio fallback enviado con marca ${markId}`);
     }
     
     // 🚫 REMOVIDO: NO inicializar OpenAI aquí - se hará cuando termine el saludo
