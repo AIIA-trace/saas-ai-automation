@@ -808,49 +808,25 @@ class TwilioStreamHandler {
   }
 
   async sendExtendedGreeting(ws, streamSid, clientConfigData) {
-    const fallbackGreeting = "Gracias por llamar. Estamos conectándote con un asistente. Por favor, espera un momento.";
+    const fallbackGreeting = "Hola, bienvenido. ¿En qué puedo ayudarte?";
     
-    // Get voice configuration and map to valid Azure voice
-    const rawVoiceId = clientConfigData.callConfig?.voiceId || 
-                      'isidora';
-    const language = clientConfigData.callConfig?.language || 
-                    'es-ES';
-    
-    logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback`);
-    logger.info(`🎵 [${streamSid}] Raw voice: "${rawVoiceId}" → Mapped: "${this.mapVoiceToAzure(rawVoiceId, language)}"`);
-  
-    logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con voz: ${this.mapVoiceToAzure(rawVoiceId, language)}`);
-  
-    // Humanizar el saludo de fallback con SSML
-    const humanizedFallback = this.humanizeTextWithSSML(fallbackGreeting);
+    logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con OpenAI`);
     
     try {
-      logger.info(`🔊 [${streamSid}] Iniciando Azure TTS para saludo extendido con timeout de 10s...`);
-      const ttsPromise = this.ttsService.generateSpeech(
-        humanizedFallback,
-        this.mapVoiceToAzure(rawVoiceId, language),
-        'raw-8khz-8bit-mono-mulaw'
-      );
+      // 1. Inicializar OpenAI Realtime
+      logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime para saludo extendido...`);
+      await this.openaiRealtimeService.initializeConnection(streamSid, clientConfigData);
+      logger.info(`✅ [${streamSid}] OpenAI Realtime inicializado`);
       
-      // Agregar timeout para evitar que Azure TTS se cuelgue en producción
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Azure TTS timeout after 10 seconds')), 10000);
-      });
+      // 2. Generar audio del saludo con OpenAI TTS
+      logger.info(`🔊 [${streamSid}] Generando saludo extendido con OpenAI TTS...`);
+      const openaiTTSResult = await this.openaiRealtimeService.generateGreetingAudio(streamSid, fallbackGreeting);
       
-      const ttsResult = await Promise.race([ttsPromise, timeoutPromise]);
-      
-      // ECHO BLANKING: Activar blanking antes de enviar audio del bot
-      this.activateEchoBlanking(streamSid);
-    
-      if (ttsResult.success) {
-        // Save audio to file
-        const fileName = `debug_${Date.now()}_${streamSid}.wav`;
-        fs.writeFileSync(fileName, ttsResult.audioBuffer);
-        logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
+      if (openaiTTSResult.success) {
+        logger.info(`✅ [${streamSid}] Audio de saludo extendido generado (${openaiTTSResult.audioBuffer.length} bytes)`);
         
-        // Calcular duración aproximada del audio para timing correcto
-        const audioLengthMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000); // 8kHz mulaw
-        logger.info(`🔍 [${streamSid}] Audio length: ${ttsResult.audioBuffer.length} bytes = ~${audioLengthMs}ms`);
+        // ECHO BLANKING: Activar blanking antes de enviar audio del bot
+        this.activateEchoBlanking(streamSid);
         
         // Usar sistema de marcas para activar transcripción
         const markId = `extended_greeting_end_${Date.now()}`;
@@ -865,21 +841,10 @@ class TwilioStreamHandler {
         });
         
         // Enviar audio con marca al final
-        await this.sendRawMulawToTwilioWithMark(ws, ttsResult.audioBuffer, streamSid, markId);
+        await this.sendRawMulawToTwilioWithMark(ws, openaiTTSResult.audioBuffer, streamSid, markId);
         logger.info(`✅ [${streamSid}] Saludo extendido enviado con marca ${markId}`);
-
-        // 🔧 CRÍTICO: Desactivar echo blanking después del audio
-        // Cálculo correcto: audio mulaw 8kHz = 1 byte per sample = 8000 bytes/segundo
-        const audioDurationMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000);
-        const safetyMarginMs = 3000; // 3 segundos de margen de seguridad  
-        const totalBlankingTime = audioDurationMs + safetyMarginMs;
-        
-        logger.info(`🔊 [${streamSid}] EXTENDIDO: Echo blanking calculado: ${audioDurationMs}ms audio + ${safetyMarginMs}ms margen = ${totalBlankingTime}ms total`);
-        
-        setTimeout(() => {
-          this.deactivateEchoBlanking(streamSid);
-          logger.info(`🔊 [${streamSid}] EXTENDIDO: Echo blanking TIMEOUT desactivado tras ${totalBlankingTime}ms`);
-        }, totalBlankingTime);
+      } else {
+        throw new Error('OpenAI TTS failed for extended greeting');
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error en saludo extendido: ${error.message}`);
