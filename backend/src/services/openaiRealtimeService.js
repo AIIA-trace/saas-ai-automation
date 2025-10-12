@@ -157,18 +157,17 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ SOLUCIÓN FINAL: Configuración correcta según documentación OpenAI
+    // ✅ FORMATO OFICIAL según Microsoft Learn (Azure OpenAI docs)
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        modalities: ['text'],  // ✅ CORRECTO: Cambiar output a solo texto
         instructions: customSystemMessage,
         input_audio_transcription: {
-          model: 'whisper-1'    // ✅ CORRECTO: Activar transcripción de entrada
+          model: 'whisper-1'    // ✅ Activar transcripción Whisper
         },
-        turn_detection: null,   // ✅ Desactivar VAD automático 
-        max_response_output_tokens: 150  // ✅ Límite de tokens
-      },
+        turn_detection: null,   // ✅ Desactivar VAD automático (control manual)
+        modalities: ['text']    // ✅ Solo texto (no audio output)
+      }
     };
 
     logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
@@ -185,14 +184,12 @@ class OpenAIRealtimeService {
     connectionData.ws.send(JSON.stringify(sessionUpdate));
     logger.info(`✅ [${streamSid}] session.update enviado - Esperando session.updated...`);
 
-    // ✅ SOLUCIÓN OFICIAL: Forzar comportamiento con response.create
-    // Según documentación: "I found the most reliable way to do this is to use response.create"
+    // ✅ FORMATO OFICIAL response.create según Microsoft Learn docs
     const forceTextResponse = {
       type: 'response.create',
       response: {
-        modalities: ['text'],  // ✅ Forzar solo texto
-        instructions: "You must respond ONLY with text, never with audio. Always provide text-only responses.",
-        max_output_tokens: 150
+        modalities: ['text'],     // ✅ Solo texto output
+        instructions: "You must respond ONLY with text, never with audio. Always provide text-only responses."
       }
     };
 
