@@ -156,21 +156,23 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN SEGÚN DOC VAD (más simple)
+    // ✅ CONFIGURACIÓN GA OFICIAL - turn_detection dentro de audio.input
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: "realtime",
         model: "gpt-realtime",
         instructions: customSystemMessage,
-        turn_detection: {
-          type: "server_vad",
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
-          create_response: true
-        },
         audio: {
+          input: {
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500,
+              create_response: true
+            }
+          },
           output: {
             voice: "alloy"
           }
@@ -184,7 +186,7 @@ class OpenAIRealtimeService {
       connectionData.ws.send(JSON.stringify(sessionUpdate));
       logger.info(`✅ [${streamSid}] Configuración GA enviada correctamente`);
       logger.info(`🔍 [${streamSid}] - Model: gpt-realtime`);
-      logger.info(`🔍 [${streamSid}] - VAD: server_vad con create_response=true`);
+      logger.info(`🔍 [${streamSid}] - VAD: server_vad dentro de audio.input`);
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando configuración: ${error.message}`);
@@ -246,7 +248,7 @@ class OpenAIRealtimeService {
           logger.info(`🔧 [${streamSid}] CONFIGURACIÓN APLICADA:`, {
             modalities: response.session?.modalities,
             output_modalities: response.session?.output_modalities,
-            turn_detection: response.session?.input_audio_transcription?.turn_detection,
+            turn_detection: response.session?.audio?.input?.turn_detection,
             input_audio_transcription: response.session?.input_audio_transcription
           });
 
