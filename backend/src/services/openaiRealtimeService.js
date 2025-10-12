@@ -113,10 +113,10 @@ class OpenAIRealtimeService {
                 model: 'whisper-1'
               },
               turn_detection: {
-                type: 'semantic_vad',        // ✅ NUEVO: Detección semántica (más inteligente)
-                eagerness: 'medium',         // Velocidad de respuesta (low/medium/high/auto)
-                create_response: true,       // Auto-generar respuesta al detectar fin de turno
-                interrupt_response: true     // Permitir interrupciones del usuario
+                type: 'semantic_vad',        // ✅ Detección semántica (más inteligente)
+                eagerness: 'medium'          // Velocidad de respuesta (low/medium/high/auto)
+                // ❌ NO usar create_response en modo texto-only
+                // ❌ NO usar interrupt_response en modo texto-only
               },
               temperature: this.temperature
             }
