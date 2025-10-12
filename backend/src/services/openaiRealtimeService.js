@@ -9,10 +9,12 @@ const logger = require('../utils/logger');
 class OpenAIRealtimeService {
   constructor() {
     this.apiKey = process.env.OPENAI_API_KEY;
-    this.model = 'gpt-4o-realtime-preview-2024-10-01'; // MODELO OFICIAL CORRECTO
-    this.temperature = 0.8; // Del código oficial
-    this.voice = 'alloy'; // Del código oficial
+    this.model = process.env.OPENAI_MODEL || 'gpt-4o-realtime-preview-2024-10-01'; // MODELO OFICIAL CORRECTO
+    this.temperature = parseFloat(process.env.OPENAI_TEMPERATURE) || 0.8; // Del código oficial
+    this.voice = process.env.OPENAI_VOICE || 'alloy'; // Del código oficial
     this.activeConnections = new Map(); // streamSid -> connection data
+    this.messageCount = 0;
+    this.responseTimeouts = new Map(); // streamSid -> timeout ID
     
     // 🔒 VALIDACIÓN CRÍTICA PARA PRODUCCIÓN
     if (!this.apiKey) {
@@ -159,10 +161,26 @@ class OpenAIRealtimeService {
       type: 'session.update',
       session: {
         type: 'realtime',
+        model: this.model,
+        modalities: ['text', 'audio'], // ✅ Ambos para input
+        output_modalities: ["text"],   // ✅ Solo texto para output
         instructions: customSystemMessage,
-        output_modalities: ["text"],  // 🔥 CRÍTICO: forzar solo texto
-        temperature: this.temperature
-        // 🚫 Mantener configuración como estaba originalmente
+        temperature: this.temperature,
+        voice: 'alloy', // ✅ Necesario aunque no se use audio output
+        
+        // 🔥 CRÍTICO: Configuración de audio input
+        input_audio_transcription: {
+          model: "whisper-1"
+        },
+        
+        // 🔥 CRÍTICO: Configuración VAD explícita
+        turn_detection: {
+          type: "server_vad",
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 500,
+          create_response: true
+        }
       }
     };
 
@@ -248,7 +266,9 @@ class OpenAIRealtimeService {
           logger.info(`🔧 [${streamSid}] CONFIGURACIÓN APLICADA:`, {
             modalities: response.session?.modalities,
             output_modalities: response.session?.output_modalities,
-            instructions_length: response.session?.instructions?.length
+            instructions_length: response.session?.instructions?.length,
+            turn_detection: response.session?.turn_detection, // ✅ NUEVO
+            input_audio_transcription: response.session?.input_audio_transcription // ✅ NUEVO
           });
           
           // 🔍 VERIFICAR CRÍTICA: Que se aplicó nuestra configuración
@@ -256,15 +276,13 @@ class OpenAIRealtimeService {
             const appliedModalities = response.session.output_modalities;
             const appliedInstructions = response.session.instructions;
             
-            // 🔥 ALERTA SI NO SE APLICÓ NUESTRA CONFIGURACIÓN
-            if (!appliedModalities || !appliedModalities.includes('text') || appliedModalities.includes('audio')) {
-              logger.error(`🚨 [${streamSid}] CONFIGURACIÓN NO APLICADA - OpenAI está usando: ${JSON.stringify(appliedModalities)}`);
-            } else {
+            if (appliedModalities?.includes('text')) {
               logger.info(`🎯 [${streamSid}] ✅ TEXTO-ONLY CONFIGURADO CORRECTAMENTE`);
+              connectionData.status = 'ready';
+            } else {
+              logger.error(`🚨 [${streamSid}] CONFIGURACIÓN FALLÓ`);
             }
           }
-          
-          connectionData.status = 'ready';
           break;
 
         case 'input_audio_buffer.speech_started':
@@ -273,6 +291,12 @@ class OpenAIRealtimeService {
 
         case 'input_audio_buffer.speech_stopped':
           logger.info(`🔇 [${streamSid}] VAD DETECTÓ VOZ FIN - Esperando respuesta...`);
+          
+          // 🔥 TIMEOUT: Si no hay respuesta en 10 segundos
+          this.responseTimeouts.set(streamSid, setTimeout(() => {
+            logger.error(`⏰ [${streamSid}] TIMEOUT: OpenAI no respondió en 10 segundos`);
+            this.responseTimeouts.delete(streamSid);
+          }, 10000));
           break;
 
         case 'conversation.item.input_audio_transcription.completed':
@@ -325,6 +349,12 @@ class OpenAIRealtimeService {
           break;
 
         case 'response.text.done':
+          // 🔥 CLEAR TIMEOUT
+          if (this.responseTimeouts.has(streamSid)) {
+            clearTimeout(this.responseTimeouts.get(streamSid));
+            this.responseTimeouts.delete(streamSid);
+          }
+          
           // ✅ NUEVO FLUJO: Texto completo listo para Azure TTS
           logger.info(`📝 [${streamSid}] ✅ TEXTO COMPLETO de OpenAI - Enviando a Azure TTS`);
           logger.debug(`🔍 [${streamSid}] 📊 Text.done DETAILS: ${JSON.stringify(response)}`);
@@ -756,14 +786,24 @@ class OpenAIRealtimeService {
       pcm8k.writeInt16LE(linear, i * 2);
     }
 
-    // 🔄 PASO 2: Upsample 8kHz → 24kHz (factor 3)
+    // 🔄 PASO 2: Upsample 8kHz → 24kHz (factor 3) con interpolación lineal
     const pcm24k = Buffer.alloc(pcm8k.length * 3); // 3x más samples
-    for (let i = 0; i < pcm8k.length / 2; i++) {
-      const sample = pcm8k.readInt16LE(i * 2);
-      // Interpolación simple: repetir cada sample 3 veces
-      pcm24k.writeInt16LE(sample, (i * 3) * 2);
-      pcm24k.writeInt16LE(sample, (i * 3 + 1) * 2);
-      pcm24k.writeInt16LE(sample, (i * 3 + 2) * 2);
+    const samples8k = pcm8k.length / 2;
+    
+    for (let i = 0; i < samples8k; i++) {
+      const currentSample = pcm8k.readInt16LE(i * 2);
+      const nextSample = i < samples8k - 1 ? pcm8k.readInt16LE((i + 1) * 2) : currentSample;
+      
+      // 🔥 MEJORA: Interpolación lineal entre samples para mejor calidad
+      pcm24k.writeInt16LE(currentSample, (i * 3) * 2);
+      pcm24k.writeInt16LE(
+        Math.floor((currentSample * 2 + nextSample) / 3), 
+        (i * 3 + 1) * 2
+      );
+      pcm24k.writeInt16LE(
+        Math.floor((currentSample + nextSample * 2) / 3), 
+        (i * 3 + 2) * 2
+      );
     }
 
     return pcm24k;
