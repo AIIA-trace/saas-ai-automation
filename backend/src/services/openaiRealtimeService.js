@@ -157,16 +157,17 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? `The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ FORMATO OFICIAL según Microsoft Learn (Azure OpenAI docs)
+    // ✅ FORMATO OFICIAL según ejemplos OpenAI + Twilio
     const sessionUpdate = {
       type: 'session.update',
       session: {
+        type: 'realtime',       // ✅ REQUERIDO por OpenAI API
+        modalities: ['text'],   // ✅ Solo output de texto
         instructions: customSystemMessage,
         input_audio_transcription: {
           model: 'whisper-1'    // ✅ Activar transcripción Whisper
         },
-        turn_detection: null,   // ✅ Desactivar VAD automático (control manual)
-        modalities: ['text']    // ✅ Solo texto (no audio output)
+        turn_detection: null    // ✅ Desactivar VAD automático (control manual)
       }
     };
 
@@ -184,12 +185,13 @@ class OpenAIRealtimeService {
     connectionData.ws.send(JSON.stringify(sessionUpdate));
     logger.info(`✅ [${streamSid}] session.update enviado - Esperando session.updated...`);
 
-    // ✅ FORMATO OFICIAL response.create según Microsoft Learn docs
+    // ✅ FORMATO OFICIAL response.create según ejemplos OpenAI
     const forceTextResponse = {
       type: 'response.create',
       response: {
         modalities: ['text'],     // ✅ Solo texto output
-        instructions: "You must respond ONLY with text, never with audio. Always provide text-only responses."
+        instructions: "You must respond ONLY with text, never with audio. Always provide text-only responses.",
+        max_output_tokens: 150
       }
     };
 
