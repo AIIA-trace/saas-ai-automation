@@ -163,12 +163,6 @@ class OpenAIRealtimeService {
         type: "realtime",
         model: "gpt-realtime",
         instructions: customSystemMessage,
-        turn_detection: {
-          type: "server_vad",
-          threshold: 0.8,  // ← UMBRAL ALTO para evitar ruido
-          prefix_padding_ms: 300,
-          silence_duration_ms: 800  // ← SILENCIO MÁS LARGO para más estabilidad
-        }
       }
     };
 
@@ -178,8 +172,6 @@ class OpenAIRealtimeService {
       connectionData.ws.send(JSON.stringify(sessionUpdate));
       logger.info(`✅ [${streamSid}] Configuración GA enviada correctamente`);
       logger.info(`🔍 [${streamSid}] - Model: gpt-realtime`);
-      logger.info(`🔍 [${streamSid}] - VAD: threshold 0.8 (alto para evitar ruido)`);
-      logger.info(`🔍 [${streamSid}] - silence_duration: 800ms (más estable)`);
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando configuración: ${error.message}`);
