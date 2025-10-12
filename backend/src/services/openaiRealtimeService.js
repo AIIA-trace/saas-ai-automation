@@ -156,21 +156,21 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN OFICIAL CON UMBRAL ALTO PARA EVITAR RUIDO
-    const sessionUpdate = {
-      type: 'session.update',
-      session: {
-        type: "realtime",
-        model: "gpt-4o-realtime-preview",
-        instructions: customSystemMessage,
-        modalities: ["text"],
-        output_modalities: ["text"]
-      }
-    };
+      // ✅ CONFIGURACIÓN OFICIAL CON UMBRAL ALTO PARA EVITAR RUIDO
+      const sessionUpdate = {
+        type: 'session.update',
+        session: {
+          type: "realtime",
+          model: "gpt-4o-realtime-preview",
+          instructions: customSystemMessage,
+          modalities: ["text"],
+          output_modalities: ["text"]
+        }
+      };
 
-    logger.info(`⚙️ [${streamSid}] Enviando configuración COMPLETA para forzar texto-only`);
-    
-    try {
+      logger.info(`⚙️ [${streamSid}] Enviando configuración COMPLETA para forzar texto-only`);
+      
+      try {
       connectionData.ws.send(JSON.stringify(sessionUpdate));
       logger.info(`✅ [${streamSid}] Configuración GA enviada correctamente`);
       logger.info(`🔍 [${streamSid}] - Model: gpt-realtime`);
