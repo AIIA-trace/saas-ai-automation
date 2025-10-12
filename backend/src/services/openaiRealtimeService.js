@@ -137,7 +137,7 @@ class OpenAIRealtimeService {
    * @param {Object} clientConfig - Configuración del cliente
    */
   initializeSession(streamSid, clientConfig) {
-    logger.info(`🔥 [${streamSid}] INICIO initializeSession() - DEBUG`);
+    logger.info(`🔥 [${streamSid}] INICIO initializeSession() - CONFIG MÍNIMA`);
     
     const connectionData = this.activeConnections.get(streamSid);
     
@@ -145,8 +145,6 @@ class OpenAIRealtimeService {
       logger.error(`❌ [${streamSid}] No hay conexión OpenAI activa para configurar`);
       return;
     }
-    
-    logger.info(`🔥 [${streamSid}] CONEXIÓN VÁLIDA - Continuando con configuración`);
 
     // Personalizar mensaje del sistema según el cliente
     const companyName = clientConfig.companyName || 'la empresa';
@@ -154,37 +152,23 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? ` The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ CONFIGURACIÓN OFICIAL según documentación OpenAI Realtime API
+    // ✅ CONFIGURACIÓN MÍNIMA ABSOLUTA - SOLO LO QUE FUNCIONA
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: 'realtime',
-        instructions: customSystemMessage,
-        voice: null, // ✅ VÁLIDO - Para desactivar la generación de audio
-        output_audio_format: null, // ✅ VÁLIDO - Para indicar que solo se quiere texto
-        temperature: 0.8, // ✅ VÁLIDO - Controla la aleatoriedad
-        max_response_output_tokens: 500 // ✅ VÁLIDO - Límite de tokens por respuesta
+        instructions: customSystemMessage
+        // 🚫 NADA MÁS - solo type e instructions
       }
     };
 
-    logger.info(`⚙️ [${streamSid}] Enviando configuración oficial OpenAI Realtime API`);
-    logger.info(`🔧 [${streamSid}] Config completo: ${JSON.stringify(sessionUpdate, null, 2)}`);
+    logger.info(`⚙️ [${streamSid}] Enviando configuración MÍNIMA ABSOLUTA`);
+    logger.info(`🔧 [${streamSid}] Config: SOLO type + instructions`);
     
-    // ✅ CONFIGURACIÓN OFICIAL OPENAI - PARÁMETROS DOCUMENTADOS
-    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI REALTIME API:`);
-    logger.info(`🔍 [${streamSid}] ├── Session Type: ${sessionUpdate.session.type}`);
-    logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
-    logger.info(`🔍 [${streamSid}] ├── Voice: ${sessionUpdate.session.voice} (desactivado para solo texto)`);
-    logger.info(`🔍 [${streamSid}] ├── Output Audio Format: ${sessionUpdate.session.output_audio_format} (solo texto)`);
-    logger.info(`🔍 [${streamSid}] ├── Temperature: ${sessionUpdate.session.temperature}`);
-    logger.info(`🔍 [${streamSid}] └── Max Response Tokens: ${sessionUpdate.session.max_response_output_tokens}`);
-    
-    // ENVÍO CON LOG ADICIONAL
-    logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
     connectionData.ws.send(JSON.stringify(sessionUpdate));
-    logger.info(`✅ [${streamSid}] session.update enviado - Esperando session.updated...`);
+    logger.info(`✅ [${streamSid}] session.update mínimo enviado`);
 
-    // ✅ FORMATO OFICIAL response.create - SOLO PARÁMETROS VÁLIDOS
+    // ✅ FORZAR SOLO TEXTO mediante response.create
     const forceTextResponse = {
       type: 'response.create',
       response: {
@@ -195,12 +179,13 @@ class OpenAIRealtimeService {
 
     logger.info(`🔧 [${streamSid}] Enviando response.create para forzar solo texto`);
     connectionData.ws.send(JSON.stringify(forceTextResponse));
-    logger.info(`✅ [${streamSid}] response.create enviado - Comportamiento de solo texto forzado`);
+    logger.info(`✅ [${streamSid}] Configuración completada - SOLO TEXTO forzado`);
     
-    // ✅ EXPLICACIÓN: Configuración oficial documentada
-    logger.info(`📋 [${streamSid}] ℹ️  CONFIGURACIÓN OFICIAL APLICADA`);
-    logger.info(`📋 [${streamSid}] ℹ️  Parámetros válidos según documentación OpenAI Realtime API`);
-    logger.info(`📋 [${streamSid}] ℹ️  Transcripción automática con Whisper activada por defecto`);
+    // ✅ EXPLICACIÓN: Cómo funciona ahora
+    logger.info(`📋 [${streamSid}] ℹ️  CONFIGURACIÓN ACTUAL:`);
+    logger.info(`📋 [${streamSid}] ℹ️  - Transcripción automática con Whisper (por defecto)`);
+    logger.info(`📋 [${streamSid}] ℹ️  - Respuesta en texto forzada por instructions`);
+    logger.info(`📋 [${streamSid}] ℹ️  - VAD automático del servidor (por defecto)`);
   }
 
   /**
