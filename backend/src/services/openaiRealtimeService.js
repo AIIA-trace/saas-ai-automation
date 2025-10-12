@@ -150,7 +150,6 @@ class OpenAIRealtimeService {
 
     const responseConfig = {
       type: 'response.create',
-      modalities: ['text'],
       instructions: connectionData.customSystemMessage
     };
 
@@ -248,7 +247,6 @@ class OpenAIRealtimeService {
           // ✅ ENVIAR chunks restantes si hay
           if (connectionData.audioBuffer && connectionData.audioBuffer.length > 0) {
             const combinedBuffer = Buffer.concat(connectionData.audioBuffer);
-            connectionData.audioBuffer = [];
             connectionData.ws.send(JSON.stringify({
               type: 'input_audio_buffer.append',
               audio: combinedBuffer.toString('base64')
@@ -260,6 +258,9 @@ class OpenAIRealtimeService {
           setTimeout(() => {
             connectionData.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
             logger.info(`✅ [${streamSid}] Audio buffer commit enviado`);
+            
+            // ✅ Limpiar buffer DESPUÉS del commit
+            connectionData.audioBuffer = [];
             
             // ✅ CREAR RESPUESTA con retardo adicional de 100ms
             setTimeout(() => {
