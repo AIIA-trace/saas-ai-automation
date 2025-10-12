@@ -56,7 +56,7 @@ class OpenAIRealtimeService {
 
       logger.info(`🤖 [${streamSid}] Inicializando conexión OpenAI Realtime (formato oficial)`);
 
-      // ✅ URL SIMPLE OFICIAL - configuración por session.update
+      // ✅ URL CON FORMATO DE AUDIO - según documentación oficial
       const wsUrl = `wss://api.openai.com/v1/realtime?model=${this.model}`;
       const openAiWs = new WebSocket(wsUrl, {
         headers: {
@@ -156,15 +156,13 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN OFICIAL SEGÚN ERROR DE OPENAI
-    // session.type debe ser: 'realtime', 'transcription', o 'translation'
+    // ✅ CONFIGURACIÓN MÍNIMA - formatos de audio van en URL, no aquí
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        type: 'realtime', // ✅ VALOR CORRECTO según error de OpenAI
+        modalities: ["text", "audio"],
         instructions: customSystemMessage,
-        input_audio_format: "g711_ulaw",
-        output_audio_format: "g711_ulaw",
+        voice: "alloy",
         input_audio_transcription: {
           model: "whisper-1"
         },
@@ -173,7 +171,8 @@ class OpenAIRealtimeService {
           threshold: 0.5,
           prefix_padding_ms: 300,
           silence_duration_ms: 200
-        }
+        },
+        temperature: 0.8
       }
     };
 
