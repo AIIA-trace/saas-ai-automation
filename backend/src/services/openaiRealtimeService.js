@@ -125,7 +125,7 @@ INSTRUCCIONES IMPORTANTES:
           const sessionConfig = {
             type: 'session.update',
             session: {
-              modalities: ['audio'],  // 🚀 SOLO AUDIO - no generar texto
+              modalities: ['text', 'audio'],  // ✅ REQUERIDO: OpenAI no permite solo ['audio']
               instructions: customSystemMessage + '\n\nIMPORTANTE: Responde SIEMPRE en español de España (castellano europeo, sin seseo). Usa un tono natural, profesional y femenino.',
               voice: 'shimmer',  // 🎤 Voz femenina natural (opciones: alloy, echo, fable, onyx, nova, shimmer)
               input_audio_format: 'g711_ulaw',
