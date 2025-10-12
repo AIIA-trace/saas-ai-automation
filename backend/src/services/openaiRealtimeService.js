@@ -241,17 +241,18 @@ class OpenAIRealtimeService {
           logger.info(`🔧 [${streamSid}] CONFIGURACIÓN APLICADA:`, {
             modalities: response.session?.modalities,
             output_modalities: response.session?.output_modalities,
-            turn_detection: response.session?.turn_detection,  // ← Restaurado para debug
+            voice: response.session?.voice,
+            turn_detection: response.session?.turn_detection,
             input_audio_transcription: response.session?.input_audio_transcription
           });
 
           // Verificar configuración
-          if (response.session?.output_modalities?.includes('text')) {
+          if (response.session?.modalities?.includes('text')) {
             logger.info(`🎯 [${streamSid}] ✅ TEXTO-ONLY CONFIGURADO CORRECTAMENTE`);
             connectionData.status = 'ready';
             logger.info(`✅ [${streamSid}] OpenAI listo para recibir audio`);
           } else {
-            logger.error(`🚨 [${streamSid}] CONFIGURACIÓN FALLÓ - OpenAI usa: ${JSON.stringify(response.session?.output_modalities)}`);
+            logger.error(`🚨 [${streamSid}] CONFIGURACIÓN FALLÓ - OpenAI usa modalities: ${JSON.stringify(response.session?.modalities)}`);
           }
           break;
 
