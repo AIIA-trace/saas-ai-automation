@@ -161,14 +161,11 @@ class OpenAIRealtimeService {
       type: 'session.update',
       session: {
         type: "realtime",
-        model: "gpt-4o-realtime-preview", // ← Modelo correcto para realtime
+        model: "gpt-4o-realtime-preview",
         instructions: customSystemMessage,
         input_audio_transcription: {
           model: "whisper-1"
-        },
-        modalities: ["text"],
-        output_modalities: ["text"],
-        voice: "alloy"
+        }
       }
     };
 
