@@ -203,38 +203,32 @@ class OpenAIRealtimeService {
         return;
       }
 
-      // ✅ EVENTOS PARA DIAGNÓSTICO COMPLETO
-      const LOG_EVENT_TYPES = [
-        'error',
-        'response.content.done',
-        'response.text.done',        
-        'response.text.delta',       
-        'rate_limits.updated',
-        'response.done',
-        'input_audio_buffer.committed',
-        'input_audio_buffer.speech_stopped',
-        'input_audio_buffer.speech_started',
-        'session.created',
-        'session.updated',
+      // 🔥 DEBUG COMPLETO DE EVENTOS OPENAI
+      const DEBUG_EVENTS = [
+        'session.updated', 'session.created',
+        'input_audio_buffer.speech_started', 'input_audio_buffer.speech_stopped',
         'conversation.item.input_audio_transcription.completed',
-        'conversation.item.input_audio_transcription.failed',
-        'response.created',
-        'input_audio_buffer.cleared',
-        'conversation.item.created',
-        'response.output_item.added',
-        'response.output_item.done'
+        'response.created', 'response.text.delta', 'response.text.done',
+        'response.audio.delta', 'response.audio.done',
+        'response.done', 'error'
       ];
 
-      if (LOG_EVENT_TYPES.includes(response.type)) {
-        logger.info(`📨 [${streamSid}] OpenAI Event: ${response.type}`, response);
+      if (DEBUG_EVENTS.includes(response.type)) {
+        logger.info(`🎯 [${streamSid}] OPENAI EVENT: ${response.type}`, {
+          event: response.type,
+          has_delta: !!response.delta,
+          has_transcript: !!response.transcript,
+          session_modalities: response.session?.output_modalities,
+          // Solo log crítico, no todo el objeto
+        });
       }
 
-      // 🔍 LOG TODOS LOS EVENTOS PARA DIAGNÓSTICO
-      if (!LOG_EVENT_TYPES.includes(response.type)) {
+      // 🔍 LOG TODOS LOS DEMÁS EVENTOS PARA DIAGNÓSTICO
+      if (!DEBUG_EVENTS.includes(response.type)) {
         logger.debug(`🔍 [${streamSid}] OpenAI Event (no filtrado): ${response.type}`);
       }
 
-      // Procesar diferentes tipos de mensajes
+      // 🔥 DEBUG ESPECÍFICO PARA PROBLEMAS COMUNES
       switch (response.type) {
         case 'session.created':
           logger.info(`🔍 [${streamSid}] Sesión creada por OpenAI - Verificando configuración inicial`);
@@ -251,16 +245,16 @@ class OpenAIRealtimeService {
           break;
 
         case 'session.updated':
-          logger.info(`✅ [${streamSid}] Sesión OpenAI configurada correctamente`);
+          logger.info(`🔧 [${streamSid}] CONFIGURACIÓN APLICADA:`, {
+            modalities: response.session?.modalities,
+            output_modalities: response.session?.output_modalities,
+            instructions_length: response.session?.instructions?.length
+          });
           
           // 🔍 VERIFICAR CRÍTICA: Que se aplicó nuestra configuración
           if (response.session) {
             const appliedModalities = response.session.output_modalities;
             const appliedInstructions = response.session.instructions;
-            
-            logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN APLICADA:`);
-            logger.info(`🔍 [${streamSid}] ├── Output modalities: ${JSON.stringify(appliedModalities)}`);
-            logger.info(`🔍 [${streamSid}] ├── Instructions aplicadas: ${appliedInstructions ? 'SÍ' : 'NO'}`);
             
             // 🔥 ALERTA SI NO SE APLICÓ NUESTRA CONFIGURACIÓN
             if (!appliedModalities || !appliedModalities.includes('text') || appliedModalities.includes('audio')) {
@@ -274,15 +268,15 @@ class OpenAIRealtimeService {
           break;
 
         case 'input_audio_buffer.speech_started':
-          logger.info(`🎤 [${streamSid}] ✅ VAD DETECTÓ VOZ - Speech started!`);
+          logger.info(`🎤 [${streamSid}] VAD DETECTÓ VOZ INICIO`);
           break;
 
         case 'input_audio_buffer.speech_stopped':
-          logger.info(`🔇 [${streamSid}] ✅ VAD TERMINÓ VOZ - Speech stopped!`);
+          logger.info(`🔇 [${streamSid}] VAD DETECTÓ VOZ FIN - Esperando respuesta...`);
           break;
 
         case 'conversation.item.input_audio_transcription.completed':
-          logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETADA: ${response.transcript || 'N/A'}`);
+          logger.info(`📝 [${streamSid}] TRANSCRIPCIÓN: "${response.transcript}"`);
           break;
 
         case 'response.created':
