@@ -101,6 +101,15 @@ INSTRUCCIONES IMPORTANTES:
       this.activeConnections.set(streamSid, connectionData);
 
       return new Promise((resolve, reject) => {
+        // Variable para resolver cuando la sesión esté lista
+        let sessionReadyResolver = null;
+        const sessionReadyPromise = new Promise((res) => {
+          sessionReadyResolver = res;
+        });
+        
+        // Guardar el resolver en connectionData para usarlo en handleOpenAIMessage
+        connectionData.sessionReadyResolver = sessionReadyResolver;
+        
         // Manejar conexión establecida
         openAiWs.on('open', () => {
           logger.info(`✅ [${streamSid}] Conexión OpenAI Realtime establecida`);
@@ -123,7 +132,7 @@ INSTRUCCIONES IMPORTANTES:
               },
               turn_detection: {
                 type: 'server_vad',
-                threshold: 0.5,              // Balanceado para evitar falsos positivos
+                threshold: 0.3,              // Sensibilidad ajustada
                 prefix_padding_ms: 300,
                 silence_duration_ms: 700     // Espera más silencio para confirmar fin
               },
@@ -132,9 +141,13 @@ INSTRUCCIONES IMPORTANTES:
           };
           
           openAiWs.send(JSON.stringify(sessionConfig));
-          logger.info(`🔧 [${streamSid}] Configuración de sesión enviada`);
+          logger.info(`🔧 [${streamSid}] Configuración de sesión enviada - esperando confirmación...`);
           
-          resolve(openAiWs);
+          // ✅ NO RESOLVER INMEDIATAMENTE - Esperar session.updated
+          sessionReadyPromise.then(() => {
+            logger.info(`✅ [${streamSid}] Sesión OpenAI confirmada y lista para recibir audio`);
+            resolve(openAiWs);
+          });
         });
 
         // Manejar mensajes de OpenAI
@@ -182,6 +195,12 @@ INSTRUCCIONES IMPORTANTES:
       return;
     }
 
+    // ✅ VERIFICAR si ya hay una respuesta activa
+    if (connectionData.activeResponseId) {
+      logger.warn(`⚠️ [${streamSid}] Ya hay una respuesta activa (${connectionData.activeResponseId}) - ignorando nueva solicitud`);
+      return;
+    }
+
     // ✅ response.create NO acepta parámetros según documentación oficial
     const responseConfig = {
       type: 'response.create'
@@ -190,6 +209,8 @@ INSTRUCCIONES IMPORTANTES:
     try {
       connectionData.ws.send(JSON.stringify(responseConfig));
       logger.info(`🚀 [${streamSid}] Solicitud de respuesta texto-only enviada`);
+      // Marcar que hay una respuesta en progreso (se limpiará en response.done)
+      connectionData.activeResponseId = 'pending';
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando response.create: ${error.message}`);
     }
@@ -260,6 +281,12 @@ INSTRUCCIONES IMPORTANTES:
             logger.info(`🎯 [${streamSid}] ✅ AUDIO+TEXTO CONFIGURADO CORRECTAMENTE`);
             connectionData.status = 'ready';
             logger.info(`✅ [${streamSid}] OpenAI listo para recibir audio y generar texto`);
+            
+            // ✅ RESOLVER LA PROMESA DE INICIALIZACIÓN
+            if (connectionData.sessionReadyResolver) {
+              connectionData.sessionReadyResolver();
+              delete connectionData.sessionReadyResolver; // Limpiar
+            }
           } else {
             logger.error(`🚨 [${streamSid}] CONFIGURACIÓN FALLÓ - OpenAI usa modalities: ${JSON.stringify(response.session?.modalities)}`);
           }
@@ -289,13 +316,21 @@ INSTRUCCIONES IMPORTANTES:
           
           // ✅ ENVIAR chunks restantes
           const combinedBuffer = Buffer.concat(connectionData.audioBuffer);
+          
+          // ✅ VALIDAR tamaño mínimo (100ms = ~800 bytes en mulaw 8kHz)
+          if (combinedBuffer.length < 800) {
+            logger.warn(`⚠️ [${streamSid}] Buffer muy pequeño (${combinedBuffer.length} bytes < 800) - probablemente ruido, ignorando`);
+            connectionData.audioBuffer = [];
+            break;
+          }
+          
           connectionData.ws.send(JSON.stringify({
             type: 'input_audio_buffer.append',
             audio: combinedBuffer.toString('base64')
           }));
           logger.info(`✅ [${streamSid}] Chunks restantes enviados (${combinedBuffer.length} bytes)`);
           
-          // ✅ Limpiar buffer ANTES del commit
+          // ✅ Limpiar buffer DESPUÉS de enviarlo
           connectionData.audioBuffer = [];
           
           // ✅ COMMIT con retardo de 200ms
@@ -348,6 +383,8 @@ INSTRUCCIONES IMPORTANTES:
           logger.info(`🚀 [${streamSid}] ✅ OpenAI GENERANDO RESPUESTA`);
           const responseId = response.response?.id || 'N/A';
           logger.info(`🆔 [${streamSid}] Response ID: ${responseId}`);
+          // Guardar el ID de la respuesta activa
+          connectionData.activeResponseId = responseId;
           break;
 
         case 'response.text.delta':
@@ -454,6 +491,10 @@ INSTRUCCIONES IMPORTANTES:
           logger.info(`🔍 [${streamSid}] 📊 RESPONSE STATS:`);
           logger.info(`🔍 [${streamSid}] ├── Response ID: ${response.response?.id || 'N/A'}`);
           logger.info(`🔍 [${streamSid}] ├── Status: ${response.response?.status || 'N/A'}`);
+          
+          // ✅ LIMPIAR FLAG DE RESPUESTA ACTIVA
+          connectionData.activeResponseId = null;
+          logger.info(`🔓 [${streamSid}] Respuesta finalizada - sistema listo para nueva solicitud`);
           
           // ✅ PROCESAR TRANSCRIPCIÓN ACUMULADA → Azure TTS
           if (connectionData.audioTranscript) {
