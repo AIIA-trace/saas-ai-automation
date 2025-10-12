@@ -154,28 +154,30 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? ` The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ CONFIGURACIÓN MÍNIMA Y CORRECTA
+    // ✅ CONFIGURACIÓN OFICIAL según documentación OpenAI Realtime API
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: 'realtime',
         instructions: customSystemMessage,
-        turn_detection: null,
-        voice: null,  // ✅ Desactiva audio output
-        output_audio_format: null  // ✅ No generar audio
-        // ❌ NO incluir input_audio_transcription - ya no existe
+        voice: null, // ✅ VÁLIDO - Para desactivar la generación de audio
+        output_audio_format: null, // ✅ VÁLIDO - Para indicar que solo se quiere texto
+        temperature: 0.8, // ✅ VÁLIDO - Controla la aleatoriedad
+        max_response_output_tokens: 500 // ✅ VÁLIDO - Límite de tokens por respuesta
       }
     };
 
-    logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (configuración mínima)`);
+    logger.info(`⚙️ [${streamSid}] Enviando configuración oficial OpenAI Realtime API`);
     logger.info(`🔧 [${streamSid}] Config completo: ${JSON.stringify(sessionUpdate, null, 2)}`);
     
-    // ✅ CONFIGURACIÓN OFICIAL OPENAI - SOLO PARÁMETROS VÁLIDOS
-    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI:`);
+    // ✅ CONFIGURACIÓN OFICIAL OPENAI - PARÁMETROS DOCUMENTADOS
+    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI REALTIME API:`);
     logger.info(`🔍 [${streamSid}] ├── Session Type: ${sessionUpdate.session.type}`);
     logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
-    logger.info(`🔍 [${streamSid}] ├── Voice: ${sessionUpdate.session.voice} (null = solo texto)`);
-    logger.info(`🔍 [${streamSid}] └── Output Audio Format: ${sessionUpdate.session.output_audio_format} (null = solo texto)`);
+    logger.info(`🔍 [${streamSid}] ├── Voice: ${sessionUpdate.session.voice} (desactivado para solo texto)`);
+    logger.info(`🔍 [${streamSid}] ├── Output Audio Format: ${sessionUpdate.session.output_audio_format} (solo texto)`);
+    logger.info(`🔍 [${streamSid}] ├── Temperature: ${sessionUpdate.session.temperature}`);
+    logger.info(`🔍 [${streamSid}] └── Max Response Tokens: ${sessionUpdate.session.max_response_output_tokens}`);
     
     // ENVÍO CON LOG ADICIONAL
     logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
@@ -195,10 +197,10 @@ class OpenAIRealtimeService {
     connectionData.ws.send(JSON.stringify(forceTextResponse));
     logger.info(`✅ [${streamSid}] response.create enviado - Comportamiento de solo texto forzado`);
     
-    // ✅ EXPLICACIÓN: Cómo funciona ahora la transcripción
-    logger.info(`🎙️ [${streamSid}] ℹ️  La transcripción (Whisper) ahora es AUTOMÁTICA`);
-    logger.info(`🎙️ [${streamSid}] ℹ️  No necesita configuración - OpenAI la activa por defecto`);
-    logger.info(`🎙️ [${streamSid}] ℹ️  Flujo: Audio → Transcripción automática → GPT-4 → Texto`);
+    // ✅ EXPLICACIÓN: Configuración oficial documentada
+    logger.info(`📋 [${streamSid}] ℹ️  CONFIGURACIÓN OFICIAL APLICADA`);
+    logger.info(`📋 [${streamSid}] ℹ️  Parámetros válidos según documentación OpenAI Realtime API`);
+    logger.info(`📋 [${streamSid}] ℹ️  Transcripción automática con Whisper activada por defecto`);
   }
 
   /**
