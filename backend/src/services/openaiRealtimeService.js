@@ -162,10 +162,7 @@ class OpenAIRealtimeService {
       session: {
         type: "realtime",
         model: "gpt-4o-realtime-preview",
-        instructions: customSystemMessage,
-        input_audio_transcription: {
-          model: "whisper-1"
-        }
+        instructions: customSystemMessage
       }
     };
 
