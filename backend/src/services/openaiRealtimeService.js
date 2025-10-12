@@ -240,7 +240,10 @@ class OpenAIRealtimeService {
             logger.debug(`🎵 [${streamSid}] Chunk de saludo recibido: ${audioBuffer.length} bytes`);
           }
           
-          if (response.type === 'response.audio.done' && isCollecting) {
+          // ✅ CAMBIO: Detectar cuando termina la respuesta completa (no solo el audio)
+          if (response.type === 'response.done' && isCollecting) {
+            isCollecting = false;
+            
             // Combinar todos los chunks
             const fullAudio = Buffer.concat(audioChunks);
             logger.info(`✅ [${streamSid}] Saludo completo: ${fullAudio.length} bytes`);
@@ -248,7 +251,11 @@ class OpenAIRealtimeService {
             // Limpiar listener
             connectionData.ws.removeListener('message', audioListener);
             
-            resolve({ success: true, audioBuffer: fullAudio });
+            if (fullAudio.length > 0) {
+              resolve({ success: true, audioBuffer: fullAudio });
+            } else {
+              reject(new Error('No audio generated'));
+            }
           }
           
           if (response.type === 'error') {
