@@ -150,7 +150,7 @@ class OpenAIRealtimeService {
     const companyName = clientConfig.companyName || 'la empresa';
     const companyDescription = clientConfig.companyDescription || '';
     
-    const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? ` The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
+    const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
     // ✅ CONFIGURACIÓN MÍNIMA ABSOLUTA - SOLO LO QUE FUNCIONA
     const sessionUpdate = {
@@ -172,7 +172,7 @@ class OpenAIRealtimeService {
     const forceTextResponse = {
       type: 'response.create',
       response: {
-        instructions: "You must respond ONLY with text, never with audio. Always provide text-only responses.",
+        instructions: "Debes responder ÚNICAMENTE con texto, nunca con audio. Siempre proporciona respuestas solo de texto en español. OBLIGATORIO: Solo texto, nunca audio.",
         max_output_tokens: 150
       }
     };
