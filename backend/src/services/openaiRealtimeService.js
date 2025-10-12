@@ -237,8 +237,8 @@ INSTRUCCIONES IMPORTANTES:
         'input_audio_buffer.speech_started': true, 
         'input_audio_buffer.speech_stopped': true,
         'conversation.item.input_audio_transcription.completed': true,
-        'response.text.delta': true,
-        'response.text.done': true,
+        'conversation.item.created': true,
+        'response.done': true,
         'error': true
       };
 
@@ -385,69 +385,45 @@ INSTRUCCIONES IMPORTANTES:
           connectionData.activeResponseId = responseId;
           break;
 
-        case 'response.text.delta':
-          // ✅ NUEVO FLUJO: Acumular texto de OpenAI para Azure TTS
-          if (response.delta) {
-            logger.info(`📝 [${streamSid}] ✅ RECIBIENDO texto delta de OpenAI`);
-            logger.debug(`🔍 [${streamSid}] Texto delta: "${response.delta}"`);
+        case 'conversation.item.created':
+          // ✅ MEJOR FLUJO: Obtener texto completo de una vez
+          if (response.item?.role === 'assistant' && response.item?.type === 'message') {
+            const content = response.item.content;
             
-            // Acumular texto (como código oficial acumula audio)
-            if (!connectionData.accumulatedText) {
-              connectionData.accumulatedText = '';
+            // Buscar el contenido de texto
+            let fullText = '';
+            if (Array.isArray(content)) {
+              for (const part of content) {
+                if (part.type === 'text' && part.text) {
+                  fullText += part.text;
+                }
+              }
             }
             
-            // ✅ PROTECCIÓN ANTI-BUCLE: Límite de texto por respuesta
-            if (connectionData.accumulatedText.length > 1500) {
-              logger.warn(`⚠️ [${streamSid}] LÍMITE DE TEXTO ALCANZADO - Interrumpiendo respuesta (${connectionData.accumulatedText.length} chars)`);
-              // Forzar finalización de respuesta inmediata
-              this.processTextWithAzureTTS(streamSid, connectionData.accumulatedText);
-              connectionData.accumulatedText = '';
-              break;
-            }
-            
-            connectionData.accumulatedText += response.delta;
-            
-            if (response.item_id) {
-              connectionData.lastAssistantItem = response.item_id;
-              logger.debug(`🆔 [${streamSid}] Assistant item ID: ${response.item_id}`);
+            if (fullText) {
+              logger.info(`🎯 [${streamSid}] ✅ TEXTO COMPLETO de OpenAI (${fullText.length} chars): "${fullText}"`);
+              
+              // ✅ PROTECCIÓN: Solo textos razonables para TTS
+              if (fullText.length > 500) {
+                logger.warn(`⚠️ [${streamSid}] TEXTO DEMASIADO LARGO - Truncando a 500 chars`);
+                fullText = fullText.substring(0, 500);
+              }
+              
+              // Enviar directamente a Azure TTS
+              this.processTextWithAzureTTS(streamSid, fullText);
+            } else {
+              logger.debug(`🔍 [${streamSid}] Item creado sin texto: ${JSON.stringify(response.item)}`);
             }
           }
           break;
 
-
-        case 'response.text.done':
-          // 🔥 CLEAR TIMEOUT
+        case 'response.done':
+          // ✅ Respuesta completada - limpiar timeouts
           if (this.responseTimeouts.has(streamSid)) {
             clearTimeout(this.responseTimeouts.get(streamSid));
             this.responseTimeouts.delete(streamSid);
           }
-          
-          // ✅ NUEVO FLUJO: Texto completo listo para Azure TTS
-          logger.info(`📝 [${streamSid}] ✅ TEXTO COMPLETO de OpenAI - Enviando a Azure TTS`);
-          logger.debug(`🔍 [${streamSid}] 📊 Text.done DETAILS: ${JSON.stringify(response)}`);
-          
-          if (connectionData.accumulatedText) {
-            logger.info(`🎯 [${streamSid}] 📝 RESPUESTA OPENAI COMPLETA (${connectionData.accumulatedText.length} chars):`);
-            logger.info(`🎯 [${streamSid}] "${connectionData.accumulatedText}"`);
-            
-            // ✅ PROTECCIÓN: Solo textos razonables para TTS
-            if (connectionData.accumulatedText.length > 500) {
-              logger.warn(`⚠️ [${streamSid}] TEXTO DEMASIADO LARGO - Truncando a 500 chars`);
-              connectionData.accumulatedText = connectionData.accumulatedText.substring(0, 500);
-            }
-            
-            logger.info(`🚀 [${streamSid}] Texto final para Azure TTS: "${connectionData.accumulatedText}"`);
-            logger.debug(`🔍 [${streamSid}] 📊 AccumulatedText length: ${connectionData.accumulatedText.length} chars`);
-            
-            // Enviar texto completo a Azure TTS (como saludo inicial)
-            this.processTextWithAzureTTS(streamSid, connectionData.accumulatedText);
-            
-            // Limpiar texto acumulado
-            connectionData.accumulatedText = '';
-          } else {
-            logger.warn(`⚠️ [${streamSid}] No hay texto acumulado para Azure TTS`);
-            logger.debug(`🔍 [${streamSid}] 📊 ConnectionData keys: ${Object.keys(connectionData)}`);
-          }
+          logger.info(`✅ [${streamSid}] Respuesta de OpenAI completada`);
           break;
 
         case 'response.audio_transcript.delta':
