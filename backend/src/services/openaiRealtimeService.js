@@ -145,42 +145,60 @@ class OpenAIRealtimeService {
       logger.error(`❌ [${streamSid}] No hay conexión OpenAI activa para configurar`);
       return;
     }
+    
+    logger.info(`🔥 [${streamSid}] CONEXIÓN VÁLIDA - Continuando con configuración`);
 
     // Personalizar mensaje del sistema según el cliente
     const companyName = clientConfig.companyName || 'la empresa';
     const companyDescription = clientConfig.companyDescription || '';
     
-    const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español.`;
+    const customSystemMessage = `You are Susan, the professional receptionist for ${companyName}. ${companyDescription ? ` The company is dedicated to: ${companyDescription}.` : ''} Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone. Your goal is to help the customer and direct them correctly. If asked about specific services, contact information or hours, provide available information.`;
 
-    // ✅ CONFIGURACIÓN CORRECTA - SIN PARÁMETROS DESCONOCIDOS
+    // ✅ CONFIGURACIÓN MÍNIMA Y CORRECTA
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: 'realtime',
         instructions: customSystemMessage,
-        input_audio_transcription: {
-          model: 'whisper-1'
-        },
         turn_detection: null,
         voice: null,  // ✅ Desactiva audio output
         output_audio_format: null  // ✅ No generar audio
+        // ❌ NO incluir input_audio_transcription - ya no existe
       }
     };
 
-    logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (formato oficial)`);
+    logger.info(`⚙️ [${streamSid}] Enviando configuración de sesión (configuración mínima)`);
+    logger.info(`🔧 [${streamSid}] Config completo: ${JSON.stringify(sessionUpdate, null, 2)}`);
+    
+    // ✅ CONFIGURACIÓN OFICIAL OPENAI - SOLO PARÁMETROS VÁLIDOS
+    logger.info(`🔍 [${streamSid}] ✅ CONFIGURACIÓN OFICIAL OPENAI:`);
+    logger.info(`🔍 [${streamSid}] ├── Session Type: ${sessionUpdate.session.type}`);
+    logger.info(`🔍 [${streamSid}] ├── Instructions Length: ${sessionUpdate.session.instructions.length} chars`);
+    logger.info(`🔍 [${streamSid}] ├── Voice: ${sessionUpdate.session.voice} (null = solo texto)`);
+    logger.info(`🔍 [${streamSid}] └── Output Audio Format: ${sessionUpdate.session.output_audio_format} (null = solo texto)`);
+    
+    // ENVÍO CON LOG ADICIONAL
+    logger.info(`📤 [${streamSid}] Enviando session.update a OpenAI...`);
     connectionData.ws.send(JSON.stringify(sessionUpdate));
+    logger.info(`✅ [${streamSid}] session.update enviado - Esperando session.updated...`);
 
-    // ✅ FORMATO OFICIAL response.create según ejemplos OpenAI
+    // ✅ FORMATO OFICIAL response.create - SOLO PARÁMETROS VÁLIDOS
     const forceTextResponse = {
       type: 'response.create',
       response: {
-        instructions: "Debes responder ÚNICAMENTE con texto, nunca con audio. Siempre proporciona respuestas solo de texto en español.",
+        instructions: "You must respond ONLY with text, never with audio. Always provide text-only responses.",
         max_output_tokens: 150
       }
     };
 
     logger.info(`🔧 [${streamSid}] Enviando response.create para forzar solo texto`);
     connectionData.ws.send(JSON.stringify(forceTextResponse));
+    logger.info(`✅ [${streamSid}] response.create enviado - Comportamiento de solo texto forzado`);
+    
+    // ✅ EXPLICACIÓN: Cómo funciona ahora la transcripción
+    logger.info(`🎙️ [${streamSid}] ℹ️  La transcripción (Whisper) ahora es AUTOMÁTICA`);
+    logger.info(`🎙️ [${streamSid}] ℹ️  No necesita configuración - OpenAI la activa por defecto`);
+    logger.info(`🎙️ [${streamSid}] ℹ️  Flujo: Audio → Transcripción automática → GPT-4 → Texto`);
   }
 
   /**
