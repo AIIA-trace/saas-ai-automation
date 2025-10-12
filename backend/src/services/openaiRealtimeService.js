@@ -125,19 +125,19 @@ INSTRUCCIONES IMPORTANTES:
           const sessionConfig = {
             type: 'session.update',
             session: {
-              modalities: ['text', 'audio'],  // ✅ NECESARIO para procesar audio de entrada
-              instructions: customSystemMessage + '\n\nIMPORTANTE: Responde SIEMPRE en español (castellano). Usa un tono natural y profesional.',
-              voice: this.voice,
+              modalities: ['audio'],  // 🚀 SOLO AUDIO - no generar texto
+              instructions: customSystemMessage + '\n\nIMPORTANTE: Responde SIEMPRE en español de España (castellano europeo, sin seseo). Usa un tono natural, profesional y femenino.',
+              voice: 'shimmer',  // 🎤 Voz femenina natural (opciones: alloy, echo, fable, onyx, nova, shimmer)
               input_audio_format: 'g711_ulaw',
-              output_audio_format: 'g711_ulaw',  // 🚀 CAMBIO: mulaw directo compatible con Twilio
+              output_audio_format: 'g711_ulaw',  // 🚀 mulaw directo compatible con Twilio
               input_audio_transcription: {
                 model: 'whisper-1'
               },
               turn_detection: {
                 type: 'server_vad',
-                threshold: 0.3,              // Sensibilidad ajustada
+                threshold: 0.3,
                 prefix_padding_ms: 300,
-                silence_duration_ms: 300     // 🚀 Más agresivo para respuestas rápidas
+                silence_duration_ms: 300
               },
               temperature: this.temperature
             }
@@ -434,70 +434,9 @@ INSTRUCCIONES IMPORTANTES:
           break;
 
         case 'response.audio_transcript.delta':
-          // 🚀 STREAMING: Enviar a Azure TTS en cuanto tengamos una frase completa
-          if (!connectionData.audioTranscript) {
-            connectionData.audioTranscript = '';
-            connectionData.lastSentLength = 0;
-          }
-          if (response.delta) {
-            connectionData.audioTranscript += response.delta;
-            logger.debug(`📝 [${streamSid}] Delta (+${response.delta.length} chars): "${response.delta}"`);
-            
-            // ✅ DETECTAR PUNTO DE CORTE para enviar a Azure
-            const text = connectionData.audioTranscript;
-            const minChunkSize = 15; // Mínimo 15 caracteres
-            
-            // Buscar última puntuación fuerte (. ! ? ,)
-            const lastPunctuation = Math.max(
-              text.lastIndexOf('.'),
-              text.lastIndexOf('!'),
-              text.lastIndexOf('?'),
-              text.lastIndexOf(',')
-            );
-            
-            // Si hay puntuación Y suficiente texto nuevo
-            if (lastPunctuation > connectionData.lastSentLength && 
-                lastPunctuation >= minChunkSize) {
-              
-              // Extraer frase completa hasta la puntuación
-              const chunk = text.substring(connectionData.lastSentLength, lastPunctuation + 1).trim();
-              
-              if (chunk.length > 0) {
-                logger.info(`🚀 [${streamSid}] ⚡ STREAMING chunk (${chunk.length} chars): "${chunk}"`);
-                this.processTextWithAzureTTS(streamSid, chunk);
-                connectionData.lastSentLength = lastPunctuation + 1;
-              }
-            }
-            // Si no hay puntuación pero ya tenemos mucho texto (40+ chars), enviar hasta último espacio
-            else if (text.length - connectionData.lastSentLength >= 40) {
-              // Buscar último espacio para NO cortar palabras
-              const textToSend = text.substring(connectionData.lastSentLength);
-              const lastSpace = textToSend.lastIndexOf(' ');
-              
-              if (lastSpace > 20) { // Solo si hay al menos 20 chars antes del espacio
-                const chunk = textToSend.substring(0, lastSpace).trim();
-                if (chunk.length > 0) {
-                  logger.info(`🚀 [${streamSid}] ⚡ STREAMING chunk forzado (${chunk.length} chars): "${chunk}"`);
-                  this.processTextWithAzureTTS(streamSid, chunk);
-                  connectionData.lastSentLength += lastSpace + 1; // +1 para saltar el espacio
-                }
-              }
-            }
-          }
-          break;
-
         case 'response.audio_transcript.done':
-          // ✅ Enviar cualquier texto restante que no se envió
-          if (connectionData.audioTranscript) {
-            const remainingText = connectionData.audioTranscript.substring(connectionData.lastSentLength).trim();
-            if (remainingText.length > 0) {
-              logger.info(`🎯 [${streamSid}] ✅ FINAL chunk (${remainingText.length} chars): "${remainingText}"`);
-              this.processTextWithAzureTTS(streamSid, remainingText);
-            }
-            // Limpiar para próxima respuesta
-            connectionData.audioTranscript = '';
-            connectionData.lastSentLength = 0;
-          }
+          // 🗑️ OBSOLETO: Ya no usamos Azure TTS, solo audio nativo de OpenAI
+          logger.debug(`🔇 [${streamSid}] Evento de transcripción ignorado: ${response.type}`);
           break;
 
         case 'response.audio.delta':
