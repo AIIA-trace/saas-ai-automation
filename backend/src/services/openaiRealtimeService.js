@@ -60,9 +60,15 @@ class OpenAIRealtimeService {
       const wsUrl = `wss://api.openai.com/v1/realtime?model=${this.model}`;
       const openAiWs = new WebSocket(wsUrl, {
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`
+          'Authorization': `Bearer ${this.apiKey}`,
+          'OpenAI-Beta': 'realtime=v1'
         }
       });
+
+      // Preparar customSystemMessage
+      const companyName = clientConfig.companyName || 'la empresa';
+      const companyDescription = clientConfig.companyDescription || '';
+      const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
       // Almacenar datos de conexión + variables del código oficial
       const connectionData = {
@@ -70,6 +76,7 @@ class OpenAIRealtimeService {
         status: 'connecting',
         streamSid: streamSid,
         clientConfig: clientConfig,
+        customSystemMessage: customSystemMessage,
         messageCount: 0,
         startTime: Date.now(),
         // VARIABLES DEL CÓDIGO OFICIAL COMPLETAS
@@ -92,11 +99,6 @@ class OpenAIRealtimeService {
           logger.info(`🔍 [${streamSid}] Modelo: ${this.model}`);
           logger.info(`🔍 [${streamSid}] Temperature: ${this.temperature}`);
           connectionData.status = 'connected';
-          
-          // 🔥 CRÍTICO: Enviar configuración INMEDIATAMENTE después de open
-          setTimeout(() => {
-            this.initializeSession(streamSid, clientConfig);
-          }, 50); // Reducido a 50ms para ser más inmediato
           
           resolve(openAiWs);
         });
@@ -136,47 +138,27 @@ class OpenAIRealtimeService {
   }
 
   /**
-   * Inicializar sesión OpenAI con parámetros válidos de la API
+   * Crear respuesta texto-only de OpenAI
    * @param {string} streamSid - ID del stream
-   * @param {Object} clientConfig - Configuración del cliente
    */
-  initializeSession(streamSid, clientConfig) {
-    logger.info(`🔥 [${streamSid}] ENVIANDO CONFIGURACIÓN INMEDIATA`);
-    
+  createOpenAIResponse(streamSid) {
     const connectionData = this.activeConnections.get(streamSid);
-    
-    if (!connectionData || connectionData.status !== 'connected') {
-      logger.error(`❌ [${streamSid}] No hay conexión activa para configurar`);
+    if (!connectionData) {
+      logger.warn(`⚠️ [${streamSid}] No hay conexión para crear respuesta`);
       return;
     }
 
-    // Preparar configuración COMPLETA y EXPLÍCITA
-    const companyName = clientConfig.companyName || 'la empresa';
-    const companyDescription = clientConfig.companyDescription || '';
-    
-    const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
+    const responseConfig = {
+      type: 'response.create',
+      modalities: ['text'],
+      instructions: connectionData.customSystemMessage
+    };
 
-      // ✅ CONFIGURACIÓN OFICIAL CON UMBRAL ALTO PARA EVITAR RUIDO
-      const sessionUpdate = {
-        type: 'session.update',
-        session: {
-          type: "realtime",
-          model: "gpt-4o-realtime-preview",
-          instructions: customSystemMessage,
-          modalities: ["text"],
-          output_modalities: ["text"]
-        }
-      };
-
-      logger.info(`⚙️ [${streamSid}] Enviando configuración COMPLETA para forzar texto-only`);
-      
-      try {
-      connectionData.ws.send(JSON.stringify(sessionUpdate));
-      logger.info(`✅ [${streamSid}] Configuración GA enviada correctamente`);
-      logger.info(`🔍 [${streamSid}] - Model: gpt-realtime`);
-      
+    try {
+      connectionData.ws.send(JSON.stringify(responseConfig));
+      logger.info(`🚀 [${streamSid}] Solicitud de respuesta texto-only enviada`);
     } catch (error) {
-      logger.error(`❌ [${streamSid}] Error enviando configuración: ${error.message}`);
+      logger.error(`❌ [${streamSid}] Error enviando response.create: ${error.message}`);
     }
   }
 
@@ -262,6 +244,13 @@ class OpenAIRealtimeService {
         case 'input_audio_buffer.speech_stopped':
           // ✅ UNIFICADO  
           logger.info(`🔇 [${streamSid}] VAD DETECTÓ FIN DE VOZ - Esperando respuesta...`);
+          
+          // ✅ COMMIT del buffer de audio
+          connectionData.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+          logger.info(`✅ [${streamSid}] Audio buffer commit enviado`);
+          
+          // ✅ CREAR RESPUESTA texto-only
+          this.createOpenAIResponse(streamSid);
           
           // Timeout para respuesta
           this.responseTimeouts.set(streamSid, setTimeout(() => {
