@@ -752,40 +752,21 @@ class TwilioStreamHandler {
     }
 
     try {
-      // 3. Humanizar el saludo con SSML
-      const humanizedGreeting = this.humanizeTextWithSSML(greeting);
-      // logger.info(`🎭 [${streamSid}] SSML generado: ${humanizedGreeting.substring(0, 100)}...`);
+      // 🚀 USAR OPENAI TTS PARA SALUDO (voz shimmer)
+      logger.info(`🔊 [${streamSid}] Generando saludo con OpenAI TTS (voz shimmer)...`);
       
-      // 4. Generar audio con Azure TTS usando SSML humanizado con timeout
-      logger.info(`🔊 [${streamSid}] Iniciando Azure TTS con timeout de 10s...`);
-      const ttsPromise = this.ttsService.generateSpeech(
-        humanizedGreeting,
-        voiceId,
-        'raw-8khz-8bit-mono-mulaw'
-      );
+      // Inicializar OpenAI Realtime ANTES del saludo para usar su TTS
+      await this.openaiRealtimeService.initializeConnection(streamSid, streamData.client);
+      logger.info(`✅ [${streamSid}] OpenAI Realtime inicializado para saludo`);
       
-      // Agregar timeout para evitar que Azure TTS se cuelgue en producción
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Azure TTS timeout after 10 seconds')), 10000);
-      });
+      // Generar audio del saludo con OpenAI TTS
+      const openaiTTSResult = await this.openaiRealtimeService.generateGreetingAudio(streamSid, greeting);
       
-      const ttsResult = await Promise.race([ttsPromise, timeoutPromise]);
-      logger.info(`🔍 [${streamSid}] TTS Result: success=${ttsResult?.success}, audioBuffer length=${ttsResult?.audioBuffer?.length}`);
-      
-      // ECHO BLANKING: Activar blanking antes de enviar audio del bot
-      this.activateEchoBlanking(streamSid);
-
-      if (ttsResult.success) {
-        // Save audio to file
-        const fileName = `debug_${Date.now()}_${streamSid}.wav`;
-        fs.writeFileSync(fileName, ttsResult.audioBuffer);
-        logger.info(`🔧 [${streamSid}] Audio guardado en ${fileName}`);
+      if (openaiTTSResult.success) {
+        logger.info(`✅ [${streamSid}] Audio de saludo generado con OpenAI (${openaiTTSResult.audioBuffer.length} bytes)`);
         
-        // logger.info(`🔍 [${streamSid}] ANTES de sendRawMulawToTwilio`);
-        
-        // Calcular duración aproximada del audio para timing correcto
-        const audioLengthMs = Math.ceil((ttsResult.audioBuffer.length / 8000) * 1000); // 8kHz mulaw
-        logger.info(`🔍 [${streamSid}] Audio length: ${ttsResult.audioBuffer.length} bytes = ~${audioLengthMs}ms`);
+        // ECHO BLANKING: Activar blanking antes de enviar audio del bot
+        this.activateEchoBlanking(streamSid);
         
         // Usar sistema de marcas para activar transcripción después del saludo
         const markId = `greeting_end_${Date.now()}`;
@@ -800,15 +781,11 @@ class TwilioStreamHandler {
         });
         
         // Enviar audio con marca al final
-        await this.sendRawMulawToTwilioWithMark(ws, ttsResult.audioBuffer, streamSid, markId);
+        await this.sendRawMulawToTwilioWithMark(ws, openaiTTSResult.audioBuffer, streamSid, markId);
         logger.info(`✅ [${streamSid}] Audio del saludo enviado con marca ${markId}`);
-
-        // 🚫 REMOVIDO: setTimeout para desactivar echo blanking
-        // RAZÓN: Ahora usamos SOLO el sistema de marcas para mayor precisión
-        // El echo blanking se mantendrá activo hasta que Twilio confirme que terminó de reproducir
       } else {
-        logger.error(`❌ [${streamSid}] TTS falló: ${ttsResult?.error || 'Unknown error'}`);
-        throw new Error('TTS failed');
+        logger.error(`❌ [${streamSid}] OpenAI TTS falló: ${openaiTTSResult?.error || 'Unknown error'}`);
+        throw new Error('OpenAI TTS failed');
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error TTS: ${error.message}`);

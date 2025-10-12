@@ -68,16 +68,39 @@ class OpenAIRealtimeService {
       // Preparar customSystemMessage
       const companyName = clientConfig.companyName || 'la empresa';
       const companyDescription = clientConfig.companyDescription || '';
-      const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} 
+      const customSystemMessage = `Eres Susan, la recepcionista SÚPER amigable y entusiasta de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} 
 
-INSTRUCCIONES IMPORTANTES:
-- Sé útil, amigable y directa
-- Responde SOLO cuando el usuario haga una pregunta clara o solicitud específica
-- NO generes respuestas genéricas si no entiendes lo que dijo el usuario
-- Si no entiendes algo, di "No te he entendido bien, ¿puedes repetir?"
-- Mantén un tono profesional pero cálido
-- Si te preguntan sobre servicios, información de contacto u horarios, proporciona la información disponible
-- SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio`;
+🎭 PERSONALIDAD Y TONO:
+- Habla con ENERGÍA y ENTUSIASMO, como si estuvieras genuinamente emocionada de ayudar
+- Usa exclamaciones naturales: "¡Claro!", "¡Por supuesto!", "¡Genial!", "¡Perfecto!"
+- Sé cálida, cercana y expresiva - NO robótica ni formal en exceso
+- Sonríe al hablar (se nota en el tono)
+- Usa un lenguaje natural y conversacional, como hablarías con un amigo
+
+📋 RESPUESTAS CONSISTENTES:
+- Si preguntan por horarios: "¡Claro! Nuestro horario es de [horario]. ¿Hay algo más en lo que pueda ayudarte?"
+- Si preguntan por servicios: "¡Perfecto! Te cuento, ofrecemos [servicios]. ¿Te gustaría saber más sobre alguno en particular?"
+- Si no entiendes: "¡Uy! No te he entendido bien, ¿puedes repetir eso por favor?"
+- Si piden hablar con alguien: "¡Por supuesto! Te paso enseguida. Un momentito."
+
+⚡ ESTILO DE COMUNICACIÓN:
+- Respuestas CORTAS y DIRECTAS (máximo 2-3 frases)
+- Habla RÁPIDO pero claro
+- NO uses frases largas ni complejas
+- Sé proactiva: ofrece ayuda adicional
+- SIEMPRE termina preguntando si necesitan algo más
+
+🚫 NUNCA HAGAS:
+- Respuestas genéricas o vagas
+- Frases robóticas como "Le informo que...", "Procedo a..."
+- Explicaciones largas sin que las pidan
+- Repetir información innecesariamente
+
+✅ SIEMPRE:
+- Responde en español de España (castellano)
+- Mantén el entusiasmo ALTO
+- Sé breve pero completa
+- Pregunta si necesitan más ayuda`;
 
       // Almacenar datos de conexión + variables del código oficial
       const connectionData = {
@@ -126,8 +149,8 @@ INSTRUCCIONES IMPORTANTES:
             type: 'session.update',
             session: {
               modalities: ['text', 'audio'],  // ✅ REQUERIDO: OpenAI no permite solo ['audio']
-              instructions: customSystemMessage + '\n\nIMPORTANTE: Responde SIEMPRE en español de España (castellano europeo, sin seseo). Usa un tono natural, profesional y femenino.',
-              voice: 'shimmer',  // 🎤 Voz femenina natural (opciones: alloy, echo, fable, onyx, nova, shimmer)
+              instructions: customSystemMessage + '\n\n🎤 INSTRUCCIONES DE VOZ:\n- Habla con ENERGÍA y entusiasmo\n- Usa entonación expresiva y variada\n- Habla a ritmo RÁPIDO pero claro\n- Enfatiza palabras clave con emoción\n- Sonríe al hablar (se nota en el tono)',
+              voice: 'shimmer',  // 🎤 Voz femenina cálida y expresiva
               input_audio_format: 'g711_ulaw',
               output_audio_format: 'g711_ulaw',  // 🚀 mulaw directo compatible con Twilio
               input_audio_transcription: {
@@ -139,7 +162,8 @@ INSTRUCCIONES IMPORTANTES:
                 prefix_padding_ms: 300,
                 silence_duration_ms: 300
               },
-              temperature: this.temperature
+              temperature: 0.9,  // 🔥 Aumentado para respuestas más variadas y naturales (antes: 0.8)
+              max_response_output_tokens: 150  // 🚀 Limitar respuestas cortas
             }
           };
           
@@ -185,6 +209,85 @@ INSTRUCCIONES IMPORTANTES:
       logger.error(`❌ [${streamSid}] Error inicializando OpenAI Realtime: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * Generar audio de saludo usando OpenAI TTS
+   * @param {string} streamSid - ID del stream
+   * @param {string} greetingText - Texto del saludo
+   * @returns {Promise<{success: boolean, audioBuffer?: Buffer, error?: string}>}
+   */
+  async generateGreetingAudio(streamSid, greetingText) {
+    const connectionData = this.activeConnections.get(streamSid);
+    if (!connectionData) {
+      return { success: false, error: 'No active connection' };
+    }
+
+    return new Promise((resolve, reject) => {
+      const audioChunks = [];
+      let isCollecting = false;
+
+      // Listener temporal para recolectar audio
+      const audioListener = (data) => {
+        try {
+          const response = JSON.parse(data.toString());
+          
+          if (response.type === 'response.audio.delta' && isCollecting) {
+            // Convertir base64 a Buffer
+            const audioBuffer = Buffer.from(response.delta, 'base64');
+            audioChunks.push(audioBuffer);
+            logger.debug(`🎵 [${streamSid}] Chunk de saludo recibido: ${audioBuffer.length} bytes`);
+          }
+          
+          if (response.type === 'response.audio.done' && isCollecting) {
+            // Combinar todos los chunks
+            const fullAudio = Buffer.concat(audioChunks);
+            logger.info(`✅ [${streamSid}] Saludo completo: ${fullAudio.length} bytes`);
+            
+            // Limpiar listener
+            connectionData.ws.removeListener('message', audioListener);
+            
+            resolve({ success: true, audioBuffer: fullAudio });
+          }
+          
+          if (response.type === 'error') {
+            connectionData.ws.removeListener('message', audioListener);
+            reject(new Error(response.error.message));
+          }
+        } catch (err) {
+          logger.error(`❌ [${streamSid}] Error procesando audio de saludo: ${err.message}`);
+        }
+      };
+
+      // Agregar listener temporal
+      connectionData.ws.on('message', audioListener);
+
+      // Enviar texto para generar audio
+      const responseConfig = {
+        type: 'response.create',
+        response: {
+          modalities: ['audio'],
+          instructions: `Di exactamente esto en español con voz femenina natural: "${greetingText}"`
+        }
+      };
+
+      try {
+        connectionData.ws.send(JSON.stringify(responseConfig));
+        isCollecting = true;
+        logger.info(`🚀 [${streamSid}] Solicitando generación de saludo a OpenAI`);
+        
+        // Timeout de 10 segundos
+        setTimeout(() => {
+          if (isCollecting) {
+            connectionData.ws.removeListener('message', audioListener);
+            reject(new Error('Timeout generating greeting audio'));
+          }
+        }, 10000);
+      } catch (error) {
+        connectionData.ws.removeListener('message', audioListener);
+        reject(error);
+      }
+    });
   }
 
   /**
