@@ -100,6 +100,31 @@ class OpenAIRealtimeService {
           logger.info(`🔍 [${streamSid}] Temperature: ${this.temperature}`);
           connectionData.status = 'connected';
           
+          // ✅ CONFIGURAR SESIÓN INICIAL (según documentación oficial)
+          const sessionConfig = {
+            type: 'session.update',
+            session: {
+              modalities: ['text'],
+              instructions: customSystemMessage,
+              voice: this.voice,
+              input_audio_format: 'g711_ulaw',
+              output_audio_format: 'pcm16',
+              input_audio_transcription: {
+                model: 'whisper-1'
+              },
+              turn_detection: {
+                type: 'server_vad',
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 500
+              },
+              temperature: this.temperature
+            }
+          };
+          
+          openAiWs.send(JSON.stringify(sessionConfig));
+          logger.info(`🔧 [${streamSid}] Configuración de sesión enviada`);
+          
           resolve(openAiWs);
         });
 
@@ -148,9 +173,9 @@ class OpenAIRealtimeService {
       return;
     }
 
+    // ✅ response.create NO acepta parámetros según documentación oficial
     const responseConfig = {
-      type: 'response.create',
-      instructions: connectionData.customSystemMessage
+      type: 'response.create'
     };
 
     try {
