@@ -537,8 +537,8 @@ class OpenAIRealtimeService {
                 fullText = fullText.substring(0, 500);
               }
               
-              // Enviar directamente a Azure TTS
-              this.processTextWithAzureTTS(streamSid, fullText);
+              // ✅ NO usar Azure TTS - OpenAI genera el audio directamente
+              logger.info(`🎯 [${streamSid}] Texto recibido de OpenAI (audio se genera automáticamente): "${fullText.substring(0, 50)}..."`);
             } else {
               logger.debug(`🔍 [${streamSid}] Item creado sin texto: ${JSON.stringify(response.item)}`);
             }
@@ -616,8 +616,8 @@ class OpenAIRealtimeService {
             logger.info(`🚀 [${streamSid}] Enviando transcripción completa a Azure TTS: "${connectionData.audioTranscript}"`);
             logger.debug(`🔍 [${streamSid}] 📊 Transcripción length: ${connectionData.audioTranscript.length} chars`);
             
-            // Enviar transcripción completa a Azure TTS (como texto normal)
-            this.processTextWithAzureTTS(streamSid, connectionData.audioTranscript);
+            // ✅ NO usar Azure TTS - OpenAI ya generó el audio
+            logger.info(`🎯 [${streamSid}] Transcripción completa recibida (audio ya enviado): "${connectionData.audioTranscript.substring(0, 50)}..."`);
             
             // Limpiar transcripción acumulada
             connectionData.audioTranscript = '';
