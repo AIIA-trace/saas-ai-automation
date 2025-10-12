@@ -122,11 +122,9 @@ INSTRUCCIONES IMPORTANTES:
           const sessionConfig = {
             type: 'session.update',
             session: {
-              modalities: ['text', 'audio'],  // ✅ AMBOS: audio input + text output
+              modalities: ['text'],  // ✅ SOLO TEXTO - No generar audio (usamos Azure TTS)
               instructions: customSystemMessage,
-              voice: this.voice,
               input_audio_format: 'g711_ulaw',
-              output_audio_format: 'pcm16',
               input_audio_transcription: {
                 model: 'whisper-1'
               },
@@ -383,8 +381,6 @@ INSTRUCCIONES IMPORTANTES:
           logger.info(`🆔 [${streamSid}] Response ID: ${responseId}`);
           // Guardar el ID de la respuesta activa
           connectionData.activeResponseId = responseId;
-          // Resetear flag de cancelación de audio
-          connectionData.audioCancelled = false;
           break;
 
         case 'response.text.delta':
@@ -459,26 +455,9 @@ INSTRUCCIONES IMPORTANTES:
           break;
 
         case 'response.audio.delta':
-          // ❌ OpenAI está generando audio - CANCELAR y usar solo texto
-          if (!connectionData.audioCancelled) {
-            logger.warn(`⚠️ [${streamSid}] OpenAI generando audio - CANCELANDO para usar solo texto`);
-            
-            // Cancelar la respuesta actual
-            if (connectionData.activeResponseId) {
-              const cancelEvent = {
-                type: 'response.cancel'
-              };
-              connectionData.ws.send(JSON.stringify(cancelEvent));
-              logger.info(`🛑 [${streamSid}] Respuesta ${connectionData.activeResponseId} cancelada`);
-            }
-            
-            connectionData.audioCancelled = true;
-          }
-          break;
-
         case 'response.audio.done':
         case 'response.output_audio_transcript.done':
-          // ✅ Eventos de audio que no necesitamos procesar (usamos texto)
+          // ✅ No deberían llegar (modalities=['text']) pero los ignoramos por seguridad
           logger.debug(`🔇 [${streamSid}] Evento de audio ignorado: ${response.type}`);
           break;
 
