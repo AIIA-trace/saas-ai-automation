@@ -282,11 +282,11 @@ class OpenAIRealtimeService {
         connectionData.ws.send(JSON.stringify(conversationItem));
         logger.info(`📝 [${streamSid}] Mensaje de saludo creado en conversación`);
         
-        // 2. Generar audio del mensaje (sin instructions adicionales)
+        // 2. Generar audio del mensaje (SOLO audio, sin texto para evitar respuestas automáticas)
         const responseConfig = {
           type: 'response.create',
           response: {
-            modalities: ['audio', 'text']
+            modalities: ['audio']  // ✅ SOLO AUDIO - evita que OpenAI genere respuestas automáticas
           }
         };
         
