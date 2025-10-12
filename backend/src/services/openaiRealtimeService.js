@@ -267,7 +267,7 @@ class OpenAIRealtimeService {
       const responseConfig = {
         type: 'response.create',
         response: {
-          modalities: ['audio'],
+          modalities: ['audio', 'text'],  // ✅ OpenAI requiere ambos
           instructions: `Di exactamente esto en español con voz femenina natural: "${greetingText}"`
         }
       };
