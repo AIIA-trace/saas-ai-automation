@@ -113,7 +113,7 @@ INSTRUCCIONES IMPORTANTES:
           const sessionConfig = {
             type: 'session.update',
             session: {
-              modalities: ['text'],
+              modalities: ['text', 'audio'],  // ✅ AMBOS: audio input + text output
               instructions: customSystemMessage,
               voice: this.voice,
               input_audio_format: 'g711_ulaw',
@@ -256,10 +256,10 @@ INSTRUCCIONES IMPORTANTES:
           });
 
           // Verificar configuración
-          if (response.session?.modalities?.includes('text')) {
-            logger.info(`🎯 [${streamSid}] ✅ TEXTO-ONLY CONFIGURADO CORRECTAMENTE`);
+          if (response.session?.modalities?.includes('text') && response.session?.modalities?.includes('audio')) {
+            logger.info(`🎯 [${streamSid}] ✅ AUDIO+TEXTO CONFIGURADO CORRECTAMENTE`);
             connectionData.status = 'ready';
-            logger.info(`✅ [${streamSid}] OpenAI listo para recibir audio`);
+            logger.info(`✅ [${streamSid}] OpenAI listo para recibir audio y generar texto`);
           } else {
             logger.error(`🚨 [${streamSid}] CONFIGURACIÓN FALLÓ - OpenAI usa modalities: ${JSON.stringify(response.session?.modalities)}`);
           }
