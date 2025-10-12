@@ -439,26 +439,33 @@ INSTRUCCIONES IMPORTANTES:
           }
           break;
 
-        case 'response.audio.delta':
-        case 'response.audio.done':
         case 'response.audio_transcript.delta':
-        case 'response.audio_transcript.done':  // ✅ ESTE ES EL EVENTO CORRECTO
-        case 'response.output_audio_transcript.done':
-          // ✅ CAPTURAR TRANSCRIPCIÓN cuando OpenAI genera audio inesperadamente (bug conocido)
+          // ✅ SOLO LOGUEAR - NO ENVIAR A TTS (son palabras sueltas)
+          logger.debug(`📝 [${streamSid}] Delta de transcripción: "${response.delta}"`);
+          break;
+
+        case 'response.audio_transcript.done':
+          // ✅ ESTE ES EL EVENTO CORRECTO - Transcripción completa
           logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETA DE AUDIO GENERADO POR OPENAI`);
           
-          // ✅ Buscar transcripción en diferentes ubicaciones según el evento
-          const audioTranscript = response.transcript || response.delta;
+          const audioTranscript = response.transcript;
           
           if (audioTranscript) {
-            logger.info(`🎯 [${streamSid}] Transcripción OpenAI: "${audioTranscript}"`);
+            logger.info(`🎯 [${streamSid}] Transcripción OpenAI completa: "${audioTranscript}"`);
 
-            // ✅ ENVIAR A AZURE TTS (como si fuera respuesta de texto normal)
+            // ✅ ENVIAR A AZURE TTS (solo la transcripción completa)
             this.processTextWithAzureTTS(streamSid, audioTranscript);
           } else {
-            logger.warn(`⚠️ [${streamSid}] No hay transcripción en evento de audio completado`);
+            logger.warn(`⚠️ [${streamSid}] No hay transcripción en evento done`);
             logger.debug(`🔍 [${streamSid}] Evento completo: ${JSON.stringify(response)}`);
           }
+          break;
+
+        case 'response.audio.delta':
+        case 'response.audio.done':
+        case 'response.output_audio_transcript.done':
+          // ✅ Eventos de audio que no necesitamos procesar (usamos texto)
+          logger.debug(`🔇 [${streamSid}] Evento de audio ignorado: ${response.type}`);
           break;
 
         case 'response.output_audio_transcript.delta':
