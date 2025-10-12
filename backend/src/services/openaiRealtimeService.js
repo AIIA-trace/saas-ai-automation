@@ -221,29 +221,23 @@ class OpenAIRealtimeService {
         return;
       }
 
-      // 🔥 DEBUG COMPLETO DE EVENTOS OPENAI
-      const DEBUG_EVENTS = [
-        'session.updated', 'session.created',
-        'input_audio_buffer.speech_started', 'input_audio_buffer.speech_stopped',
-        'conversation.item.input_audio_transcription.completed',
-        'response.created', 'response.text.delta', 'response.text.done',
-        'response.audio.delta', 'response.audio.done',
-        'response.done', 'error'
-      ];
+      // 🔥 SOLO LOGS CRÍTICOS - eliminar duplicados
+      const CRITICAL_EVENTS = {
+        'session.updated': true,
+        'input_audio_buffer.speech_started': true, 
+        'input_audio_buffer.speech_stopped': true,
+        'conversation.item.input_audio_transcription.completed': true,
+        'response.text.delta': true,
+        'response.text.done': true,
+        'error': true
+      };
 
-      if (DEBUG_EVENTS.includes(response.type)) {
-        logger.info(`🎯 [${streamSid}] OPENAI EVENT: ${response.type}`, {
-          event: response.type,
+      if (CRITICAL_EVENTS[response.type]) {
+        logger.info(`🎯 [${streamSid}] ${response.type}`, {
+          // Solo información esencial
           has_delta: !!response.delta,
-          has_transcript: !!response.transcript,
-          session_modalities: response.session?.output_modalities,
-          // Solo log crítico, no todo el objeto
+          has_transcript: !!response.transcript
         });
-      }
-
-      // 🔍 LOG TODOS LOS DEMÁS EVENTOS PARA DIAGNÓSTICO
-      if (!DEBUG_EVENTS.includes(response.type)) {
-        logger.debug(`🔍 [${streamSid}] OpenAI Event (no filtrado): ${response.type}`);
       }
 
       // 🔥 DEBUG ESPECÍFICO PARA PROBLEMAS COMUNES
@@ -263,36 +257,39 @@ class OpenAIRealtimeService {
           break;
 
         case 'session.updated':
+          // ✅ UNIFICADO: Combinar ambos handlers
           logger.info(`🔧 [${streamSid}] CONFIGURACIÓN APLICADA:`, {
             modalities: response.session?.modalities,
             output_modalities: response.session?.output_modalities,
-            instructions_length: response.session?.instructions?.length,
-            turn_detection: response.session?.turn_detection, // ✅ NUEVO
-            input_audio_transcription: response.session?.input_audio_transcription // ✅ NUEVO
+            turn_detection: response.session?.input_audio_transcription?.turn_detection,
+            input_audio_transcription: response.session?.input_audio_transcription
           });
-          
-          // 🔍 VERIFICAR CRÍTICA: Que se aplicó nuestra configuración
-          if (response.session) {
-            const appliedModalities = response.session.output_modalities;
-            const appliedInstructions = response.session.instructions;
-            
-            if (appliedModalities?.includes('text')) {
-              logger.info(`🎯 [${streamSid}] ✅ TEXTO-ONLY CONFIGURADO CORRECTAMENTE`);
-              connectionData.status = 'ready';
-            } else {
-              logger.error(`🚨 [${streamSid}] CONFIGURACIÓN FALLÓ`);
-            }
+
+          // Verificar configuración
+          if (response.session?.output_modalities?.includes('text')) {
+            logger.info(`🎯 [${streamSid}] ✅ TEXTO-ONLY CONFIGURADO CORRECTAMENTE`);
+            connectionData.status = 'ready';
+            logger.info(`✅ [${streamSid}] OpenAI listo para recibir audio`);
+          } else {
+            logger.error(`🚨 [${streamSid}] CONFIGURACIÓN FALLÓ - OpenAI usa: ${JSON.stringify(response.session?.output_modalities)}`);
           }
           break;
 
         case 'input_audio_buffer.speech_started':
-          logger.info(`🎤 [${streamSid}] VAD DETECTÓ VOZ INICIO`);
+          // ✅ UNIFICADO
+          logger.info(`🎤 [${streamSid}] ✅ VAD DETECTÓ INICIO DE VOZ`);
+          // Actualizar timestamp de VAD activity
+          if (connectionData) {
+            connectionData.lastVadActivity = Date.now();
+          }
+          this.handleSpeechStartedEvent(streamSid);
           break;
 
         case 'input_audio_buffer.speech_stopped':
-          logger.info(`🔇 [${streamSid}] VAD DETECTÓ VOZ FIN - Esperando respuesta...`);
+          // ✅ UNIFICADO  
+          logger.info(`🔇 [${streamSid}] VAD DETECTÓ FIN DE VOZ - Esperando respuesta...`);
           
-          // 🔥 TIMEOUT: Si no hay respuesta en 10 segundos
+          // Timeout para respuesta
           this.responseTimeouts.set(streamSid, setTimeout(() => {
             logger.error(`⏰ [${streamSid}] TIMEOUT: OpenAI no respondió en 10 segundos`);
             this.responseTimeouts.delete(streamSid);
@@ -623,7 +620,26 @@ class OpenAIRealtimeService {
 
       // 🎯 CONVERSIÓN CRÍTICA: mulaw (Twilio) → PCM (OpenAI)
       const mulawBuffer = Buffer.from(audioPayload, 'base64');
-      logger.debug(`🔍 [${streamSid}] Twilio mulaw: ${mulawBuffer.length} bytes → Convirtiendo a PCM para OpenAI`);
+      
+      // ✅ MEJOR VALIDACIÓN DE CALIDAD DE AUDIO
+      const silentBytes = mulawBuffer.filter(byte => byte === 0xFF || byte === 0x00).length;
+      const audioPercent = ((mulawBuffer.length - silentBytes) / mulawBuffer.length * 100);
+      
+      // Inicializar contador si no existe
+      if (!connectionData.audioSent) {
+        connectionData.audioSent = 0;
+      }
+      connectionData.audioSent++;
+      
+      // 🔥 SOLO LOG CADA 100 CHUNKS PARA NO SATURAR
+      if (connectionData.audioSent % 100 === 0) {
+        logger.info(`📊 [${streamSid}] Audio: ${audioPercent.toFixed(1)}% contenido, ${connectionData.audioSent} chunks enviados`);
+      }
+      
+      // 🚨 ALERTA SOLO SI ES MUY ALTO Y NO HAY DETECCIÓN
+      if (audioPercent > 50 && !this.vadDetectedRecently(streamSid)) {
+        logger.warn(`🚨 [${streamSid}] MUCHO CONTENIDO (${audioPercent}%) pero VAD no detecta`);
+      }
       
       // ✅ CONVERSIÓN: mulaw 8kHz → PCM 24kHz (formato requerido por OpenAI)
       const pcmBuffer = this.convertMulawToPCM24k(mulawBuffer);
@@ -641,24 +657,24 @@ class OpenAIRealtimeService {
       // DEBUG ADICIONAL: Estado de la conexión y contadores
       connectionData.audioSent = (connectionData.audioSent || 0) + 1;
       
-      // 🔍 ANÁLISIS CRÍTICO: Detectar si audio tiene contenido real
-      const mulawBytes = Buffer.from(audioPayload, 'base64');
-      const silentBytes = mulawBytes.filter(byte => byte === 0xFF).length;
-      const audioPercent = ((mulawBytes.length - silentBytes) / mulawBytes.length * 100).toFixed(1);
+      // 🔍 ANÁLISIS CRÍTICO: Detectar si audio tiene contenido real (variables renombradas)
+      const mulawBytes2 = Buffer.from(audioPayload, 'base64');
+      const silentBytes2 = mulawBytes2.filter(byte => byte === 0xFF).length;
+      const audioPercent2 = ((mulawBytes2.length - silentBytes2) / mulawBytes2.length * 100).toFixed(1);
       
       if (connectionData.audioSent % 50 === 0) {  // Log cada 50 chunks
         logger.info(`📊 [${streamSid}] ===== DIAGNÓSTICO VAD CRÍTICO =====`);
         logger.info(`📊 [${streamSid}] ├── Audio chunks enviados: ${connectionData.audioSent}`);
         logger.info(`📊 [${streamSid}] ├── Conexión status: ${connectionData.status}`);
         logger.info(`📊 [${streamSid}] ├── WebSocket readyState: ${connectionData.ws.readyState}`);
-        logger.info(`📊 [${streamSid}] ├── Audio content: ${audioPercent}% non-silent`);
-        logger.info(`📊 [${streamSid}] ├── Último chunk: ${mulawBytes.length} bytes, ${silentBytes} silent`);
+        logger.info(`📊 [${streamSid}] ├── Audio content: ${audioPercent2}% non-silent`);
+        logger.info(`📊 [${streamSid}] ├── Último chunk: ${mulawBytes2.length} bytes, ${silentBytes2} silent`);
         logger.info(`📊 [${streamSid}] └── 🚨 Si >30% audio y NO hay speech_started = PROBLEMA VAD`);
       }
       
       // 🚨 ALERTA CRÍTICA: Si hay mucho contenido pero no speech_started
-      if (audioPercent > 30) {
-        logger.warn(`🚨 [${streamSid}] AUDIO REAL DETECTADO: ${audioPercent}% content - VAD debería detectar!`);
+      if (audioPercent2 > 30) {
+        logger.warn(`🚨 [${streamSid}] AUDIO REAL DETECTADO: ${audioPercent2}% content - VAD debería detectar!`);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando audio a OpenAI: ${error.message}`);
@@ -849,6 +865,16 @@ class OpenAIRealtimeService {
       connectionData.markQueue.shift();
       logger.debug(`📍 [${streamSid}] Marca ${markName} removida del queue (${connectionData.markQueue.length} restantes)`);
     }
+  }
+
+  /**
+   * ✅ HELPER PARA VERIFICAR DETECCIÓN RECIENTE DE VAD
+   * @param {string} streamSid - Stream ID
+   * @returns {boolean} - Si VAD detectó actividad recientemente
+   */
+  vadDetectedRecently(streamSid) {
+    const connectionData = this.activeConnections.get(streamSid);
+    return connectionData && Date.now() - (connectionData.lastVadActivity || 0) < 5000;
   }
 }
 
