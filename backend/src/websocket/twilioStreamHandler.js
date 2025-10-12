@@ -780,32 +780,22 @@ class TwilioStreamHandler {
         throw new Error('OpenAI TTS failed');
       }
     } catch (error) {
-      logger.error(`❌ [${streamSid}] Error TTS: ${error.message}`);
+      logger.error(`❌ [${streamSid}] Error generando saludo con OpenAI: ${error.message}`);
       
-      // 4. Usar fallback si TTS falla
-      logger.warn(`⚠️ [${streamSid}] Usando audio de fallback`);
+      // ✅ NO enviar fallback - OpenAI generará el audio directamente en streaming
+      // El audio ya se está enviando via handleOpenAIMessage -> response.audio.delta
+      logger.info(`🎵 [${streamSid}] OpenAI generará el saludo en streaming (sin pre-generación)`);
       
-      // Activar echo blanking durante fallback
-      this.activateEchoBlanking(streamSid);
-      
-      // Usar sistema de marcas para activar transcripción después del fallback
-      const markId = `fallback_end_${Date.now()}`;
-      logger.info(`🎯 [${streamSid}] Enviando fallback con marca: ${markId}`);
-      
-      // Registrar que esperamos esta marca para activar transcripción
-      this.pendingMarks = this.pendingMarks || new Map();
-      this.pendingMarks.set(markId, {
-        streamSid: streamSid,
-        action: 'activate_transcription',
-        timestamp: Date.now()
-      });
-      
-      // Enviar fallback con marca al final
-      await this.sendRawMulawToTwilioWithMark(ws, this.fallbackAudio, streamSid, markId);
-      logger.info(`✅ [${streamSid}] Audio fallback del saludo enviado con marca ${markId}`);
-
-      // 🚫 REMOVIDO: setTimeout para desactivar echo blanking del fallback
-      // RAZÓN: Consistente con saludo normal, usamos SOLO sistema de marcas
+      // Activar transcripción después de un breve delay (OpenAI ya está activo)
+      setTimeout(() => {
+        this.transcriptionActive.set(streamSid, true);
+        const streamData = this.activeStreams.get(streamSid);
+        if (streamData) {
+          streamData.state = 'listening';
+          streamData.greetingCompletedAt = Date.now();
+        }
+        logger.info(`✅ [${streamSid}] Transcripción activada tras error de pre-generación`);
+      }, 3000);
     }
     
     // 🚫 REMOVIDO: NO inicializar OpenAI aquí - se hará cuando termine el saludo

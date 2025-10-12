@@ -164,7 +164,7 @@ class OpenAIRealtimeService {
               },
               temperature: 0.9,  // 🔥 Aumentado para respuestas más variadas y naturales (antes: 0.8)
               max_response_output_tokens: 150,  // 🚀 Limitar respuestas cortas
-              speed: 1.25  // ⚡ Velocidad de habla: 1.0 = normal, 1.25 = 25% más rápido (rango: 0.25 - 4.0)
+              speed: 1.15  // ⚡ Velocidad de habla: 1.0 = normal, 1.15 = 15% más rápido (rango: 0.25 - 4.0)
             }
           };
           
@@ -272,7 +272,7 @@ class OpenAIRealtimeService {
             role: 'assistant',
             content: [
               {
-                type: 'input_text',
+                type: 'text',  // ✅ Debe ser 'text', no 'input_text'
                 text: greetingText
               }
             ]
