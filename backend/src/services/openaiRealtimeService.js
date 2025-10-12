@@ -189,7 +189,6 @@ class OpenAIRealtimeService {
     const forceTextResponse = {
       type: 'response.create',
       response: {
-        modalities: ['text'],     // ✅ Solo texto output
         instructions: "You must respond ONLY with text, never with audio. Always provide text-only responses.",
         max_output_tokens: 150
       }
