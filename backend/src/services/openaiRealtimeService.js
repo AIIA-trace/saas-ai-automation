@@ -156,7 +156,7 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN GA OFICIAL - turn_detection dentro de audio.input
+    // ✅ CONFIGURACIÓN GA OFICIAL - SOLO TEXTO (sin voz innecesaria)
     const sessionUpdate = {
       type: 'session.update',
       session: {
@@ -172,10 +172,8 @@ class OpenAIRealtimeService {
               silence_duration_ms: 500,
               create_response: true
             }
-          },
-          output: {
-            voice: "alloy"
           }
+          // ❌ NO necesitamos output.voice porque solo queremos texto
         }
       }
     };
@@ -187,6 +185,7 @@ class OpenAIRealtimeService {
       logger.info(`✅ [${streamSid}] Configuración GA enviada correctamente`);
       logger.info(`🔍 [${streamSid}] - Model: gpt-realtime`);
       logger.info(`🔍 [${streamSid}] - VAD: server_vad dentro de audio.input`);
+      logger.info(`🔍 [${streamSid}] - Output: texto únicamente (sin voz innecesaria)`);
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando configuración: ${error.message}`);
