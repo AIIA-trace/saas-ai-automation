@@ -156,10 +156,11 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN MÍNIMA - formatos de audio van en URL, no aquí
+    // ✅ CONFIGURACIÓN CORRIGIENDO SOLO ERRORES REPORTADOS
     const sessionUpdate = {
       type: 'session.update',
       session: {
+        type: 'realtime',
         modalities: ["text", "audio"],
         instructions: customSystemMessage,
         voice: "alloy",
