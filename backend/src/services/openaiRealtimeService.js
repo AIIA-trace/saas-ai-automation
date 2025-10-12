@@ -162,8 +162,6 @@ class OpenAIRealtimeService {
       session: {
         type: 'realtime',
         model: this.model,
-        modalities: ['text', 'audio'], // ✅ Ambos para input
-        output_modalities: ["text"],   // ✅ Solo texto para output
         instructions: customSystemMessage,
         temperature: this.temperature,
         voice: 'alloy', // ✅ Necesario aunque no se use audio output
