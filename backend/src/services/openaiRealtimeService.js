@@ -156,14 +156,19 @@ class OpenAIRealtimeService {
     
     const customSystemMessage = `Eres Susan, la recepcionista profesional de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''} Sé útil, amigable y directa. Responde brevemente y pregunta en qué puedes ayudar. Mantén un tono profesional pero cálido. Tu objetivo es ayudar al cliente y dirigirlo correctamente. Si te preguntan sobre servicios específicos, información de contacto u horarios, proporciona la información disponible. SIEMPRE responde en español y ÚNICAMENTE con texto, nunca con audio.`;
 
-    // ✅ CONFIGURACIÓN MÍNIMA OFICIAL (solo parámetros soportados)
+    // ✅ CONFIGURACIÓN OFICIAL CON PARÁMETROS REQUERIDOS
     const sessionUpdate = {
       type: 'session.update',
       session: {
+        type: 'response', // ✅ REQUERIDO por OpenAI
         instructions: customSystemMessage,
         input_audio_format: "g711_ulaw",
+        output_audio_format: "g711_ulaw",
         input_audio_transcription: {
           model: "whisper-1"
+        },
+        turn_detection: {
+          type: "server_vad"
         }
       }
     };
@@ -281,11 +286,15 @@ class OpenAIRealtimeService {
           break;
 
         case 'conversation.item.input_audio_transcription.completed':
-          logger.info(`📝 [${streamSid}] TRANSCRIPCIÓN: "${response.transcript}"`);
+          logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETADA`);
+          const transcript = response.transcript || response.content || 'N/A';
+          logger.info(`🗣️ [${streamSid}] TEXTO TRANSCRITO: "${transcript}"`);
           break;
 
         case 'response.created':
-          logger.info(`🚀 [${streamSid}] ✅ OPENAI CREANDO RESPUESTA`);
+          logger.info(`🚀 [${streamSid}] ✅ OpenAI GENERANDO RESPUESTA`);
+          const responseId = response.response?.id || 'N/A';
+          logger.info(`🆔 [${streamSid}] Response ID: ${responseId}`);
           break;
 
         case 'response.text.delta':
@@ -407,31 +416,10 @@ class OpenAIRealtimeService {
 
 
 
-        case 'conversation.item.input_audio_transcription.completed':
-          logger.info(`📝 [${streamSid}] ✅ TRANSCRIPCIÓN COMPLETADA - ÉXITO!`);
-          logger.info(`🔍 [${streamSid}] 📊 TRANSCRIPTION COMPLETA: ${JSON.stringify(response, null, 2)}`);
-          
-          // Extraer texto transcrito
-          const transcript = response.transcript || response.content || 'N/A';
-          logger.info(`🗣️ [${streamSid}] TEXTO TRANSCRITO: "${transcript}"`);
-          break;
-
         case 'conversation.item.input_audio_transcription.failed':
-          logger.error(`❌ [${streamSid}] TRANSCRIPCIÓN FALLÓ - ERROR CRÍTICO!`);
-          logger.error(`🔍 [${streamSid}] 📊 TRANSCRIPTION ERROR: ${JSON.stringify(response, null, 2)}`);
-          
-          // Diagnóstico del error
+          logger.error(`❌ [${streamSid}] TRANSCRIPCIÓN FALLÓ`);
           const error = response.error || 'Error desconocido';
-          logger.error(`💥 [${streamSid}] CAUSA DEL ERROR: ${JSON.stringify(error)}`);
-          break;
-
-        case 'response.created':
-          logger.info(`🚀 [${streamSid}] ✅ OpenAI GENERANDO RESPUESTA - ÉXITO!`);
-          logger.info(`🔍 [${streamSid}] 📊 RESPONSE.CREATED COMPLETO: ${JSON.stringify(response, null, 2)}`);
-          
-          // Debug del response ID
-          const responseId = response.response?.id || 'N/A';
-          logger.info(`🆔 [${streamSid}] Response ID: ${responseId}`);
+          logger.error(`💥 [${streamSid}] CAUSA: ${JSON.stringify(error)}`);
           break;
 
         case 'response.output_audio.started':
