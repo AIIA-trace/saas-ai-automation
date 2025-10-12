@@ -322,9 +322,9 @@ INSTRUCCIONES IMPORTANTES:
             logger.info(`✅ [${streamSid}] No hay chunks pendientes - todo el audio ya fue enviado`);
           }
           
-          // ✅ COMMIT inmediato (el audio ya está en OpenAI)
-          connectionData.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-          logger.info(`✅ [${streamSid}] Audio buffer commit enviado`);
+          // ❌ NO ENVIAR COMMIT MANUAL con server_vad
+          // OpenAI hace commit automáticamente cuando detecta speech_stopped
+          logger.info(`✅ [${streamSid}] OpenAI hará commit automático (server_vad activo)`);
           
           // ✅ CREAR RESPUESTA con retardo de 100ms
           setTimeout(() => {
