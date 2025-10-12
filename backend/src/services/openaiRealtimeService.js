@@ -304,45 +304,32 @@ INSTRUCCIONES IMPORTANTES:
 
         case 'input_audio_buffer.speech_stopped':
           // ✅ UNIFICADO  
-          logger.info(`🔇 [${streamSid}] VAD DETECTÓ FIN DE VOZ - Esperando respuesta...`);
+          logger.info(`🔇 [${streamSid}] VAD DETECTÓ FIN DE VOZ - Procesando...`);
           
-          // ✅ VERIFICAR si hay audio acumulado antes de procesar
-          const hasAudioToCommit = connectionData.audioBuffer && connectionData.audioBuffer.length > 0;
-          
-          if (!hasAudioToCommit) {
-            logger.warn(`⚠️ [${streamSid}] No hay audio en buffer para commit - ignorando speech_stopped`);
-            break;
-          }
-          
-          // ✅ ENVIAR chunks restantes
-          const combinedBuffer = Buffer.concat(connectionData.audioBuffer);
-          
-          // ✅ VALIDAR tamaño mínimo (100ms = ~800 bytes en mulaw 8kHz)
-          if (combinedBuffer.length < 800) {
-            logger.warn(`⚠️ [${streamSid}] Buffer muy pequeño (${combinedBuffer.length} bytes < 800) - probablemente ruido, ignorando`);
-            connectionData.audioBuffer = [];
-            break;
-          }
-          
-          connectionData.ws.send(JSON.stringify({
-            type: 'input_audio_buffer.append',
-            audio: combinedBuffer.toString('base64')
-          }));
-          logger.info(`✅ [${streamSid}] Chunks restantes enviados (${combinedBuffer.length} bytes)`);
-          
-          // ✅ Limpiar buffer DESPUÉS de enviarlo
-          connectionData.audioBuffer = [];
-          
-          // ✅ COMMIT con retardo de 200ms
-          setTimeout(() => {
-            connectionData.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-            logger.info(`✅ [${streamSid}] Audio buffer commit enviado`);
+          // ✅ ENVIAR chunks restantes si hay (pueden quedar < 15 chunks sin enviar)
+          if (connectionData.audioBuffer && connectionData.audioBuffer.length > 0) {
+            const remainingBuffer = Buffer.concat(connectionData.audioBuffer);
+            logger.info(`📦 [${streamSid}] Enviando chunks restantes (${connectionData.audioBuffer.length} chunks, ${remainingBuffer.length} bytes)`);
             
-            // ✅ CREAR RESPUESTA con retardo adicional de 100ms
-            setTimeout(() => {
-              this.createOpenAIResponse(streamSid);
-            }, 100);
-          }, 200);
+            connectionData.ws.send(JSON.stringify({
+              type: 'input_audio_buffer.append',
+              audio: remainingBuffer.toString('base64')
+            }));
+            
+            // Limpiar buffer temporal
+            connectionData.audioBuffer = [];
+          } else {
+            logger.info(`✅ [${streamSid}] No hay chunks pendientes - todo el audio ya fue enviado`);
+          }
+          
+          // ✅ COMMIT inmediato (el audio ya está en OpenAI)
+          connectionData.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+          logger.info(`✅ [${streamSid}] Audio buffer commit enviado`);
+          
+          // ✅ CREAR RESPUESTA con retardo de 100ms
+          setTimeout(() => {
+            this.createOpenAIResponse(streamSid);
+          }, 100);
           
           // ✅ Timeout aumentado a 15 segundos
           this.responseTimeouts.set(streamSid, setTimeout(() => {
@@ -673,7 +660,7 @@ INSTRUCCIONES IMPORTANTES:
       }
       connectionData.audioSent++;
       
-      // ✅ ACUMULAR CHUNKS (mínimo 300ms = 15 chunks de 20ms)
+      // ✅ ACUMULAR CHUNKS en buffer temporal (mínimo 300ms = 15 chunks de 20ms)
       if (!connectionData.audioBuffer) {
         connectionData.audioBuffer = [];
       }
@@ -682,7 +669,7 @@ INSTRUCCIONES IMPORTANTES:
       // ✅ ENVIAR solo cuando tenemos suficiente audio acumulado
       if (connectionData.audioBuffer.length >= 15) {
         const combinedBuffer = Buffer.concat(connectionData.audioBuffer);
-        connectionData.audioBuffer = [];
+        connectionData.audioBuffer = []; // Limpiar buffer temporal
         
         const audioMessage = {
           type: 'input_audio_buffer.append',
