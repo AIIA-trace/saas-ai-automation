@@ -324,15 +324,22 @@ INSTRUCCIONES IMPORTANTES:
           logger.info(`🗣️ [${streamSid}] TEXTO TRANSCRITO: "${transcriptClean}"`);
           
           // ⚠️ VALIDAR: Si la transcripción está vacía, cancelar generación de respuesta
+          // PERO SOLO si no hay respuesta ya completada (evitar error response_cancel_not_active)
           if (!transcriptClean || transcriptClean.length < 2) {
             logger.warn(`⚠️ [${streamSid}] Transcripción vacía o muy corta - probablemente ruido. Ignorando.`);
             
-            // Cancelar cualquier respuesta en progreso
-            if (connectionData.ws && connectionData.ws.readyState === 1) {
-              connectionData.ws.send(JSON.stringify({
-                type: 'response.cancel'
-              }));
-              logger.info(`🚫 [${streamSid}] Respuesta cancelada por transcripción vacía`);
+            // Solo cancelar si hay texto acumulado (indica respuesta en progreso)
+            if (connectionData.accumulatedText && connectionData.accumulatedText.length > 0) {
+              logger.info(`🔍 [${streamSid}] Respuesta en progreso detectada - cancelando...`);
+              
+              if (connectionData.ws && connectionData.ws.readyState === 1) {
+                connectionData.ws.send(JSON.stringify({
+                  type: 'response.cancel'
+                }));
+                logger.info(`🚫 [${streamSid}] Respuesta cancelada por transcripción vacía`);
+              }
+            } else {
+              logger.info(`ℹ️ [${streamSid}] No hay respuesta activa - ignorando transcripción vacía`);
             }
           }
           break;
