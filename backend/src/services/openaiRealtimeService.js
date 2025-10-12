@@ -113,10 +113,10 @@ class OpenAIRealtimeService {
                 model: 'whisper-1'
               },
               turn_detection: {
-                type: 'server_vad',
-                threshold: 0.3,              // ← Bajado de 0.5 a 0.3 (más sensible)
-                prefix_padding_ms: 300,      // Audio antes de detectar voz
-                silence_duration_ms: 700     // ← Aumentado de 500ms a 700ms (más tolerante al silencio)
+                type: 'semantic_vad',        // ✅ NUEVO: Detección semántica (más inteligente)
+                eagerness: 'medium',         // Velocidad de respuesta (low/medium/high/auto)
+                create_response: true,       // Auto-generar respuesta al detectar fin de turno
+                interrupt_response: true     // Permitir interrupciones del usuario
               },
               temperature: this.temperature
             }
