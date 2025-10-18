@@ -202,12 +202,12 @@ Tu comportamiento, tus pausas y tus respuestas deben sonar 100% HUMANAS y con NA
               },
               turn_detection: {
                 type: 'server_vad',
-                threshold: 0.3,
+                threshold: 0.7,  // ✅ Menos sensible - evita detectar eco del bot
                 prefix_padding_ms: 300,
-                silence_duration_ms: 300
+                silence_duration_ms: 1500  // ✅ 1.5s para pausas naturales sin cortarse
               },
-              temperature: 0.9,  // 🔥 Aumentado para respuestas más variadas y naturales (antes: 0.8)
-              max_response_output_tokens: 150,  // 🚀 Limitar respuestas cortas
+              temperature: 0.8,  // 🎯 Balance entre creatividad y consistencia
+              max_response_output_tokens: 'inf',  // ✅ Sin límite - respuestas completas
               speed: 1.15  // ⚡ Velocidad de habla: 1.0 = normal, 1.15 = 15% más rápido (rango: 0.25 - 4.0)
             }
           };
