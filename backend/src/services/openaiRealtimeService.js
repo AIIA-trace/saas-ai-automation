@@ -68,7 +68,13 @@ class OpenAIRealtimeService {
       // Preparar customSystemMessage
       const companyName = clientConfig.companyName || 'la empresa';
       const companyDescription = clientConfig.companyDescription || '';
-      const customSystemMessage = `Eres Susan, una asistente telefónica de atención al cliente que atiende llamadas entrantes en nombre de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''}
+      
+      // Obtener contexto de memoria del llamante si existe
+      const callerMemoryService = require('./callerMemoryService');
+      const memoryContext = clientConfig.callerMemory ? 
+        callerMemoryService.getMemoryContext(clientConfig.callerMemory) : '';
+      
+      const customSystemMessage = `Eres Susan, una asistente telefónica de atención al cliente que atiende llamadas entrantes en nombre de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''}${memoryContext}
 
 🎭 TU PAPEL:
 Tu papel es HABLAR COMO UNA PERSONA ESPAÑOLA REAL, de tono amable, natural y profesional.

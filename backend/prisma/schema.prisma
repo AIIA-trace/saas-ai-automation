@@ -225,3 +225,24 @@ model Notification {
   @@index([type])
   @@index([status])
 }
+
+model CallerMemory {
+  id                Int      @id @default(autoincrement())
+  clientId          Int      // ID del cliente (empresa) que recibe la llamada
+  callerPhone       String   // Número de teléfono del que llama (normalizado)
+  callerName        String?  // Nombre del que llama
+  callerCompany     String?  // Empresa del que llama
+  lastCallDate      DateTime @default(now()) // Última vez que llamó
+  callCount         Int      @default(1) // Número de veces que ha llamado
+  conversationHistory Json?  // Historial de conversaciones (resumen)
+  notes             String?  // Notas adicionales sobre el cliente
+  expiresAt         DateTime // Fecha de expiración (7 días desde última llamada)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([clientId, callerPhone])
+  @@index([clientId])
+  @@index([callerPhone])
+  @@index([expiresAt])
+  @@index([lastCallDate])
+}

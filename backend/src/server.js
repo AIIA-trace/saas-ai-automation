@@ -177,6 +177,11 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
       logger.error('❌ Error inicializando servidor WebSocket');
     }
     
+    // Iniciar job de limpieza de memorias de llamantes
+    const cleanupMemoriesJob = require('./jobs/cleanupMemories');
+    cleanupMemoriesJob.start();
+    logger.info('✅ Job de limpieza de memorias iniciado');
+    
     const host = process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL || 'https://saas-ai-automation.onrender.com' : `http://localhost:${PORT}`;
     logger.info(`Servidor corriendo en ${host}`);
     

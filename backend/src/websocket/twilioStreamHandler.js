@@ -1,7 +1,8 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const azureTTSRestService = require('../services/azureTTSRestService');
-const OpenAIRealtimeService = require('../services/openaiRealtimeService');
+const openaiRealtimeService = require('../services/openaiRealtimeService');
+const callerMemoryService = require('../services/callerMemoryService');
 const fs = require('fs');
 
 class TwilioStreamHandler {
@@ -151,11 +152,12 @@ class TwilioStreamHandler {
     try {
       logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime Service con configuración del cliente`);
       
-      // Preparar configuración del cliente
+      // Preparar configuración del cliente incluyendo memoria del llamante
       const clientConfig = {
         companyName: streamData.client?.companyName || 'la empresa',
         companyDescription: streamData.client?.companyDescription || '',
         industry: streamData.client?.industry || '',
+        callerMemory: streamData.callerMemory || null, // Incluir memoria del llamante
         ...streamData.client // Incluir toda la configuración disponible
       };
 
@@ -523,10 +525,28 @@ class TwilioStreamHandler {
     // REMOVIDO: initializeSpeechDetection (VAD obsoleto - ahora usa OpenAI server VAD)
     this.initializeEchoBlanking(streamSid);
 
-    // Obtener cliente y enviar saludo UNA SOLA VEZ
-    this.getClientForStream(streamSid, callSid).then(() => {
+    // Obtener cliente, memoria del llamante y enviar saludo UNA SOLA VEZ
+    this.getClientForStream(streamSid, callSid).then(async () => {
+      // Obtener número del llamante desde customParameters
+      let streamData = this.activeStreams.get(streamSid);
+      const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
+      
+      // Obtener o crear memoria del llamante
+      if (streamData?.client?.id && callerPhone) {
+        logger.info(`🧠 [${streamSid}] Obteniendo memoria para ${callerPhone}`);
+        const memory = await callerMemoryService.getOrCreateCallerMemory(
+          streamData.client.id,
+          callerPhone
+        );
+        
+        if (memory) {
+          streamData.callerMemory = memory;
+          logger.info(`✅ [${streamSid}] Memoria cargada: ${memory.callCount} llamadas previas`);
+        }
+      }
+      
       // Verificar de nuevo antes de enviar (doble verificación)
-      const streamData = this.activeStreams.get(streamSid);
+      streamData = this.activeStreams.get(streamSid);
       if (streamData?.greetingSent) {
         logger.info(`⚠️ [${streamSid}] Saludo ya enviado durante getClientForStream (greetingSent=true), omitiendo`);
         return;
@@ -578,6 +598,36 @@ class TwilioStreamHandler {
     // 📊 ACTUALIZAR MÉTRICAS DE FINALIZACIÓN
     if (callDuration > 0) {
       this.updateMetrics('success', callDuration);
+    }
+
+    // 🧠 ACTUALIZAR MEMORIA DEL LLAMANTE
+    if (streamData?.callerMemory) {
+      try {
+        // Actualizar información del llamante si se obtuvo durante la llamada
+        const updates = {};
+        if (streamData.callerName) updates.callerName = streamData.callerName;
+        if (streamData.callerCompany) updates.callerCompany = streamData.callerCompany;
+        
+        if (Object.keys(updates).length > 0) {
+          await callerMemoryService.updateCallerInfo(streamData.callerMemory.id, updates);
+          logger.info(`✅ [${correlationId}] Información del llamante actualizada en memoria`);
+        }
+        
+        // Agregar resumen de conversación al historial
+        const conversationSummary = {
+          summary: `Llamada de ${Math.round(callDuration / 1000)}s`,
+          duration: Math.round(callDuration / 1000),
+          topics: []
+        };
+        
+        await callerMemoryService.addConversationToHistory(
+          streamData.callerMemory.id,
+          conversationSummary
+        );
+        logger.info(`📝 [${correlationId}] Conversación agregada al historial de memoria`);
+      } catch (error) {
+        logger.error(`❌ [${correlationId}] Error actualizando memoria: ${error.message}`);
+      }
     }
 
     // NUEVO: Cerrar conexión OpenAI Realtime
