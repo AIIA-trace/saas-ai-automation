@@ -613,18 +613,22 @@ class TwilioStreamHandler {
           logger.info(`✅ [${correlationId}] Información del llamante actualizada en memoria`);
         }
         
-        // Agregar resumen de conversación al historial
+        // Obtener historial de conversación de OpenAI Realtime
+        const conversationHistory = await this.openaiRealtimeService.getConversationHistory(streamSid);
+        
+        // Crear resumen de conversación con los detalles reales
         const conversationSummary = {
-          summary: `Llamada de ${Math.round(callDuration / 1000)}s`,
+          summary: conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`,
           duration: Math.round(callDuration / 1000),
-          topics: []
+          topics: conversationHistory?.topics || [],
+          fullTranscript: conversationHistory?.transcript || '' // Guardar transcripción completa
         };
         
         await callerMemoryService.addConversationToHistory(
           streamData.callerMemory.id,
           conversationSummary
         );
-        logger.info(`📝 [${correlationId}] Conversación agregada al historial de memoria`);
+        logger.info(`📝 [${correlationId}] Conversación agregada al historial de memoria: "${conversationSummary.summary}"`);
       } catch (error) {
         logger.error(`❌ [${correlationId}] Error actualizando memoria: ${error.message}`);
       }

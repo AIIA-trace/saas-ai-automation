@@ -928,6 +928,15 @@ Si la persona que llama NO es un cliente potencial, sino un proveedor, banco, o 
           
           logger.info(`🗣️ [${streamSid}] TEXTO TRANSCRITO: "${transcriptClean}"`);
           
+          // 🧠 GUARDAR TRANSCRIPCIÓN PARA MEMORIA
+          if (transcriptClean && transcriptClean.length >= 2) {
+            if (!connectionData.conversationTranscript) {
+              connectionData.conversationTranscript = '';
+            }
+            connectionData.conversationTranscript += `Usuario: ${transcriptClean}\n`;
+            logger.debug(`🧠 [${streamSid}] Transcripción guardada en memoria (${connectionData.conversationTranscript.length} chars)`);
+          }
+          
           // ⚠️ VALIDAR: Si la transcripción está vacía, cancelar generación de respuesta
           // PERO SOLO si no hay respuesta ya completada (evitar error response_cancel_not_active)
           if (!transcriptClean || transcriptClean.length < 2) {
@@ -974,6 +983,13 @@ Si la persona que llama NO es un cliente potencial, sino un proveedor, banco, o 
             
             if (fullText) {
               logger.info(`🎯 [${streamSid}] ✅ TEXTO COMPLETO de OpenAI (${fullText.length} chars): "${fullText}"`);
+              
+              // 🧠 GUARDAR RESPUESTA DEL BOT PARA MEMORIA
+              if (!connectionData.conversationTranscript) {
+                connectionData.conversationTranscript = '';
+              }
+              connectionData.conversationTranscript += `Asistente: ${fullText}\n`;
+              logger.debug(`🧠 [${streamSid}] Respuesta del bot guardada en memoria (${connectionData.conversationTranscript.length} chars)`);
               
               // ✅ PROTECCIÓN: Solo textos razonables para TTS
               if (fullText.length > 500) {
@@ -1335,6 +1351,71 @@ Si la persona que llama NO es un cliente potencial, sino un proveedor, banco, o 
 
 
 
+
+  /**
+   * Obtener historial de conversación para guardar en memoria
+   * @param {string} streamSid - ID del stream
+   * @returns {Promise<Object>} - {summary, topics, transcript}
+   */
+  async getConversationHistory(streamSid) {
+    const connectionData = this.activeConnections.get(streamSid);
+    if (!connectionData) {
+      return { summary: '', topics: [], transcript: '' };
+    }
+
+    try {
+      // Extraer transcripción de la conversación desde OpenAI
+      const transcript = connectionData.conversationTranscript || '';
+      
+      // Si no hay transcripción, devolver vacío
+      if (!transcript || transcript.length < 10) {
+        return { summary: 'Llamada sin transcripción disponible', topics: [], transcript: '' };
+      }
+
+      // Crear resumen básico (primeras 200 caracteres)
+      const summary = transcript.length > 200 
+        ? transcript.substring(0, 200) + '...' 
+        : transcript;
+
+      // Extraer temas mencionados (palabras clave)
+      const topics = this.extractTopics(transcript);
+
+      logger.info(`📝 [${streamSid}] Historial extraído: ${transcript.length} caracteres, ${topics.length} temas`);
+
+      return {
+        summary,
+        topics,
+        transcript
+      };
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error obteniendo historial: ${error.message}`);
+      return { summary: '', topics: [], transcript: '' };
+    }
+  }
+
+  /**
+   * Extraer temas/palabras clave de la transcripción
+   * @param {string} transcript - Transcripción completa
+   * @returns {Array<string>} - Lista de temas
+   */
+  extractTopics(transcript) {
+    const keywords = [
+      'factura', 'pago', 'pedido', 'cita', 'reunión', 'precio', 'servicio',
+      'instalaciones', 'horario', 'contacto', 'descubierto', 'cuenta',
+      'proveedor', 'banco', 'urgente', 'cancelar', 'cambiar', 'confirmar'
+    ];
+
+    const topics = [];
+    const lowerTranscript = transcript.toLowerCase();
+
+    for (const keyword of keywords) {
+      if (lowerTranscript.includes(keyword)) {
+        topics.push(keyword);
+      }
+    }
+
+    return topics;
+  }
 
   /**
    * Cerrar conexión OpenAI para un stream
