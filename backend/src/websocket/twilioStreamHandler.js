@@ -616,6 +616,11 @@ class TwilioStreamHandler {
         // Obtener historial de conversación de OpenAI Realtime
         const conversationHistory = await this.openaiRealtimeService.getConversationHistory(streamSid);
         
+        logger.info(`🔍 [${correlationId}] Historial obtenido de OpenAI:`);
+        logger.info(`  - Summary: ${conversationHistory?.summary || 'N/A'}`);
+        logger.info(`  - Topics: ${conversationHistory?.topics?.join(', ') || 'N/A'}`);
+        logger.info(`  - Transcript length: ${conversationHistory?.transcript?.length || 0} chars`);
+        
         // Crear resumen de conversación con los detalles reales
         const conversationSummary = {
           summary: conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`,
@@ -624,11 +629,17 @@ class TwilioStreamHandler {
           fullTranscript: conversationHistory?.transcript || '' // Guardar transcripción completa
         };
         
+        logger.info(`💾 [${correlationId}] Guardando en DB: ${JSON.stringify({
+          summary: conversationSummary.summary.substring(0, 100),
+          topics: conversationSummary.topics,
+          transcriptLength: conversationSummary.fullTranscript.length
+        })}`);
+        
         await callerMemoryService.addConversationToHistory(
           streamData.callerMemory.id,
           conversationSummary
         );
-        logger.info(`📝 [${correlationId}] Conversación agregada al historial de memoria: "${conversationSummary.summary}"`);
+        logger.info(`✅ [${correlationId}] Conversación guardada en memoria ID: ${streamData.callerMemory.id}`);
       } catch (error) {
         logger.error(`❌ [${correlationId}] Error actualizando memoria: ${error.message}`);
       }

@@ -131,7 +131,8 @@ class CallerMemoryService {
         date: new Date().toISOString(),
         summary: conversation.summary || '',
         topics: conversation.topics || [],
-        duration: conversation.duration || 0
+        duration: conversation.duration || 0,
+        fullTranscript: conversation.fullTranscript || '' // Guardar transcripción completa
       });
 
       // Mantener solo las últimas 10 conversaciones
@@ -181,7 +182,21 @@ class CallerMemoryService {
     if (memory.conversationHistory?.conversations?.length > 0) {
       context += '\n📞 HISTORIAL DE CONVERSACIONES PREVIAS:\n';
       memory.conversationHistory.conversations.slice(-3).forEach((conv, index) => {
-        context += `${index + 1}. ${new Date(conv.date).toLocaleDateString('es-ES')}: ${conv.summary}\n`;
+        const dateStr = new Date(conv.date).toLocaleDateString('es-ES');
+        context += `\n${index + 1}. Llamada del ${dateStr} (${conv.duration}s):\n`;
+        
+        // Incluir transcripción completa si está disponible
+        if (conv.fullTranscript && conv.fullTranscript.length > 0) {
+          context += `${conv.fullTranscript}\n`;
+        } else {
+          // Fallback al resumen si no hay transcripción completa
+          context += `Resumen: ${conv.summary}\n`;
+        }
+        
+        // Incluir temas si están disponibles
+        if (conv.topics && conv.topics.length > 0) {
+          context += `Temas: ${conv.topics.join(', ')}\n`;
+        }
       });
     }
 
