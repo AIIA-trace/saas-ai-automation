@@ -159,9 +159,22 @@ class TwilioStreamHandler {
         ...streamData.client // Incluir toda la configuración disponible
       };
 
-      // Inicializar conexión OpenAI Realtime
+      // Inicializar conexión OpenAI Realtime con callback de despedida
       await this.openaiRealtimeService.initializeConnection(streamSid, clientConfig);
       logger.info(`✅ [${streamSid}] OpenAI Realtime Service inicializado correctamente`);
+      
+      // Configurar callback de despedida para colgar llamada automáticamente
+      const connectionData = this.openaiRealtimeService.activeConnections.get(streamSid);
+      if (connectionData) {
+        connectionData.onFarewell = () => {
+          logger.info(`📞 [${streamSid}] Ejecutando cierre de llamada por despedida`);
+          const streamData = this.activeStreams.get(streamSid);
+          if (streamData?.twilioWs && streamData.twilioWs.readyState === 1) {
+            logger.info(`🔌 [${streamSid}] Cerrando WebSocket de Twilio`);
+            streamData.twilioWs.close(1000, 'Farewell completed');
+          }
+        };
+      }
 
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error crítico inicializando OpenAI Realtime: ${error.message}`, error.stack);

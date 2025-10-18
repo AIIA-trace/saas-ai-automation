@@ -417,6 +417,31 @@ Tu comportamiento, tus pausas y tus respuestas deben sonar 100% HUMANAS y con NA
   }
 
   /**
+   * Detectar si el bot se está despidiendo
+   * @param {string} text - Texto a analizar
+   * @returns {boolean} - true si es una despedida
+   */
+  isFarewellMessage(text) {
+    if (!text) return false;
+    
+    const lowerText = text.toLowerCase();
+    const farewellKeywords = [
+      'adiós',
+      'hasta luego',
+      'hasta pronto',
+      'nos vemos',
+      'que tengas un buen día',
+      'que tengas buen día',
+      'que vaya bien',
+      'gracias por llamar',
+      'un placer ayudarte',
+      'cualquier cosa, aquí estamos'
+    ];
+    
+    return farewellKeywords.some(keyword => lowerText.includes(keyword));
+  }
+
+  /**
    * Enviar trigger para que OpenAI genere el saludo automáticamente
    * @param {string} streamSid - ID del stream
    * @param {string} greetingText - Texto del saludo a decir
@@ -884,6 +909,21 @@ Tu comportamiento, tus pausas y tus respuestas deben sonar 100% HUMANAS y con NA
             
             // ✅ NO usar Azure TTS - OpenAI ya generó el audio
             logger.info(`🎯 [${streamSid}] Transcripción completa recibida (audio ya enviado): "${connectionData.audioTranscript.substring(0, 50)}..."`);
+            
+            // 🔍 DETECTAR DESPEDIDA - Colgar llamada automáticamente
+            if (this.isFarewellMessage(connectionData.audioTranscript)) {
+              logger.info(`👋 [${streamSid}] DESPEDIDA DETECTADA - Programando cierre de llamada en 2 segundos`);
+              
+              // Esperar 2 segundos para que el audio de despedida termine de reproducirse
+              setTimeout(() => {
+                logger.info(`📞 [${streamSid}] Cerrando llamada después de despedida`);
+                
+                // Emitir evento para que el handler de Twilio cierre la conexión
+                if (connectionData.onFarewell) {
+                  connectionData.onFarewell();
+                }
+              }, 2000);
+            }
             
             // Limpiar transcripción acumulada
             connectionData.audioTranscript = '';
