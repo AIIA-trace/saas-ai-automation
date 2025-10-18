@@ -1,7 +1,7 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const azureTTSRestService = require('../services/azureTTSRestService');
-const openaiRealtimeService = require('../services/openaiRealtimeService');
+const OpenAIRealtimeService = require('../services/openaiRealtimeService');
 const callerMemoryService = require('../services/callerMemoryService');
 const fs = require('fs');
 
