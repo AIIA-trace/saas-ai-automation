@@ -202,9 +202,9 @@ Tu comportamiento, tus pausas y tus respuestas deben sonar 100% HUMANAS y con NA
               },
               turn_detection: {
                 type: 'server_vad',
-                threshold: 0.7,  // ✅ Menos sensible - evita detectar eco del bot
+                threshold: 0.5,  // ✅ Sensibilidad normal - se desactiva dinámicamente cuando bot habla
                 prefix_padding_ms: 300,
-                silence_duration_ms: 1500  // ✅ 1.5s para pausas naturales sin cortarse
+                silence_duration_ms: 800  // ✅ 800ms para pausas naturales
               },
               temperature: 0.8,  // 🎯 Balance entre creatividad y consistencia
               max_response_output_tokens: 'inf',  // ✅ Sin límite - respuestas completas
@@ -253,6 +253,63 @@ Tu comportamiento, tus pausas y tus respuestas deben sonar 100% HUMANAS y con NA
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error inicializando OpenAI Realtime: ${error.message}`);
       throw error;
+    }
+  }
+
+  /**
+   * Desactivar VAD temporalmente (cuando el bot habla)
+   * @param {string} streamSid - ID del stream
+   */
+  async disableVAD(streamSid) {
+    const connectionData = this.activeConnections.get(streamSid);
+    if (!connectionData || !connectionData.ws) {
+      logger.warn(`⚠️ [${streamSid}] No se puede desactivar VAD - sin conexión`);
+      return;
+    }
+
+    try {
+      const updateConfig = {
+        type: 'session.update',
+        session: {
+          turn_detection: null  // ❌ Desactivar VAD completamente
+        }
+      };
+      
+      connectionData.ws.send(JSON.stringify(updateConfig));
+      logger.info(`🔇 [${streamSid}] VAD DESACTIVADO - bot hablando`);
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error desactivando VAD: ${error.message}`);
+    }
+  }
+
+  /**
+   * Reactivar VAD (cuando el bot termina de hablar)
+   * @param {string} streamSid - ID del stream
+   */
+  async enableVAD(streamSid) {
+    const connectionData = this.activeConnections.get(streamSid);
+    if (!connectionData || !connectionData.ws) {
+      logger.warn(`⚠️ [${streamSid}] No se puede reactivar VAD - sin conexión`);
+      return;
+    }
+
+    try {
+      const updateConfig = {
+        type: 'session.update',
+        session: {
+          turn_detection: {
+            type: 'server_vad',
+            threshold: 0.5,  // ✅ Sensibilidad normal para detectar usuario
+            prefix_padding_ms: 300,
+            silence_duration_ms: 800  // ✅ 800ms para pausas naturales
+          }
+        }
+      };
+      
+      connectionData.ws.send(JSON.stringify(updateConfig));
+      logger.info(`🎤 [${streamSid}] VAD REACTIVADO - usuario puede interrumpir`);
+    } catch (error) {
+      logger.error(`❌ [${streamSid}] Error reactivando VAD: ${error.message}`);
     }
   }
 

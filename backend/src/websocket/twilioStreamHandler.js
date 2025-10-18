@@ -108,6 +108,11 @@ class TwilioStreamHandler {
       // Activar echo blanking durante respuesta del bot
       this.activateEchoBlanking(streamSid);
       
+      // 🔇 DESACTIVAR VAD de OpenAI mientras el bot habla
+      if (streamData.openAiService) {
+        await streamData.openAiService.disableVAD(streamSid);
+      }
+      
       // Enviar audio de OpenAI a Twilio usando el sistema de marcas
       const markId = `openai_response_${Date.now()}`;
       this.pendingMarks.set(markId, {
@@ -123,6 +128,12 @@ class TwilioStreamHandler {
       logger.error(`❌ [${streamSid}] Error enviando respuesta OpenAI: ${error.message}`);
       // Desactivar echo blanking en caso de error
       this.deactivateEchoBlanking(streamSid);
+      
+      // 🎤 REACTIVAR VAD en caso de error
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData?.openAiService) {
+        await streamData.openAiService.enableVAD(streamSid);
+      }
     }
   }
 
@@ -310,6 +321,13 @@ class TwilioStreamHandler {
         logger.info(`⚡ [${streamSid}] DESACTIVANDO echo blanking tras completar respuesta (marca: ${markName})`);
         this.deactivateEchoBlanking(streamSid);
         this.responseInProgress.delete(streamSid);
+        
+        // 🎤 REACTIVAR VAD de OpenAI - usuario puede interrumpir ahora
+        const streamDataForVAD = this.activeStreams.get(streamSid);
+        if (streamDataForVAD?.openAiService) {
+          await streamDataForVAD.openAiService.enableVAD(streamSid);
+        }
+        
         logger.info(`✅ [${streamSid}] Echo blanking desactivado - usuario puede hablar de nuevo`);
         break;
       default:
