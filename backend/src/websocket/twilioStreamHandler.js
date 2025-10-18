@@ -835,24 +835,13 @@ class TwilioStreamHandler {
       await this.openaiRealtimeService.initializeConnection(streamSid, streamData.client);
       logger.info(`✅ [${streamSid}] OpenAI Realtime inicializado`);
       
-      // 2. Configurar callback para activar transcripción cuando termine el saludo
-      const connectionData = this.openaiRealtimeService.activeConnections.get(streamSid);
-      if (connectionData) {
-        connectionData.onGreetingComplete = () => {
-          logger.info(`🎤 [${streamSid}] Callback: Saludo completado - ACTIVANDO TRANSCRIPCIÓN`);
-          this.transcriptionActive.set(streamSid, true);
-          streamData.state = 'listening';
-          logger.info(`✅ [${streamSid}] Transcripción activada - usuario puede hablar`);
-        };
-      }
-      
-      // 3. Enviar mensaje para activar el saludo
+      // 2. Enviar mensaje para activar el saludo
       logger.info(`📤 [${streamSid}] Enviando trigger para generar saludo: "${greeting}"`);
       await this.openaiRealtimeService.sendGreetingTrigger(streamSid, greeting);
       
-      // 4. NO activar transcripción aquí - se activará cuando OpenAI termine el saludo
-      // Esto evita que el VAD de OpenAI detecte el eco del saludo como voz del usuario
-      logger.info(`⏳ [${streamSid}] Esperando que OpenAI termine el saludo para activar transcripción`);
+      // 3. Activar transcripción para que el usuario pueda hablar después
+      this.transcriptionActive.set(streamSid, true);
+      streamData.state = 'listening';
       
       logger.info(`✅ [${streamSid}] Sistema listo - OpenAI generará saludo`);
     } catch (error) {

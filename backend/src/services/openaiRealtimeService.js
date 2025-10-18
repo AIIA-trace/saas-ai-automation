@@ -607,10 +607,6 @@ Si la persona que llama NO es un cliente potencial, sino un proveedor, banco, o 
     }
 
     try {
-      // 🎤 Marcar que esta respuesta es el saludo inicial
-      connectionData.isGreeting = true;
-      logger.info(`🎯 [${streamSid}] Marcando respuesta como saludo inicial`);
-      
       // Crear un mensaje del sistema que instruya a OpenAI a decir el saludo
       const greetingMessage = {
         type: 'conversation.item.create',
@@ -1054,17 +1050,6 @@ Si la persona que llama NO es un cliente potencial, sino un proveedor, banco, o 
           logger.info(`🔍 [${streamSid}] 📊 RESPONSE STATS:`);
           logger.info(`🔍 [${streamSid}] ├── Response ID: ${response.response?.id || 'N/A'}`);
           logger.info(`🔍 [${streamSid}] ├── Status: ${response.response?.status || 'N/A'}`);
-          
-          // 🎤 ACTIVAR TRANSCRIPCIÓN SI ES EL SALUDO INICIAL
-          if (connectionData.isGreeting) {
-            logger.info(`🎤 [${streamSid}] Saludo completado - ACTIVANDO TRANSCRIPCIÓN`);
-            connectionData.isGreeting = false; // Limpiar flag
-            
-            // Notificar al handler de Twilio para activar transcripción
-            if (connectionData.onGreetingComplete) {
-              connectionData.onGreetingComplete();
-            }
-          }
           
           // ✅ LIMPIAR FLAG DE RESPUESTA ACTIVA
           connectionData.activeResponseId = null;
