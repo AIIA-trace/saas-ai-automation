@@ -1691,23 +1691,61 @@ Genera el resumen ahora.`
           messages: [
             {
               role: 'system',
-              content: `Eres un asistente que analiza conversaciones telefónicas y extrae información clave.
-Debes generar un resumen estructurado en formato JSON con:
-- summary: Resumen breve de la llamada (máx 200 caracteres)
-- topics: Array de temas mencionados (factura, pago, cita, etc)
-- callerName: Nombre del llamante (null si no se menciona)
-- callerCompany: Empresa del llamante (null si no se menciona)
-- requestDetails: Detalles específicos de la solicitud (número de factura, fecha, importe, etc)
+              content: `Eres un asistente experto en analizar llamadas de negocio y extraer información crítica.
 
-Responde SOLO con el JSON, sin texto adicional.`
+Tu objetivo es generar un resumen estructurado en formato JSON que capture TODA la información relevante para el negocio.
+
+ESTRUCTURA JSON REQUERIDA:
+{
+  "summary": "Resumen ejecutivo de la llamada (2-3 frases, máx 300 caracteres)",
+  "topics": ["tema1", "tema2", ...],
+  "callerName": "Nombre completo del llamante o null",
+  "callerCompany": "Empresa del llamante o null",
+  "requestDetails": {
+    "motivo": "Razón principal de la llamada",
+    "contacto": {
+      "email": "email si se menciona",
+      "telefono": "teléfono adicional si se menciona",
+      "cargo": "puesto/cargo si se menciona"
+    },
+    "documentos": {
+      "numeroFactura": "número de factura si se menciona",
+      "numeroPedido": "número de pedido si se menciona",
+      "numeroExpediente": "número de expediente/caso si se menciona"
+    },
+    "fechas": {
+      "deadline": "fecha límite si se menciona",
+      "cita": "fecha de cita/reunión si se menciona",
+      "vencimiento": "fecha de vencimiento si se menciona"
+    },
+    "cifras": {
+      "importe": "cantidad monetaria si se menciona",
+      "cantidad": "cantidad de productos/servicios si se menciona"
+    },
+    "accionRequerida": "Acción específica que solicita el llamante",
+    "urgencia": "alta/media/baja según el tono de la llamada",
+    "notasAdicionales": "Cualquier otro detalle importante mencionado"
+  }
+}
+
+INSTRUCCIONES CRÍTICAS:
+1. Extrae TODOS los números mencionados (facturas, pedidos, importes, teléfonos, etc.)
+2. Captura TODAS las fechas y deadlines mencionados
+3. Identifica el motivo REAL de la llamada (no solo "consulta")
+4. Si mencionan email, teléfono o datos de contacto, guárdalos
+5. Si hay urgencia o palabras como "urgente", "importante", "cuanto antes", márcalo
+6. Si mencionan nombres de personas adicionales (ej: "hablar con Miguel"), inclúyelos en notasAdicionales
+7. Omite campos que no se mencionaron (usa null o no los incluyas)
+
+Responde SOLO con el JSON, sin markdown, sin texto adicional.`
             },
             {
               role: 'user',
-              content: `Analiza esta conversación y extrae la información clave:\n\n${transcript}`
+              content: `Analiza esta conversación telefónica y extrae TODA la información relevante:\n\n${transcript}`
             }
           ],
-          temperature: 0.3,
-          max_tokens: 500
+          temperature: 0.2,
+          max_tokens: 800
         })
       });
 
