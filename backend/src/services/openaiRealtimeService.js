@@ -553,8 +553,7 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
               input_audio_format: 'g711_ulaw',
               output_audio_format: 'g711_ulaw',  // 🚀 mulaw directo compatible con Twilio
               input_audio_transcription: {
-                model: 'whisper-1',
-                enabled: true  // 🎯 Habilitar explícitamente
+                model: 'whisper-1'
               },
               turn_detection: {
                 type: 'server_vad',
