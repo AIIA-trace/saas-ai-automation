@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
 class OpenAIRealtimeService {
   constructor() {
     this.apiKey = process.env.OPENAI_API_KEY;
-    this.model = process.env.OPENAI_MODEL || 'gpt-realtime'; // ✅ MODELO GA OFICIAL
+    this.model = process.env.OPENAI_MODEL || 'gpt-4o-realtime-preview-2024-10-01'; // ✅ MODELO OFICIAL CON TRANSCRIPCIÓN
     this.temperature = parseFloat(process.env.OPENAI_TEMPERATURE) || 0.8;
     this.voice = process.env.OPENAI_VOICE || 'alloy';
     this.activeConnections = new Map(); // streamSid -> connection data
@@ -1070,38 +1070,41 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           break;
 
         case 'conversation.item.created':
-          // ✅ MEJOR FLUJO: Obtener texto completo de una vez
-          if (response.item?.role === 'assistant' && response.item?.type === 'message') {
+          // ✅ CAPTURAR CONVERSACIÓN COMPLETA: Usuario y Asistente
+          if (response.item?.type === 'message') {
+            const role = response.item.role; // 'user' o 'assistant'
             const content = response.item.content;
             
-            // Buscar el contenido de texto
+            // Buscar el contenido de texto o transcripción
             let fullText = '';
             if (Array.isArray(content)) {
               for (const part of content) {
+                // Capturar texto del asistente
                 if (part.type === 'text' && part.text) {
                   fullText += part.text;
+                }
+                // Capturar transcripción del audio del usuario
+                if (part.type === 'input_audio' && part.transcript) {
+                  fullText += part.transcript;
                 }
               }
             }
             
             if (fullText) {
-              logger.info(`🎯 [${streamSid}] ✅ TEXTO COMPLETO de OpenAI (${fullText.length} chars): "${fullText}"`);
+              const speaker = role === 'user' ? 'Usuario' : 'Asistente';
+              logger.info(`🎯 [${streamSid}] ✅ ${speaker}: "${fullText}"`);
               
-              // 🧠 GUARDAR RESPUESTA DEL BOT PARA MEMORIA
+              // 🧠 GUARDAR EN TRANSCRIPCIÓN PARA MEMORIA
               if (!connectionData.conversationTranscript) {
                 connectionData.conversationTranscript = '';
               }
-              connectionData.conversationTranscript += `Asistente: ${fullText}\n`;
-              logger.debug(`🧠 [${streamSid}] Respuesta del bot guardada en memoria (${connectionData.conversationTranscript.length} chars)`);
+              connectionData.conversationTranscript += `${speaker}: ${fullText}\n`;
+              logger.info(`🧠 [${streamSid}] Conversación guardada (${connectionData.conversationTranscript.length} chars)`);
               
-              // ✅ PROTECCIÓN: Solo textos razonables para TTS
-              if (fullText.length > 500) {
+              // Solo para el asistente: validar longitud
+              if (role === 'assistant' && fullText.length > 500) {
                 logger.warn(`⚠️ [${streamSid}] TEXTO DEMASIADO LARGO - Truncando a 500 chars`);
-                fullText = fullText.substring(0, 500);
               }
-              
-              // ✅ NO usar Azure TTS - OpenAI genera el audio directamente
-              logger.info(`🎯 [${streamSid}] Texto recibido de OpenAI (audio se genera automáticamente): "${fullText.substring(0, 50)}..."`);
             } else {
               logger.debug(`🔍 [${streamSid}] Item creado sin texto: ${JSON.stringify(response.item)}`);
             }
@@ -1456,42 +1459,114 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
 
   /**
    * Obtener historial de conversación para guardar en memoria
+   * Usa OpenAI para generar un resumen estructurado de la llamada
    * @param {string} streamSid - ID del stream
-   * @returns {Promise<Object>} - {summary, topics, transcript}
+   * @returns {Promise<Object>} - {summary, topics, transcript, callerName, callerCompany, requestDetails}
    */
   async getConversationHistory(streamSid) {
     const connectionData = this.activeConnections.get(streamSid);
     if (!connectionData) {
-      return { summary: '', topics: [], transcript: '' };
+      return { summary: 'Sin conversación', topics: [], transcript: '', callerName: null, callerCompany: null };
     }
 
     try {
-      // Extraer transcripción de la conversación desde OpenAI
+      // Extraer transcripción de la conversación
       const transcript = connectionData.conversationTranscript || '';
       
       // Si no hay transcripción, devolver vacío
       if (!transcript || transcript.length < 10) {
-        return { summary: 'Llamada sin transcripción disponible', topics: [], transcript: '' };
+        logger.warn(`⚠️ [${streamSid}] No hay transcripción suficiente para generar resumen`);
+        return { summary: 'Llamada sin contenido', topics: [], transcript: '', callerName: null, callerCompany: null };
       }
 
-      // Crear resumen básico (primeras 200 caracteres)
-      const summary = transcript.length > 200 
-        ? transcript.substring(0, 200) + '...' 
-        : transcript;
+      logger.info(`🤖 [${streamSid}] Generando resumen con OpenAI de ${transcript.length} caracteres de conversación`);
 
-      // Extraer temas mencionados (palabras clave)
-      const topics = this.extractTopics(transcript);
+      // 🚀 GENERAR RESUMEN ESTRUCTURADO CON OPENAI
+      const summaryData = await this.generateCallSummary(transcript);
 
-      logger.info(`📝 [${streamSid}] Historial extraído: ${transcript.length} caracteres, ${topics.length} temas`);
+      logger.info(`✅ [${streamSid}] Resumen generado: ${summaryData.summary.substring(0, 100)}...`);
+      logger.info(`📊 [${streamSid}] Datos extraídos: Nombre="${summaryData.callerName}", Empresa="${summaryData.callerCompany}"`);
 
       return {
-        summary,
-        topics,
-        transcript
+        summary: summaryData.summary,
+        topics: summaryData.topics,
+        transcript: transcript,
+        callerName: summaryData.callerName,
+        callerCompany: summaryData.callerCompany,
+        requestDetails: summaryData.requestDetails
       };
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error obteniendo historial: ${error.message}`);
-      return { summary: '', topics: [], transcript: '' };
+      return { summary: 'Error generando resumen', topics: [], transcript: '', callerName: null, callerCompany: null };
+    }
+  }
+
+  /**
+   * Generar resumen estructurado de la llamada usando OpenAI
+   * @param {string} transcript - Transcripción completa de la conversación
+   * @returns {Promise<Object>} - {summary, topics, callerName, callerCompany, requestDetails}
+   */
+  async generateCallSummary(transcript) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini', // Modelo más económico para resúmenes
+          messages: [
+            {
+              role: 'system',
+              content: `Eres un asistente que analiza conversaciones telefónicas y extrae información clave.
+Debes generar un resumen estructurado en formato JSON con:
+- summary: Resumen breve de la llamada (máx 200 caracteres)
+- topics: Array de temas mencionados (factura, pago, cita, etc)
+- callerName: Nombre del llamante (null si no se menciona)
+- callerCompany: Empresa del llamante (null si no se menciona)
+- requestDetails: Detalles específicos de la solicitud (número de factura, fecha, importe, etc)
+
+Responde SOLO con el JSON, sin texto adicional.`
+            },
+            {
+              role: 'user',
+              content: `Analiza esta conversación y extrae la información clave:\n\n${transcript}`
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0].message.content;
+      
+      // Parsear el JSON de la respuesta
+      const summaryData = JSON.parse(content);
+
+      return {
+        summary: summaryData.summary || 'Llamada registrada',
+        topics: summaryData.topics || [],
+        callerName: summaryData.callerName || null,
+        callerCompany: summaryData.callerCompany || null,
+        requestDetails: summaryData.requestDetails || {}
+      };
+    } catch (error) {
+      logger.error(`❌ Error generando resumen con OpenAI: ${error.message}`);
+      
+      // Fallback: resumen básico
+      return {
+        summary: transcript.substring(0, 200),
+        topics: this.extractTopics(transcript),
+        callerName: null,
+        callerCompany: null,
+        requestDetails: {}
+      };
     }
   }
 

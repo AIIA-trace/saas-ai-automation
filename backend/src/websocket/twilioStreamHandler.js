@@ -633,35 +633,39 @@ class TwilioStreamHandler {
     // 🧠 ACTUALIZAR MEMORIA DEL LLAMANTE
     if (streamData?.callerMemory) {
       try {
-        // Actualizar información del llamante si se obtuvo durante la llamada
-        const updates = {};
-        if (streamData.callerName) updates.callerName = streamData.callerName;
-        if (streamData.callerCompany) updates.callerCompany = streamData.callerCompany;
-        
-        if (Object.keys(updates).length > 0) {
-          await callerMemoryService.updateCallerInfo(streamData.callerMemory.id, updates);
-          logger.info(`✅ [${correlationId}] Información del llamante actualizada en memoria`);
-        }
-        
-        // Obtener historial de conversación de OpenAI Realtime
+        // 🚀 Obtener historial de conversación de OpenAI Realtime (con resumen generado por IA)
         const conversationHistory = await this.openaiRealtimeService.getConversationHistory(streamSid);
         
         logger.info(`🔍 [${correlationId}] Historial obtenido de OpenAI:`);
         logger.info(`  - Summary: ${conversationHistory?.summary || 'N/A'}`);
         logger.info(`  - Topics: ${conversationHistory?.topics?.join(', ') || 'N/A'}`);
-        logger.info(`  - Transcript length: ${conversationHistory?.transcript?.length || 0} chars`);
+        logger.info(`  - Caller Name: ${conversationHistory?.callerName || 'N/A'}`);
+        logger.info(`  - Caller Company: ${conversationHistory?.callerCompany || 'N/A'}`);
+        logger.info(`  - Request Details: ${JSON.stringify(conversationHistory?.requestDetails || {})}`);
         
-        // Crear resumen de conversación con los detalles reales
+        // 📝 Actualizar información del llamante si OpenAI la extrajo
+        const updates = {};
+        if (conversationHistory?.callerName) updates.callerName = conversationHistory.callerName;
+        if (conversationHistory?.callerCompany) updates.callerCompany = conversationHistory.callerCompany;
+        
+        if (Object.keys(updates).length > 0) {
+          await callerMemoryService.updateCallerInfo(streamData.callerMemory.id, updates);
+          logger.info(`✅ [${correlationId}] Información del llamante actualizada: ${JSON.stringify(updates)}`);
+        }
+        
+        // 💾 Crear resumen de conversación con los detalles extraídos por IA
         const conversationSummary = {
           summary: conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`,
           duration: Math.round(callDuration / 1000),
           topics: conversationHistory?.topics || [],
+          requestDetails: conversationHistory?.requestDetails || {},
           fullTranscript: conversationHistory?.transcript || '' // Guardar transcripción completa
         };
         
         logger.info(`💾 [${correlationId}] Guardando en DB: ${JSON.stringify({
           summary: conversationSummary.summary.substring(0, 100),
           topics: conversationSummary.topics,
+          requestDetails: conversationSummary.requestDetails,
           transcriptLength: conversationSummary.fullTranscript.length
         })}`);
         
