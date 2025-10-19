@@ -1,6 +1,3 @@
-// Prisma schema file actualizado para incluir las tablas del Bot
-// Learn more: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,70 +8,57 @@ datasource db {
 }
 
 model Client {
-  id                    Int            @id @default(autoincrement())
-  email                 String         @unique
-  password              String
-  companyName           String
-  companyDescription    String?        // Descripción de la empresa del formulario
-  contactName           String
-  phone                 String?
-  position              String?        // Cargo del usuario
-  apiKey                String?        @unique
-  role                  String         @default("client")
-  isActive              Boolean        @default(true)
-  avatar                String?
-  timezone              String         @default("UTC")
-  language              String         @default("es")
-  industry              String?
-  website               String?
-  address               String?
-  stripeCustomerId      String?        @unique
-  defaultPaymentMethodId String?       // ID del método de pago predeterminado
-  plan                  String         @default("trial") // trial, active, past_due, cancelled
-  subscriptionExpiresAt DateTime?
-  trialEndDate          DateTime?
-  
-  // Campos para gestión de planes y usage (extiende lógica Stripe existente)
-  subscriptionPlan      String         @default("basic") // basic, pro, enterprise
-  callsUsedThisMonth    Int            @default(0)
-  usageResetDate        DateTime?      // Fecha del último reset de usage
-  stripePriceId         String?        // ID del precio de Stripe para el plan actual
-  
-  // Campos de configuración del bot (exactamente como existen en la DB)
-  botLanguage          String?        // Idioma del bot
-  botName              String?        // Nombre del bot
-  botPersonality       String?        // Personalidad del bot
-  welcomeMessage       String?        // Mensaje de bienvenida
-  confirmationMessage  String?        // Mensaje de confirmación
-
-  subscriptionStatus   String?        // Estado de la suscripción
-  personality          String?        // Campo personalidad adicional
-  
-  // Campos para recuperación de contraseña
-  resetToken           String?        // Token para reset de contraseña
-  resetTokenExpiry     DateTime?      // Fecha de expiración del token
-  
-  // Relaciones
-  twilioNumbers         TwilioNumber[]
-  callLogs              CallLog[]
-  emailLogs             EmailLog[]
-  analytics             Analytics[]
-  notifications         Notification[]
-  // RELACIONES LEGACY DEL BOT ELIMINADAS:
-  // botAiConfigs, botDtmfOptions, botContextFiles, botFAQs
-  
-  // JSON configs - NOMENCLATURA UNIFICADA PARA PRODUCCIÓN
-  emailConfig          Json?          // Configuración del manejo de emails
-  callConfig           Json?          // Configuración de llamadas (activación, grabación, transcripción, voz, idioma, mensaje)
-  companyInfo          Json?          // Información de la empresa
-  billingInfo          Json?          // Información de facturación
-  paymentMethods       Json?          // Métodos de pago
-  notificationConfig   Json?          // Configuración de notificaciones
-  businessHours        Json?          // Configuración de horarios comerciales (renombrado de businessHoursConfig)
-  faqs                 Json?          // Preguntas frecuentes del bot
-  contextFiles         Json?          // Archivos de contexto del bot
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  id                     Int            @id @default(autoincrement())
+  email                  String         @unique
+  password               String
+  companyName            String
+  companyDescription     String?
+  contactName            String
+  phone                  String?
+  position               String?
+  apiKey                 String?        @unique
+  role                   String         @default("client")
+  isActive               Boolean        @default(true)
+  avatar                 String?
+  timezone               String         @default("UTC")
+  language               String         @default("es")
+  industry               String?
+  website                String?
+  address                String?
+  stripeCustomerId       String?        @unique
+  defaultPaymentMethodId String?
+  plan                   String         @default("trial")
+  subscriptionExpiresAt  DateTime?
+  trialEndDate           DateTime?
+  botLanguage            String?
+  botName                String?
+  botPersonality         String?
+  welcomeMessage         String?
+  confirmationMessage    String?
+  subscriptionStatus     String?
+  personality            String?
+  emailConfig            Json?
+  callConfig             Json?
+  companyInfo            Json?
+  billingInfo            Json?
+  paymentMethods         Json?
+  notificationConfig     Json?
+  faqs                   Json?
+  contextFiles           Json?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  resetToken             String?
+  resetTokenExpiry       DateTime?
+  callsUsedThisMonth     Int            @default(0)
+  stripePriceId          String?
+  subscriptionPlan       String         @default("basic")
+  usageResetDate         DateTime?
+  businessHours          Json?
+  analytics              Analytics[]
+  callLogs               CallLog[]
+  emailLogs              EmailLog[]
+  notifications          Notification[]
+  twilioNumbers          TwilioNumber[]
 
   @@index([email])
   @@index([plan])
@@ -82,26 +66,19 @@ model Client {
   @@index([apiKey])
 }
 
-// TABLAS LEGACY DEL BOT ELIMINADAS:
-// - BotAiConfig: Configuración de IA del bot
-// - BotDtmfOption: Opciones DTMF del bot  
-// - BotContextFile: Archivos de contexto del bot
-// - BotFAQ: Preguntas frecuentes del bot
-// Todas han sido removidas como parte de la limpieza exhaustiva del sistema legacy
-
 model TwilioNumber {
-  id              Int      @id @default(autoincrement())
-  clientId        Int
-  client          Client   @relation(fields: [clientId], references: [id])
-  phoneNumber     String   @unique
-  twilioSid       String   @unique
-  friendlyName    String?
-  status          String   @default("active") // active, inactive
-  originalNumber  String?  // Número original del cliente que está siendo redirigido
-  region          String?
-  capabilities    String?  // voice, sms, mms capabilities (JSON string)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  clientId       Int
+  phoneNumber    String   @unique
+  twilioSid      String   @unique
+  friendlyName   String?
+  status         String   @default("active")
+  originalNumber String?
+  region         String?
+  capabilities   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  client         Client   @relation(fields: [clientId], references: [id])
 
   @@index([clientId])
   @@index([phoneNumber])
@@ -109,37 +86,32 @@ model TwilioNumber {
 }
 
 model CallLog {
-  id                Int      @id @default(autoincrement())
-  clientId          Int
-  client            Client   @relation(fields: [clientId], references: [id])
-  
-  // Campos de N8N
-  callId            String?  // ID único de la llamada desde N8N
-  twilioCallSid     String?  // SID de Twilio (puede ser null si viene de otro proveedor)
-  callerNumber      String
-  callerName        String?
-  duration          Int?     // Duración en segundos
-  status            String   @default("completed") // completed, failed, in_progress
-  recordingUrl      String?
-  transcription     String?
-  analysis          Json?    // Análisis completo de N8N (JSON)
-  metadata          Json?    // Metadatos adicionales de N8N
-  
-  // Campos legacy mantenidos para compatibilidad
-  callStatus        String?  // Estado legacy
-  callDuration      Int?     // Duración legacy
-  aiSummary         String?
-  aiClassification  String?
-  urgencyLevel      String?  // low, medium, high
-  callPurpose       String?
-  contactInfo       String?  // Información de contacto extraída (JSON string)
-  managed           Boolean  @default(false) // Si la llamada ha sido gestionada
-  important         Boolean  @default(false) // Si la llamada está marcada como importante
-  notificationSent  Boolean  @default(false)
-  notifiedTo        String?  // Lista de notificados (comma separated)
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               Int      @id @default(autoincrement())
+  clientId         Int
+  callId           String?
+  twilioCallSid    String?
+  callerNumber     String
+  callerName       String?
+  duration         Int?
+  status           String   @default("completed")
+  recordingUrl     String?
+  transcription    String?
+  analysis         Json?
+  metadata         Json?
+  callStatus       String?
+  callDuration     Int?
+  aiSummary        String?
+  aiClassification String?
+  urgencyLevel     String?
+  callPurpose      String?
+  contactInfo      String?
+  managed          Boolean  @default(false)
+  important        Boolean  @default(false)
+  notificationSent Boolean  @default(false)
+  notifiedTo       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  client           Client   @relation(fields: [clientId], references: [id])
 
   @@index([clientId])
   @@index([callId])
@@ -150,36 +122,31 @@ model CallLog {
 }
 
 model EmailLog {
-  id              Int      @id @default(autoincrement())
-  clientId        Int
-  client          Client   @relation(fields: [clientId], references: [id])
-  
-  // Campos de N8N
-  emailId         String?  // ID único del email desde N8N
-  messageId       String?  // ID del mensaje (puede ser null)
-  fromAddress     String
-  fromName        String?
-  toAddress       String?
-  subject         String?
-  body            String?  // Cuerpo del email desde N8N
-  analysis        Json?    // Análisis completo de N8N (JSON)
-  response        String?  // Respuesta generada automáticamente
-  status          String   @default("processed") // processed, failed, pending
-  metadata        Json?    // Metadatos adicionales de N8N
-  
-  // Campos legacy mantenidos para compatibilidad
-  bodyPlain       String?
-  bodyHtml        String?
-  attachments     String?  // Array de URLs o metadatos de adjuntos (JSON string)
-  aiSummary       String?
+  id               Int      @id @default(autoincrement())
+  clientId         Int
+  emailId          String?
+  messageId        String?
+  fromAddress      String
+  fromName         String?
+  toAddress        String?
+  subject          String?
+  body             String?
+  analysis         Json?
+  response         String?
+  status           String   @default("processed")
+  metadata         Json?
+  bodyPlain        String?
+  bodyHtml         String?
+  attachments      String?
+  aiSummary        String?
   aiClassification String?
-  forwardedTo     String?  // Lista de destinatarios (comma separated)
-  favorite        Boolean  @default(false) // Si el email está marcado como favorito
-  isRead          Boolean  @default(false) // Si el email ha sido leído
-  responseStatus  String?  // sent, failed, none
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  forwardedTo      String?
+  favorite         Boolean  @default(false)
+  isRead           Boolean  @default(false)
+  responseStatus   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  client           Client   @relation(fields: [clientId], references: [id])
 
   @@index([clientId])
   @@index([messageId])
@@ -188,38 +155,38 @@ model EmailLog {
 }
 
 model Analytics {
-  id                Int      @id @default(autoincrement())
-  clientId          Int
-  client            Client   @relation(fields: [clientId], references: [id])
-  date              DateTime
-  totalCalls        Int      @default(0)
-  totalEmails       Int      @default(0)
-  missedCalls       Int      @default(0)
-  answeredCalls     Int      @default(0)
-  avgCallDuration   Float    @default(0)
-  emailsResponded   Int      @default(0)
-  emailsForwarded   Int      @default(0)
-  topCallCategories String?  // JSON string
-  topEmailCategories String? // JSON string
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  clientId           Int
+  date               DateTime
+  totalCalls         Int      @default(0)
+  totalEmails        Int      @default(0)
+  missedCalls        Int      @default(0)
+  answeredCalls      Int      @default(0)
+  avgCallDuration    Float    @default(0)
+  emailsResponded    Int      @default(0)
+  emailsForwarded    Int      @default(0)
+  topCallCategories  String?
+  topEmailCategories String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  client             Client   @relation(fields: [clientId], references: [id])
 
   @@unique([clientId, date])
   @@index([clientId, date])
 }
 
 model Notification {
-  id          Int      @id @default(autoincrement())
-  clientId    Int
-  client      Client   @relation(fields: [clientId], references: [id])
-  type        String   // email, sms, app
-  status      String   // sent, pending, failed
-  recipient   String
-  subject     String?
-  content     String
-  metadata    String?  // JSON string
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  type      String
+  status    String
+  recipient String
+  subject   String?
+  content   String
+  metadata  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id])
 
   @@index([clientId])
   @@index([type])
@@ -227,18 +194,18 @@ model Notification {
 }
 
 model CallerMemory {
-  id                Int      @id @default(autoincrement())
-  clientId          Int      // ID del cliente (empresa) que recibe la llamada
-  callerPhone       String   // Número de teléfono del que llama (normalizado)
-  callerName        String?  // Nombre del que llama
-  callerCompany     String?  // Empresa del que llama
-  lastCallDate      DateTime @default(now()) // Última vez que llamó
-  callCount         Int      @default(1) // Número de veces que ha llamado
-  conversationHistory Json?  // Historial de conversaciones (resumen)
-  notes             String?  // Notas adicionales sobre el cliente
-  expiresAt         DateTime // Fecha de expiración (7 días desde última llamada)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                  Int      @id @default(autoincrement())
+  clientId            Int
+  callerPhone         String
+  callerName          String?
+  callerCompany       String?
+  lastCallDate        DateTime @default(now())
+  callCount           Int      @default(1)
+  conversationHistory Json?
+  notes               String?
+  expiresAt           DateTime
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@unique([clientId, callerPhone])
   @@index([clientId])

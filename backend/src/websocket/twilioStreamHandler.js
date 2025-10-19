@@ -529,7 +529,14 @@ class TwilioStreamHandler {
     this.getClientForStream(streamSid, callSid).then(async () => {
       // Obtener número del llamante desde customParameters
       let streamData = this.activeStreams.get(streamSid);
+      
+      // 🔍 DEBUG: Log completo de customParameters
+      logger.info(`🔍 [${streamSid}] customParameters recibidos: ${JSON.stringify(data.start?.customParameters)}`);
+      
       const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
+      
+      logger.info(`📞 [${streamSid}] Número del llamante: ${callerPhone || 'NO DISPONIBLE'}`);
+      logger.info(`🏢 [${streamSid}] Cliente ID: ${streamData?.client?.id || 'NO DISPONIBLE'}`);
       
       // Obtener o crear memoria del llamante
       if (streamData?.client?.id && callerPhone) {
@@ -542,7 +549,11 @@ class TwilioStreamHandler {
         if (memory) {
           streamData.callerMemory = memory;
           logger.info(`✅ [${streamSid}] Memoria cargada: ${memory.callCount} llamadas previas`);
+        } else {
+          logger.warn(`⚠️ [${streamSid}] No se pudo crear/obtener memoria`);
         }
+      } else {
+        logger.warn(`⚠️ [${streamSid}] No se puede crear memoria - clientId: ${streamData?.client?.id}, phone: ${callerPhone}`);
       }
       
       // Verificar de nuevo antes de enviar (doble verificación)
