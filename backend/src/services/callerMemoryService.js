@@ -168,6 +168,43 @@ class CallerMemoryService {
   }
 
   /**
+   * Buscar memoria por empresa (para identificación dinámica)
+   * @param {number} clientId - ID del cliente
+   * @param {string} companyName - Nombre de la empresa
+   * @returns {Promise<Object>} - Memoria encontrada o null
+   */
+  async findByCompany(clientId, companyName) {
+    try {
+      if (!companyName || companyName.trim().length < 2) {
+        return null;
+      }
+
+      // Buscar memoria donde callerCompany coincida (case-insensitive)
+      const memory = await prisma.callerMemory.findFirst({
+        where: {
+          clientId: clientId,
+          callerCompany: {
+            equals: companyName,
+            mode: 'insensitive'
+          }
+        },
+        orderBy: {
+          lastCallDate: 'desc'
+        }
+      });
+
+      if (memory) {
+        logger.info(`🔍 [Cliente ${clientId}] Memoria encontrada para empresa: ${companyName}`);
+      }
+
+      return memory;
+    } catch (error) {
+      logger.error(`❌ Error buscando memoria por empresa: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
    * Obtener contexto de memoria para el prompt
    * @param {Object} memory - Objeto de memoria
    * @returns {string} - Contexto formateado para el prompt
