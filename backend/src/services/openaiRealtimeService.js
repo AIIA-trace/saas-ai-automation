@@ -870,11 +870,11 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
       return;
     }
 
-    // 🚀 AUDIO NATIVO: OpenAI genera audio directamente (sin Azure TTS)
+    // 🚀 AUDIO + TEXTO: OpenAI genera audio Y texto (para capturar resumen)
     const responseConfig = {
       type: 'response.create',
       response: {
-        modalities: ['audio'],  // 🚀 SOLO AUDIO - streaming directo
+        modalities: ['audio', 'text'],  // ✅ Audio para Twilio + Texto para resumen
         instructions: 'Responde en español (castellano) con un tono natural y profesional.'
       }
     };
