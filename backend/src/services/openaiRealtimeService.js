@@ -544,6 +544,8 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           }
           fullInstructions += '\n\n🎤 INSTRUCCIONES DE VOZ:\n- Habla con ENERGÍA y entusiasmo\n- Usa entonación expresiva y variada\n- Habla a ritmo RÁPIDO pero claro\n- Enfatiza palabras clave con emoción\n- Sonríe al hablar (se nota en el tono)';
           
+          fullInstructions += '\n\n📝 IMPORTANTE - RESUMEN AL FINALIZAR:\nCuando el usuario se despida o termine la llamada, ANTES de despedirte, genera un resumen estructurado en formato JSON con la siguiente estructura:\n```json\n{\n  "CALL_SUMMARY": {\n    "callerName": "nombre del llamante si lo mencionó",\n    "callerCompany": "empresa del llamante si la mencionó",\n    "summary": "resumen de máximo 5 líneas de lo que se habló",\n    "topics": ["tema1", "tema2"],\n    "requestDetails": {"clave": "valor de datos importantes mencionados"}\n  }\n}\n```\nEste JSON NO debe ser leído en voz alta, solo escríbelo como texto. Después del JSON, despídete normalmente.';
+          
           const sessionConfig = {
             type: 'session.update',
             session: {
@@ -1166,10 +1168,64 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           break;
 
         case 'response.audio_transcript.delta':
+          // Acumular transcripción del asistente
+          if (response.delta) {
+            if (!connectionData.currentAssistantTranscript) {
+              connectionData.currentAssistantTranscript = '';
+            }
+            connectionData.currentAssistantTranscript += response.delta;
+          }
+          break;
+
         case 'response.audio_transcript.done':
-          // ℹ️ Ya no capturamos transcripciones manualmente
-          // OpenAI generará un resumen automático al finalizar la llamada
-          logger.debug(`🔇 [${streamSid}] Evento de transcripción ignorado: ${response.type}`);
+          // Guardar transcripción completa del asistente
+          const assistantText = response.transcript || connectionData.currentAssistantTranscript || '';
+          
+          if (assistantText && assistantText.trim()) {
+            if (!connectionData.conversationTranscript) {
+              connectionData.conversationTranscript = '';
+            }
+            connectionData.conversationTranscript += `Asistente: ${assistantText.trim()}\n`;
+            logger.info(`🤖 [${streamSid}] Asistente: "${assistantText.substring(0, 50)}..."`);
+          }
+          
+          // Limpiar transcripción temporal
+          connectionData.currentAssistantTranscript = '';
+          break;
+
+        case 'response.text.delta':
+          // Capturar texto generado (incluye el JSON del resumen)
+          if (response.delta) {
+            if (!connectionData.currentTextResponse) {
+              connectionData.currentTextResponse = '';
+            }
+            connectionData.currentTextResponse += response.delta;
+            logger.debug(`📝 [${streamSid}] Texto delta: "${response.delta}"`);
+          }
+          break;
+
+        case 'response.text.done':
+          // Procesar texto completo (buscar JSON del resumen)
+          const fullText = response.text || connectionData.currentTextResponse || '';
+          
+          if (fullText && fullText.includes('CALL_SUMMARY')) {
+            logger.info(`📊 [${streamSid}] ✅ RESUMEN DETECTADO en respuesta`);
+            
+            // Extraer JSON del resumen
+            try {
+              const jsonMatch = fullText.match(/\{[\s\S]*"CALL_SUMMARY"[\s\S]*\}/);
+              if (jsonMatch) {
+                const summaryData = JSON.parse(jsonMatch[0]);
+                connectionData.callSummary = summaryData.CALL_SUMMARY;
+                logger.info(`✅ [${streamSid}] Resumen capturado: ${JSON.stringify(connectionData.callSummary)}`);
+              }
+            } catch (error) {
+              logger.error(`❌ [${streamSid}] Error parseando resumen JSON: ${error.message}`);
+            }
+          }
+          
+          // Limpiar texto temporal
+          connectionData.currentTextResponse = '';
           break;
 
         case 'response.audio.delta':
@@ -1473,7 +1529,7 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
 
   /**
    * Obtener historial de conversación para guardar en memoria
-   * Solicita a OpenAI que genere un resumen automático de la conversación
+   * Usa el resumen generado automáticamente por OpenAI durante la llamada
    * @param {string} streamSid - ID del stream
    * @returns {Promise<Object>} - {summary, topics, transcript, callerName, callerCompany, requestDetails}
    */
@@ -1485,27 +1541,46 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
     }
 
     try {
-      logger.info(`🤖 [${streamSid}] Solicitando resumen automático de la conversación a OpenAI...`);
-
-      // 🚀 SOLICITAR A OPENAI QUE GENERE EL RESUMEN
-      // OpenAI tiene todo el historial de la conversación internamente
-      const summaryData = await this.requestConversationSummary(connectionData);
-
-      if (!summaryData || !summaryData.summary) {
-        logger.warn(`⚠️ [${streamSid}] No se pudo generar resumen de la conversación`);
-        return { summary: 'Llamada sin resumen disponible', topics: [], transcript: '', callerName: null, callerCompany: null };
+      // 🎯 Verificar si OpenAI generó el resumen automáticamente
+      if (connectionData.callSummary) {
+        logger.info(`✅ [${streamSid}] Usando resumen generado por OpenAI durante la llamada`);
+        logger.info(`📊 [${streamSid}] Resumen: ${connectionData.callSummary.summary}`);
+        logger.info(`📊 [${streamSid}] Nombre: ${connectionData.callSummary.callerName || 'N/A'}`);
+        logger.info(`📊 [${streamSid}] Empresa: ${connectionData.callSummary.callerCompany || 'N/A'}`);
+        
+        return {
+          summary: connectionData.callSummary.summary || 'Llamada completada',
+          topics: connectionData.callSummary.topics || [],
+          transcript: connectionData.conversationTranscript || '',
+          callerName: connectionData.callSummary.callerName || null,
+          callerCompany: connectionData.callSummary.callerCompany || null,
+          requestDetails: connectionData.callSummary.requestDetails || {}
+        };
       }
 
-      logger.info(`✅ [${streamSid}] Resumen generado: ${summaryData.summary.substring(0, 100)}...`);
-      logger.info(`📊 [${streamSid}] Datos extraídos: Nombre="${summaryData.callerName}", Empresa="${summaryData.callerCompany}"`);
+      // Fallback: Generar resumen básico si OpenAI no lo generó
+      logger.warn(`⚠️ [${streamSid}] OpenAI no generó resumen automático - usando transcripción`);
+      const transcript = connectionData.conversationTranscript || '';
+      
+      if (transcript.length > 10) {
+        // Generar resumen simple con OpenAI
+        const summaryData = await this.generateCallSummary(transcript);
+        return {
+          summary: summaryData.summary,
+          topics: summaryData.topics,
+          transcript: transcript,
+          callerName: summaryData.callerName,
+          callerCompany: summaryData.callerCompany,
+          requestDetails: summaryData.requestDetails
+        };
+      }
 
-      return {
-        summary: summaryData.summary,
-        topics: summaryData.topics,
-        transcript: summaryData.fullTranscript || '',
-        callerName: summaryData.callerName,
-        callerCompany: summaryData.callerCompany,
-        requestDetails: summaryData.requestDetails
+      return { 
+        summary: 'Llamada sin contenido suficiente', 
+        topics: [], 
+        transcript: transcript, 
+        callerName: null, 
+        callerCompany: null 
       };
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error obteniendo historial: ${error.message}`);
