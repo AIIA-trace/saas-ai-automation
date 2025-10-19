@@ -1707,45 +1707,38 @@ Tu objetivo es generar un resumen estructurado en formato JSON que capture TODA 
 
 ESTRUCTURA JSON REQUERIDA:
 {
-  "summary": "Resumen ejecutivo de la llamada (2-3 frases, máx 300 caracteres)",
+  "summary": "Resumen con TODOS los datos específicos incluidos en el texto",
   "topics": ["tema1", "tema2", ...],
   "callerName": "Nombre completo del llamante o null",
   "callerCompany": "Empresa del llamante o null",
-  "requestDetails": {
-    "motivo": "Razón principal de la llamada",
-    "contacto": {
-      "email": "email si se menciona",
-      "telefono": "teléfono adicional si se menciona",
-      "cargo": "puesto/cargo si se menciona"
-    },
-    "documentos": {
-      "numeroFactura": "número de factura si se menciona",
-      "numeroPedido": "número de pedido si se menciona",
-      "numeroExpediente": "número de expediente/caso si se menciona"
-    },
-    "fechas": {
-      "deadline": "fecha límite si se menciona",
-      "cita": "fecha de cita/reunión si se menciona",
-      "vencimiento": "fecha de vencimiento si se menciona"
-    },
-    "cifras": {
-      "importe": "cantidad monetaria si se menciona",
-      "cantidad": "cantidad de productos/servicios si se menciona"
-    },
-    "accionRequerida": "Acción específica que solicita el llamante",
-    "urgencia": "alta/media/baja según el tono de la llamada",
-    "notasAdicionales": "Cualquier otro detalle importante mencionado"
-  }
+  "requestDetails": {}
 }
 
+⚠️ CRÍTICO - FORMATO DEL SUMMARY:
+El campo "summary" debe ser un texto narrativo que incluya EXPLÍCITAMENTE todos los datos importantes:
+
+EJEMPLO CORRECTO:
+"Carlos del Banco Santander llama por la factura número F-2024-12345 con importe de 1.500 euros que vence el 25 de octubre. Necesita hablar con Miguel urgentemente. Email: carlos@santander.com, teléfono: 600123456."
+
+EJEMPLO INCORRECTO:
+"Carlos llama por una factura pendiente que necesita gestionar con urgencia."
+
+REGLAS DEL SUMMARY:
+1. INCLUYE SIEMPRE los números específicos: facturas, pedidos, códigos, referencias
+2. INCLUYE SIEMPRE los importes monetarios exactos
+3. INCLUYE SIEMPRE las fechas completas (día, mes, año si se menciona)
+4. INCLUYE SIEMPRE emails, teléfonos y datos de contacto
+5. INCLUYE SIEMPRE nombres de personas mencionadas
+6. INCLUYE SIEMPRE códigos de color, referencias, números de serie
+7. Usa formato claro: "factura número X", "importe de Y euros", "vence el Z"
+
 INSTRUCCIONES CRÍTICAS:
-1. Extrae TODOS los números mencionados (facturas, pedidos, importes, teléfonos, etc.)
-2. Captura TODAS las fechas y deadlines mencionados
-3. Identifica el motivo REAL de la llamada (no solo "consulta")
-4. Si mencionan email, teléfono o datos de contacto, guárdalos
-5. Si hay urgencia o palabras como "urgente", "importante", "cuanto antes", márcalo
-6. Si mencionan nombres de personas adicionales (ej: "hablar con Miguel"), inclúyelos en notasAdicionales
-7. Omite campos que no se mencionaron (usa null o no los incluyas)
+1. El summary debe ser AUTOSUFICIENTE - debe contener TODOS los datos sin necesidad de consultar requestDetails
+2. NO resumas de forma genérica - SIEMPRE incluye los números y datos específicos
+3. Si mencionan "factura 12345" → escribe "factura número 12345" en el summary
+4. Si mencionan "1500 euros" → escribe "importe de 1.500 euros" en el summary
+5. Si mencionan "vence el 20 de octubre" → escribe "vence el 20 de octubre" en el summary
+6. Máximo 500 caracteres para el summary (aumentado para incluir todos los datos)
 
 Responde SOLO con el JSON, sin markdown, sin texto adicional.`
             },
@@ -1755,7 +1748,7 @@ Responde SOLO con el JSON, sin markdown, sin texto adicional.`
             }
           ],
           temperature: 0.2,
-          max_tokens: 800
+          max_tokens: 1000
         })
       });
 
