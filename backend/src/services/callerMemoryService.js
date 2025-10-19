@@ -166,17 +166,23 @@ class CallerMemoryService {
 
     let context = '\n\n📋 INFORMACIÓN DEL CLIENTE QUE LLAMA:\n';
     
+    // 🔍 SIEMPRE mostrar el número de llamadas para debugging
+    if (memory.callCount === 1) {
+      context += `- Esta es su PRIMERA llamada\n`;
+    } else if (memory.callCount === 2) {
+      context += `- ⚠️ CLIENTE RECURRENTE: Esta es su SEGUNDA llamada\n`;
+      context += `- Primera llamada fue el: ${new Date(memory.lastCallDate).toLocaleDateString('es-ES')}\n`;
+    } else {
+      context += `- ⚠️ CLIENTE RECURRENTE: Ha llamado ${memory.callCount} veces (incluyendo esta)\n`;
+      context += `- Última llamada: ${new Date(memory.lastCallDate).toLocaleDateString('es-ES')}\n`;
+    }
+    
     if (memory.callerName) {
-      context += `- Nombre: ${memory.callerName}\n`;
+      context += `- Nombre conocido: ${memory.callerName}\n`;
     }
     
     if (memory.callerCompany) {
-      context += `- Empresa: ${memory.callerCompany}\n`;
-    }
-    
-    if (memory.callCount > 1) {
-      context += `- Ha llamado ${memory.callCount} veces anteriormente\n`;
-      context += `- Última llamada: ${new Date(memory.lastCallDate).toLocaleDateString('es-ES')}\n`;
+      context += `- Empresa conocida: ${memory.callerCompany}\n`;
     }
 
     if (memory.conversationHistory?.conversations?.length > 0) {
