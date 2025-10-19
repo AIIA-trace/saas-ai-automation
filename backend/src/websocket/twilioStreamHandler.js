@@ -546,6 +546,8 @@ class TwilioStreamHandler {
       logger.info(`🏢 [${streamSid}] Cliente ID: ${streamData?.client?.id || 'NO DISPONIBLE'}`);
       
       // Obtener o crear memoria del llamante
+      logger.info(`🔍 [${streamSid}] DEBUG MEMORIA - clientId: ${streamData?.client?.id}, phone: ${callerPhone}`);
+      
       if (streamData?.client?.id && callerPhone) {
         logger.info(`🧠 [${streamSid}] Obteniendo memoria para ${callerPhone}`);
         const memory = await callerMemoryService.getOrCreateCallerMemory(
@@ -556,6 +558,7 @@ class TwilioStreamHandler {
         if (memory) {
           streamData.callerMemory = memory;
           logger.info(`✅ [${streamSid}] Memoria cargada: ${memory.callCount} llamadas previas`);
+          logger.info(`📋 [${streamSid}] Memoria ID: ${memory.id}, Nombre: ${memory.callerName || 'N/A'}, Empresa: ${memory.callerCompany || 'N/A'}`);
         } else {
           logger.warn(`⚠️ [${streamSid}] No se pudo crear/obtener memoria`);
         }
@@ -572,7 +575,8 @@ class TwilioStreamHandler {
 
       logger.info(`🔍 [${streamSid}] Enviando saludo después de getClientForStream - greetingSent: ${streamData?.greetingSent}`);
 
-      this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
+      // ⏳ ESPERAR a que se complete la carga de memoria antes de enviar saludo
+      await this.sendInitialGreeting(ws, { streamSid, callSid }).catch(error => {
         logger.error(`❌ [${streamSid}] Error en saludo inicial: ${error.message}`);
       });
     }).catch(error => {
@@ -866,9 +870,15 @@ class TwilioStreamHandler {
       // 1. Obtener contexto de memoria del llamante si existe
       const callerMemoryService = require('../services/callerMemoryService');
       let memoryContext = '';
+      
+      logger.info(`🔍 [${streamSid}] DEBUG - streamData.callerMemory existe: ${!!streamData.callerMemory}`);
       if (streamData.callerMemory) {
+        logger.info(`🔍 [${streamSid}] DEBUG - callerMemory.callCount: ${streamData.callerMemory.callCount}`);
         memoryContext = callerMemoryService.getMemoryContext(streamData.callerMemory);
         logger.info(`🧠 [${streamSid}] Contexto de memoria obtenido: ${memoryContext.length} caracteres`);
+        logger.info(`📝 [${streamSid}] Primeras 200 chars del contexto: ${memoryContext.substring(0, 200)}`);
+      } else {
+        logger.warn(`⚠️ [${streamSid}] NO HAY MEMORIA DEL LLAMANTE - se enviará sin contexto histórico`);
       }
       
       // 2. Inicializar OpenAI Realtime con contexto de memoria
