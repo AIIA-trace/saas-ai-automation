@@ -33,18 +33,18 @@ class OpenAIRealtimeService {
       activeConnections: 0,
       lastReset: Date.now()
     };
-    
     // SISTEMA MENSAJE BASE (se personaliza por cliente)
     this.baseSystemMessage = `You are Susan, a professional receptionist. Be helpful, friendly and direct. Answer briefly and ask how you can help. Maintain a professional but warm tone.`;
   }
 
   /**
-   * Inicializar conexión OpenAI Realtime para un stream específico
+   * Inicializar conexión con OpenAI Realtime API
    * @param {string} streamSid - ID del stream de Twilio
    * @param {Object} clientConfig - Configuración del cliente desde DB
+   * @param {string} callerMemoryContext - Contexto de memoria del llamante (opcional)
    * @returns {Promise<WebSocket>} - Conexión WebSocket establecida
    */
-  async initializeConnection(streamSid, clientConfig = {}) {
+  async initializeConnection(streamSid, clientConfig = {}, callerMemoryContext = '') {
     try {
       if (!this.apiKey) {
         throw new Error('OPENAI_API_KEY no está definida');
@@ -69,12 +69,8 @@ class OpenAIRealtimeService {
       const companyName = clientConfig.companyName || 'la empresa';
       const companyDescription = clientConfig.companyDescription || '';
       
-      // Obtener contexto de memoria del llamante si existe
-      const callerMemoryService = require('./callerMemoryService');
-      const memoryContext = clientConfig.callerMemory ? 
-        callerMemoryService.getMemoryContext(clientConfig.callerMemory) : '';
-      
-      const customSystemMessage = `Eres Susan, una asistente telefónica de atención al cliente que atiende llamadas entrantes en nombre de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''}${memoryContext}
+      // Usar el contexto de memoria pasado como parámetro
+      const customSystemMessage = `Eres Susan, una asistente telefónica de atención al cliente que atiende llamadas entrantes en nombre de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''}${callerMemoryContext}
 
 🎭 TU PAPEL:
 Tu papel es HABLAR COMO UNA PERSONA ESPAÑOLA REAL, de tono amable, natural y profesional.
@@ -445,11 +441,19 @@ Si la persona que llama NO es un cliente potencial, sino un proveedor, banco, o 
           connectionData.status = 'connected';
           
           // ✅ CONFIGURAR SESIÓN INICIAL (según documentación oficial)
+          // 🧠 Incluir contexto de memoria del llamante si está disponible
+          let fullInstructions = customSystemMessage;
+          if (callerMemoryContext && callerMemoryContext.trim().length > 0) {
+            fullInstructions += callerMemoryContext;
+            logger.info(`🧠 [${streamSid}] Contexto de memoria incluido en instrucciones (${callerMemoryContext.length} chars)`);
+          }
+          fullInstructions += '\n\n🎤 INSTRUCCIONES DE VOZ:\n- Habla con ENERGÍA y entusiasmo\n- Usa entonación expresiva y variada\n- Habla a ritmo RÁPIDO pero claro\n- Enfatiza palabras clave con emoción\n- Sonríe al hablar (se nota en el tono)';
+          
           const sessionConfig = {
             type: 'session.update',
             session: {
               modalities: ['text', 'audio'],  // ✅ REQUERIDO: OpenAI no permite solo ['audio']
-              instructions: customSystemMessage + '\n\n🎤 INSTRUCCIONES DE VOZ:\n- Habla con ENERGÍA y entusiasmo\n- Usa entonación expresiva y variada\n- Habla a ritmo RÁPIDO pero claro\n- Enfatiza palabras clave con emoción\n- Sonríe al hablar (se nota en el tono)',
+              instructions: fullInstructions,
               voice: 'shimmer',  // 🎤 Voz femenina cálida y expresiva
               input_audio_format: 'g711_ulaw',
               output_audio_format: 'g711_ulaw',  // 🚀 mulaw directo compatible con Twilio

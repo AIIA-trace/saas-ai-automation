@@ -152,17 +152,24 @@ class TwilioStreamHandler {
     try {
       logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime Service con configuración del cliente`);
       
-      // Preparar configuración del cliente incluyendo memoria del llamante
+      // Preparar configuración del cliente
       const clientConfig = {
         companyName: streamData.client?.companyName || 'la empresa',
         companyDescription: streamData.client?.companyDescription || '',
         industry: streamData.client?.industry || '',
-        callerMemory: streamData.callerMemory || null, // Incluir memoria del llamante
         ...streamData.client // Incluir toda la configuración disponible
       };
+      
+      // Obtener contexto de memoria del llamante si existe
+      const callerMemoryService = require('../services/callerMemoryService');
+      let memoryContext = '';
+      if (streamData.callerMemory) {
+        memoryContext = callerMemoryService.getMemoryContext(streamData.callerMemory);
+        logger.info(`🧠 [${streamSid}] Contexto de memoria obtenido: ${memoryContext.length} caracteres`);
+      }
 
       // Inicializar conexión OpenAI Realtime con callback de despedida
-      await this.openaiRealtimeService.initializeConnection(streamSid, clientConfig);
+      await this.openaiRealtimeService.initializeConnection(streamSid, clientConfig, memoryContext);
       logger.info(`✅ [${streamSid}] OpenAI Realtime Service inicializado correctamente`);
       
       // Configurar callback de despedida para colgar llamada automáticamente
@@ -856,9 +863,17 @@ class TwilioStreamHandler {
     // ✅ SOLUCIÓN: Inicializar OpenAI y enviar mensaje para que genere el saludo
     
     try {
-      // 1. Inicializar OpenAI Realtime
+      // 1. Obtener contexto de memoria del llamante si existe
+      const callerMemoryService = require('../services/callerMemoryService');
+      let memoryContext = '';
+      if (streamData.callerMemory) {
+        memoryContext = callerMemoryService.getMemoryContext(streamData.callerMemory);
+        logger.info(`🧠 [${streamSid}] Contexto de memoria obtenido: ${memoryContext.length} caracteres`);
+      }
+      
+      // 2. Inicializar OpenAI Realtime con contexto de memoria
       logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime...`);
-      await this.openaiRealtimeService.initializeConnection(streamSid, streamData.client);
+      await this.openaiRealtimeService.initializeConnection(streamSid, streamData.client, memoryContext);
       logger.info(`✅ [${streamSid}] OpenAI Realtime inicializado`);
       
       // 2. Enviar mensaje para activar el saludo
@@ -883,9 +898,18 @@ class TwilioStreamHandler {
     logger.info(`🔊 [${streamSid}] Generando saludo extendido de fallback con OpenAI`);
     
     try {
+      // Obtener contexto de memoria del llamante si existe
+      const streamData = this.activeStreams.get(streamSid);
+      const callerMemoryService = require('../services/callerMemoryService');
+      let memoryContext = '';
+      if (streamData?.callerMemory) {
+        memoryContext = callerMemoryService.getMemoryContext(streamData.callerMemory);
+        logger.info(`🧠 [${streamSid}] Contexto de memoria obtenido: ${memoryContext.length} caracteres`);
+      }
+      
       // 1. Inicializar OpenAI Realtime
       logger.info(`🤖 [${streamSid}] Inicializando OpenAI Realtime para saludo extendido...`);
-      await this.openaiRealtimeService.initializeConnection(streamSid, clientConfigData);
+      await this.openaiRealtimeService.initializeConnection(streamSid, clientConfigData, memoryContext);
       logger.info(`✅ [${streamSid}] OpenAI Realtime inicializado`);
       
       // 2. Generar audio del saludo con OpenAI TTS
