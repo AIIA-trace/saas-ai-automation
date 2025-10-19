@@ -652,7 +652,21 @@ class TwilioStreamHandler {
   async cleanup(streamSid) {
     // 📊 CALCULAR DURACIÓN DE LLAMADA PARA MÉTRICAS
     const streamData = this.activeStreams.get(streamSid);
-    const callDuration = streamData ? Date.now() - streamData.startTime : 0;
+    
+    // ⚠️ EVITAR DUPLICADOS: Si ya se limpió, salir
+    if (!streamData) {
+      logger.debug(`⏭️ [${streamSid}] Ya limpiado - saltando`);
+      return;
+    }
+    
+    // Marcar como en proceso de limpieza para evitar ejecuciones concurrentes
+    if (streamData.cleaningInProgress) {
+      logger.warn(`⚠️ [${streamSid}] Limpieza ya en progreso - saltando`);
+      return;
+    }
+    streamData.cleaningInProgress = true;
+    
+    const callDuration = Date.now() - streamData.startTime;
     const companyName = streamData?.client?.companyName || 'UNKNOWN';
     const callSid = streamData?.callSid || 'NO-SID';
     

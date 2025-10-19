@@ -1642,7 +1642,10 @@ Genera el resumen ahora.`
       }
 
       const data = await response.json();
-      const content = data.choices[0].message.content;
+      let content = data.choices[0].message.content;
+      
+      // Limpiar markdown code blocks si existen (```json ... ```)
+      content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
       
       // Parsear el JSON de la respuesta
       const summaryData = JSON.parse(content);
@@ -1713,7 +1716,10 @@ Responde SOLO con el JSON, sin texto adicional.`
       }
 
       const data = await response.json();
-      const content = data.choices[0].message.content;
+      let content = data.choices[0].message.content;
+      
+      // Limpiar markdown code blocks si existen (```json ... ```)
+      content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
       
       // Parsear el JSON de la respuesta
       const summaryData = JSON.parse(content);
