@@ -9,14 +9,7 @@ class StreamingTwiMLService {
   /**
    * Generar TwiML para iniciar Stream con WebSocket
    */
-  generateStreamTwiml(clientData, callSid = null) {
-    return this.createStreamTwiML(clientData, callSid);
-  }
-
-  /**
-   * Crear TwiML para iniciar Stream con WebSocket
-   */
-  createStreamTwiML(clientData, callSid = null) {
+  createStreamTwiML(clientData, callSid = null, callerPhone = null) {
     const twiml = new this.VoiceResponse();
     
     try {
@@ -138,6 +131,17 @@ class StreamingTwiMLService {
           name: 'callSid',
           value: callSid
         });
+      }
+      
+      // 📞 CRÍTICO: Pasar número del llamante para memoria conversacional
+      if (callerPhone) {
+        stream.parameter({
+          name: 'From',
+          value: callerPhone
+        });
+        logger.info(`📞 [${callSid}] Número del llamante agregado: ${callerPhone}`);
+      } else {
+        logger.warn(`⚠️ [${callSid}] Número del llamante NO disponible`);
       }
       
       // NOTA: Con Connect Stream, las instrucciones después son inalcanzables
