@@ -1071,21 +1071,30 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
 
         case 'conversation.item.created':
           // ✅ CAPTURAR CONVERSACIÓN COMPLETA: Usuario y Asistente
+          logger.info(`🔍 [${streamSid}] conversation.item.created recibido`);
+          logger.info(`🔍 [${streamSid}] Item type: ${response.item?.type}, role: ${response.item?.role}`);
+          
           if (response.item?.type === 'message') {
             const role = response.item.role; // 'user' o 'assistant'
             const content = response.item.content;
+            
+            logger.info(`🔍 [${streamSid}] Content es array: ${Array.isArray(content)}, length: ${content?.length}`);
             
             // Buscar el contenido de texto o transcripción
             let fullText = '';
             if (Array.isArray(content)) {
               for (const part of content) {
+                logger.info(`🔍 [${streamSid}] Part type: ${part.type}`);
+                
                 // Capturar texto del asistente
                 if (part.type === 'text' && part.text) {
                   fullText += part.text;
+                  logger.info(`🔍 [${streamSid}] ✅ Texto capturado: "${part.text.substring(0, 50)}..."`);
                 }
                 // Capturar transcripción del audio del usuario
                 if (part.type === 'input_audio' && part.transcript) {
                   fullText += part.transcript;
+                  logger.info(`🔍 [${streamSid}] ✅ Transcripción capturada: "${part.transcript.substring(0, 50)}..."`);
                 }
               }
             }
@@ -1097,17 +1106,21 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
               // 🧠 GUARDAR EN TRANSCRIPCIÓN PARA MEMORIA
               if (!connectionData.conversationTranscript) {
                 connectionData.conversationTranscript = '';
+                logger.info(`🔍 [${streamSid}] Inicializando conversationTranscript`);
               }
               connectionData.conversationTranscript += `${speaker}: ${fullText}\n`;
-              logger.info(`🧠 [${streamSid}] Conversación guardada (${connectionData.conversationTranscript.length} chars)`);
+              logger.info(`🧠 [${streamSid}] ✅ Conversación guardada (total: ${connectionData.conversationTranscript.length} chars)`);
               
               // Solo para el asistente: validar longitud
               if (role === 'assistant' && fullText.length > 500) {
                 logger.warn(`⚠️ [${streamSid}] TEXTO DEMASIADO LARGO - Truncando a 500 chars`);
               }
             } else {
-              logger.debug(`🔍 [${streamSid}] Item creado sin texto: ${JSON.stringify(response.item)}`);
+              logger.warn(`⚠️ [${streamSid}] Item creado SIN TEXTO extraíble`);
+              logger.warn(`⚠️ [${streamSid}] Content: ${JSON.stringify(content)}`);
             }
+          } else {
+            logger.warn(`⚠️ [${streamSid}] Item NO es mensaje: ${response.item?.type}`);
           }
           break;
 
@@ -1466,6 +1479,7 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
   async getConversationHistory(streamSid) {
     const connectionData = this.activeConnections.get(streamSid);
     if (!connectionData) {
+      logger.error(`❌ [${streamSid}] No se encontró connectionData para este stream`);
       return { summary: 'Sin conversación', topics: [], transcript: '', callerName: null, callerCompany: null };
     }
 
@@ -1473,9 +1487,13 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
       // Extraer transcripción de la conversación
       const transcript = connectionData.conversationTranscript || '';
       
+      logger.info(`🔍 [${streamSid}] DEBUG: conversationTranscript length = ${transcript.length}`);
+      logger.info(`🔍 [${streamSid}] DEBUG: conversationTranscript = "${transcript.substring(0, 200)}..."`);
+      
       // Si no hay transcripción, devolver vacío
       if (!transcript || transcript.length < 10) {
-        logger.warn(`⚠️ [${streamSid}] No hay transcripción suficiente para generar resumen`);
+        logger.warn(`⚠️ [${streamSid}] No hay transcripción suficiente para generar resumen (${transcript.length} chars)`);
+        logger.warn(`⚠️ [${streamSid}] Contenido: "${transcript}"`);
         return { summary: 'Llamada sin contenido', topics: [], transcript: '', callerName: null, callerCompany: null };
       }
 
