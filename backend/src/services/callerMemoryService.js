@@ -228,15 +228,20 @@ class CallerMemoryService {
         context += `"¡Hola ${memory.callerName || 'de nuevo'}! ¿En qué puedo ayudarte hoy?"\n`;
       }
 
-      // Últimas conversaciones (resumidas)
+      // Últimas conversaciones (COMPLETAS - sin cortar)
       if (memory.conversationHistory?.conversations?.length > 0) {
         context += `\n📞 ÚLTIMAS CONVERSACIONES (para referencia):\n`;
+        context += `⚠️ IMPORTANTE: Estos resúmenes contienen TODOS los datos específicos (números, importes, fechas, etc.)\n`;
+        context += `Si el cliente pregunta por algo mencionado aquí, PUEDES recordárselo.\n\n`;
+        
         memory.conversationHistory.conversations.slice(-3).forEach((conv, index) => {
           const dateStr = new Date(conv.date).toLocaleDateString('es-ES');
-          context += `\n${index + 1}. ${dateStr}: ${conv.summary.substring(0, 100)}...\n`;
+          // ⚠️ CRÍTICO: Mostrar resumen COMPLETO sin cortar para que el bot tenga TODOS los datos
+          context += `${index + 1}. ${dateStr}: ${conv.summary}\n`;
           if (conv.topics && conv.topics.length > 0) {
             context += `   Temas: ${conv.topics.join(', ')}\n`;
           }
+          context += `\n`;
         });
       }
     }
