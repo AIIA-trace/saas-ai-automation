@@ -113,6 +113,9 @@ class CallerMemoryService {
    */
   async addConversationToHistory(memoryId, conversation) {
     try {
+      logger.info(`🔍 [Memoria ${memoryId}] Iniciando addConversationToHistory`);
+      logger.info(`🔍 [Memoria ${memoryId}] Conversation data: ${JSON.stringify(conversation)}`);
+      
       const memory = await prisma.callerMemory.findUnique({
         where: { id: memoryId }
       });
@@ -122,23 +125,31 @@ class CallerMemoryService {
         return null;
       }
 
+      logger.info(`✅ [Memoria ${memoryId}] Memoria encontrada`);
+
       // Obtener historial actual
       const history = memory.conversationHistory || { conversations: [] };
+      logger.info(`🔍 [Memoria ${memoryId}] Historial actual: ${history.conversations?.length || 0} conversaciones`);
       
-      // Agregar nueva conversación
+      // Agregar nueva conversación (solo resumen, NO transcripción completa)
       history.conversations = history.conversations || [];
-      history.conversations.push({
+      const newConversation = {
         date: new Date().toISOString(),
         summary: conversation.summary || '',
         topics: conversation.topics || [],
         duration: conversation.duration || 0,
-        fullTranscript: conversation.fullTranscript || '' // Guardar transcripción completa
-      });
+        requestDetails: conversation.requestDetails || {}
+      };
+      
+      logger.info(`📝 [Memoria ${memoryId}] Nueva conversación: ${JSON.stringify(newConversation)}`);
+      history.conversations.push(newConversation);
 
       // Mantener solo las últimas 10 conversaciones
       if (history.conversations.length > 10) {
         history.conversations = history.conversations.slice(-10);
       }
+
+      logger.info(`💾 [Memoria ${memoryId}] Actualizando BD con ${history.conversations.length} conversaciones`);
 
       // Actualizar memoria
       const updatedMemory = await prisma.callerMemory.update({
@@ -148,7 +159,7 @@ class CallerMemoryService {
         }
       });
 
-      logger.info(`📝 [Memoria ${memoryId}] Conversación agregada al historial`);
+      logger.info(`✅ [Memoria ${memoryId}] Conversación agregada al historial exitosamente`);
       return updatedMemory;
     } catch (error) {
       logger.error(`❌ Error agregando conversación al historial: ${error.message}`);
