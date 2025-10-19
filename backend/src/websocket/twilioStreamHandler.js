@@ -556,9 +556,13 @@ class TwilioStreamHandler {
         );
         
         if (memory) {
-          streamData.callerMemory = memory;
-          logger.info(`✅ [${streamSid}] Memoria cargada: ${memory.callCount} llamadas previas`);
-          logger.info(`📋 [${streamSid}] Memoria ID: ${memory.id}, Nombre: ${memory.callerName || 'N/A'}, Empresa: ${memory.callerCompany || 'N/A'}`);
+          // ⚠️ CRÍTICO: Actualizar directamente en activeStreams para que persista
+          const currentStreamData = this.activeStreams.get(streamSid);
+          if (currentStreamData) {
+            currentStreamData.callerMemory = memory;
+            logger.info(`✅ [${streamSid}] Memoria cargada: ${memory.callCount} llamadas previas`);
+            logger.info(`📋 [${streamSid}] Memoria ID: ${memory.id}, Nombre: ${memory.callerName || 'N/A'}, Empresa: ${memory.callerCompany || 'N/A'}`);
+          }
         } else {
           logger.warn(`⚠️ [${streamSid}] No se pudo crear/obtener memoria`);
         }
@@ -568,6 +572,10 @@ class TwilioStreamHandler {
       
       // Verificar de nuevo antes de enviar (doble verificación)
       streamData = this.activeStreams.get(streamSid);
+      
+      // 🔍 VERIFICAR que la memoria persiste después de reasignar streamData
+      logger.info(`🔍 [${streamSid}] Memoria después de reasignación - existe: ${!!streamData?.callerMemory}, callCount: ${streamData?.callerMemory?.callCount || 'N/A'}`);
+      
       if (streamData?.greetingSent) {
         logger.info(`⚠️ [${streamSid}] Saludo ya enviado durante getClientForStream (greetingSent=true), omitiendo`);
         return;
