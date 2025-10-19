@@ -553,7 +553,8 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
               input_audio_format: 'g711_ulaw',
               output_audio_format: 'g711_ulaw',  // 🚀 mulaw directo compatible con Twilio
               input_audio_transcription: {
-                model: 'whisper-1'
+                model: 'whisper-1',
+                enabled: true  // 🎯 Habilitar explícitamente
               },
               turn_detection: {
                 type: 'server_vad',
@@ -1166,9 +1167,33 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           break;
 
         case 'response.audio_transcript.delta':
+          // Acumular transcripción del asistente
+          if (response.delta) {
+            if (!connectionData.currentAssistantTranscript) {
+              connectionData.currentAssistantTranscript = '';
+            }
+            connectionData.currentAssistantTranscript += response.delta;
+            logger.debug(`🔇 [${streamSid}] Transcripción delta: "${response.delta}"`);
+          }
+          break;
+
         case 'response.audio_transcript.done':
-          // 🗑️ OBSOLETO: Ya no usamos Azure TTS, solo audio nativo de OpenAI
-          logger.debug(`🔇 [${streamSid}] Evento de transcripción ignorado: ${response.type}`);
+          // 🧠 CAPTURAR TRANSCRIPCIÓN DEL ASISTENTE
+          const assistantText = response.transcript || connectionData.currentAssistantTranscript || '';
+          
+          if (assistantText && assistantText.trim()) {
+            logger.info(`🎯 [${streamSid}] ✅ Asistente: "${assistantText}"`);
+            
+            // Guardar en memoria
+            if (!connectionData.conversationTranscript) {
+              connectionData.conversationTranscript = '';
+            }
+            connectionData.conversationTranscript += `Asistente: ${assistantText.trim()}\n`;
+            logger.info(`🧠 [${streamSid}] ✅ Respuesta guardada (total: ${connectionData.conversationTranscript.length} chars)`);
+          }
+          
+          // Limpiar transcripción temporal
+          connectionData.currentAssistantTranscript = '';
           break;
 
         case 'response.audio.delta':
