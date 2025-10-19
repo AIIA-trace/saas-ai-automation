@@ -224,7 +224,23 @@ class TwilioStreamHandler {
 
     ws.on('close', async () => {
       logger.info(`🔌 Conexión WebSocket cerrada: ${ws.connectionId}`);
-      await this.cleanup(ws.connectionId);
+      
+      // Buscar el streamSid real asociado a este WebSocket
+      let streamSidToClean = null;
+      for (const [sid, data] of this.activeStreams.entries()) {
+        if (data.twilioWs === ws) {
+          streamSidToClean = sid;
+          break;
+        }
+      }
+      
+      if (streamSidToClean) {
+        logger.info(`🔍 [${ws.connectionId}] Encontrado streamSid: ${streamSidToClean}`);
+        await this.cleanup(streamSidToClean);
+      } else {
+        logger.warn(`⚠️ [${ws.connectionId}] No se encontró streamSid asociado - intentando con connectionId`);
+        await this.cleanup(ws.connectionId);
+      }
     });
   }
 
@@ -604,9 +620,15 @@ class TwilioStreamHandler {
   async handleStop(ws, data) {
     const streamSid = data.stop?.streamSid;
 
+    logger.info(`🔍 handleStop llamado - streamSid: ${streamSid}`);
+    logger.info(`🔍 data.stop completo: ${JSON.stringify(data.stop)}`);
+    logger.info(`🔍 activeStreams keys: ${Array.from(this.activeStreams.keys()).join(', ')}`);
+
     if (streamSid) {
       logger.info(`🛑 [${streamSid}] Stream detenido`);
       await this.cleanup(streamSid);
+    } else {
+      logger.error(`❌ handleStop: streamSid es undefined/null`);
     }
   }
 
