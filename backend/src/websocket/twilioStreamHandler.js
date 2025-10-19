@@ -168,12 +168,8 @@ class TwilioStreamHandler {
         logger.info(`🧠 [${streamSid}] Contexto de memoria obtenido: ${memoryContext.length} caracteres`);
       }
 
-      // Inicializar conexión OpenAI Realtime con callbacks
-      const identificationCallback = (sid, companyName) => {
-        this.updateContextOnIdentification(sid, companyName);
-      };
-      
-      await this.openaiRealtimeService.initializeConnection(streamSid, clientConfig, memoryContext, identificationCallback);
+      // Inicializar conexión OpenAI Realtime con callback de despedida
+      await this.openaiRealtimeService.initializeConnection(streamSid, clientConfig, memoryContext);
       logger.info(`✅ [${streamSid}] OpenAI Realtime Service inicializado correctamente`);
       
       // Configurar callback de despedida para colgar llamada automáticamente
@@ -647,42 +643,6 @@ class TwilioStreamHandler {
       await this.cleanup(streamSidToClean);
     } else {
       logger.error(`❌ handleStop: No se encontró stream para callSid ${callSid}`);
-    }
-  }
-
-  /**
-   * Actualizar contexto cuando se identifica empresa del llamante
-   * @param {string} streamSid - ID del stream
-   * @param {string} companyName - Nombre de la empresa identificada
-   */
-  async updateContextOnIdentification(streamSid, companyName) {
-    try {
-      const streamData = this.activeStreams.get(streamSid);
-      if (!streamData || !streamData.client?.id) {
-        logger.warn(`⚠️ [${streamSid}] No se puede actualizar contexto - sin streamData`);
-        return;
-      }
-
-      // Buscar memoria por empresa
-      logger.info(`🔍 [${streamSid}] Buscando historial para empresa: ${companyName}`);
-      const companyMemory = await callerMemoryService.findByCompany(streamData.client.id, companyName);
-
-      if (companyMemory && companyMemory.conversationHistory?.conversations?.length > 0) {
-        // Generar contexto de memoria
-        const memoryContext = callerMemoryService.getMemoryContext(companyMemory);
-        
-        // Actualizar contexto en OpenAI Realtime
-        await this.openaiRealtimeService.updateSessionContext(streamSid, memoryContext);
-        
-        // Actualizar streamData con la memoria de la empresa
-        streamData.callerMemory = companyMemory;
-        
-        logger.info(`✅ [${streamSid}] Contexto actualizado para ${companyName} (${companyMemory.callCount} llamadas previas)`);
-      } else {
-        logger.info(`ℹ️ [${streamSid}] No hay historial previo para ${companyName}`);
-      }
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error actualizando contexto: ${error.message}`);
     }
   }
 

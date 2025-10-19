@@ -42,10 +42,9 @@ class OpenAIRealtimeService {
    * @param {string} streamSid - ID del stream de Twilio
    * @param {Object} clientConfig - Configuración del cliente desde DB
    * @param {string} callerMemoryContext - Contexto de memoria del llamante (opcional)
-   * @param {Function} onIdentificationCallback - Callback cuando se identifica empresa (opcional)
    * @returns {Promise<WebSocket>} - Conexión WebSocket establecida
    */
-  async initializeConnection(streamSid, clientConfig = {}, callerMemoryContext = '', onIdentificationCallback = null) {
+  async initializeConnection(streamSid, clientConfig = {}, callerMemoryContext = '') {
     try {
       if (!this.apiKey) {
         throw new Error('OPENAI_API_KEY no está definida');
@@ -501,7 +500,6 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
         streamSid: streamSid,
         clientConfig: clientConfig,
         customSystemMessage: customSystemMessage,
-        instructions: fullInstructions, // 🧠 Guardar instrucciones para actualizaciones dinámicas
         messageCount: 0,
         startTime: Date.now(),
         // VARIABLES DEL CÓDIGO OFICIAL COMPLETAS
@@ -514,10 +512,7 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
         textResponseCount: 0, // Contador de respuestas de texto
         // 🚀 STREAMING: Variables para envío incremental a Azure
         audioTranscript: '', // Buffer de transcripción
-        lastSentLength: 0, // Última posición enviada
-        // 🎯 IDENTIFICACIÓN DINÁMICA
-        contextUpdated: false, // Flag para evitar múltiples actualizaciones
-        onIdentificationCallback: onIdentificationCallback // Callback para actualizar contexto
+        lastSentLength: 0 // Última posición enviada
       };
 
       this.activeConnections.set(streamSid, connectionData);
@@ -641,39 +636,6 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
       logger.info(`🔇 [${streamSid}] VAD DESACTIVADO - bot hablando`);
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error desactivando VAD: ${error.message}`);
-    }
-  }
-
-  /**
-   * Actualizar contexto de memoria dinámicamente durante la llamada
-   * @param {string} streamSid - ID del stream
-   * @param {string} newContext - Nuevo contexto de memoria
-   */
-  async updateSessionContext(streamSid, newContext) {
-    const connectionData = this.activeConnections.get(streamSid);
-    if (!connectionData || !connectionData.ws) {
-      logger.warn(`⚠️ [${streamSid}] No se puede actualizar contexto - sin conexión`);
-      return;
-    }
-
-    try {
-      // Obtener instrucciones actuales y agregar nuevo contexto
-      const currentInstructions = connectionData.instructions || '';
-      const updatedInstructions = currentInstructions + newContext;
-
-      const updateConfig = {
-        type: 'session.update',
-        session: {
-          instructions: updatedInstructions
-        }
-      };
-      
-      connectionData.ws.send(JSON.stringify(updateConfig));
-      connectionData.instructions = updatedInstructions; // Guardar para futuras actualizaciones
-      
-      logger.info(`🧠 [${streamSid}] Contexto actualizado dinámicamente (${newContext.length} chars)`);
-    } catch (error) {
-      logger.error(`❌ [${streamSid}] Error actualizando contexto: ${error.message}`);
     }
   }
 
@@ -1074,31 +1036,6 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
             }
             connectionData.conversationTranscript += `Usuario: ${transcriptClean}\n`;
             logger.debug(`🧠 [${streamSid}] Transcripción guardada en memoria (${connectionData.conversationTranscript.length} chars)`);
-            
-            // 🎯 IDENTIFICACIÓN DINÁMICA: Detectar si menciona empresa
-            if (!connectionData.contextUpdated && connectionData.onIdentificationCallback) {
-              // Patrones comunes: "soy X de Y", "llamo de Y", "de la empresa Y", etc.
-              const companyPatterns = [
-                /(?:soy|me llamo|mi nombre es)\s+\w+\s+(?:de|del)\s+([A-Za-zÀ-ÿ\s]+?)(?:\.|,|$|\s+y\s|\s+llam)/i,
-                /(?:llamo|hablo|contacto)\s+(?:de|desde|del)\s+([A-Za-zÀ-ÿ\s]+?)(?:\.|,|$|\s+y\s|\s+para)/i,
-                /(?:empresa|compañía|banco|corporación)\s+([A-Za-zÀ-ÿ\s]+?)(?:\.|,|$|\s+y\s)/i
-              ];
-              
-              for (const pattern of companyPatterns) {
-                const match = transcriptClean.match(pattern);
-                if (match && match[1]) {
-                  const companyName = match[1].trim();
-                  if (companyName.length > 2) {
-                    logger.info(`🏢 [${streamSid}] EMPRESA IDENTIFICADA: "${companyName}"`);
-                    connectionData.contextUpdated = true; // Evitar múltiples actualizaciones
-                    
-                    // Llamar al callback para actualizar contexto
-                    connectionData.onIdentificationCallback(streamSid, companyName);
-                    break;
-                  }
-                }
-              }
-            }
           }
           
           // ⚠️ VALIDAR: Si la transcripción está vacía, cancelar generación de respuesta
@@ -1754,61 +1691,23 @@ Genera el resumen ahora.`
           messages: [
             {
               role: 'system',
-              content: `Eres un asistente experto en analizar llamadas de negocio y extraer información crítica.
+              content: `Eres un asistente que analiza conversaciones telefónicas y extrae información clave.
+Debes generar un resumen estructurado en formato JSON con:
+- summary: Resumen breve de la llamada (máx 200 caracteres)
+- topics: Array de temas mencionados (factura, pago, cita, etc)
+- callerName: Nombre del llamante (null si no se menciona)
+- callerCompany: Empresa del llamante (null si no se menciona)
+- requestDetails: Detalles específicos de la solicitud (número de factura, fecha, importe, etc)
 
-Tu objetivo es generar un resumen estructurado en formato JSON que capture TODA la información relevante para el negocio.
-
-ESTRUCTURA JSON REQUERIDA:
-{
-  "summary": "Resumen ejecutivo de la llamada (2-3 frases, máx 300 caracteres)",
-  "topics": ["tema1", "tema2", ...],
-  "callerName": "Nombre completo del llamante o null",
-  "callerCompany": "Empresa del llamante o null",
-  "requestDetails": {
-    "motivo": "Razón principal de la llamada",
-    "contacto": {
-      "email": "email si se menciona",
-      "telefono": "teléfono adicional si se menciona",
-      "cargo": "puesto/cargo si se menciona"
-    },
-    "documentos": {
-      "numeroFactura": "número de factura si se menciona",
-      "numeroPedido": "número de pedido si se menciona",
-      "numeroExpediente": "número de expediente/caso si se menciona"
-    },
-    "fechas": {
-      "deadline": "fecha límite si se menciona",
-      "cita": "fecha de cita/reunión si se menciona",
-      "vencimiento": "fecha de vencimiento si se menciona"
-    },
-    "cifras": {
-      "importe": "cantidad monetaria si se menciona",
-      "cantidad": "cantidad de productos/servicios si se menciona"
-    },
-    "accionRequerida": "Acción específica que solicita el llamante",
-    "urgencia": "alta/media/baja según el tono de la llamada",
-    "notasAdicionales": "Cualquier otro detalle importante mencionado"
-  }
-}
-
-INSTRUCCIONES CRÍTICAS:
-1. Extrae TODOS los números mencionados (facturas, pedidos, importes, teléfonos, etc.)
-2. Captura TODAS las fechas y deadlines mencionados
-3. Identifica el motivo REAL de la llamada (no solo "consulta")
-4. Si mencionan email, teléfono o datos de contacto, guárdalos
-5. Si hay urgencia o palabras como "urgente", "importante", "cuanto antes", márcalo
-6. Si mencionan nombres de personas adicionales (ej: "hablar con Miguel"), inclúyelos en notasAdicionales
-7. Omite campos que no se mencionaron (usa null o no los incluyas)
-
-Responde SOLO con el JSON, sin markdown, sin texto adicional.`
+Responde SOLO con el JSON, sin texto adicional.`
             },
             {
               role: 'user',
-              content: `Analiza esta conversación telefónica y extrae TODA la información relevante:\n\n${transcript}`
+              content: `Analiza esta conversación y extrae la información clave:\n\n${transcript}`
             }
           ],
-          temperature: 0.2,
-          max_tokens: 800
+          temperature: 0.3,
+          max_tokens: 500
         })
       });
 
