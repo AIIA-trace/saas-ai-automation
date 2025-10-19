@@ -618,17 +618,31 @@ class TwilioStreamHandler {
    * Maneja evento 'stop' de Twilio Stream
    */
   async handleStop(ws, data) {
-    const streamSid = data.stop?.streamSid;
+    const callSid = data.stop?.callSid;
 
-    logger.info(`🔍 handleStop llamado - streamSid: ${streamSid}`);
+    logger.info(`🔍 handleStop llamado - callSid: ${callSid}`);
     logger.info(`🔍 data.stop completo: ${JSON.stringify(data.stop)}`);
     logger.info(`🔍 activeStreams keys: ${Array.from(this.activeStreams.keys()).join(', ')}`);
 
-    if (streamSid) {
-      logger.info(`🛑 [${streamSid}] Stream detenido`);
-      await this.cleanup(streamSid);
+    if (!callSid) {
+      logger.error(`❌ handleStop: callSid es undefined/null`);
+      return;
+    }
+
+    // Buscar streamSid usando callSid
+    let streamSidToClean = null;
+    for (const [sid, streamData] of this.activeStreams.entries()) {
+      if (streamData.callSid === callSid) {
+        streamSidToClean = sid;
+        break;
+      }
+    }
+
+    if (streamSidToClean) {
+      logger.info(`🛑 [${streamSidToClean}] Stream detenido (callSid: ${callSid})`);
+      await this.cleanup(streamSidToClean);
     } else {
-      logger.error(`❌ handleStop: streamSid es undefined/null`);
+      logger.error(`❌ handleStop: No se encontró stream para callSid ${callSid}`);
     }
   }
 
