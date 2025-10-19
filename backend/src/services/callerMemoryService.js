@@ -175,53 +175,54 @@ class CallerMemoryService {
   getMemoryContext(memory) {
     if (!memory) return '';
 
-    let context = '\n\n📋 INFORMACIÓN DEL CLIENTE QUE LLAMA:\n';
+    let context = '\n\n🧠 CONTEXTO DEL LLAMANTE:\n';
     
-    // 🔍 SIEMPRE mostrar el número de llamadas para debugging
+    // 🎯 INSTRUCCIONES DE USO DEL CONTEXTO
     if (memory.callCount === 1) {
-      context += `- Esta es su PRIMERA llamada\n`;
-    } else if (memory.callCount === 2) {
-      context += `- ⚠️ CLIENTE RECURRENTE: Esta es su SEGUNDA llamada\n`;
-      context += `- Primera llamada fue el: ${new Date(memory.lastCallDate).toLocaleDateString('es-ES')}\n`;
+      context += `\n⚠️ CLIENTE NUEVO: Esta es su primera llamada.\n`;
+      context += `- Salúdalo normalmente y pregunta su nombre y empresa.\n`;
     } else {
-      context += `- ⚠️ CLIENTE RECURRENTE: Ha llamado ${memory.callCount} veces (incluyendo esta)\n`;
-      context += `- Última llamada: ${new Date(memory.lastCallDate).toLocaleDateString('es-ES')}\n`;
-    }
-    
-    if (memory.callerName) {
-      context += `- Nombre conocido: ${memory.callerName}\n`;
-    }
-    
-    if (memory.callerCompany) {
-      context += `- Empresa conocida: ${memory.callerCompany}\n`;
-    }
+      // Cliente recurrente - dar instrucciones específicas
+      context += `\n⚠️ CLIENTE RECURRENTE: ${memory.callerName || 'Este cliente'} ya ha llamado ${memory.callCount - 1} ${memory.callCount === 2 ? 'vez' : 'veces'} antes.\n`;
+      
+      if (memory.callerName) {
+        context += `- Nombre: ${memory.callerName}\n`;
+      }
+      
+      if (memory.callerCompany) {
+        context += `- Empresa: ${memory.callerCompany}\n`;
+      }
+      
+      context += `\n🎯 CÓMO USAR ESTE CONTEXTO:\n`;
+      context += `1. SALÚDALO POR SU NOMBRE de forma natural: "¡Hola ${memory.callerName || 'de nuevo'}!"\n`;
+      context += `2. MENCIONA BREVEMENTE la última conversación de forma casual\n`;
+      context += `3. PREGUNTA si llama por lo mismo o por algo nuevo\n`;
+      
+      context += `\n📝 EJEMPLO DE SALUDO NATURAL:\n`;
+      if (memory.conversationHistory?.conversations?.length > 0) {
+        const lastConv = memory.conversationHistory.conversations[memory.conversationHistory.conversations.length - 1];
+        const lastTopic = lastConv.topics?.[0] || 'lo que hablamos';
+        context += `"¡Hola ${memory.callerName || 'de nuevo'}! ¿Llamas por lo de ${lastTopic} o necesitas algo más?"\n`;
+      } else {
+        context += `"¡Hola ${memory.callerName || 'de nuevo'}! ¿En qué puedo ayudarte hoy?"\n`;
+      }
 
-    if (memory.conversationHistory?.conversations?.length > 0) {
-      context += '\n📞 HISTORIAL DE CONVERSACIONES PREVIAS:\n';
-      memory.conversationHistory.conversations.slice(-3).forEach((conv, index) => {
-        const dateStr = new Date(conv.date).toLocaleDateString('es-ES');
-        context += `\n${index + 1}. Llamada del ${dateStr} (${conv.duration}s):\n`;
-        
-        // Incluir transcripción completa si está disponible
-        if (conv.fullTranscript && conv.fullTranscript.length > 0) {
-          context += `${conv.fullTranscript}\n`;
-        } else {
-          // Fallback al resumen si no hay transcripción completa
-          context += `Resumen: ${conv.summary}\n`;
-        }
-        
-        // Incluir temas si están disponibles
-        if (conv.topics && conv.topics.length > 0) {
-          context += `Temas: ${conv.topics.join(', ')}\n`;
-        }
-      });
+      // Últimas conversaciones (resumidas)
+      if (memory.conversationHistory?.conversations?.length > 0) {
+        context += `\n📞 ÚLTIMAS CONVERSACIONES (para referencia):\n`;
+        memory.conversationHistory.conversations.slice(-3).forEach((conv, index) => {
+          const dateStr = new Date(conv.date).toLocaleDateString('es-ES');
+          context += `\n${index + 1}. ${dateStr}: ${conv.summary.substring(0, 100)}...\n`;
+          if (conv.topics && conv.topics.length > 0) {
+            context += `   Temas: ${conv.topics.join(', ')}\n`;
+          }
+        });
+      }
     }
 
     if (memory.notes) {
-      context += `\n📝 NOTAS: ${memory.notes}\n`;
+      context += `\n📝 NOTAS IMPORTANTES: ${memory.notes}\n`;
     }
-
-    context += '\n⚠️ IMPORTANTE: Reconoce al cliente si ya ha llamado antes y usa esta información para personalizar la conversación.\n';
 
     return context;
   }
