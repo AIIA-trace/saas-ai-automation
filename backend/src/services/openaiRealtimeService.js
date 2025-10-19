@@ -1063,6 +1063,10 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           logger.info(`🆔 [${streamSid}] Response ID: ${responseId}`);
           // Guardar el ID de la respuesta activa
           connectionData.activeResponseId = responseId;
+          
+          // 🎯 CRÍTICO: Enviar mark y establecer timestamp para permitir interrupciones
+          this.sendMark(streamSid);
+          logger.info(`📍 [${streamSid}] Mark enviado - sistema listo para detectar interrupciones`);
           break;
 
         case 'conversation.item.created':
@@ -1110,7 +1114,39 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
             clearTimeout(this.responseTimeouts.get(streamSid));
             this.responseTimeouts.delete(streamSid);
           }
-          logger.info(`✅ [${streamSid}] Respuesta de OpenAI completada`);
+          
+          // 🔍 DEBUG: ANALIZAR RESPUESTA OPENAI para logs
+          logger.info(`🔍 [${streamSid}] 📊 RESPONSE STATS:`);
+          logger.info(`🔍 [${streamSid}] ├── Response ID: ${response.response?.id || 'N/A'}`);
+          logger.info(`🔍 [${streamSid}] ├── Status: ${response.response?.status || 'N/A'}`);
+          
+          // 🎯 CRÍTICO: Limpiar estado de respuesta activa
+          connectionData.markQueue = [];
+          connectionData.lastAssistantItem = null;
+          connectionData.activeResponseId = null;
+          
+          // 🔍 DETECTAR DESPEDIDA - Colgar llamada automáticamente
+          if (connectionData.audioTranscript && this.isFarewellMessage(connectionData.audioTranscript)) {
+            logger.info(`👋 [${streamSid}] DESPEDIDA DETECTADA - Programando cierre de llamada en 2 segundos`);
+            logger.info(`🎯 [${streamSid}] Mensaje: "${connectionData.audioTranscript.substring(0, 100)}..."`);
+            
+            // Esperar 2 segundos para que el audio de despedida termine de reproducirse
+            setTimeout(() => {
+              logger.info(`📞 [${streamSid}] Cerrando llamada después de despedida`);
+              
+              // Emitir evento para que el handler de Twilio cierre la conexión
+              if (connectionData.onFarewell) {
+                connectionData.onFarewell();
+              }
+            }, 2000);
+          }
+          
+          // Limpiar transcripción acumulada
+          if (connectionData.audioTranscript) {
+            connectionData.audioTranscript = '';
+          }
+          
+          logger.info(`✅ [${streamSid}] Respuesta de OpenAI completada - estado limpiado`);
           break;
 
         case 'response.audio_transcript.delta':
@@ -1125,6 +1161,12 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
             const audioData = response.delta; // Base64 mulaw de OpenAI
             logger.debug(`🎵 [${streamSid}] Audio delta recibido (${audioData.length} chars base64)`);
             
+            // 🎯 CRÍTICO: Establecer timestamp en el primer chunk de audio
+            if (connectionData.responseStartTimestampTwilio === null) {
+              connectionData.responseStartTimestampTwilio = connectionData.latestMediaTimestamp;
+              logger.info(`⏱️ [${streamSid}] Primer chunk de audio - timestamp establecido: ${connectionData.responseStartTimestampTwilio}ms`);
+            }
+            
             // Enviar directamente a Twilio via evento
             this.emit('audioFromOpenAI', {
               streamSid: streamSid,
@@ -1136,6 +1178,9 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
 
         case 'response.audio.done':
           logger.info(`✅ [${streamSid}] Audio de OpenAI completado`);
+          // 🎯 CRÍTICO: Limpiar timestamp cuando termina el audio
+          connectionData.responseStartTimestampTwilio = null;
+          logger.info(`🔓 [${streamSid}] Timestamp limpiado - listo para nueva respuesta`);
           break;
 
         case 'response.output_audio_transcript.done':
@@ -1158,49 +1203,7 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           break;
 
 
-        case 'response.done':
-          logger.info(`✅ [${streamSid}] 📝 OpenAI response.done - Procesando transcripción acumulada`);
-          
-          // 🔍 DEBUG: ANALIZAR RESPUESTA OPENAI para logs
-          logger.info(`🔍 [${streamSid}] 📊 RESPONSE STATS:`);
-          logger.info(`🔍 [${streamSid}] ├── Response ID: ${response.response?.id || 'N/A'}`);
-          logger.info(`🔍 [${streamSid}] ├── Status: ${response.response?.status || 'N/A'}`);
-          
-          // ✅ LIMPIAR FLAG DE RESPUESTA ACTIVA
-          connectionData.activeResponseId = null;
-          logger.info(`🔓 [${streamSid}] Respuesta finalizada - sistema listo para nueva solicitud`);
-          
-          // ✅ PROCESAR TRANSCRIPCIÓN ACUMULADA → Azure TTS
-          if (connectionData.audioTranscript) {
-            logger.info(`🚀 [${streamSid}] Enviando transcripción completa a Azure TTS: "${connectionData.audioTranscript}"`);
-            logger.debug(`🔍 [${streamSid}] 📊 Transcripción length: ${connectionData.audioTranscript.length} chars`);
-            
-            // ✅ NO usar Azure TTS - OpenAI ya generó el audio
-            logger.info(`🎯 [${streamSid}] Transcripción completa recibida (audio ya enviado): "${connectionData.audioTranscript.substring(0, 50)}..."`);
-            
-            // 🔍 DETECTAR DESPEDIDA - Colgar llamada automáticamente
-            if (this.isFarewellMessage(connectionData.audioTranscript)) {
-              logger.info(`👋 [${streamSid}] DESPEDIDA DETECTADA - Programando cierre de llamada en 2 segundos`);
-              
-              // Esperar 2 segundos para que el audio de despedida termine de reproducirse
-              setTimeout(() => {
-                logger.info(`📞 [${streamSid}] Cerrando llamada después de despedida`);
-                
-                // Emitir evento para que el handler de Twilio cierre la conexión
-                if (connectionData.onFarewell) {
-                  connectionData.onFarewell();
-                }
-              }, 2000);
-            }
-            
-            // Limpiar transcripción acumulada
-            connectionData.audioTranscript = '';
-          } else {
-            logger.warn(`⚠️ [${streamSid}] No hay transcripción acumulada para procesar`);
-          }
-          
-          logger.info(`🔍 [${streamSid}] └── ✅ Respuesta procesada completamente`);
-          break;
+        // 🗑️ ELIMINADO: Código duplicado movido al primer response.done
 
 
 
