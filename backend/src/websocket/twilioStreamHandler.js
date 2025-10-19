@@ -654,19 +654,18 @@ class TwilioStreamHandler {
         }
         
         // 💾 Crear resumen de conversación con los detalles extraídos por IA
+        // ⚠️ NO guardamos fullTranscript - solo el resumen generado por OpenAI
         const conversationSummary = {
           summary: conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`,
           duration: Math.round(callDuration / 1000),
           topics: conversationHistory?.topics || [],
-          requestDetails: conversationHistory?.requestDetails || {},
-          fullTranscript: conversationHistory?.transcript || '' // Guardar transcripción completa
+          requestDetails: conversationHistory?.requestDetails || {}
         };
         
         logger.info(`💾 [${correlationId}] Guardando en DB: ${JSON.stringify({
           summary: conversationSummary.summary.substring(0, 100),
           topics: conversationSummary.topics,
-          requestDetails: conversationSummary.requestDetails,
-          transcriptLength: conversationSummary.fullTranscript.length
+          requestDetails: conversationSummary.requestDetails
         })}`);
         
         await callerMemoryService.addConversationToHistory(
