@@ -553,37 +553,64 @@ class TwilioStreamHandler {
       // Obtener número del llamante desde customParameters
       let streamData = this.activeStreams.get(streamSid);
       
-      // 🔍 DEBUG: Log completo de customParameters
+      // 🔍 VALIDACIÓN CRÍTICA: Detectar número del llamante
       logger.info(`🔍 [${streamSid}] customParameters recibidos: ${JSON.stringify(data.start?.customParameters)}`);
       
       const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
       
-      logger.info(`📞 [${streamSid}] Número del llamante: ${callerPhone || 'NO DISPONIBLE'}`);
+      // ⚠️ VALIDACIÓN ESTRICTA DEL NÚMERO
+      if (!callerPhone) {
+        logger.error(`❌ [${streamSid}] CRÍTICO: No se pudo detectar número del llamante`);
+        logger.error(`❌ [${streamSid}] customParameters: ${JSON.stringify(data.start?.customParameters)}`);
+        logger.error(`❌ [${streamSid}] NO SE CARGARÁ MEMORIA - Bot responderá como cliente nuevo`);
+      } else {
+        logger.info(`✅ [${streamSid}] Número del llamante detectado: ${callerPhone}`);
+      }
+      
       logger.info(`🏢 [${streamSid}] Cliente ID: ${streamData?.client?.id || 'NO DISPONIBLE'}`);
       
-      // Obtener o crear memoria del llamante
-      logger.info(`🔍 [${streamSid}] DEBUG MEMORIA - clientId: ${streamData?.client?.id}, phone: ${callerPhone}`);
-      
+      // ⚠️ SOLO cargar memoria si tenemos AMBOS datos confirmados
       if (streamData?.client?.id && callerPhone) {
-        logger.info(`🧠 [${streamSid}] Obteniendo memoria para ${callerPhone}`);
-        const memory = await callerMemoryService.getOrCreateCallerMemory(
-          streamData.client.id,
-          callerPhone
-        );
+        logger.info(`🧠 [${streamSid}] ✅ Datos completos - Obteniendo memoria para ${callerPhone}`);
         
-        if (memory) {
-          // ⚠️ CRÍTICO: Actualizar directamente en activeStreams para que persista
-          const currentStreamData = this.activeStreams.get(streamSid);
-          if (currentStreamData) {
-            currentStreamData.callerMemory = memory;
-            logger.info(`✅ [${streamSid}] Memoria cargada: ${memory.callCount} llamadas previas`);
-            logger.info(`📋 [${streamSid}] Memoria ID: ${memory.id}, Nombre: ${memory.callerName || 'N/A'}, Empresa: ${memory.callerCompany || 'N/A'}`);
+        try {
+          const memory = await callerMemoryService.getOrCreateCallerMemory(
+            streamData.client.id,
+            callerPhone
+          );
+          
+          if (memory) {
+            // ⚠️ CRÍTICO: Actualizar directamente en activeStreams para que persista
+            const currentStreamData = this.activeStreams.get(streamSid);
+            if (currentStreamData) {
+              currentStreamData.callerMemory = memory;
+              
+              // 🔍 LOGGING DETALLADO PARA VERIFICACIÓN
+              logger.info(`✅ [${streamSid}] MEMORIA CARGADA EXITOSAMENTE:`);
+              logger.info(`   - Memoria ID: ${memory.id}`);
+              logger.info(`   - Teléfono: ${memory.callerPhone}`);
+              logger.info(`   - Nombre: ${memory.callerName || 'N/A'}`);
+              logger.info(`   - Empresa: ${memory.callerCompany || 'N/A'}`);
+              logger.info(`   - Llamadas previas: ${memory.callCount - 1}`);
+              logger.info(`   - Es cliente recurrente: ${memory.callCount > 1 ? 'SÍ' : 'NO'}`);
+              
+              // ⚠️ ADVERTENCIA si es cliente recurrente
+              if (memory.callCount > 1) {
+                logger.warn(`⚠️ [${streamSid}] CLIENTE RECURRENTE DETECTADO - Bot usará contexto personalizado`);
+              }
+            }
+          } else {
+            logger.error(`❌ [${streamSid}] No se pudo crear/obtener memoria para ${callerPhone}`);
           }
-        } else {
-          logger.warn(`⚠️ [${streamSid}] No se pudo crear/obtener memoria`);
+        } catch (error) {
+          logger.error(`❌ [${streamSid}] Error obteniendo memoria: ${error.message}`);
+          logger.error(`❌ [${streamSid}] Stack: ${error.stack}`);
         }
       } else {
-        logger.warn(`⚠️ [${streamSid}] No se puede crear memoria - clientId: ${streamData?.client?.id}, phone: ${callerPhone}`);
+        logger.error(`❌ [${streamSid}] DATOS INCOMPLETOS - NO SE CARGARÁ MEMORIA`);
+        logger.error(`   - Cliente ID: ${streamData?.client?.id || 'FALTA'}`);
+        logger.error(`   - Teléfono: ${callerPhone || 'FALTA'}`);
+        logger.error(`   - Bot responderá como CLIENTE NUEVO por seguridad`);
       }
       
       // Verificar de nuevo antes de enviar (doble verificación)

@@ -23,11 +23,25 @@ class CallerMemoryService {
    */
   async getOrCreateCallerMemory(clientId, callerPhone) {
     try {
-      const normalizedPhone = this.normalizePhone(callerPhone);
-      if (!normalizedPhone) {
-        logger.warn('📞 Número de teléfono inválido para memoria');
+      // ⚠️ VALIDACIÓN ESTRICTA DE PARÁMETROS
+      if (!clientId) {
+        logger.error('❌ CRÍTICO: clientId es null/undefined');
         return null;
       }
+      
+      if (!callerPhone) {
+        logger.error('❌ CRÍTICO: callerPhone es null/undefined');
+        return null;
+      }
+      
+      const normalizedPhone = this.normalizePhone(callerPhone);
+      if (!normalizedPhone) {
+        logger.error(`❌ CRÍTICO: Número de teléfono inválido: "${callerPhone}"`);
+        return null;
+      }
+      
+      // 🔍 LOG de búsqueda
+      logger.info(`🔍 Buscando memoria: clientId=${clientId}, phone=${normalizedPhone}`);
 
       // Buscar memoria existente
       let memory = await prisma.callerMemory.findUnique({
@@ -174,8 +188,15 @@ class CallerMemoryService {
    */
   getMemoryContext(memory) {
     if (!memory) return '';
+    
+    // ⚠️ VALIDACIÓN DE SEGURIDAD: Verificar que la memoria tiene datos válidos
+    if (!memory.callerPhone || !memory.clientId) {
+      logger.error('❌ CRÍTICO: Memoria sin datos válidos - NO SE USARÁ CONTEXTO');
+      return '';
+    }
 
     let context = '\n\n🧠 CONTEXTO DEL LLAMANTE:\n';
+    context += `⚠️ VERIFICADO: Número ${memory.callerPhone} - Cliente ID ${memory.clientId}\n`;
     
     // 🎯 INSTRUCCIONES DE USO DEL CONTEXTO
     if (memory.callCount === 1) {
