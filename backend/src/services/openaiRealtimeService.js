@@ -316,6 +316,13 @@ Si la persona que llama NO es un cliente potencial, sino un proveedor, banco, o 
 11. SIN sonar comercial ni ensayado - 100% natural y humana
 12. NUNCA digas "te paso la llamada" - SIEMPRE "tomo nota y te contactaremos"
 
+⚠️ EVITAR BUCLES Y REPETICIONES:
+• Si el usuario cambia de tema → CAMBIA DE TEMA inmediatamente, NO vuelvas al tema anterior
+• Si el usuario hace una pregunta nueva → RESPONDE LA PREGUNTA NUEVA, olvida el tema anterior
+• NO repitas información que ya dijiste a menos que el usuario lo pida explícitamente
+• Si ya respondiste algo, NO lo vuelvas a mencionar en cada respuesta
+• Ejemplo: Si ya hablaste de una factura y el usuario pregunta por horarios → habla SOLO de horarios
+
 🚨 PROHIBIDO ABSOLUTAMENTE - NUNCA INVENTES INFORMACIÓN:
 
 ❌ NUNCA inventes:
@@ -571,11 +578,11 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
                 type: 'server_vad',
                 threshold: 0.5,  // ✅ Sensibilidad normal - se desactiva dinámicamente cuando bot habla
                 prefix_padding_ms: 300,
-                silence_duration_ms: 800  // ✅ 800ms para pausas naturales
+                silence_duration_ms: 1200  // ⚡ 1200ms para que el bot complete frases sin cortarse
               },
-              temperature: 0.8,  // 🎯 Balance entre creatividad y consistencia
+              temperature: 0.7,  // 🎯 Reducido para más consistencia y menos bucles
               max_response_output_tokens: 'inf',  // ✅ Sin límite - respuestas completas
-              speed: 1.15  // ⚡ Velocidad de habla: 1.0 = normal, 1.15 = 15% más rápido (rango: 0.25 - 4.0)
+              speed: 1.0  // ⚡ Velocidad normal para evitar que suene entrecortado
             }
           };
           
@@ -668,7 +675,7 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
             type: 'server_vad',
             threshold: 0.5,  // ✅ Sensibilidad normal para detectar usuario
             prefix_padding_ms: 300,
-            silence_duration_ms: 800  // ✅ 800ms para pausas naturales
+            silence_duration_ms: 1200  // ⚡ 1200ms para que el bot complete frases
           }
         }
       };
