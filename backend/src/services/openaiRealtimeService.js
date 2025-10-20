@@ -680,7 +680,7 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
               },
               temperature: 0.7,  // 🎯 Reducido para más consistencia y menos bucles
               max_response_output_tokens: 'inf',  // ✅ Sin límite - respuestas completas
-              speed: 1.25  // ⚡ Aumentado a 1.25 para hablar más rápido y natural
+              speed: 1.15  // ⚡ Velocidad óptima: rápido pero sin artifacts de audio
             }
           };
           
