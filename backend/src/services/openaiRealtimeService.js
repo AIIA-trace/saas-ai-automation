@@ -676,11 +676,11 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
                 type: 'server_vad',
                 threshold: 0.5,  // ✅ Sensibilidad normal - se desactiva dinámicamente cuando bot habla
                 prefix_padding_ms: 300,
-                silence_duration_ms: 1200  // ⚡ 1200ms para que el bot complete frases sin cortarse
+                silence_duration_ms: 1000  // ⚡ Reducido a 1000ms para respuestas más ágiles
               },
               temperature: 0.7,  // 🎯 Reducido para más consistencia y menos bucles
               max_response_output_tokens: 'inf',  // ✅ Sin límite - respuestas completas
-              speed: 1.0  // ⚡ Velocidad normal para evitar que suene entrecortado
+              speed: 1.25  // ⚡ Aumentado a 1.25 para hablar más rápido y natural
             }
           };
           
