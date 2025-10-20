@@ -1366,6 +1366,15 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
 
         case 'response.audio.done':
           logger.info(`✅ [${streamSid}] Audio de OpenAI completado`);
+          
+          // 🎯 Enviar señal de flush para vaciar buffer de audio
+          this.emit('audioFromOpenAI', {
+            streamSid: streamSid,
+            audio: '',  // Vacío para indicar flush
+            flush: true,
+            timestamp: Date.now()
+          });
+          
           // 🎯 CRÍTICO: Limpiar timestamp cuando termina el audio
           connectionData.responseStartTimestampTwilio = null;
           logger.info(`🔓 [${streamSid}] Timestamp limpiado - listo para nueva respuesta`);

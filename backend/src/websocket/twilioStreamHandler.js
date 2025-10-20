@@ -1485,7 +1485,7 @@ class TwilioStreamHandler {
    * @param {Object} data - {streamSid, audio, timestamp}
    */
   async handleAudioFromOpenAI(data) {
-    const { streamSid, audio, timestamp } = data;
+    const { streamSid, audio, timestamp, flush } = data;
     const streamData = this.activeStreams.get(streamSid);
     
     if (!streamData || !streamData.twilioWs) {
@@ -1494,17 +1494,53 @@ class TwilioStreamHandler {
     }
 
     try {
-      // Enviar audio mulaw directamente a Twilio (sin conversión)
-      const mediaMessage = {
-        event: 'media',
-        streamSid: streamSid,
-        media: {
-          payload: audio  // Base64 mulaw de OpenAI
+      // 🎯 BUFFERING: Acumular chunks pequeños para enviar en bloques más grandes
+      if (!streamData.audioOutputBuffer) {
+        streamData.audioOutputBuffer = '';
+        streamData.audioChunkCount = 0;
+      }
+      
+      // Si es señal de flush, enviar lo que quede en el buffer
+      if (flush) {
+        if (streamData.audioOutputBuffer.length > 0) {
+          const mediaMessage = {
+            event: 'media',
+            streamSid: streamSid,
+            media: {
+              payload: streamData.audioOutputBuffer
+            }
+          };
+          streamData.twilioWs.send(JSON.stringify(mediaMessage));
+          logger.debug(`🎵 [${streamSid}] Audio buffer final enviado (flush) - ${streamData.audioOutputBuffer.length} chars`);
         }
-      };
+        // Limpiar buffer
+        streamData.audioOutputBuffer = '';
+        streamData.audioChunkCount = 0;
+        return;
+      }
+      
+      streamData.audioOutputBuffer += audio;
+      streamData.audioChunkCount++;
+      
+      // Enviar cuando tengamos suficiente audio (cada 3 chunks o >1500 chars)
+      const shouldFlush = streamData.audioChunkCount >= 3 || streamData.audioOutputBuffer.length >= 1500;
+      
+      if (shouldFlush) {
+        const mediaMessage = {
+          event: 'media',
+          streamSid: streamSid,
+          media: {
+            payload: streamData.audioOutputBuffer  // Base64 mulaw acumulado
+          }
+        };
 
-      streamData.twilioWs.send(JSON.stringify(mediaMessage));
-      logger.debug(`🎵 [${streamSid}] Audio chunk enviado a Twilio (${audio.length} chars)`);
+        streamData.twilioWs.send(JSON.stringify(mediaMessage));
+        logger.debug(`🎵 [${streamSid}] Audio buffer enviado a Twilio (${streamData.audioOutputBuffer.length} chars, ${streamData.audioChunkCount} chunks)`);
+        
+        // Limpiar buffer
+        streamData.audioOutputBuffer = '';
+        streamData.audioChunkCount = 0;
+      }
       
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando audio de OpenAI a Twilio: ${error.message}`);
