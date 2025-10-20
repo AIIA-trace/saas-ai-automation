@@ -1095,7 +1095,6 @@ function createCallsTabContent() {
                                                 <th style="width: 140px; font-size: 0.75rem; font-weight: 600;">Tipo</th>
                                                 <th style="width: 300px; font-size: 0.75rem; font-weight: 600;">Resumen</th>
                                                 <th style="width: 110px; font-size: 0.75rem; font-weight: 600;">Tiempo</th>
-                                                <th style="width: 120px; font-size: 0.75rem; font-weight: 600; text-align: center;">Play</th>
                                             </tr>
                                         </thead>
                                         <tbody id="calls-table-body">
@@ -2436,13 +2435,25 @@ function loadCallsData() {
             
             if (callsData.length === 0) {
                 // Mostrar mensaje si no hay datos
-                callsTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No hay llamadas registradas</td></tr>';
+                callsTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No hay llamadas registradas</td></tr>';
+                // Mostrar datos de prueba si no hay llamadas reales
+                const mockData = getMockCallsData();
+                loadCallsIntoTable(mockData);
+                console.log(`📊 Mostrando ${mockData.length} llamadas de prueba (no hay datos reales)`);
             } else {
                 // Generar filas de llamadas con el nuevo diseño moderno
                 callsData.forEach(call => {
                     const callRow = createCallRow(call);
                     callsTableBody.appendChild(callRow);
                 });
+                
+                // Ocultar disclaimer de datos de prueba cuando hay datos reales
+                const disclaimer = document.querySelector('.test-data-disclaimer');
+                if (disclaimer) {
+                    disclaimer.style.display = 'none';
+                }
+                
+                console.log(`✅ ${callsData.length} llamadas reales cargadas - disclaimer oculto`);
             }
             
             // Actualizar contador
@@ -2525,7 +2536,7 @@ function createCallRow(call) {
         </td>
         <td>
             ${getClassificationBadge(call.classification, call.urgency)}
-            <div class="text-muted small mt-1">${call.confidence}%</div>
+            <div class="text-muted small mt-1">${call.confidence}</div>
         </td>
         <td>
             <div class="fw-medium text-dark mb-2" style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${call.summary}</div>
@@ -2533,11 +2544,6 @@ function createCallRow(call) {
         </td>
         <td class="text-center">
             <span class="badge badge-primary">${call.duration}</span>
-        </td>
-        <td class="text-center">
-            <button class="btn-play-call" onclick="playCallRecording(${call.id})" title="Reproducir llamada">
-                <i class="fas fa-play"></i>
-            </button>
         </td>
     `
     

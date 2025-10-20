@@ -565,6 +565,10 @@ class TwilioStreamHandler {
         logger.error(`❌ [${streamSid}] NO SE CARGARÁ MEMORIA - Bot responderá como cliente nuevo`);
       } else {
         logger.info(`✅ [${streamSid}] Número del llamante detectado: ${callerPhone}`);
+        // 💾 Guardar número de teléfono en streamData para usarlo después
+        if (streamData) {
+          streamData.callerPhone = callerPhone;
+        }
       }
       
       logger.info(`🏢 [${streamSid}] Cliente ID: ${streamData?.client?.id || 'NO DISPONIBLE'}`);
@@ -707,8 +711,8 @@ class TwilioStreamHandler {
       this.updateMetrics('success', callDuration);
     }
 
-    // 🧠 ACTUALIZAR MEMORIA DEL LLAMANTE
-    if (streamData?.callerMemory) {
+    // 🧠 ACTUALIZAR MEMORIA DEL LLAMANTE Y GUARDAR EN DASHBOARD
+    if (streamData?.callerMemory || streamData?.client) {
       try {
         // 🚀 Obtener historial de conversación de OpenAI Realtime (con resumen generado por IA)
         const conversationHistory = await this.openaiRealtimeService.getConversationHistory(streamSid);
@@ -718,20 +722,22 @@ class TwilioStreamHandler {
         logger.info(`  - Topics: ${conversationHistory?.topics?.join(', ') || 'N/A'}`);
         logger.info(`  - Caller Name: ${conversationHistory?.callerName || 'N/A'}`);
         logger.info(`  - Caller Company: ${conversationHistory?.callerCompany || 'N/A'}`);
+        logger.info(`  - Caller Phone: ${conversationHistory?.callerPhone || streamData?.callerPhone || 'N/A'}`);
         logger.info(`  - Request Details: ${JSON.stringify(conversationHistory?.requestDetails || {})}`);
         
         // 📝 Actualizar información del llamante si OpenAI la extrajo
-        const updates = {};
-        if (conversationHistory?.callerName) updates.callerName = conversationHistory.callerName;
-        if (conversationHistory?.callerCompany) updates.callerCompany = conversationHistory.callerCompany;
-        
-        if (Object.keys(updates).length > 0) {
-          await callerMemoryService.updateCallerInfo(streamData.callerMemory.id, updates);
-          logger.info(`✅ [${correlationId}] Información del llamante actualizada: ${JSON.stringify(updates)}`);
+        if (streamData?.callerMemory) {
+          const updates = {};
+          if (conversationHistory?.callerName) updates.callerName = conversationHistory.callerName;
+          if (conversationHistory?.callerCompany) updates.callerCompany = conversationHistory.callerCompany;
+          
+          if (Object.keys(updates).length > 0) {
+            await callerMemoryService.updateCallerInfo(streamData.callerMemory.id, updates);
+            logger.info(`✅ [${correlationId}] Información del llamante actualizada: ${JSON.stringify(updates)}`);
+          }
         }
         
         // 💾 Crear resumen de conversación con los detalles extraídos por IA
-        // ⚠️ NO guardamos fullTranscript - solo el resumen generado por OpenAI
         const conversationSummary = {
           summary: conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`,
           duration: Math.round(callDuration / 1000),
@@ -745,11 +751,63 @@ class TwilioStreamHandler {
           requestDetails: conversationSummary.requestDetails
         })}`);
         
-        await callerMemoryService.addConversationToHistory(
-          streamData.callerMemory.id,
-          conversationSummary
-        );
-        logger.info(`✅ [${correlationId}] Conversación guardada en memoria ID: ${streamData.callerMemory.id}`);
+        // 💾 Guardar en memoria del llamante (CallerMemory)
+        if (streamData?.callerMemory) {
+          await callerMemoryService.addConversationToHistory(
+            streamData.callerMemory.id,
+            conversationSummary
+          );
+          logger.info(`✅ [${correlationId}] Conversación guardada en memoria ID: ${streamData.callerMemory.id}`);
+        }
+        
+        // 📊 GUARDAR EN DASHBOARD (CallLog) para que aparezca en el panel del cliente
+        if (streamData?.client?.id) {
+          try {
+            // Obtener número de teléfono del llamante
+            const callerNumber = streamData?.callerPhone || 'Desconocido';
+            
+            // Determinar tipo de contacto basado en empresa
+            const contactType = conversationHistory?.callerCompany ? 'Cliente' : 'Prospecto';
+            
+            // Determinar clasificación y urgencia
+            const classification = conversationHistory?.topics?.[0] || 'sin clasificar';
+            const urgency = this.determineUrgency(conversationHistory?.summary || '', conversationHistory?.topics || []);
+            
+            const callLogData = {
+              clientId: streamData.client.id,
+              twilioCallSid: callSid || null,
+              callerNumber: callerNumber,
+              callerName: conversationHistory?.callerName || null,
+              duration: Math.round(callDuration / 1000),
+              status: 'completed',
+              aiSummary: conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`,
+              aiClassification: classification,
+              callPurpose: conversationHistory?.topics?.[0] || null,
+              contactInfo: conversationHistory?.callerCompany || null,
+              urgencyLevel: urgency,
+              metadata: {
+                topics: conversationHistory?.topics || [],
+                requestDetails: conversationHistory?.requestDetails || {},
+                callerCompany: conversationHistory?.callerCompany || null,
+                contactType: contactType,
+                urgency: urgency,
+                confidence: 'undefined%'
+              },
+              callStatus: 'completed',
+              callDuration: Math.round(callDuration / 1000)
+            };
+            
+            const callLog = await this.prisma.callLog.create({
+              data: callLogData
+            });
+            
+            logger.info(`✅ [${correlationId}] Llamada guardada en dashboard (CallLog ID: ${callLog.id})`);
+            logger.info(`📊 [${correlationId}] Dashboard actualizado para cliente ${streamData.client.companyName}`);
+          } catch (dashboardError) {
+            logger.error(`❌ [${correlationId}] Error guardando en dashboard: ${dashboardError.message}`);
+            logger.error(`❌ [${correlationId}] Stack: ${dashboardError.stack}`);
+          }
+        }
       } catch (error) {
         logger.error(`❌ [${correlationId}] Error actualizando memoria: ${error.message}`);
       }
@@ -796,6 +854,32 @@ class TwilioStreamHandler {
     const shortCallSid = callSid ? callSid.slice(-8) : 'NO-CALL';
     const company = companyName.substring(0, 10).toUpperCase();
     return `${company}|${shortStreamSid}|${shortCallSid}`;
+  }
+
+  /**
+   * 🎯 DETERMINAR NIVEL DE URGENCIA
+   * @param {string} summary - Resumen de la llamada
+   * @param {Array} topics - Temas de la llamada
+   * @returns {string} - Nivel de urgencia: 'urgent', 'high', 'normal'
+   */
+  determineUrgency(summary, topics) {
+    const urgentKeywords = ['urgente', 'emergencia', 'inmediato', 'ya', 'ahora', 'problema grave', 'crítico'];
+    const highKeywords = ['importante', 'pronto', 'cuanto antes', 'rápido', 'necesito'];
+    
+    const summaryLower = summary.toLowerCase();
+    const topicsLower = topics.map(t => t.toLowerCase()).join(' ');
+    const fullText = `${summaryLower} ${topicsLower}`;
+    
+    // Verificar palabras clave de urgencia
+    if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
+      return 'urgent';
+    }
+    
+    if (highKeywords.some(keyword => fullText.includes(keyword))) {
+      return 'high';
+    }
+    
+    return 'normal';
   }
 
   /**

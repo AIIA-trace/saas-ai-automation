@@ -1662,6 +1662,7 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
         logger.info(`📊 [${streamSid}] Resumen: ${connectionData.callSummary.summary}`);
         logger.info(`📊 [${streamSid}] Nombre: ${connectionData.callSummary.callerName || 'N/A'}`);
         logger.info(`📊 [${streamSid}] Empresa: ${connectionData.callSummary.callerCompany || 'N/A'}`);
+        logger.info(`📊 [${streamSid}] Teléfono: ${connectionData.callSummary.callerPhone || 'N/A'}`);
         
         return {
           summary: connectionData.callSummary.summary || 'Llamada completada',
@@ -1669,6 +1670,7 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           transcript: connectionData.conversationTranscript || '',
           callerName: connectionData.callSummary.callerName || null,
           callerCompany: connectionData.callSummary.callerCompany || null,
+          callerPhone: connectionData.callSummary.callerPhone || null,
           requestDetails: connectionData.callSummary.requestDetails || {}
         };
       }

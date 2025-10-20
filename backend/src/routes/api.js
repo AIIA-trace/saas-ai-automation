@@ -1814,8 +1814,36 @@ router.get('/logs/calls', authenticate, async (req, res) => {
       })
     ]);
     
+    // Transformar datos al formato esperado por el frontend
+    const formattedCalls = callLogs.map(call => {
+      const callDate = new Date(call.createdAt);
+      const metadata = call.metadata || {};
+      
+      // Formatear duración (segundos a MM:SS)
+      const durationSeconds = call.duration || call.callDuration || 0;
+      const minutes = Math.floor(durationSeconds / 60);
+      const seconds = durationSeconds % 60;
+      const durationFormatted = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      
+      return {
+        id: call.id,
+        date: callDate.toISOString().split('T')[0],
+        time: callDate.toTimeString().split(' ')[0].substring(0, 5),
+        phone: call.callerNumber || 'Desconocido',
+        contactType: metadata.contactType || (call.callerName ? 'Cliente' : 'Prospecto'),
+        summary: call.aiSummary || 'Sin resumen',
+        details: call.aiSummary || 'Sin detalles',
+        duration: durationFormatted,
+        classification: call.aiClassification || 'sin clasificar',
+        urgency: metadata.urgency || call.urgencyLevel || 'normal',
+        confidence: metadata.confidence || 'undefined%',
+        managed: call.managed || false,
+        important: call.important || false
+      };
+    });
+    
     return res.json({
-      data: callLogs,
+      data: formattedCalls,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
