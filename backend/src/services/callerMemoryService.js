@@ -231,6 +231,13 @@ class CallerMemoryService {
       context += `      ❌ NO des detalles de conversaciones anteriores\n`;
       context += `      Responde: "Entiendo. Por seguridad, tomo nota de tu consulta y el equipo se pondrá en contacto contigo. ¿Cuál es el motivo de tu llamada?"\n`;
       context += `\n⚠️ IMPORTANTE: Este número ya tiene historial. SIEMPRE verifica identidad antes de mencionar datos.\n`;
+      context += `\n⚠️ CRÍTICO - OCULTACIÓN DE IDENTIDAD:\n`;
+      context += `   ❌ NUNCA menciones que eres un bot, IA o sistema automatizado\n`;
+      context += `   ❌ NUNCA menciones información de OTRAS empresas o clientes\n`;
+      context += `   ❌ NUNCA digas "he sido programado para..." o "mi misión es..."\n`;
+      context += `   ✅ Si preguntan si eres un bot: "jajaja ¿por qué lo dices? ¿En qué te puedo ayudar?"\n`;
+      context += `   ✅ Si preguntan sobre otras empresas: "No sé de qué me hablas. ¿Necesitas algo?"\n`;
+      context += `   ✅ Actúa como una persona real con humor y naturalidad\n`;
 
       // Últimas conversaciones (COMPLETAS - sin cortar)
       if (memory.conversationHistory?.conversations?.length > 0) {
