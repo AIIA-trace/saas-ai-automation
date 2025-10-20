@@ -207,26 +207,30 @@ class CallerMemoryService {
       context += `\n⚠️ CLIENTE RECURRENTE: ${memory.callerName || 'Este cliente'} ya ha llamado ${memory.callCount - 1} ${memory.callCount === 2 ? 'vez' : 'veces'} antes.\n`;
       
       if (memory.callerName) {
-        context += `- Nombre: ${memory.callerName}\n`;
+        context += `- Nombre registrado: ${memory.callerName}\n`;
       }
       
       if (memory.callerCompany) {
-        context += `- Empresa: ${memory.callerCompany}\n`;
+        context += `- Empresa registrada: ${memory.callerCompany}\n`;
       }
       
-      context += `\n🎯 CÓMO USAR ESTE CONTEXTO:\n`;
-      context += `1. SALÚDALO POR SU NOMBRE de forma natural: "¡Hola ${memory.callerName || 'de nuevo'}!"\n`;
-      context += `2. MENCIONA BREVEMENTE la última conversación de forma casual\n`;
-      context += `3. PREGUNTA si llama por lo mismo o por algo nuevo\n`;
-      
-      context += `\n📝 EJEMPLO DE SALUDO NATURAL:\n`;
-      if (memory.conversationHistory?.conversations?.length > 0) {
-        const lastConv = memory.conversationHistory.conversations[memory.conversationHistory.conversations.length - 1];
-        const lastTopic = lastConv.topics?.[0] || 'lo que hablamos';
-        context += `"¡Hola ${memory.callerName || 'de nuevo'}! ¿Llamas por lo de ${lastTopic} o necesitas algo más?"\n`;
-      } else {
-        context += `"¡Hola ${memory.callerName || 'de nuevo'}! ¿En qué puedo ayudarte hoy?"\n`;
-      }
+      context += `\n🔒 PROTOCOLO DE SEGURIDAD - VERIFICACIÓN DE IDENTIDAD:\n`;
+      context += `\n1️⃣ PRIMER PASO - Pregunta el nombre:\n`;
+      context += `   "¡Hola! ¿De parte de quién?"\n`;
+      context += `\n2️⃣ SEGUNDO PASO - Verifica identidad:\n`;
+      context += `   SI dice "${memory.callerName}" → Es la MISMA persona:\n`;
+      context += `      ✅ PUEDES mencionar datos: "¡Hola ${memory.callerName}! ¿Llamas por lo de [tema anterior]?"\n`;
+      context += `      ✅ PUEDES dar detalles de conversaciones previas\n`;
+      context += `\n   SI dice OTRO nombre (ej: "Miguel", "Juan", etc.) → Es OTRA persona:\n`;
+      context += `      ⚠️ Pregunta: "¿Llamas por el tema de [tema] que mencionó tu compañero ${memory.callerName}?"\n`;
+      context += `      ✅ Si confirma → PUEDES dar detalles\n`;
+      context += `      ❌ Si no confirma → NO menciones datos anteriores\n`;
+      context += `\n3️⃣ TERCER PASO - Detectar intentos de engaño:\n`;
+      context += `   SI cambia de nombre durante la conversación:\n`;
+      context += `      🚨 ALERTA: Posible intento de fraude\n`;
+      context += `      ❌ NO des detalles de conversaciones anteriores\n`;
+      context += `      Responde: "Entiendo. Por seguridad, tomo nota de tu consulta y el equipo se pondrá en contacto contigo. ¿Cuál es el motivo de tu llamada?"\n`;
+      context += `\n⚠️ IMPORTANTE: Este número ya tiene historial. SIEMPRE verifica identidad antes de mencionar datos.\n`;
 
       // Últimas conversaciones (COMPLETAS - sin cortar)
       if (memory.conversationHistory?.conversations?.length > 0) {
