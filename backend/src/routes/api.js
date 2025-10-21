@@ -748,6 +748,7 @@ router.get('/client', authenticate, async (req, res) => {
         id: true,
         email: true,
         companyName: true,
+        companyDescription: true, // CRÍTICO: Descripción de la empresa
         contactName: true,
         phone: true,
         position: true, // AÑADIDO: Campo cargo/posición
@@ -801,6 +802,8 @@ router.get('/client', authenticate, async (req, res) => {
         email: client.email || '',
         companyName: client.companyName || '',
         contactName: client.contactName || '',
+        companyDescription: client.companyDescription || '',
+        position: client.position || '',
         phone: client.phone || '',
         industry: client.industry || 
                 (client.companyInfo?.sector) || '',
