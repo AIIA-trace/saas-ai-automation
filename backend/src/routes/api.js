@@ -460,6 +460,8 @@ router.put('/client', authenticate, async (req, res) => {
       companyPhone, // Se mapea a phone
       companyEmail, // Se mapea a email (solo si se permite cambiar)
       companyWebsite, // Se mapea a website
+      contactName,
+      position,
       
       // Configuración general - campos individuales
       botName,
@@ -511,6 +513,8 @@ router.put('/client', authenticate, async (req, res) => {
     if (companyAddress !== undefined) updateData.address = companyAddress; // Mapeo correcto
     if (companyPhone !== undefined) updateData.phone = companyPhone; // Mapeo correcto
     if (companyWebsite !== undefined) updateData.website = companyWebsite; // Mapeo correcto
+    if (contactName !== undefined) updateData.contactName = contactName;
+    if (position !== undefined) updateData.position = position;
     // email no se actualiza aquí por seguridad
     
     // CRÍTICO: Añadir businessHours al updateData (PRIMERA ASIGNACIÓN)
