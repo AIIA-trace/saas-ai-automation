@@ -3720,7 +3720,7 @@ function loadProfileData() {
         console.log('🔍 DEBUG CRÍTICO - profileData.businessHoursConfig:', profileData.businessHoursConfig);
         console.log('🔍 DEBUG CRÍTICO - Claves disponibles en response.client:', Object.keys(response.client || {}));
         
-        const businessHoursData = response.client?.businessHoursConfig || profileData.businessHoursConfig;
+        const businessHoursData = response.data?.businessHours || profileData.businessHours;
         console.log('🔍 DEBUG CRÍTICO - businessHoursData final:', businessHoursData);
         
         if (businessHoursData) {
