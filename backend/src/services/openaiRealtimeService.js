@@ -2,6 +2,76 @@ const WebSocket = require('ws');
 const logger = require('../utils/logger');
 
 /**
+ * 🛠️ FUNCIONES HELPER PARA FORMATEAR CONTEXTO DEL CLIENTE
+ */
+
+/**
+ * Formatea horarios de atención para el prompt del bot
+ */
+function formatBusinessHours(businessHours) {
+  if (!businessHours || !businessHours.enabled) {
+    return 'Horario de oficina estándar (9:00 - 18:00, lunes a viernes)';
+  }
+  
+  const days = {
+    monday: 'Lunes',
+    tuesday: 'Martes',
+    wednesday: 'Miércoles',
+    thursday: 'Jueves',
+    friday: 'Viernes',
+    saturday: 'Sábado',
+    sunday: 'Domingo'
+  };
+  
+  const workingDaysObj = businessHours.workingDays || {};
+  const workingDays = Object.entries(workingDaysObj)
+    .filter(([_, isWorking]) => isWorking)
+    .map(([day, _]) => days[day])
+    .join(', ');
+  
+  if (!workingDays) {
+    return 'Horario de oficina estándar (9:00 - 18:00, lunes a viernes)';
+  }
+  
+  return `${workingDays}: ${businessHours.openingTime || '09:00'} - ${businessHours.closingTime || '18:00'}`;
+}
+
+/**
+ * Formatea FAQs para el prompt del bot
+ */
+function formatFAQs(faqs) {
+  if (!faqs || faqs.length === 0) {
+    return '';
+  }
+  
+  return faqs.map((faq, index) => 
+    `${index + 1}. Pregunta: ${faq.question}\n   Respuesta: ${faq.answer}`
+  ).join('\n\n');
+}
+
+/**
+ * Formatea archivos de contexto para el prompt del bot
+ */
+function formatContextFiles(contextFiles) {
+  if (!contextFiles || contextFiles.length === 0) {
+    return '';
+  }
+  
+  return contextFiles.map((file, index) => {
+    // Si el archivo tiene contenido de texto
+    if (file.content && typeof file.content === 'string') {
+      // Limitar a 2000 caracteres por archivo para no saturar el prompt
+      const content = file.content.length > 2000 
+        ? file.content.substring(0, 2000) + '...' 
+        : file.content;
+      return `${index + 1}. ${file.name}:\n${content}`;
+    }
+    // Si solo tiene metadata
+    return `${index + 1}. ${file.name} (${file.type || 'documento'})`;
+  }).join('\n\n');
+}
+
+/**
  * Servicio especializado para OpenAI Realtime API
  * Maneja la comunicación bidireccional de audio en tiempo real
  * Documentación oficial: https://platform.openai.com/docs/guides/realtime
@@ -65,13 +135,72 @@ class OpenAIRealtimeService {
         }
       });
 
-      // Preparar customSystemMessage
+      // 📋 EXTRAER TODOS LOS DATOS DEL CLIENTE
       const companyName = clientConfig.companyName || 'la empresa';
       const companyDescription = clientConfig.companyDescription || '';
+      const phone = clientConfig.phone || null;
+      const email = clientConfig.email || null;
+      const website = clientConfig.website || null;
+      const address = clientConfig.address || null;
+      const businessHours = clientConfig.businessHours || null;
+      const faqs = clientConfig.faqs || [];
+      const contextFiles = clientConfig.contextFiles || [];
+      const companyInfo = clientConfig.companyInfo || {};
+      
+      // 🔍 LOG DE DATOS RECIBIDOS
+      logger.info(`📊 [${streamSid}] Datos del cliente para el bot:`);
+      logger.info(`   - Empresa: ${companyName}`);
+      logger.info(`   - Teléfono: ${phone || 'N/A'}`);
+      logger.info(`   - Email: ${email || 'N/A'}`);
+      logger.info(`   - Website: ${website || 'N/A'}`);
+      logger.info(`   - Horarios: ${businessHours ? 'Configurados' : 'N/A'}`);
+      logger.info(`   - FAQs: ${faqs.length} preguntas`);
+      logger.info(`   - Archivos: ${contextFiles.length} documentos`);
+      
+      // 📞 CONSTRUIR SECCIÓN DE DATOS DE CONTACTO
+      const contactInfo = [
+        phone ? `- Teléfono: ${phone}` : null,
+        email ? `- Email: ${email}` : null,
+        website ? `- Web: ${website}` : null,
+        address ? `- Dirección: ${address}` : null
+      ].filter(Boolean).join('\n');
+      
+      const contactSection = contactInfo ? `
+📞 DATOS DE CONTACTO DE LA EMPRESA:
+${contactInfo}
+
+IMPORTANTE: Si te preguntan por teléfono, email, web o dirección, proporciona esta información directamente.
+` : '';
+      
+      // ⏰ CONSTRUIR SECCIÓN DE HORARIOS
+      const hoursSection = businessHours ? `
+⏰ HORARIOS DE ATENCIÓN:
+${formatBusinessHours(businessHours)}
+
+IMPORTANTE: Si te preguntan por horarios, proporciona esta información directamente.
+` : '';
+      
+      // ❓ CONSTRUIR SECCIÓN DE FAQs
+      const faqsFormatted = formatFAQs(faqs);
+      const faqsSection = faqsFormatted ? `
+❓ PREGUNTAS FRECUENTES (RESPUESTAS PREDEFINIDAS):
+${faqsFormatted}
+
+IMPORTANTE: Si te hacen alguna de estas preguntas, usa EXACTAMENTE la respuesta proporcionada.
+` : '';
+      
+      // 📁 CONSTRUIR SECCIÓN DE ARCHIVOS DE CONTEXTO
+      const filesFormatted = formatContextFiles(contextFiles);
+      const filesSection = filesFormatted ? `
+📁 INFORMACIÓN ADICIONAL Y DOCUMENTOS:
+${filesFormatted}
+
+IMPORTANTE: Esta información es oficial de la empresa. Úsala para responder preguntas sobre servicios, productos, precios, etc.
+` : '';
       
       // ⚠️ NO añadir callerMemoryContext aquí - se añade después en session.update
       const customSystemMessage = `Eres Susan, una asistente telefónica de atención al cliente que atiende llamadas entrantes en nombre de ${companyName}. ${companyDescription ? `La empresa se dedica a: ${companyDescription}.` : ''}
-
+${contactSection}${hoursSection}${faqsSection}${filesSection}
 🎭 TU PAPEL:
 Tu papel es HABLAR COMO UNA PERSONA ESPAÑOLA REAL, de tono amable, natural y profesional.
 
