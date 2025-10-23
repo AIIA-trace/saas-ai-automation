@@ -8233,9 +8233,14 @@ function loadContextFiles() {
                 const fileData = {
                     id: file.id || generateFileId(),
                     name: file.filename || file.name, // Usar filename de la BD
+                    filename: file.filename || file.name,
                     size: file.file_size || file.size, // Usar file_size de la BD
+                    file_size: file.file_size || file.size,
                     type: file.file_type || file.type, // Usar file_type de la BD
-                    uploaded: true // Marcar como ya subido
+                    file_type: file.file_type || file.type,
+                    uploaded: true, // Marcar como ya subido
+                    content: file.content, // ✅ CRÍTICO: Preservar contenido extraído
+                    contentLength: file.contentLength || file.content?.length || 0 // ✅ Longitud del contenido
                 };
                 
                 console.log('🔍 DEBUG - Archivo mapeado:', JSON.stringify(fileData, null, 2));
@@ -8273,9 +8278,14 @@ function collectContextFiles() {
     return files.map(file => ({
         id: file.id,
         name: file.name,
+        filename: file.filename || file.name, // Incluir filename para compatibilidad
         size: file.size,
+        file_size: file.file_size || file.size, // Incluir file_size para compatibilidad
         type: file.type,
-        uploaded: file.uploaded || false
+        file_type: file.file_type || file.type, // Incluir file_type para compatibilidad
+        uploaded: file.uploaded || false,
+        content: file.content, // ✅ CRÍTICO: Incluir contenido extraído
+        contentLength: file.contentLength // ✅ Incluir longitud del contenido
     }));
 }
 
