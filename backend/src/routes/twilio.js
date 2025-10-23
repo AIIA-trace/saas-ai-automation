@@ -175,6 +175,8 @@ router.post('/webhook', async (req, res) => {
         
         logger.info(`📞 LLAMADA RECIBIDA: ${callerNumber} → ${twilioNumber} (${CallSid})`);
         
+        const startTime = Date.now();
+        
         // 1. Identificar cliente por número Twilio
         const twilioNumberRecord = await prisma.twilioNumber.findFirst({
             where: {
@@ -207,6 +209,20 @@ router.post('/webhook', async (req, res) => {
         );
         
         logger.info(`🎵 Respuesta TwiML generada para ${client.companyName}`);
+        
+        // 🎯 DELAY ESTRATÉGICO: Esperar para que suenen tonos mientras se inicializa OpenAI
+        const elapsedTime = Date.now() - startTime;
+        const targetDelay = 2500; // 2.5 segundos de tonos (~1 tono completo)
+        const remainingDelay = Math.max(0, targetDelay - elapsedTime);
+        
+        if (remainingDelay > 0) {
+            logger.info(`⏳ [${CallSid}] Esperando ${remainingDelay}ms para tonos (total: ${targetDelay}ms)`);
+            await new Promise(resolve => setTimeout(resolve, remainingDelay));
+        } else {
+            logger.info(`⚡ [${CallSid}] Procesamiento rápido (${elapsedTime}ms), sin delay adicional`);
+        }
+        
+        logger.info(`✅ [${CallSid}] Respondiendo después de ${Date.now() - startTime}ms`);
         
         // 3. Devolver TwiML
         res.set('Content-Type', 'text/xml');
