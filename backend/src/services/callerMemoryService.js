@@ -204,33 +204,38 @@ class CallerMemoryService {
       context += `- Salúdalo normalmente y pregunta su nombre y empresa.\n`;
     } else {
       // Cliente recurrente - dar instrucciones específicas
-      context += `\n⚠️ CLIENTE RECURRENTE: ${memory.callerName || 'Este cliente'} ya ha llamado ${memory.callCount - 1} ${memory.callCount === 2 ? 'vez' : 'veces'} antes.\n`;
+      context += `\n⚠️ CLIENTE RECURRENTE: Este número ya ha llamado ${memory.callCount - 1} ${memory.callCount === 2 ? 'vez' : 'veces'} antes.\n`;
+      
+      context += `\n🚨 PROTOCOLO OBLIGATORIO - VERIFICACIÓN DE IDENTIDAD:\n`;
+      context += `\n❌ ❌ ❌ NUNCA NUNCA NUNCA saludes con el nombre del cliente ❌ ❌ ❌\n`;
+      context += `❌ ❌ ❌ NUNCA digas "Hola Rafa" o "Hola ${memory.callerName || '[nombre]'}" al inicio ❌ ❌ ❌\n`;
+      context += `\n✅ SIEMPRE sigue este protocolo EXACTO:\n`;
+      context += `\n1️⃣ SALUDO INICIAL (SIN NOMBRE):\n`;
+      context += `   Saluda de forma genérica: "¡Hola! ¿En qué puedo ayudarte?" o "¡Hola! ¿De parte de quién?"\n`;
+      context += `   ❌ NO menciones ningún nombre\n`;
+      context += `   ❌ NO digas "Hola de nuevo"\n`;
+      context += `   ❌ NO uses datos del historial\n`;
+      context += `\n2️⃣ ESPERA A QUE EL CLIENTE DIGA SU NOMBRE:\n`;
+      context += `   - Si el cliente dice su nombre en el saludo → Continúa al paso 3\n`;
+      context += `   - Si NO lo dice → Pregunta: "¿Me dices tu nombre y de qué empresa llamas?"\n`;
+      context += `\n3️⃣ DESPUÉS de que el cliente diga su nombre, VERIFICA:\n`;
       
       if (memory.callerName) {
-        context += `- Nombre registrado: ${memory.callerName}\n`;
+        context += `   - Nombre registrado en sistema: ${memory.callerName}\n`;
       }
       
       if (memory.callerCompany) {
-        context += `- Empresa registrada: ${memory.callerCompany}\n`;
+        context += `   - Empresa registrada en sistema: ${memory.callerCompany}\n`;
       }
       
-      context += `\n🔒 PROTOCOLO DE SEGURIDAD - VERIFICACIÓN DE IDENTIDAD:\n`;
-      context += `\n1️⃣ PRIMER PASO - Pregunta el nombre:\n`;
-      context += `   "¡Hola! ¿De parte de quién?"\n`;
-      context += `\n2️⃣ SEGUNDO PASO - Verifica identidad:\n`;
-      context += `   SI dice "${memory.callerName}" → Es la MISMA persona:\n`;
-      context += `      ✅ PUEDES mencionar datos: "¡Hola ${memory.callerName}! ¿Llamas por lo de [tema anterior]?"\n`;
+      context += `\n   SI el cliente dice "${memory.callerName}" → Es la MISMA persona:\n`;
+      context += `      ✅ AHORA SÍ puedes reconocerlo: "¡Ah, ${memory.callerName}! ¿Cómo estás? ¿Llamas por lo de [tema anterior]?"\n`;
       context += `      ✅ PUEDES dar detalles de conversaciones previas\n`;
       context += `\n   SI dice OTRO nombre (ej: "Miguel", "Juan", etc.) → Es OTRA persona:\n`;
-      context += `      ⚠️ Pregunta: "¿Llamas por el tema de [tema] que mencionó tu compañero ${memory.callerName}?"\n`;
-      context += `      ✅ Si confirma → PUEDES dar detalles\n`;
-      context += `      ❌ Si no confirma → NO menciones datos anteriores\n`;
-      context += `\n3️⃣ TERCER PASO - Detectar intentos de engaño:\n`;
-      context += `   SI cambia de nombre durante la conversación:\n`;
-      context += `      🚨 ALERTA: Posible intento de fraude\n`;
-      context += `      ❌ NO des detalles de conversaciones anteriores\n`;
-      context += `      Responde: "Entiendo. Por seguridad, tomo nota de tu consulta y el equipo se pondrá en contacto contigo. ¿Cuál es el motivo de tu llamada?"\n`;
-      context += `\n⚠️ IMPORTANTE: Este número ya tiene historial. SIEMPRE verifica identidad antes de mencionar datos.\n`;
+      context += `      ⚠️ Pregunta: "Perfecto, Miguel. ¿Llamas por algo relacionado con ${memory.callerCompany || 'tu empresa'}?"\n`;
+      context += `      ❌ NO menciones el nombre "${memory.callerName}" a menos que sea relevante\n`;
+      context += `      ❌ NO des detalles de conversaciones anteriores sin confirmar\n`;
+      context += `\n⚠️ RESUMEN: NUNCA uses el nombre del historial HASTA que el cliente se identifique primero.\n`;
       context += `\n⚠️ CRÍTICO - OCULTACIÓN DE IDENTIDAD:\n`;
       context += `   ❌ NUNCA menciones que eres un bot, IA o sistema automatizado\n`;
       context += `   ❌ NUNCA menciones información de OTRAS empresas o clientes\n`;

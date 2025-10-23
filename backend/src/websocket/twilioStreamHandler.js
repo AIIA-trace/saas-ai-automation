@@ -412,14 +412,15 @@ class TwilioStreamHandler {
    * @param {string} streamSid - Stream SID
    * @param {string} callSid - Call SID
    */
-  async getClientForStream(streamSid, callSid) {
+  async getClientForStream(streamSid, callSid, clientId = null) {
     try {
-      logger.info(`🔍 [${streamSid}] Obteniendo cliente para callSid: ${callSid}`);
+      logger.info(`🔍 [${streamSid}] Obteniendo cliente para callSid: ${callSid}, clientId: ${clientId}`);
 
       // 🔧 OPTIMIZAR: Verificar cache primero para evitar consultas duplicadas
-      if (this.clientCache.has(callSid)) {
-        const cachedClient = this.clientCache.get(callSid);
-        logger.info(`⚡ [${streamSid}] Cliente obtenido de cache: ${cachedClient.name || cachedClient.id}`);
+      const cacheKey = clientId || callSid;
+      if (this.clientCache.has(cacheKey)) {
+        const cachedClient = this.clientCache.get(cacheKey);
+        logger.info(`⚡ [${streamSid}] Cliente obtenido de cache: ${cachedClient.companyName || cachedClient.id}`);
 
         // Actualizar streamData con el cliente del cache
         const streamData = this.activeStreams.get(streamSid);
@@ -429,45 +430,49 @@ class TwilioStreamHandler {
         return cachedClient;
       }
 
-      // Buscar el cliente en la base de datos usando callSid
-      // Nota: En producción, callSid puede no estar directamente en la DB, pero lo intentamos
-      const client = await this.prisma.client.findFirst({
-        where: {
-          // Si tienes una relación con llamadas, úsala aquí
-          // Por ahora, asumimos que callSid no está en la DB, así que usamos un cliente por defecto
-          // O implementa la lógica real si tienes callSid en tu esquema
-        }
-      });
-
-      if (client) {
-        // Cachear el cliente encontrado
-        this.clientCache.set(callSid, client);
-
-        // Actualizar streamData con el cliente
-        const streamData = this.activeStreams.get(streamSid);
-        if (streamData) {
-          streamData.client = client;
-          logger.info(`✅ [${streamSid}] Cliente obtenido: ${client.name || client.id}`);
-        }
-      } else {
-        logger.warn(`⚠️ [${streamSid}] No se encontró cliente para callSid: ${callSid} - usando cliente por defecto`);
-        // Usar cliente por defecto o manejar error
-        // Por simplicidad, asumir cliente ID 1 como antes
-        const defaultClient = await this.prisma.client.findUnique({
-          where: { id: 1 }
+      // 🎯 PRIORIDAD 1: Si tenemos clientId de customParameters, usarlo directamente
+      if (clientId) {
+        logger.info(`🎯 [${streamSid}] Usando clientId de customParameters: ${clientId}`);
+        const client = await this.prisma.client.findUnique({
+          where: { id: parseInt(clientId) }
         });
-        if (defaultClient) {
-          // Cachear el cliente por defecto
-          this.clientCache.set(callSid, defaultClient);
 
+        if (client) {
+          logger.info(`✅ [${streamSid}] Cliente encontrado por ID: ${client.companyName} (ID: ${client.id})`);
+          
+          // Cachear el cliente encontrado
+          this.clientCache.set(cacheKey, client);
+
+          // Actualizar streamData con el cliente
           const streamData = this.activeStreams.get(streamSid);
           if (streamData) {
-            streamData.client = defaultClient;
-            logger.info(`✅ [${streamSid}] Cliente por defecto obtenido: ${defaultClient.name}`);
+            streamData.client = client;
           }
+          return client;
         } else {
-          logger.error(`❌ [${streamSid}] No se pudo obtener cliente por defecto`);
+          logger.error(`❌ [${streamSid}] Cliente con ID ${clientId} no encontrado en BD`);
         }
+      }
+
+      // 🎯 PRIORIDAD 2: Si no hay clientId, usar cliente por defecto (ID 1)
+      logger.warn(`⚠️ [${streamSid}] No se proporcionó clientId - usando cliente por defecto (ID 1)`);
+      const defaultClient = await this.prisma.client.findUnique({
+        where: { id: 1 }
+      });
+      
+      if (defaultClient) {
+        logger.info(`✅ [${streamSid}] Usando cliente por defecto: ${defaultClient.companyName} (ID: ${defaultClient.id})`);
+        
+        // Cachear el cliente por defecto
+        this.clientCache.set(cacheKey, defaultClient);
+
+        const streamData = this.activeStreams.get(streamSid);
+        if (streamData) {
+          streamData.client = defaultClient;
+          logger.info(`✅ [${streamSid}] Cliente por defecto obtenido: ${defaultClient.companyName}`);
+        }
+      } else {
+        logger.error(`❌ [${streamSid}] No se pudo obtener cliente por defecto`);
       }
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error obteniendo cliente: ${error.message}`);
@@ -548,13 +553,15 @@ class TwilioStreamHandler {
     // REMOVIDO: initializeSpeechDetection (VAD obsoleto - ahora usa OpenAI server VAD)
     this.initializeEchoBlanking(streamSid);
 
+    // 🎯 EXTRAER clientId de customParameters ANTES de obtener cliente
+    const clientId = data.start?.customParameters?.clientId;
+    logger.info(`🔍 [${streamSid}] customParameters recibidos: ${JSON.stringify(data.start?.customParameters)}`);
+    logger.info(`🎯 [${streamSid}] ClientId extraído: ${clientId || 'NO DISPONIBLE'}`);
+
     // Obtener cliente, memoria del llamante y enviar saludo UNA SOLA VEZ
-    this.getClientForStream(streamSid, callSid).then(async () => {
+    this.getClientForStream(streamSid, callSid, clientId).then(async () => {
       // Obtener número del llamante desde customParameters
       let streamData = this.activeStreams.get(streamSid);
-      
-      // 🔍 VALIDACIÓN CRÍTICA: Detectar número del llamante
-      logger.info(`🔍 [${streamSid}] customParameters recibidos: ${JSON.stringify(data.start?.customParameters)}`);
       
       const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
       
