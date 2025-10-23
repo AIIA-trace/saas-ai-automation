@@ -2532,11 +2532,11 @@ function createCallRow(call) {
         </td>
         <td>
             <div class="fw-semibold text-dark mb-1">${call.phone}</div>
-            <div class="text-muted small">${call.contactType}</div>
+            <div class="text-muted small">${call.callerName || 'Cliente'}</div>
         </td>
         <td>
-            ${getClassificationBadge(call.classification, call.urgency)}
-            <div class="text-muted small mt-1">${call.confidence}</div>
+            <div class="fw-semibold text-dark mb-1">${call.classification || 'SIN CLASIFICAR'}</div>
+            <div class="text-muted small">${call.contactType || 'undefined'}</div>
         </td>
         <td>
             <div class="fw-medium text-dark mb-2" style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${call.summary}</div>

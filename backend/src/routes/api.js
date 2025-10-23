@@ -1832,12 +1832,22 @@ router.get('/logs/calls', authenticate, async (req, res) => {
       const seconds = durationSeconds % 60;
       const durationFormatted = `${minutes}:${seconds.toString().padStart(2, '0')}`;
       
+      // 📞 FORMATEAR TELÉFONO CON NOMBRE
+      const phoneDisplay = call.callerName 
+        ? `${call.callerNumber || 'Desconocido'}` 
+        : call.callerNumber || 'Desconocido';
+      const callerNameDisplay = call.callerName || 'Cliente';
+      
+      // 🏢 TIPO = EMPRESA (no contactType)
+      const companyDisplay = metadata.callerCompany || call.contactInfo || 'undefined';
+      
       return {
         id: call.id,
         date: callDate.toISOString().split('T')[0],
         time: callDate.toTimeString().split(' ')[0].substring(0, 5),
-        phone: call.callerNumber || 'Desconocido',
-        contactType: metadata.contactType || (call.callerName ? 'Cliente' : 'Prospecto'),
+        phone: phoneDisplay,
+        callerName: callerNameDisplay,  // ← NUEVO: Nombre de la persona
+        contactType: companyDisplay,     // ← CAMBIADO: Ahora es la empresa
         summary: call.aiSummary || 'Sin resumen',
         details: call.aiSummary || 'Sin detalles',
         duration: durationFormatted,
