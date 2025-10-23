@@ -116,15 +116,10 @@ class StreamingTwiMLService {
         logger.info(`🔍 DEBUG TWIML: No hay FAQs para agregar`);
       }
 
-      if (clientData.contextFiles) {
-        stream.parameter({
-          name: 'contextFiles',
-          value: typeof clientData.contextFiles === 'string' ? clientData.contextFiles : JSON.stringify(clientData.contextFiles)
-        });
-        logger.info(`🔍 DEBUG TWIML: ContextFiles agregados como parámetro`);
-      } else {
-        logger.info(`🔍 DEBUG TWIML: No hay archivos de contexto para agregar`);
-      }
+      // ❌ REMOVIDO: NO enviar contextFiles por customParameters
+      // Los archivos se obtienen directamente de la BD cuando se necesitan
+      // Twilio trunca parámetros grandes y el campo 'content' se pierde
+      logger.info(`🔍 DEBUG TWIML: ContextFiles se obtendrán de BD (${clientData.contextFiles?.length || 0} archivos)`);
       
       if (callSid) {
         stream.parameter({
