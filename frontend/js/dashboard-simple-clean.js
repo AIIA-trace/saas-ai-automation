@@ -2422,13 +2422,8 @@ function loadCallsData() {
     
     // Realizar petición al backend
     window.ApiHelper.fetchApi({ url: '/api/logs/calls', auth: 'jwt' }, { method: 'GET' })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
     .then(result => {
+        // ApiHelper.fetchApi ya devuelve el JSON parseado
         // Extraer datos del response (puede venir en result.data o directamente)
         const callsData = result.data || result;
         
