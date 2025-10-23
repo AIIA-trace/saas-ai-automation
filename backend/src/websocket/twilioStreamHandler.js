@@ -806,7 +806,8 @@ class TwilioStreamHandler {
         if (streamData?.client?.id) {
           try {
             // Obtener número de teléfono del llamante
-            const callerNumber = streamData?.callerPhone || 'Desconocido';
+            // Prioridad: 1) streamData.callerPhone, 2) extraído del resumen, 3) 'Desconocido'
+            const callerNumber = streamData?.callerPhone || conversationHistory?.callerPhone || 'Desconocido';
             
             // Determinar tipo de contacto basado en empresa
             const contactType = conversationHistory?.callerCompany ? 'Cliente' : 'Prospecto';

@@ -2025,42 +2025,56 @@ Genera el resumen ahora.`
               role: 'system',
               content: `Eres un asistente experto en analizar llamadas de negocio y extraer información crítica.
 
-Tu objetivo es generar un resumen estructurado en formato JSON que capture TODA la información relevante para el negocio.
+Tu objetivo es generar un resumen estructurado en formato JSON que capture SOLO la información RELEVANTE para el negocio.
 
 ESTRUCTURA JSON REQUERIDA:
 {
-  "summary": "Resumen con TODOS los datos específicos incluidos en el texto",
+  "summary": "Resumen conciso con datos clave",
   "topics": ["tema1", "tema2", ...],
   "callerName": "Nombre completo del llamante o null",
   "callerCompany": "Empresa del llamante o null",
+  "callerPhone": "Número de teléfono del llamante o null",
   "requestDetails": {}
 }
 
-⚠️ CRÍTICO - FORMATO DEL SUMMARY:
-El campo "summary" debe ser un texto narrativo que incluya EXPLÍCITAMENTE todos los datos importantes:
+⚠️ CRÍTICO - QUÉ INCLUIR EN EL SUMMARY:
+✅ INCLUIR:
+- Quién llama (nombre y empresa)
+- Número de teléfono del llamante
+- Para qué llama (motivo principal)
+- Recados que haya dejado
+- Teléfonos adicionales mencionados
+- Emails mencionados
+- Fechas importantes (citas, vencimientos, entregas)
+- Números de referencia (facturas, pedidos, códigos)
+- Importes monetarios si son relevantes
+- Nombres de personas con las que necesita hablar
+- Urgencias o plazos
+
+❌ NO INCLUIR:
+- Detalles de productos o servicios que se le ofrecieron
+- Descripciones de lo que hace la empresa
+- Información general que ya se conoce
+- Conversación de cortesía o saludos
 
 EJEMPLO CORRECTO:
-"Carlos del Banco Santander llama por la factura número F-2024-12345 con importe de 1.500 euros que vence el 25 de octubre. Necesita hablar con Miguel urgentemente. Email: carlos@santander.com, teléfono: 600123456."
+"Carlos del Banco Santander (tel: 600123456) llama por la factura F-2024-12345 de 1.500€ que vence el 25 de octubre. Necesita hablar con Miguel urgentemente. Email: carlos@santander.com"
 
 EJEMPLO INCORRECTO:
-"Carlos llama por una factura pendiente que necesita gestionar con urgencia."
+"Carlos del Banco Santander llama para preguntar sobre los precios de servicios. El asistente le informa que los precios específicos son gestionados por el equipo comercial y que se tomará nota de la consulta para que lo contacten con la información necesaria."
 
 REGLAS DEL SUMMARY:
-1. INCLUYE SIEMPRE los números específicos: facturas, pedidos, códigos, referencias
-2. INCLUYE SIEMPRE los importes monetarios exactos
-3. INCLUYE SIEMPRE las fechas completas (día, mes, año si se menciona)
-4. INCLUYE SIEMPRE emails, teléfonos y datos de contacto
-5. INCLUYE SIEMPRE nombres de personas mencionadas
-6. INCLUYE SIEMPRE códigos de color, referencias, números de serie
-7. Usa formato claro: "factura número X", "importe de Y euros", "vence el Z"
+1. Máximo 300 caracteres - SÉ CONCISO
+2. SIEMPRE extrae el número de teléfono del llamante si lo menciona
+3. Enfócate en ACCIONES PENDIENTES y DATOS CRÍTICOS
+4. NO repitas el nombre de la empresa en negrita múltiples veces
+5. NO incluyas lo que el bot le ofreció o explicó
+6. Formato: texto plano, sin negritas, sin formato especial
 
-INSTRUCCIONES CRÍTICAS:
-1. El summary debe ser AUTOSUFICIENTE - debe contener TODOS los datos sin necesidad de consultar requestDetails
-2. NO resumas de forma genérica - SIEMPRE incluye los números y datos específicos
-3. Si mencionan "factura 12345" → escribe "factura número 12345" en el summary
-4. Si mencionan "1500 euros" → escribe "importe de 1.500 euros" en el summary
-5. Si mencionan "vence el 20 de octubre" → escribe "vence el 20 de octubre" en el summary
-6. Máximo 500 caracteres para el summary (aumentado para incluir todos los datos)
+FORMATO DEL TELÉFONO:
+- Si el llamante menciona su teléfono, extráelo en "callerPhone"
+- Formato: "+34600123456" o "600123456" según lo mencionen
+- Si NO menciona teléfono, pon null
 
 Responde SOLO con el JSON, sin markdown, sin texto adicional.`
             },
@@ -2092,6 +2106,7 @@ Responde SOLO con el JSON, sin markdown, sin texto adicional.`
         topics: summaryData.topics || [],
         callerName: summaryData.callerName || null,
         callerCompany: summaryData.callerCompany || null,
+        callerPhone: summaryData.callerPhone || null,
         requestDetails: summaryData.requestDetails || {}
       };
     } catch (error) {
@@ -2103,6 +2118,7 @@ Responde SOLO con el JSON, sin markdown, sin texto adicional.`
         topics: this.extractTopics(transcript),
         callerName: null,
         callerCompany: null,
+        callerPhone: null,
         requestDetails: {}
       };
     }
