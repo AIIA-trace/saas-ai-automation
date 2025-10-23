@@ -201,30 +201,80 @@ router.post('/webhook', async (req, res) => {
         const client = twilioNumberRecord.client;
         logger.info(`✅ Cliente identificado: ${client.companyName} (ID: ${client.id})`);
         
-        // 2. Generar respuesta personalizada con streaming TTS
+        // 🚀 PRE-INICIALIZACIÓN: Preparar OpenAI ANTES de descolgar
+        const callerMemoryService = require('../services/callerMemoryService');
+        const OpenAIRealtimeService = require('../services/openaiRealtimeService');
+        const openaiRealtimeService = new OpenAIRealtimeService();
+        
+        // 2. Pre-cargar memoria del llamante
+        let callerMemory = null;
+        let memoryContext = '';
+        try {
+            callerMemory = await callerMemoryService.getOrCreateCallerMemory(
+                client.id,
+                callerNumber
+            );
+            memoryContext = callerMemoryService.getMemoryContext(callerMemory);
+            logger.info(`🧠 [${CallSid}] Memoria pre-cargada: ${callerMemory.callCount} llamadas`);
+        } catch (error) {
+            logger.warn(`⚠️ [${CallSid}] No se pudo cargar memoria: ${error.message}`);
+        }
+        
+        // 3. Preparar configuración del cliente
+        const clientConfig = {
+            companyName: client.companyName,
+            companyDescription: client.companyDescription,
+            phone: client.phone,
+            email: client.email,
+            website: client.website,
+            address: client.address,
+            businessHours: client.businessHours,
+            faqs: client.faqs,
+            contextFiles: client.contextFiles,
+            companyInfo: client.companyInfo,
+            callConfig: client.callConfig
+        };
+        
+        // 4. PRE-INICIALIZAR OpenAI Realtime (mientras suenan tonos)
+        const preSessionId = `pre_${CallSid}`;
+        try {
+            logger.info(`🤖 [${CallSid}] PRE-inicializando OpenAI Realtime...`);
+            await openaiRealtimeService.initializeConnection(
+                preSessionId,
+                clientConfig,
+                memoryContext
+            );
+            logger.info(`✅ [${CallSid}] OpenAI pre-inicializado exitosamente`);
+        } catch (error) {
+            logger.error(`❌ [${CallSid}] Error pre-inicializando OpenAI: ${error.message}`);
+            // Continuar sin pre-inicialización (fallback a flujo normal)
+        }
+        
+        // 5. Generar TwiML
         const twimlResponse = await twilioService.handleIncomingCall(
             callerNumber,
             twilioNumber,
             CallSid
         );
         
-        logger.info(`🎵 Respuesta TwiML generada para ${client.companyName}`);
+        logger.info(`🎵 [${CallSid}] TwiML generado para ${client.companyName}`);
         
-        // 🎯 DELAY ESTRATÉGICO: Esperar para que suenen tonos mientras se inicializa OpenAI
+        // 6. DELAY ESTRATÉGICO: Esperar para que suenen tonos (~2-3 tonos)
         const elapsedTime = Date.now() - startTime;
-        const targetDelay = 2500; // 2.5 segundos de tonos (~1 tono completo)
+        const targetDelay = 3000; // 3 segundos = ~2 tonos completos
         const remainingDelay = Math.max(0, targetDelay - elapsedTime);
         
         if (remainingDelay > 0) {
             logger.info(`⏳ [${CallSid}] Esperando ${remainingDelay}ms para tonos (total: ${targetDelay}ms)`);
             await new Promise(resolve => setTimeout(resolve, remainingDelay));
         } else {
-            logger.info(`⚡ [${CallSid}] Procesamiento rápido (${elapsedTime}ms), sin delay adicional`);
+            logger.info(`⚡ [${CallSid}] Procesamiento lento (${elapsedTime}ms), sin delay adicional`);
         }
         
-        logger.info(`✅ [${CallSid}] Respondiendo después de ${Date.now() - startTime}ms`);
+        const totalTime = Date.now() - startTime;
+        logger.info(`✅ [${CallSid}] DESCOLGANDO después de ${totalTime}ms (OpenAI listo)`);
         
-        // 3. Devolver TwiML
+        // 7. Devolver TwiML (DESCOLGAR - todo listo)
         res.set('Content-Type', 'text/xml');
         res.send(twimlResponse);
         

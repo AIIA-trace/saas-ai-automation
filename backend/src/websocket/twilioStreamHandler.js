@@ -483,7 +483,7 @@ class TwilioStreamHandler {
   /**
    * Maneja evento 'start' de Twilio Stream
    */
-  handleStart(ws, data) {
+  async handleStart(ws, data) {
     const streamSid = data.start?.streamSid;
     const callSid = data.start?.callSid;
 
@@ -558,6 +558,41 @@ class TwilioStreamHandler {
     logger.info(`🔍 [${streamSid}] customParameters recibidos: ${JSON.stringify(data.start?.customParameters)}`);
     logger.info(`🎯 [${streamSid}] ClientId extraído: ${clientId || 'NO DISPONIBLE'}`);
 
+    // 🚀 VERIFICAR SI HAY SESIÓN PRE-INICIALIZADA
+    const preSessionId = `pre_${callSid}`;
+    const hasPreInitSession = this.openaiRealtimeService.activeConnections.has(preSessionId);
+    
+    if (hasPreInitSession) {
+      logger.info(`✅ [${streamSid}] REUTILIZANDO sesión pre-inicializada: ${preSessionId}`);
+      
+      // Transferir sesión al streamSid real
+      try {
+        const connectionData = this.openaiRealtimeService.activeConnections.get(preSessionId);
+        this.openaiRealtimeService.activeConnections.set(streamSid, connectionData);
+        this.openaiRealtimeService.activeConnections.delete(preSessionId);
+        logger.info(`🔄 [${streamSid}] Conexión transferida: ${preSessionId} → ${streamSid}`);
+        
+        // Obtener cliente y memoria (ya están cargados pero necesitamos en streamData)
+        await this.getClientForStream(streamSid, callSid, clientId);
+        
+        // Enviar saludo INMEDIATAMENTE (sesión ya lista)
+        await this.sendInitialGreeting(this.activeStreams.get(streamSid)?.ws || null, { streamSid, callSid });
+        logger.info(`🎤 [${streamSid}] Saludo enviado con sesión pre-inicializada`);
+        
+      } catch (error) {
+        logger.error(`❌ [${streamSid}] Error transfiriendo sesión: ${error.message}`);
+        // Fallback a flujo normal
+        this.getClientForStream(streamSid, callSid, clientId).then(async () => {
+          await this.sendInitialGreeting(this.activeStreams.get(streamSid)?.ws || null, { streamSid, callSid });
+        });
+      }
+      
+      return; // Salir temprano, sesión ya lista
+    }
+    
+    // Flujo normal si NO hay sesión pre-inicializada
+    logger.warn(`⚠️ [${streamSid}] No hay sesión pre-inicializada, creando nueva...`);
+    
     // Obtener cliente, memoria del llamante y enviar saludo UNA SOLA VEZ
     this.getClientForStream(streamSid, callSid, clientId).then(async () => {
       // Obtener número del llamante desde customParameters
