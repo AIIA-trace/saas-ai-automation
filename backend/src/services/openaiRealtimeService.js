@@ -157,6 +157,21 @@ class OpenAIRealtimeService {
       logger.info(`   - FAQs: ${faqs.length} preguntas`);
       logger.info(`   - Archivos: ${contextFiles.length} documentos`);
       
+      // 🔍 DEBUG ARCHIVOS DE CONTEXTO
+      if (contextFiles && contextFiles.length > 0) {
+        logger.info(`📁 [${streamSid}] DEBUG - Archivos de contexto:`);
+        contextFiles.forEach((file, index) => {
+          logger.info(`   ${index + 1}. ${file.name || file.filename || 'sin nombre'}`);
+          logger.info(`      - Tiene 'name': ${!!file.name}`);
+          logger.info(`      - Tiene 'content': ${!!file.content}`);
+          logger.info(`      - Longitud content: ${file.content?.length || 0} chars`);
+          logger.info(`      - Claves: ${Object.keys(file).join(', ')}`);
+        });
+      } else {
+        logger.warn(`⚠️ [${streamSid}] NO HAY ARCHIVOS DE CONTEXTO en clientConfig`);
+        logger.info(`🔍 [${streamSid}] clientConfig.contextFiles: ${JSON.stringify(clientConfig.contextFiles)}`);
+      }
+      
       // 📞 CONSTRUIR SECCIÓN DE DATOS DE CONTACTO
       const contactInfo = [
         phone ? `- Teléfono: ${phone}` : null,
