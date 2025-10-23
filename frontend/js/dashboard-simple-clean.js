@@ -7065,8 +7065,8 @@ function saveUnifiedConfig() {
             // Preguntas frecuentes
             faqs: collectFaqItems(),
             
-            // Archivos de contexto
-            files: collectContextFiles()
+            // Archivos de contexto - NO enviar, se manejan por endpoint separado
+            // files: collectContextFiles() // ❌ REMOVIDO: Los archivos se gestionan con /api/files/upload y /api/files/:id
         };
     
     // RECOPILAR businessHoursConfig DE FORMA ASÍNCRONA
@@ -8013,6 +8013,11 @@ async function addFilesToList(files) {
                     uploadedFiles[fileIndex].uploading = false;
                     uploadedFiles[fileIndex].id = result.file.id; // Usar ID del servidor
                     uploadedFiles[fileIndex].contentLength = result.file.contentLength;
+                    uploadedFiles[fileIndex].content = result.file.content; // ✅ CRÍTICO: Guardar contenido extraído
+                    uploadedFiles[fileIndex].name = result.file.name; // Asegurar nombre correcto
+                    uploadedFiles[fileIndex].filename = result.file.name;
+                    uploadedFiles[fileIndex].file_size = result.file.size;
+                    uploadedFiles[fileIndex].file_type = result.file.type;
                 }
                 
                 toastr.success(`Archivo "${file.name}" subido y procesado correctamente`, 'Archivo subido');
@@ -8037,10 +8042,14 @@ async function addFilesToList(files) {
         localStorage.setItem('contextFiles', JSON.stringify(uploadedFiles.map(f => ({
             id: f.id,
             name: f.name,
+            filename: f.filename || f.name,
             size: f.size,
+            file_size: f.file_size || f.size,
             type: f.type,
+            file_type: f.file_type || f.type,
             uploaded: f.uploaded,
             uploading: f.uploading,
+            content: f.content, // ✅ CRÍTICO: Incluir contenido en localStorage
             contentLength: f.contentLength,
             error: f.error
         }))));
