@@ -259,9 +259,9 @@ router.post('/webhook', async (req, res) => {
         
         logger.info(`🎵 [${CallSid}] TwiML generado para ${client.companyName}`);
         
-        // 6. DELAY ESTRATÉGICO: Esperar para que suenen tonos (~2-3 tonos)
+        // 6. DELAY ESTRATÉGICO: Esperar para que suenen tonos (~3-4 tonos)
         const elapsedTime = Date.now() - startTime;
-        const targetDelay = 3000; // 3 segundos = ~2 tonos completos
+        const targetDelay = 5000; // 5 segundos = ~3-4 tonos completos
         const remainingDelay = Math.max(0, targetDelay - elapsedTime);
         
         if (remainingDelay > 0) {
