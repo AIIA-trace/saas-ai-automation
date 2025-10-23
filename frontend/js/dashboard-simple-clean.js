@@ -2426,20 +2426,23 @@ function loadCallsData() {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-
+        return response.json();
     })
-    .then(callsData => {
+    .then(result => {
+        // Extraer datos del response (puede venir en result.data o directamente)
+        const callsData = result.data || result;
+        
+        console.log(`📊 Respuesta del backend:`, result);
+        console.log(`📊 Llamadas recibidas: ${callsData.length}`);
+        
         // Limpiar tabla de llamadas
         if (callsTableBody) {
             callsTableBody.innerHTML = '';
             
-            if (callsData.length === 0) {
-                // Mostrar mensaje si no hay datos
+            if (!callsData || callsData.length === 0) {
+                // NO mostrar datos de prueba, solo mensaje
                 callsTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No hay llamadas registradas</td></tr>';
-                // Mostrar datos de prueba si no hay llamadas reales
-                const mockData = getMockCallsData();
-                loadCallsIntoTable(mockData);
-                console.log(`📊 Mostrando ${mockData.length} llamadas de prueba (no hay datos reales)`);
+                console.log(`📊 No hay llamadas reales en la base de datos`);
             } else {
                 // Generar filas de llamadas con el nuevo diseño moderno
                 callsData.forEach(call => {
@@ -2466,11 +2469,11 @@ function loadCallsData() {
         console.log(`✅ ${callsData.length} llamadas cargadas correctamente`);
     })
     .catch(error => {
-        console.log('🔄 API no disponible, cargando datos de prueba...');
-        // Cargar datos de prueba como fallback
-        const mockData = getMockCallsData();
-        loadCallsIntoTable(mockData);
-        console.log(`✅ ${mockData.length} llamadas de prueba cargadas`);
+        console.error('❌ Error cargando llamadas:', error);
+        // NO cargar datos de prueba en caso de error
+        if (callsTableBody) {
+            callsTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">Error cargando llamadas. Por favor, recarga la página.</td></tr>';
+        }
     });
 }
 
@@ -9395,47 +9398,12 @@ function showUsageSummaryDetails() {
 // ========================================
 
 /**
- * Generar datos mock para llamadas
+ * FUNCIÓN OBSOLETA - Ya no se usan datos mock
+ * Los datos ahora vienen directamente de la base de datos
  */
 function getMockCallsData() {
-    return [
-        {
-            id: 1,
-            date: '2024-01-15',
-            time: '10:30',
-            phone: '+34 612 345 678',
-            contactType: 'Cliente',
-            summary: 'Consulta sobre servicios',
-            details: 'El cliente preguntó sobre nuestros planes de servicio premium',
-            duration: '5:23',
-            type: 'incoming',
-            urgency: 'normal'
-        },
-        {
-            id: 2,
-            date: '2024-01-15',
-            time: '14:15',
-            phone: '+34 687 123 456',
-            contactType: 'Prospecto',
-            summary: 'Interés en producto',
-            details: 'Llamada de seguimiento para demostración del producto',
-            duration: '8:45',
-            type: 'outgoing',
-            urgency: 'high'
-        },
-        {
-            id: 3,
-            date: '2024-01-14',
-            time: '16:20',
-            phone: '+34 654 987 321',
-            contactType: 'Cliente',
-            summary: 'Soporte técnico',
-            details: 'Problema resuelto con la configuración del sistema',
-            duration: '12:10',
-            type: 'incoming',
-            urgency: 'urgent'
-        }
-    ];
+    console.warn('⚠️ getMockCallsData() está obsoleta - usar datos reales de la API');
+    return [];
 }
 
 /**
