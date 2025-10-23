@@ -1,7 +1,7 @@
 const logger = require('../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const azureTTSRestService = require('../services/azureTTSRestService');
-const OpenAIRealtimeService = require('../services/openaiRealtimeService');
+const { getInstance: getOpenAIRealtimeService } = require('../services/openaiRealtimeService');
 const callerMemoryService = require('../services/callerMemoryService');
 const fs = require('fs');
 
@@ -10,8 +10,8 @@ class TwilioStreamHandler {
     this.prisma = prisma;
     this.ttsService = ttsService; // FIX: Asignar el servicio TTS
     
-    // NUEVO: Servicio OpenAI Realtime (reemplaza sistema conversacional complejo)
-    this.openaiRealtimeService = new OpenAIRealtimeService();
+    // NUEVO: Servicio OpenAI Realtime (SINGLETON - compartido globalmente)
+    this.openaiRealtimeService = getOpenAIRealtimeService();
     
     // CRÍTICO PARA SISTEMA DE MARCAS: Conservar para saludo inicial
     this.pendingMarks = new Map(); // ✅ CRÍTICO PARA EVITAR ERRORES

@@ -2262,4 +2262,17 @@ OpenAIRealtimeService.prototype.constructor = function(...args) {
   EventEmitter.call(this);
 };
 
-module.exports = OpenAIRealtimeService;
+// 🔒 SINGLETON: Una sola instancia compartida globalmente
+let instance = null;
+
+module.exports = {
+  getInstance: function() {
+    if (!instance) {
+      instance = new OpenAIRealtimeService();
+      logger.info('🔧 OpenAIRealtimeService singleton creado');
+    }
+    return instance;
+  },
+  // Para compatibilidad con código existente
+  OpenAIRealtimeService: OpenAIRealtimeService
+};
