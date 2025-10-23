@@ -7956,32 +7956,96 @@ function validateFiles(files) {
 }
 
 /**
- * Agregar archivos a la lista
+ * Agregar archivos a la lista y subirlos al servidor
  */
-function addFilesToList(files) {
+async function addFilesToList(files) {
     const uploadedFiles = getUploadedFiles();
     
-    files.forEach(file => {
+    for (const file of files) {
         const fileData = {
             id: Date.now() + Math.random(),
             name: file.name,
             size: file.size,
             type: file.type,
             file: file,
-            uploaded: false
+            uploaded: false,
+            uploading: true
         };
         
         uploadedFiles.push(fileData);
-    });
-    
-    // Guardar en localStorage temporalmente
-    localStorage.setItem('contextFiles', JSON.stringify(uploadedFiles.map(f => ({
-        id: f.id,
-        name: f.name,
-        size: f.size,
-        type: f.type,
-        uploaded: f.uploaded
-    }))));
+        
+        // Actualizar UI para mostrar "subiendo"
+        localStorage.setItem('contextFiles', JSON.stringify(uploadedFiles.map(f => ({
+            id: f.id,
+            name: f.name,
+            size: f.size,
+            type: f.type,
+            uploaded: f.uploaded,
+            uploading: f.uploading
+        }))));
+        updateFilesList();
+        
+        try {
+            // Subir archivo al servidor con extracción de contenido
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(window.ApiHelper.baseUrl + '/api/files/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Actualizar archivo como subido
+                const fileIndex = uploadedFiles.findIndex(f => f.id === fileData.id);
+                if (fileIndex !== -1) {
+                    uploadedFiles[fileIndex].uploaded = true;
+                    uploadedFiles[fileIndex].uploading = false;
+                    uploadedFiles[fileIndex].id = result.file.id; // Usar ID del servidor
+                    uploadedFiles[fileIndex].contentLength = result.file.contentLength;
+                }
+                
+                toastr.success(`Archivo "${file.name}" subido y procesado correctamente`, 'Archivo subido');
+                console.log(`✅ Archivo subido: ${file.name} (${result.file.contentLength} caracteres extraídos)`);
+            } else {
+                throw new Error(result.error || 'Error desconocido');
+            }
+        } catch (error) {
+            console.error(`❌ Error subiendo archivo ${file.name}:`, error);
+            toastr.error(`Error subiendo "${file.name}": ${error.message}`, 'Error de subida');
+            
+            // Marcar como error
+            const fileIndex = uploadedFiles.findIndex(f => f.id === fileData.id);
+            if (fileIndex !== -1) {
+                uploadedFiles[fileIndex].uploaded = false;
+                uploadedFiles[fileIndex].uploading = false;
+                uploadedFiles[fileIndex].error = error.message;
+            }
+        }
+        
+        // Actualizar UI
+        localStorage.setItem('contextFiles', JSON.stringify(uploadedFiles.map(f => ({
+            id: f.id,
+            name: f.name,
+            size: f.size,
+            type: f.type,
+            uploaded: f.uploaded,
+            uploading: f.uploading,
+            contentLength: f.contentLength,
+            error: f.error
+        }))));
+        updateFilesList();
+    }
 }
 
 /**
@@ -8093,13 +8157,50 @@ function formatFileSize(bytes) {
 }
 
 /**
- * Eliminar archivo de la lista
+ * Eliminar archivo de la lista y del servidor
  */
-function removeFile(fileId) {
-    let files = getUploadedFiles();
-    files = files.filter(f => f.id != fileId);
+async function removeFile(fileId) {
+    const files = getUploadedFiles();
+    const file = files.find(f => f.id == fileId);
     
-    localStorage.setItem('contextFiles', JSON.stringify(files));
+    if (!file) {
+        toastr.error('Archivo no encontrado', 'Error');
+        return;
+    }
+    
+    // Si el archivo está subido, eliminarlo del servidor también
+    if (file.uploaded) {
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(window.ApiHelper.baseUrl + `/api/files/${fileId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Error eliminando archivo');
+            }
+            
+            console.log(`✅ Archivo eliminado del servidor: ${file.name}`);
+        } catch (error) {
+            console.error(`❌ Error eliminando archivo del servidor:`, error);
+            toastr.error(`Error eliminando del servidor: ${error.message}`, 'Error');
+            return;
+        }
+    }
+    
+    // Eliminar de localStorage
+    const updatedFiles = files.filter(f => f.id != fileId);
+    localStorage.setItem('contextFiles', JSON.stringify(updatedFiles));
     updateFilesList();
     
     toastr.success('Archivo eliminado correctamente', 'Archivos de Contexto');

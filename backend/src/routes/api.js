@@ -32,9 +32,33 @@ const twilioService = require('../services/twilioService');
 const emailService = require('../services/emailService');
 const elevenlabsService = require('../services/elevenlabsService');
 const authService = require('../services/authService');
+const documentExtractorService = require('../services/documentExtractorService');
 // azureTTSService removido - usando streaming TTS
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const logger = require('../utils/logger');
+const multer = require('multer');
+
+// Configurar multer para upload de archivos en memoria
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB máximo
+  },
+  fileFilter: (req, file, cb) => {
+    // Aceptar solo documentos
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no soportado. Solo PDF, DOCX y TXT.'));
+    }
+  }
+});
 
 // Función para normalizar nombres de campo entre camelCase y snake_case
 function normalizeFieldNames(data) {
@@ -929,6 +953,125 @@ router.post('/client/context-files/delete', authenticate, async (req, res) => {
 });
 
 // Código legacy eliminado - funcionalidad de archivos de contexto removida
+
+// === ENDPOINT PARA UPLOAD DE ARCHIVOS CON EXTRACCIÓN DE CONTENIDO ===
+
+/**
+ * @route POST /files/upload
+ * @desc Sube un archivo y extrae su contenido automáticamente
+ * @access Privado - Requiere JWT
+ */
+router.post('/files/upload', authenticate, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No se recibió ningún archivo'
+      });
+    }
+    
+    logger.info(`📤 Upload recibido: ${req.file.originalname} (${req.file.size} bytes)`);
+    
+    // Extraer contenido del documento
+    const processedFile = await documentExtractorService.processFile(
+      req.file.buffer,
+      {
+        name: req.file.originalname,
+        type: req.file.mimetype,
+        size: req.file.size
+      }
+    );
+    
+    logger.info(`✅ Archivo procesado: ${processedFile.contentLength} caracteres extraídos`);
+    
+    // Obtener archivos actuales del cliente
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { contextFiles: true }
+    });
+    
+    const currentFiles = client.contextFiles || [];
+    
+    // Agregar nuevo archivo
+    const updatedFiles = [...currentFiles, processedFile];
+    
+    // Actualizar en base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: { contextFiles: updatedFiles }
+    });
+    
+    logger.info(`📁 Archivo guardado en BD para cliente ${req.client.id}`);
+    
+    return res.json({
+      success: true,
+      message: 'Archivo subido y procesado correctamente',
+      file: {
+        id: processedFile.id,
+        name: processedFile.name,
+        type: processedFile.type,
+        size: processedFile.size,
+        contentLength: processedFile.contentLength,
+        extractedAt: processedFile.extractedAt
+      }
+    });
+  } catch (error) {
+    logger.error(`❌ Error en upload de archivo: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      error: 'Error procesando el archivo',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * @route DELETE /files/:fileId
+ * @desc Elimina un archivo de contexto
+ * @access Privado - Requiere JWT
+ */
+router.delete('/files/:fileId', authenticate, async (req, res) => {
+  try {
+    const fileId = parseInt(req.params.fileId);
+    
+    // Obtener archivos actuales
+    const client = await prisma.client.findUnique({
+      where: { id: req.client.id },
+      select: { contextFiles: true }
+    });
+    
+    const currentFiles = client.contextFiles || [];
+    
+    // Filtrar archivo a eliminar
+    const updatedFiles = currentFiles.filter(f => f.id !== fileId);
+    
+    if (currentFiles.length === updatedFiles.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'Archivo no encontrado'
+      });
+    }
+    
+    // Actualizar en base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: { contextFiles: updatedFiles }
+    });
+    
+    logger.info(`🗑️ Archivo ${fileId} eliminado para cliente ${req.client.id}`);
+    
+    return res.json({
+      success: true,
+      message: 'Archivo eliminado correctamente'
+    });
+  } catch (error) {
+    logger.error(`❌ Error eliminando archivo: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      error: 'Error eliminando el archivo'
+    });
+  }
+});
 
 // === ENDPOINTS PARA CLIENTES ===
 
