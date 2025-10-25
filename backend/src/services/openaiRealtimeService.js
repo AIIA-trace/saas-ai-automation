@@ -1314,6 +1314,17 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           // Actualizar timestamp de VAD activity
           if (connectionData) {
             connectionData.lastVadActivity = Date.now();
+            connectionData.speechStartedAt = Date.now();
+            
+            // 🛡️ TIMEOUT DE SEGURIDAD: Si no recibimos speech_stopped en 10s, forzar respuesta
+            if (connectionData.speechTimeout) {
+              clearTimeout(connectionData.speechTimeout);
+            }
+            connectionData.speechTimeout = setTimeout(() => {
+              logger.warn(`⚠️ [${streamSid}] TIMEOUT: speech_stopped no recibido en 10s - forzando respuesta`);
+              // Simular speech_stopped
+              this.createOpenAIResponse(streamSid);
+            }, 10000);
           }
           this.handleSpeechStartedEvent(streamSid);
           break;
@@ -1321,6 +1332,12 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
         case 'input_audio_buffer.speech_stopped':
           // ✅ UNIFICADO  
           logger.info(`🔇 [${streamSid}] VAD DETECTÓ FIN DE VOZ - Procesando...`);
+          
+          // 🛡️ Limpiar timeout de seguridad
+          if (connectionData.speechTimeout) {
+            clearTimeout(connectionData.speechTimeout);
+            connectionData.speechTimeout = null;
+          }
           
           // ✅ ENVIAR chunks restantes si hay (pueden quedar < 15 chunks sin enviar)
           if (connectionData.audioBuffer && connectionData.audioBuffer.length > 0) {
