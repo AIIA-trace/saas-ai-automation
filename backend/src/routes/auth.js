@@ -292,5 +292,72 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// Eliminar cuenta de usuario
+router.delete('/account', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    logger.info(`🗑️ Iniciando eliminación de cuenta para cliente ID: ${clientId}`);
+    
+    // 1. Obtener números de Twilio del cliente
+    const twilioNumbers = await prisma.twilioNumber.findMany({
+      where: { clientId: clientId }
+    });
+    
+    // 2. Liberar números de Twilio
+    if (twilioNumbers.length > 0) {
+      const twilioService = require('../services/twilioService');
+      
+      for (const twilioNumber of twilioNumbers) {
+        try {
+          logger.info(`📞 Liberando número de Twilio: ${twilioNumber.phoneNumber}`);
+          
+          // Liberar el número en Twilio (esto lo devuelve al pool de números disponibles)
+          await twilioService.releasePhoneNumber(twilioNumber.twilioSid);
+          
+          logger.info(`✅ Número ${twilioNumber.phoneNumber} liberado exitosamente`);
+        } catch (twilioError) {
+          logger.error(`❌ Error liberando número ${twilioNumber.phoneNumber}: ${twilioError.message}`);
+          // Continuar con la eliminación aunque falle liberar el número
+        }
+      }
+      
+      // 3. Eliminar registros de números de Twilio de la BD
+      await prisma.twilioNumber.deleteMany({
+        where: { clientId: clientId }
+      });
+      logger.info(`✅ Registros de números Twilio eliminados de BD`);
+    }
+    
+    // 4. Eliminar registros relacionados (en orden por dependencias)
+    await prisma.callerMemory.deleteMany({ where: { clientId: clientId } });
+    await prisma.analytics.deleteMany({ where: { clientId: clientId } });
+    await prisma.notification.deleteMany({ where: { clientId: clientId } });
+    await prisma.emailLog.deleteMany({ where: { clientId: clientId } });
+    await prisma.callLog.deleteMany({ where: { clientId: clientId } });
+    
+    logger.info(`✅ Registros relacionados eliminados`);
+    
+    // 5. Eliminar el cliente
+    await prisma.client.delete({
+      where: { id: clientId }
+    });
+    
+    logger.info(`✅ Cliente ${clientId} eliminado exitosamente`);
+    
+    return res.json({ 
+      message: 'Cuenta eliminada exitosamente',
+      success: true
+    });
+    
+  } catch (error) {
+    logger.error(`Error eliminando cuenta: ${error.message}`);
+    logger.error(`Stack trace: ${error.stack}`);
+    return res.status(500).json({ 
+      error: 'Error eliminando cuenta',
+      details: error.message 
+    });
+  }
+});
+
 // Exportar el router y el middleware de autenticación
 module.exports = { router, authenticate };
