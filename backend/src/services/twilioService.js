@@ -968,32 +968,59 @@ class TwilioService {
   }
   
   // Comprar nuevo número para un cliente
-  async purchaseNumber(clientId, areaCode, capabilities) {
+  async purchaseNumber(clientId, options = {}) {
     try {
+      // Extraer opciones con valores por defecto
+      const countryCode = options.countryCode || 'US';  // USA por defecto
+      const areaCode = options.areaCode || null;
+      const capabilities = options.capabilities || { voice: true };
+      
+      logger.info(`📞 Buscando números en ${countryCode}${areaCode ? ` (área ${areaCode})` : ''}`);
+      
       // Buscar números disponibles
       const searchParams = {
-        areaCode: areaCode || '34', // España por defecto
-        capabilities: capabilities || { voice: true },
+        capabilities: capabilities,
         limit: 1
       };
       
-      const availableNumbers = await this.client.availablePhoneNumbers('ES')
+      // Agregar área code solo si se especifica
+      if (areaCode) {
+        searchParams.areaCode = areaCode;
+      }
+      
+      const availableNumbers = await this.client.availablePhoneNumbers(countryCode)
                                                .local.list(searchParams);
       
       if (!availableNumbers || availableNumbers.length === 0) {
-        throw new Error('No hay números disponibles con los criterios especificados');
+        throw new Error(`No hay números disponibles en ${countryCode}${areaCode ? ` con área ${areaCode}` : ''}`);
       }
       
       // Comprar el primer número disponible
       const phoneNumberToBuy = availableNumbers[0].phoneNumber;
+      logger.info(`💰 Comprando número: ${phoneNumberToBuy}`);
+      
       const purchasedNumber = await this.client.incomingPhoneNumbers.create({
         phoneNumber: phoneNumberToBuy,
         friendlyName: `Cliente ${clientId}`,
-        voiceUrl: `${process.env.TWILIO_WEBHOOK_BASE_URL}/webhooks/call/natural/${clientId}`,
+        voiceUrl: `${process.env.TWILIO_WEBHOOK_BASE_URL}/api/twilio/webhook`,
         voiceMethod: 'POST',
-        voiceFallbackUrl: `${process.env.TWILIO_WEBHOOK_BASE_URL}/webhooks/fallback`,
+        voiceFallbackUrl: `${process.env.TWILIO_WEBHOOK_BASE_URL}/api/twilio/webhook`,
         voiceFallbackMethod: 'POST'
       });
+      
+      // Guardar en base de datos
+      await prisma.twilioNumber.create({
+        data: {
+          clientId: clientId,
+          phoneNumber: purchasedNumber.phoneNumber,
+          twilioSid: purchasedNumber.sid,
+          friendlyName: purchasedNumber.friendlyName,
+          status: 'active',
+          capabilities: purchasedNumber.capabilities
+        }
+      });
+      
+      logger.info(`✅ Número ${purchasedNumber.phoneNumber} comprado y guardado en BD`);
       
       return {
         success: true,
