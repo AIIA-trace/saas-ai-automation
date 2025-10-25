@@ -816,6 +816,20 @@ class TwilioStreamHandler {
             const classification = conversationHistory?.topics?.[0] || 'sin clasificar';
             const urgency = this.determineUrgency(conversationHistory?.summary || '', conversationHistory?.topics || []);
             
+            // 🔧 FIX: Reemplazar (tel: null) con el número real en el resumen
+            let aiSummary = conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`;
+            if (callerNumber && callerNumber !== 'Desconocido') {
+              // Reemplazar (tel: null) con el número real
+              aiSummary = aiSummary.replace(/\(tel:\s*null\)/gi, `(tel: ${callerNumber})`);
+              // Si no hay mención de teléfono en el resumen, agregarlo al inicio si hay nombre
+              if (!aiSummary.includes('tel:') && conversationHistory?.callerName) {
+                aiSummary = aiSummary.replace(
+                  new RegExp(`${conversationHistory.callerName}`, 'i'),
+                  `${conversationHistory.callerName} (tel: ${callerNumber})`
+                );
+              }
+            }
+            
             const callLogData = {
               clientId: streamData.client.id,
               twilioCallSid: callSid || null,
@@ -823,7 +837,7 @@ class TwilioStreamHandler {
               callerName: conversationHistory?.callerName || null,
               duration: Math.round(callDuration / 1000),
               status: 'completed',
-              aiSummary: conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`,
+              aiSummary: aiSummary,
               aiClassification: classification,
               callPurpose: conversationHistory?.topics?.[0] || null,
               contactInfo: conversationHistory?.callerCompany || null,
