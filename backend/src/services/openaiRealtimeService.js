@@ -1205,6 +1205,17 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
       logger.info(`🚀 [${streamSid}] Solicitud de respuesta texto-only enviada`);
       // Marcar que hay una respuesta en progreso (se limpiará en response.done)
       connectionData.activeResponseId = 'pending';
+      
+      // 🛡️ TIMEOUT DE SEGURIDAD: Si no recibimos response.done en 30s, limpiar el flag
+      if (connectionData.responseTimeout) {
+        clearTimeout(connectionData.responseTimeout);
+      }
+      connectionData.responseTimeout = setTimeout(() => {
+        if (connectionData.activeResponseId) {
+          logger.warn(`⚠️ [${streamSid}] TIMEOUT: response.done no recibido en 30s - limpiando activeResponseId`);
+          connectionData.activeResponseId = null;
+        }
+      }, 30000);
     } catch (error) {
       logger.error(`❌ [${streamSid}] Error enviando response.create: ${error.message}`);
     }
@@ -1452,6 +1463,12 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           if (this.responseTimeouts.has(streamSid)) {
             clearTimeout(this.responseTimeouts.get(streamSid));
             this.responseTimeouts.delete(streamSid);
+          }
+          
+          // 🛡️ Limpiar timeout de seguridad de activeResponseId
+          if (connectionData.responseTimeout) {
+            clearTimeout(connectionData.responseTimeout);
+            connectionData.responseTimeout = null;
           }
           
           // 🔍 DEBUG: ANALIZAR RESPUESTA OPENAI para logs
