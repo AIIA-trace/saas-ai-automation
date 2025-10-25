@@ -814,6 +814,12 @@ class TwilioStreamHandler {
             // Obtener número de teléfono del llamante
             const callerNumber = streamData?.callerPhone || 'Desconocido';
             
+            // 🔍 DEBUG CRÍTICO: Verificar de dónde viene el número
+            logger.warn(`🔍 [${correlationId}] GUARDANDO CALLLOG:`);
+            logger.warn(`🔍 [${correlationId}]   - streamData.callerPhone: ${streamData?.callerPhone}`);
+            logger.warn(`🔍 [${correlationId}]   - callerNumber final: ${callerNumber}`);
+            logger.warn(`🔍 [${correlationId}]   - streamData keys: ${Object.keys(streamData || {}).join(', ')}`);
+            
             // Determinar tipo de contacto basado en empresa
             const contactType = conversationHistory?.callerCompany ? 'Cliente' : 'Prospecto';
             
