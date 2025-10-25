@@ -1016,7 +1016,7 @@ class TwilioService {
           twilioSid: purchasedNumber.sid,
           friendlyName: purchasedNumber.friendlyName,
           status: 'active',
-          capabilities: purchasedNumber.capabilities
+          capabilities: JSON.stringify(purchasedNumber.capabilities)
         }
       });
       
