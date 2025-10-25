@@ -1991,7 +1991,7 @@ function createBillingTabContent() {
                                     </div>
                                     <div class="card-body p-3">
                                         <div class="row g-3">
-                                            <div class="col-md-4">
+                                            <div class="col-md-6">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <small class="text-muted">Llamadas</small>
                                                     <small class="text-muted" id="plan-usage-calls-count">0 / 1.000</small>
@@ -2000,22 +2000,13 @@ function createBillingTabContent() {
                                                     <div class="progress-bar bg-primary" id="plan-usage-calls-progress" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-6">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <small class="text-muted">Emails</small>
                                                     <small class="text-muted" id="plan-usage-emails-count">0 / 5.000</small>
                                                 </div>
                                                 <div class="progress" style="height: 8px;">
                                                     <div class="progress-bar bg-success" id="plan-usage-emails-progress" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <small class="text-muted">Usuarios</small>
-                                                    <small class="text-muted" id="plan-usage-users-count">1 / 5</small>
-                                                </div>
-                                                <div class="progress" style="height: 8px;">
-                                                    <div class="progress-bar bg-warning" id="plan-usage-users-progress" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -8964,7 +8955,19 @@ function showRemovePaymentMethodConfirmation() {
         confirmButton.addEventListener('click', function() {
             removePaymentMethod();
             const modal = bootstrap.Modal.getInstance(confirmModal);
-            modal.hide();
+            if (modal) {
+                modal.hide();
+                // Asegurar que el backdrop se elimine
+                setTimeout(() => {
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    document.body.classList.remove('modal-open');
+                    document.body.style.removeProperty('overflow');
+                    document.body.style.removeProperty('padding-right');
+                }, 300);
+            }
         });
     }
     

@@ -233,14 +233,34 @@ function updateUsageUI() {
         emailsProgress.setAttribute('aria-valuenow', emailsPercentage);
     }
     
-    // Actualizar contadores de usuarios
-    const usersCount = document.querySelector('#plan-usage-users-count');
-    const usersProgress = document.querySelector('#plan-usage-users-progress');
-    if (usersCount && usersProgress) {
-        const usersPercentage = limits.users === Infinity ? 0 : Math.min(100, (data.usage.users / limits.users) * 100);
-        usersCount.textContent = `${data.usage.users} / ${limits.users === Infinity ? '∞' : limits.users}`;
-        usersProgress.style.width = `${usersPercentage}%`;
-        usersProgress.setAttribute('aria-valuenow', usersPercentage);
+    // Obtener contador real de llamadas desde el backend
+    fetchRealCallCount();
+}
+
+/**
+ * Obtiene el contador real de llamadas desde el backend
+ */
+async function fetchRealCallCount() {
+    try {
+        const response = await window.ApiHelper.fetchApi({ url: '/api/logs/calls', auth: 'jwt' }, { method: 'GET' });
+        const callsData = response.data || response;
+        const realCallCount = callsData.length || 0;
+        
+        // Actualizar el contador con datos reales
+        const callsCount = document.querySelector('#plan-usage-calls-count');
+        const callsProgress = document.querySelector('#plan-usage-calls-progress');
+        const limits = getCurrentPlanLimits();
+        
+        if (callsCount && callsProgress) {
+            const callsPercentage = limits.calls === Infinity ? 0 : Math.min(100, (realCallCount / limits.calls) * 100);
+            callsCount.textContent = `${realCallCount} / ${limits.calls === Infinity ? '∞' : limits.calls.toLocaleString()}`;
+            callsProgress.style.width = `${callsPercentage}%`;
+            callsProgress.setAttribute('aria-valuenow', callsPercentage);
+        }
+        
+        console.log(`📊 Contador real de llamadas actualizado: ${realCallCount}`);
+    } catch (error) {
+        console.error('❌ Error obteniendo contador de llamadas:', error);
     }
 }
 
