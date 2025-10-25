@@ -312,7 +312,7 @@ router.delete('/account', authenticate, async (req, res) => {
           logger.info(`📞 Liberando número de Twilio: ${twilioNumber.phoneNumber}`);
           
           // Liberar el número en Twilio (esto lo devuelve al pool de números disponibles)
-          await twilioService.releasePhoneNumber(twilioNumber.twilioSid);
+          await twilioService.releaseNumber(twilioNumber.twilioSid);
           
           logger.info(`✅ Número ${twilioNumber.phoneNumber} liberado exitosamente`);
         } catch (twilioError) {
