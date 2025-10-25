@@ -598,12 +598,18 @@ class TwilioStreamHandler {
       // Obtener número del llamante desde customParameters
       let streamData = this.activeStreams.get(streamSid);
       
+      // 🔍 DEBUG: Mostrar TODOS los customParameters
+      logger.info(`🔍 [${streamSid}] DEBUG customParameters completos:`);
+      logger.info(`🔍 [${streamSid}] ${JSON.stringify(data.start?.customParameters, null, 2)}`);
+      
       const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
       
       // ⚠️ VALIDACIÓN ESTRICTA DEL NÚMERO
       if (!callerPhone) {
         logger.error(`❌ [${streamSid}] CRÍTICO: No se pudo detectar número del llamante`);
-        logger.error(`❌ [${streamSid}] customParameters: ${JSON.stringify(data.start?.customParameters)}`);
+        logger.error(`❌ [${streamSid}] customParameters.From: ${data.start?.customParameters?.From}`);
+        logger.error(`❌ [${streamSid}] customParameters.from: ${data.start?.customParameters?.from}`);
+        logger.error(`❌ [${streamSid}] Todas las keys: ${Object.keys(data.start?.customParameters || {}).join(', ')}`);
         logger.error(`❌ [${streamSid}] NO SE CARGARÁ MEMORIA - Bot responderá como cliente nuevo`);
       } else {
         logger.info(`✅ [${streamSid}] Número del llamante detectado: ${callerPhone}`);
