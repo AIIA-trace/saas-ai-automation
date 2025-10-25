@@ -1663,18 +1663,18 @@ Web: {WEB}</textarea>
                                 <div class="card-body">
                                     <div class="row g-3">
                                         <div class="col-12">
-                                            <p class="text-muted mb-3">Sube archivos que proporcionen contexto adicional al bot sobre tu empresa, productos o servicios.</p>
+                                            <p class="text-muted mb-3">Sube un archivo que proporcione contexto adicional al bot sobre tu empresa, productos o servicios.</p>
                                             
                                             <!-- Zona de subida de archivos -->
                                             <div class="card border-2 border-dashed border-primary bg-light mb-3" id="file-upload-area">
                                                 <div class="card-body text-center py-4">
                                                     <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
-                                                    <h6 class="mb-2">Arrastra archivos aquí o haz clic para seleccionar</h6>
+                                                    <h6 class="mb-2">Arrastra un archivo aquí o haz clic para seleccionar</h6>
                                                     <p class="text-muted mb-3">Formatos admitidos: PDF, DOCX, TXT</p>
-                                                    <p class="text-muted small mb-3">Máximo 5 archivos • 10MB por archivo</p>
-                                                    <input type="file" id="context-files" name="context_files" multiple accept=".pdf,.docx,.txt" class="d-none">
+                                                    <p class="text-muted small mb-3"><strong>Solo se permite 1 archivo</strong> • 10MB máximo</p>
+                                                    <input type="file" id="context-files" name="context_files" accept=".pdf,.docx,.txt" class="d-none">
                                                     <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('context-files').click()">
-                                                        <i class="fas fa-plus me-2"></i>Seleccionar archivos
+                                                        <i class="fas fa-plus me-2"></i>Seleccionar archivo
                                                     </button>
                                                 </div>
                                             </div>
@@ -7928,7 +7928,7 @@ function handleFileSelection(event) {
         addFilesToList(validFiles);
         updateFilesList();
         
-        toastr.success(`${validFiles.length} archivo(s) agregado(s) correctamente`, 'Archivos de Contexto');
+        toastr.success('Archivo agregado correctamente', 'Archivo de Contexto');
     }
     
     // Limpiar input
@@ -7940,17 +7940,23 @@ function handleFileSelection(event) {
  */
 function validateFiles(files) {
     const validFiles = [];
-    const maxFiles = 5;
+    const maxFiles = 1; // Solo se permite 1 archivo
     const maxSize = 10 * 1024 * 1024; // 10MB
     const allowedTypes = ['.pdf', '.docx', '.txt'];
     
     // Obtener archivos actuales
     const currentFiles = getUploadedFiles();
     
+    // Si ya hay un archivo, no permitir más
+    if (currentFiles.length >= maxFiles) {
+        toastr.warning('Solo se permite 1 archivo. Elimina el archivo actual para subir uno nuevo.', 'Límite alcanzado');
+        return [];
+    }
+    
     for (let file of files) {
         // Verificar número máximo de archivos
         if (currentFiles.length + validFiles.length >= maxFiles) {
-            toastr.warning(`Máximo ${maxFiles} archivos permitidos`, 'Límite de archivos');
+            toastr.warning('Solo se permite 1 archivo', 'Límite de archivos');
             break;
         }
         
