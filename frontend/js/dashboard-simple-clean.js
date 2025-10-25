@@ -2761,16 +2761,57 @@ function toggleCheckbox(checkbox) {
     if (!checkbox) return;
     
     // Alternar la clase 'checked'
+    const wasChecked = checkbox.classList.contains('checked');
     checkbox.classList.toggle('checked');
+    const isNowChecked = checkbox.classList.contains('checked');
     
     // Si está dentro de una fila de llamada, actualizar el estado gestionado
     const callRow = checkbox.closest('.call-row');
     if (callRow) {
         const callId = callRow.dataset.id;
         if (callId) {
-            markCallAsManaged(parseInt(callId));
+            // Actualizar en el backend
+            updateCallManagedStatus(parseInt(callId), isNowChecked);
+            
+            // Actualizar UI local
+            if (isNowChecked) {
+                callRow.classList.add('managed');
+                toastr.success(`Llamada #${callId} marcada como gestionada`, 'Estado actualizado');
+            } else {
+                callRow.classList.remove('managed');
+                toastr.info(`Llamada #${callId} marcada como pendiente`, 'Estado actualizado');
+            }
         }
     }
+}
+
+/**
+ * Actualizar estado gestionado de una llamada en el backend
+ * @param {number} callId - ID de la llamada
+ * @param {boolean} managed - Estado gestionado (true/false)
+ */
+function updateCallManagedStatus(callId, managed) {
+    // Obtener token de autenticación
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error('❌ No se encontró token de autenticación');
+        toastr.error('Error de autenticación', 'Error');
+        return;
+    }
+    
+    // Enviar actualización al backend
+    window.ApiHelper.fetchApi({ url: `/api/calls/${callId}/status`, auth: 'jwt' }, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ managed })
+    })
+    .then(response => {
+        console.log(`✅ Estado de llamada ${callId} actualizado en backend: ${managed}`);
+    })
+    .catch(error => {
+        console.error(`❌ Error actualizando llamada ${callId}:`, error);
+        toastr.error('Error al actualizar el estado', 'Error');
+    });
 }
 
 /**
