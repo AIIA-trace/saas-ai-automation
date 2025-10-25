@@ -3312,9 +3312,9 @@ router.post('/email/templates', authenticate, async (req, res) => {
 // ============================================
 // ENDPOINT: Obtener uso mensual del plan
 // ============================================
-router.get('/usage/monthly', authService.authenticateToken, async (req, res) => {
+router.get('/usage/monthly', authenticate, async (req, res) => {
   try {
-    const clientId = req.user.id;
+    const clientId = req.client.id;
     
     // Obtener el primer y último día del mes actual
     const now = new Date();
