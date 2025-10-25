@@ -238,29 +238,44 @@ function updateUsageUI() {
 }
 
 /**
- * Obtiene el contador real de llamadas desde el backend
+ * Obtiene el uso mensual real desde el backend (llamadas y emails)
  */
 async function fetchRealCallCount() {
     try {
-        const response = await window.ApiHelper.fetchApi({ url: '/api/logs/calls', auth: 'jwt' }, { method: 'GET' });
-        const callsData = response.data || response;
-        const realCallCount = callsData.length || 0;
+        const response = await window.ApiHelper.fetchApi({ url: '/api/usage/monthly', auth: 'jwt' }, { method: 'GET' });
         
-        // Actualizar el contador con datos reales
+        if (!response.success) {
+            console.error('❌ Error en respuesta de uso mensual');
+            return;
+        }
+        
+        const { usage, limits } = response;
+        
+        // Actualizar contador de llamadas
         const callsCount = document.querySelector('#plan-usage-calls-count');
         const callsProgress = document.querySelector('#plan-usage-calls-progress');
-        const limits = getCurrentPlanLimits();
         
         if (callsCount && callsProgress) {
-            const callsPercentage = limits.calls === Infinity ? 0 : Math.min(100, (realCallCount / limits.calls) * 100);
-            callsCount.textContent = `${realCallCount} / ${limits.calls === Infinity ? '∞' : limits.calls.toLocaleString()}`;
+            const callsPercentage = limits.calls === Infinity ? 0 : Math.min(100, (usage.calls / limits.calls) * 100);
+            callsCount.textContent = `${usage.calls} / ${limits.calls === Infinity ? '∞' : limits.calls.toLocaleString()}`;
             callsProgress.style.width = `${callsPercentage}%`;
             callsProgress.setAttribute('aria-valuenow', callsPercentage);
         }
         
-        console.log(`📊 Contador real de llamadas actualizado: ${realCallCount}`);
+        // Actualizar contador de emails
+        const emailsCount = document.querySelector('#plan-usage-emails-count');
+        const emailsProgress = document.querySelector('#plan-usage-emails-progress');
+        
+        if (emailsCount && emailsProgress) {
+            const emailsPercentage = limits.emails === Infinity ? 0 : Math.min(100, (usage.emails / limits.emails) * 100);
+            emailsCount.textContent = `${usage.emails} / ${limits.emails === Infinity ? '∞' : limits.emails.toLocaleString()}`;
+            emailsProgress.style.width = `${emailsPercentage}%`;
+            emailsProgress.setAttribute('aria-valuenow', emailsPercentage);
+        }
+        
+        console.log(`📊 Uso mensual actualizado - Llamadas: ${usage.calls}, Emails: ${usage.emails}`);
     } catch (error) {
-        console.error('❌ Error obteniendo contador de llamadas:', error);
+        console.error('❌ Error obteniendo uso mensual:', error);
     }
 }
 

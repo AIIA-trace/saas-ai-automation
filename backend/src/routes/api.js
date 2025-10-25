@@ -3309,5 +3309,75 @@ router.post('/email/templates', authenticate, async (req, res) => {
   }
 });
 
+// ============================================
+// ENDPOINT: Obtener uso mensual del plan
+// ============================================
+router.get('/usage/monthly', authService.authenticateToken, async (req, res) => {
+  try {
+    const clientId = req.user.id;
+    
+    // Obtener el primer y último día del mes actual
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    
+    // Contar llamadas del mes actual (desde CallLog)
+    const callsCount = await prisma.callLog.count({
+      where: {
+        clientId: clientId,
+        createdAt: {
+          gte: firstDayOfMonth,
+          lte: lastDayOfMonth
+        }
+      }
+    });
+    
+    // Contar emails del mes actual (desde EmailLog)
+    const emailsCount = await prisma.emailLog.count({
+      where: {
+        clientId: clientId,
+        createdAt: {
+          gte: firstDayOfMonth,
+          lte: lastDayOfMonth
+        }
+      }
+    });
+    
+    // Obtener límites del plan actual
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { subscriptionPlan: true }
+    });
+    
+    const planLimits = {
+      basic: { calls: 1000, emails: 5000 },
+      professional: { calls: 5000, emails: 20000 },
+      enterprise: { calls: Infinity, emails: Infinity }
+    };
+    
+    const limits = planLimits[client.subscriptionPlan] || planLimits.basic;
+    
+    return res.json({
+      success: true,
+      usage: {
+        calls: callsCount,
+        emails: emailsCount
+      },
+      limits: limits,
+      period: {
+        start: firstDayOfMonth.toISOString(),
+        end: lastDayOfMonth.toISOString()
+      }
+    });
+    
+  } catch (error) {
+    logger.error(`Error obteniendo uso mensual: ${error.message}`);
+    return res.status(500).json({ 
+      error: 'Error obteniendo uso mensual',
+      success: false
+    });
+  }
+});
+
 
 module.exports = router;
