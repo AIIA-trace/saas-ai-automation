@@ -25,7 +25,7 @@ router.get('/my-numbers', authenticate, async (req, res) => {
                 id: true,
                 phoneNumber: true,
                 friendlyName: true,
-                sid: true,
+                twilioSid: true,
                 status: true,
                 capabilities: true,
                 createdAt: true
