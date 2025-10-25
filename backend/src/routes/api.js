@@ -1992,7 +1992,7 @@ router.get('/logs/calls', authenticate, async (req, res) => {
         callerName: callerNameDisplay,  // ← NUEVO: Nombre de la persona
         contactType: companyDisplay,     // ← CAMBIADO: Ahora es la empresa
         summary: call.aiSummary || 'Sin resumen',
-        details: call.aiSummary || 'Sin detalles',
+        details: '',  // ← FIX: Eliminar duplicación del resumen
         duration: durationFormatted,
         classification: call.aiClassification || 'sin clasificar',
         urgency: metadata.urgency || call.urgencyLevel || 'normal',
