@@ -1400,8 +1400,8 @@ function createCallConfigTabContent() {
                                                         <label class="form-check-label" for="call_bot_active">Bot de Llamadas Activo</label>
                                                     </div>
                                                     
-                                                    <!-- Número Twilio Asignado -->
-                                                    <div id="twilio-number-section" class="mt-3" style="display: none;">
+                                                    <!-- Número Twilio Asignado - SIEMPRE VISIBLE -->
+                                                    <div id="twilio-number-section" class="mt-3">
                                                         <div class="mb-3">
                                                             <label for="assigned_twilio_number" class="form-label">Número Twilio Asignado</label>
                                                             <div class="input-group">
@@ -3596,20 +3596,29 @@ function loadCallConfiguration() {
         console.log('🎥 Grabación automática habilitada para N8N');
         console.log('📝 Transcripción automática habilitada para N8N');
         
-        // Cargar número de Twilio asignado
+        // Cargar número de Twilio asignado en el campo del formulario
         if (clientData.twilioNumbers && clientData.twilioNumbers.length > 0) {
             const twilioNumber = clientData.twilioNumbers[0].phoneNumber;
-            const twilioPhoneElement = document.getElementById('twilio-phone-number');
-            if (twilioPhoneElement) {
-                twilioPhoneElement.textContent = twilioNumber;
-                console.log('📞 Número de Twilio cargado:', twilioNumber);
+            
+            // Actualizar campo del formulario
+            const assignedTwilioInput = document.getElementById('assigned_twilio_number');
+            if (assignedTwilioInput) {
+                assignedTwilioInput.value = twilioNumber;
+                assignedTwilioInput.className = 'form-control fw-bold text-success';
+                
+                // Habilitar botón de copiar
+                const copyBtn = document.getElementById('copy-twilio-number');
+                if (copyBtn) {
+                    copyBtn.disabled = false;
+                }
+                
+                console.log('📞 Número de Twilio cargado en formulario:', twilioNumber);
             }
         } else {
-            const twilioPhoneElement = document.getElementById('twilio-phone-number');
-            if (twilioPhoneElement) {
-                twilioPhoneElement.textContent = 'No asignado';
-                twilioPhoneElement.classList.remove('bg-primary');
-                twilioPhoneElement.classList.add('bg-secondary');
+            const assignedTwilioInput = document.getElementById('assigned_twilio_number');
+            if (assignedTwilioInput) {
+                assignedTwilioInput.value = 'No asignado';
+                assignedTwilioInput.className = 'form-control text-muted';
                 console.warn('⚠️ No hay número de Twilio asignado');
             }
         }
