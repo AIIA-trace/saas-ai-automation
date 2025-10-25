@@ -131,9 +131,10 @@ class AuthService {
         
         // Comprar número usando el servicio de Twilio
         // purchaseNumber(clientId, options) donde options = { countryCode, areaCode }
+        // Usar mismo país/área que número de ejemplo: +16672209354 (Maryland, USA)
         const purchaseResult = await twilioService.purchaseNumber(client.id, {
-          countryCode: 'ES',  // España
-          areaCode: null
+          countryCode: 'US',  // Estados Unidos
+          areaCode: '667'     // Maryland (mismo que número de ejemplo)
         });
         
         if (purchaseResult.success) {
