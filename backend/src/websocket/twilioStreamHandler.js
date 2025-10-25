@@ -558,21 +558,6 @@ class TwilioStreamHandler {
     logger.info(`🔍 [${streamSid}] customParameters recibidos: ${JSON.stringify(data.start?.customParameters)}`);
     logger.info(`🎯 [${streamSid}] ClientId extraído: ${clientId || 'NO DISPONIBLE'}`);
 
-    // 📞 EXTRAER Y GUARDAR NÚMERO DEL LLAMANTE INMEDIATAMENTE
-    const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
-    if (!callerPhone) {
-      logger.error(`❌ [${streamSid}] CRÍTICO: No se pudo detectar número del llamante`);
-      logger.error(`❌ [${streamSid}] customParameters: ${JSON.stringify(data.start?.customParameters)}`);
-    } else {
-      logger.info(`✅ [${streamSid}] Número del llamante detectado: ${callerPhone}`);
-      // 💾 Guardar número de teléfono en streamData INMEDIATAMENTE
-      const streamData = this.activeStreams.get(streamSid);
-      if (streamData) {
-        streamData.callerPhone = callerPhone;
-        logger.info(`💾 [${streamSid}] callerPhone guardado en streamData: ${callerPhone}`);
-      }
-    }
-
     // 🚀 VERIFICAR SI HAY SESIÓN PRE-INICIALIZADA
     const preSessionId = `pre_${callSid}`;
     const hasPreInitSession = this.openaiRealtimeService.activeConnections.has(preSessionId);
@@ -610,7 +595,23 @@ class TwilioStreamHandler {
     
     // Obtener cliente, memoria del llamante y enviar saludo UNA SOLA VEZ
     this.getClientForStream(streamSid, callSid, clientId).then(async () => {
+      // Obtener número del llamante desde customParameters
       let streamData = this.activeStreams.get(streamSid);
+      
+      const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
+      
+      // ⚠️ VALIDACIÓN ESTRICTA DEL NÚMERO
+      if (!callerPhone) {
+        logger.error(`❌ [${streamSid}] CRÍTICO: No se pudo detectar número del llamante`);
+        logger.error(`❌ [${streamSid}] customParameters: ${JSON.stringify(data.start?.customParameters)}`);
+        logger.error(`❌ [${streamSid}] NO SE CARGARÁ MEMORIA - Bot responderá como cliente nuevo`);
+      } else {
+        logger.info(`✅ [${streamSid}] Número del llamante detectado: ${callerPhone}`);
+        // 💾 Guardar número de teléfono en streamData para usarlo después
+        if (streamData) {
+          streamData.callerPhone = callerPhone;
+        }
+      }
       
       logger.info(`🏢 [${streamSid}] Cliente ID: ${streamData?.client?.id || 'NO DISPONIBLE'}`);
       
@@ -805,8 +806,7 @@ class TwilioStreamHandler {
         if (streamData?.client?.id) {
           try {
             // Obtener número de teléfono del llamante
-            // Prioridad: 1) streamData.callerPhone, 2) extraído del resumen, 3) 'Desconocido'
-            const callerNumber = streamData?.callerPhone || conversationHistory?.callerPhone || 'Desconocido';
+            const callerNumber = streamData?.callerPhone || 'Desconocido';
             
             // Determinar tipo de contacto basado en empresa
             const contactType = conversationHistory?.callerCompany ? 'Cliente' : 'Prospecto';
@@ -815,20 +815,6 @@ class TwilioStreamHandler {
             const classification = conversationHistory?.topics?.[0] || 'sin clasificar';
             const urgency = this.determineUrgency(conversationHistory?.summary || '', conversationHistory?.topics || []);
             
-            // 🔧 FIX: Reemplazar (tel: null) con el número real en el resumen
-            let aiSummary = conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`;
-            if (callerNumber && callerNumber !== 'Desconocido') {
-              // Reemplazar (tel: null) con el número real
-              aiSummary = aiSummary.replace(/\(tel:\s*null\)/gi, `(tel: ${callerNumber})`);
-              // Si no hay mención de teléfono en el resumen, agregarlo al inicio si hay nombre
-              if (!aiSummary.includes('tel:') && conversationHistory?.callerName) {
-                aiSummary = aiSummary.replace(
-                  new RegExp(`${conversationHistory.callerName}`, 'i'),
-                  `${conversationHistory.callerName} (tel: ${callerNumber})`
-                );
-              }
-            }
-            
             const callLogData = {
               clientId: streamData.client.id,
               twilioCallSid: callSid || null,
@@ -836,7 +822,7 @@ class TwilioStreamHandler {
               callerName: conversationHistory?.callerName || null,
               duration: Math.round(callDuration / 1000),
               status: 'completed',
-              aiSummary: aiSummary,
+              aiSummary: conversationHistory?.summary || `Llamada de ${Math.round(callDuration / 1000)}s`,
               aiClassification: classification,
               callPurpose: conversationHistory?.topics?.[0] || null,
               contactInfo: conversationHistory?.callerCompany || null,

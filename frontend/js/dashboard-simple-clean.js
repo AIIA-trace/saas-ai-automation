@@ -2537,7 +2537,7 @@ function createCallRow(call) {
             <div class="text-muted small">${call.contactType || 'undefined'}</div>
         </td>
         <td>
-            <div class="fw-medium text-dark mb-2" style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${call.summary}</div>
+            <div class="text-muted small" style="line-height: 1.4; word-wrap: break-word; white-space: normal;">${call.summary}</div>
             <div class="text-muted small" style="line-height: 1.4; word-wrap: break-word; white-space: normal;">${call.details}</div>
         </td>
         <td class="text-center">
