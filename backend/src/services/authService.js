@@ -124,6 +124,34 @@ class AuthService {
       
       logger.info(`Cliente creado exitosamente con ID: ${client.id}`);
       
+      // Asignar número de Twilio automáticamente
+      try {
+        logger.info(`📞 Asignando número de Twilio para cliente ${client.id}...`);
+        const twilioService = require('./twilioService');
+        
+        // Buscar números disponibles en España (+34)
+        const availableNumbers = await twilioService.searchAvailableNumbers('ES', null);
+        
+        if (availableNumbers && availableNumbers.length > 0) {
+          // Comprar el primer número disponible
+          const phoneNumber = availableNumbers[0].phoneNumber;
+          logger.info(`📞 Comprando número: ${phoneNumber}`);
+          
+          const purchaseResult = await twilioService.purchasePhoneNumber(phoneNumber, client.id);
+          
+          if (purchaseResult.success) {
+            logger.info(`✅ Número de Twilio asignado exitosamente: ${phoneNumber}`);
+          } else {
+            logger.error(`❌ Error comprando número de Twilio: ${purchaseResult.error}`);
+          }
+        } else {
+          logger.warn(`⚠️ No hay números de Twilio disponibles en España`);
+        }
+      } catch (twilioError) {
+        logger.error(`❌ Error asignando número de Twilio: ${twilioError.message}`);
+        // No fallar el registro si falla la asignación de Twilio
+      }
+      
       // Generar token
       logger.info('Generando token JWT...');
       const token = await this.generateToken(client);

@@ -810,7 +810,17 @@ router.get('/client', authenticate, async (req, res) => {
         
         // FAQs y archivos de contexto
         faqs: true,
-        contextFiles: true
+        contextFiles: true,
+        
+        // Números de Twilio asignados
+        twilioNumbers: {
+          select: {
+            id: true,
+            phoneNumber: true,
+            friendlyName: true,
+            status: true
+          }
+        }
       }
     });
     
@@ -882,6 +892,9 @@ router.get('/client', authenticate, async (req, res) => {
 
       // Configuración de horarios comerciales
       businessHours: client.businessHours || null,
+      
+      // Números de Twilio asignados
+      twilioNumbers: client.twilioNumbers || [],
       
       // Datos de suscripción
       subscription: {
