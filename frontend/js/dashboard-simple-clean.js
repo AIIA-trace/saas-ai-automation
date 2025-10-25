@@ -3318,16 +3318,37 @@ function setupEventListeners() {
             saveUnifiedConfig()
                 .then(() => {
                     console.log('✅ Configuración guardada exitosamente desde handleSaveConfig');
+                    
+                    // Mostrar estado de éxito
+                    saveButtons.forEach(btn => {
+                        if (btn) {
+                            btn.disabled = true;
+                            btn.innerHTML = '<i class="fas fa-check me-2"></i>Guardado';
+                            btn.classList.remove('btn-primary');
+                            btn.classList.add('btn-success');
+                        }
+                    });
+                    
+                    // Volver al estado original después de 2 segundos
+                    setTimeout(() => {
+                        saveButtons.forEach(btn => {
+                            if (btn) {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar';
+                                btn.classList.remove('btn-success');
+                                btn.classList.add('btn-primary');
+                            }
+                        });
+                    }, 2000);
                 })
                 .catch((error) => {
                     console.error('❌ Error guardando configuración desde handleSaveConfig:', error);
-                })
-                .finally(() => {
-                    // Rehabilitar botones
+                    
+                    // Rehabilitar botones en caso de error
                     saveButtons.forEach(btn => {
                         if (btn) {
                             btn.disabled = false;
-                            btn.innerHTML = '<i class="fas fa-save"></i> Guardar Configuración';
+                            btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar';
                         }
                     });
                 });
