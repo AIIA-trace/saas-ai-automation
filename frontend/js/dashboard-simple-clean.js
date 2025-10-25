@@ -1250,34 +1250,6 @@ function createCallConfigTabContent() {
                     <div class="card-body">
                         <!-- Contenido de Configuración del Bot -->
                         <form id="unified-bot-config-form">
-                            
-                            <!-- Sección: Número de Twilio e Instrucciones -->
-                            <div class="alert alert-primary border-0 shadow-sm mb-4" role="alert">
-                                <div class="d-flex align-items-start">
-                                    <div class="flex-shrink-0">
-                                        <i class="fas fa-phone-alt fa-2x text-primary"></i>
-                                    </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h6 class="alert-heading mb-2">
-                                            <i class="fas fa-info-circle me-1"></i>Número de Twilio Asignado
-                                        </h6>
-                                        <p class="mb-2">
-                                            <strong>Tu número de bot:</strong> 
-                                            <span class="badge bg-primary fs-6 ms-2" id="twilio-phone-number">Cargando...</span>
-                                        </p>
-                                        <hr class="my-2">
-                                        <p class="mb-2 small">
-                                            <i class="fas fa-arrow-right me-1 text-primary"></i>
-                                            <strong>Configuración necesaria:</strong> Redirige las llamadas de tu número de atención al cliente al número de Twilio mostrado arriba para que el bot pueda atenderlas.
-                                        </p>
-                                        <div class="alert alert-warning mb-0 mt-2" role="alert">
-                                            <i class="fas fa-lightbulb me-1"></i>
-                                            <small><strong>Nota:</strong> El bot necesita algunas llamadas iniciales para optimizar su contexto y mejorar la calidad de las respuestas. El rendimiento mejorará progresivamente con el uso.</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
                             <!-- Sección: Información de la empresa -->
                             <div class="card mb-4 border-0 shadow-sm">
                                 <div class="card-header bg-light">
@@ -1448,10 +1420,17 @@ function createCallConfigTabContent() {
                                                             </small>
                                                         </div>
                                                         
-                                                        <div class="alert alert-info py-2 px-3 mb-0">
+                                                        <div class="alert alert-info py-2 px-3 mb-2">
                                                             <small>
                                                                 <i class="fas fa-info-circle me-1"></i>
                                                                 <strong>Tranquilo:</strong> Conservas tu número actual. Los clientes seguirán llamando a tu número habitual, pero el bot responderá automáticamente.
+                                                            </small>
+                                                        </div>
+                                                        
+                                                        <div class="alert alert-success py-2 px-3 mb-0">
+                                                            <small>
+                                                                <i class="fas fa-lightbulb me-1"></i>
+                                                                <strong>Nota:</strong> El bot necesita algunas llamadas iniciales para optimizar su contexto y mejorar la calidad de las respuestas. El rendimiento mejorará progresivamente con el uso.
                                                             </small>
                                                         </div>
                                                     </div>
