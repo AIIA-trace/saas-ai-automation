@@ -1042,10 +1042,6 @@ function createCallsTabContent() {
                                                     <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-gestionadas">
                                                     <label class="form-check-label" for="filter-calls-gestionadas">Gestionadas</label>
                                                 </div>
-                                                <div class="filter-option">
-                                                    <input class="form-check-input" type="radio" name="call-filter" id="filter-calls-importantes">
-                                                    <label class="form-check-label" for="filter-calls-importantes">Importantes</label>
-                                                </div>
                                             </div>
                                         </div>
                                         <div class="col-md-5 text-md-end mt-2 mt-md-0">
@@ -1136,10 +1132,6 @@ function createEmailsTabContent() {
                                         <div class="filter-option">
                                             <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-unread">
                                             <label class="form-check-label" for="filter-emails-unread">No leídos</label>
-                                        </div>
-                                        <div class="filter-option">
-                                            <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-important">
-                                            <label class="form-check-label" for="filter-emails-important">Importantes</label>
                                         </div>
                                         <div class="filter-option">
                                             <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-spam">
