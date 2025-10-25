@@ -558,6 +558,21 @@ class TwilioStreamHandler {
     logger.info(`🔍 [${streamSid}] customParameters recibidos: ${JSON.stringify(data.start?.customParameters)}`);
     logger.info(`🎯 [${streamSid}] ClientId extraído: ${clientId || 'NO DISPONIBLE'}`);
 
+    // 📞 EXTRAER Y GUARDAR NÚMERO DEL LLAMANTE INMEDIATAMENTE
+    const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
+    if (!callerPhone) {
+      logger.error(`❌ [${streamSid}] CRÍTICO: No se pudo detectar número del llamante`);
+      logger.error(`❌ [${streamSid}] customParameters: ${JSON.stringify(data.start?.customParameters)}`);
+    } else {
+      logger.info(`✅ [${streamSid}] Número del llamante detectado: ${callerPhone}`);
+      // 💾 Guardar número de teléfono en streamData INMEDIATAMENTE
+      const streamData = this.activeStreams.get(streamSid);
+      if (streamData) {
+        streamData.callerPhone = callerPhone;
+        logger.info(`💾 [${streamSid}] callerPhone guardado en streamData: ${callerPhone}`);
+      }
+    }
+
     // 🚀 VERIFICAR SI HAY SESIÓN PRE-INICIALIZADA
     const preSessionId = `pre_${callSid}`;
     const hasPreInitSession = this.openaiRealtimeService.activeConnections.has(preSessionId);
@@ -595,23 +610,7 @@ class TwilioStreamHandler {
     
     // Obtener cliente, memoria del llamante y enviar saludo UNA SOLA VEZ
     this.getClientForStream(streamSid, callSid, clientId).then(async () => {
-      // Obtener número del llamante desde customParameters
       let streamData = this.activeStreams.get(streamSid);
-      
-      const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
-      
-      // ⚠️ VALIDACIÓN ESTRICTA DEL NÚMERO
-      if (!callerPhone) {
-        logger.error(`❌ [${streamSid}] CRÍTICO: No se pudo detectar número del llamante`);
-        logger.error(`❌ [${streamSid}] customParameters: ${JSON.stringify(data.start?.customParameters)}`);
-        logger.error(`❌ [${streamSid}] NO SE CARGARÁ MEMORIA - Bot responderá como cliente nuevo`);
-      } else {
-        logger.info(`✅ [${streamSid}] Número del llamante detectado: ${callerPhone}`);
-        // 💾 Guardar número de teléfono en streamData para usarlo después
-        if (streamData) {
-          streamData.callerPhone = callerPhone;
-        }
-      }
       
       logger.info(`🏢 [${streamSid}] Cliente ID: ${streamData?.client?.id || 'NO DISPONIBLE'}`);
       
