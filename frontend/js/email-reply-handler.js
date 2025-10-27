@@ -49,7 +49,7 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
         const generateBtn = document.getElementById('generate-ai-response-btn');
         if (generateBtn) {
             console.log('✅ Configurando botón IA del formulario principal con emailId:', email?.id);
-            generateBtn.addEventListener('click', () => generateAIResponse(email, threadId));
+            generateBtn.addEventListener('click', () => window.generateAIResponse(email, threadId));
         }
 
         // Botón enviar respuesta
