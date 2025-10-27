@@ -4,6 +4,7 @@ const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger');
 const googleEmailService = require('../services/googleEmailService');
 const microsoftEmailService = require('../services/microsoftEmailService');
+const openaiEmailService = require('../services/openaiEmailService');
 const { authenticate } = require('./auth');
 
 const prisma = new PrismaClient();
@@ -647,6 +648,218 @@ router.post('/send', authenticate, async (req, res) => {
 
   } catch (error) {
     logger.error(`❌ Error enviando email: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ===== IA PARA EMAILS =====
+
+/**
+ * Generar respuesta inteligente para un email
+ * POST /api/email/generate-reply
+ */
+router.post('/generate-reply', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { emailId, threadId } = req.body;
+
+    if (!emailId) {
+      return res.status(400).json({
+        success: false,
+        error: 'emailId es requerido'
+      });
+    }
+
+    logger.info(`🤖 Generando respuesta IA para email ${emailId} del cliente ${clientId}`);
+
+    // Obtener cuenta de email activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay cuenta de email activa'
+      });
+    }
+
+    // Obtener detalles del email actual
+    let currentEmail;
+    if (emailAccount.provider === 'google') {
+      currentEmail = await googleEmailService.getEmailDetails(clientId, emailId);
+    } else if (emailAccount.provider === 'microsoft') {
+      currentEmail = await microsoftEmailService.getEmailDetails(clientId, emailId);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Proveedor no soportado'
+      });
+    }
+
+    // Obtener hilo completo si existe threadId
+    let threadMessages = [];
+    if (threadId) {
+      logger.info(`📧 Cargando hilo completo: ${threadId}`);
+      
+      if (emailAccount.provider === 'google') {
+        const threadData = await googleEmailService.getThread(clientId, threadId);
+        threadMessages = threadData.messages || [];
+      } else if (emailAccount.provider === 'microsoft') {
+        // Microsoft no tiene concepto de thread como Gmail, usar conversationId
+        const conversationEmails = await microsoftEmailService.getConversationEmails(clientId, currentEmail.conversationId);
+        threadMessages = conversationEmails || [];
+      }
+    }
+
+    // Filtrar solo mensajes del mismo remitente/destinatario (hilo hermético)
+    const senderEmail = currentEmail.from.toLowerCase();
+    const recipientEmail = currentEmail.to ? currentEmail.to.toLowerCase() : '';
+    
+    threadMessages = threadMessages.filter(msg => {
+      const msgFrom = (msg.from || '').toLowerCase();
+      const msgTo = (msg.to || '').toLowerCase();
+      
+      // Solo incluir mensajes entre el remitente y el destinatario principal
+      return (msgFrom === senderEmail || msgTo === senderEmail) &&
+             (msgFrom === recipientEmail || msgTo === recipientEmail);
+    });
+
+    // Ordenar mensajes cronológicamente (más antiguos primero)
+    threadMessages.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    logger.info(`📚 Hilo hermético cargado: ${threadMessages.length} mensajes`);
+
+    // Generar respuesta con IA (el servicio cargará el contexto completo del cliente)
+    const generatedReply = await openaiEmailService.generateEmailReply(
+      threadMessages,
+      currentEmail,
+      clientId
+    );
+
+    logger.info('✅ Respuesta generada exitosamente');
+
+    res.json({
+      success: true,
+      reply: generatedReply,
+      threadMessagesCount: threadMessages.length
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error generando respuesta con IA: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Generar email nuevo desde cero con IA
+ * POST /api/email/generate-new
+ */
+router.post('/generate-new', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { purpose, recipient } = req.body;
+
+    if (!purpose) {
+      return res.status(400).json({
+        success: false,
+        error: 'purpose es requerido'
+      });
+    }
+
+    logger.info(`✉️ Generando email nuevo para cliente ${clientId}: ${purpose}`);
+
+    // Generar email con IA
+    const generatedEmail = await openaiEmailService.generateNewEmail(
+      purpose,
+      recipient,
+      clientId
+    );
+
+    logger.info('✅ Email nuevo generado');
+
+    res.json({
+      success: true,
+      subject: generatedEmail.subject,
+      body: generatedEmail.body
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error generando email nuevo: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Generar resumen del hilo de emails
+ * POST /api/email/thread-summary
+ */
+router.post('/thread-summary', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { threadId } = req.body;
+
+    if (!threadId) {
+      return res.status(400).json({
+        success: false,
+        error: 'threadId es requerido'
+      });
+    }
+
+    logger.info(`📝 Generando resumen del hilo ${threadId}`);
+
+    // Obtener cuenta de email activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay cuenta de email activa'
+      });
+    }
+
+    // Obtener hilo completo
+    let threadMessages = [];
+    if (emailAccount.provider === 'google') {
+      const threadData = await googleEmailService.getThread(clientId, threadId);
+      threadMessages = threadData.messages || [];
+    } else if (emailAccount.provider === 'microsoft') {
+      return res.status(400).json({
+        success: false,
+        error: 'Resumen de hilo no disponible para Microsoft aún'
+      });
+    }
+
+    // Generar resumen
+    const summary = await openaiEmailService.generateThreadSummary(threadMessages);
+
+    logger.info('✅ Resumen generado');
+
+    res.json({
+      success: true,
+      summary: summary,
+      messagesCount: threadMessages.length
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error generando resumen: ${error.message}`);
     res.status(500).json({
       success: false,
       error: error.message

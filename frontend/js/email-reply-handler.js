@@ -39,7 +39,7 @@
         // Botón generar respuesta con IA
         const generateBtn = document.getElementById('generate-ai-response-btn');
         if (generateBtn) {
-            generateBtn.addEventListener('click', () => generateAIResponse(email));
+            generateBtn.addEventListener('click', () => generateAIResponse(email, threadId));
         }
 
         // Botón enviar respuesta
@@ -119,9 +119,9 @@
     };
 
     /**
-     * Generar respuesta con IA
+     * Generar respuesta con IA (con contexto del hilo completo)
      */
-    async function generateAIResponse(email) {
+    async function generateAIResponse(email, threadId = null) {
         const generateBtn = document.getElementById('generate-ai-response-btn');
         const textarea = document.getElementById('reply-textarea');
         
@@ -129,22 +129,24 @@
 
         // Deshabilitar botón y mostrar loading
         generateBtn.disabled = true;
-        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generando...';
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generando con IA...';
 
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
             const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
 
-            const response = await fetch(`${API_BASE_URL}/api/ai/generate-email-reply`, {
+            console.log('🤖 Generando respuesta con IA para email:', email.id, 'threadId:', threadId);
+
+            // Usar el nuevo endpoint con contexto del hilo
+            const response = await fetch(`${API_BASE_URL}/api/email/generate-reply`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    emailContent: email.body || email.snippet,
-                    emailSubject: email.subject,
-                    emailFrom: email.from
+                    emailId: email.id,
+                    threadId: threadId || email.threadId
                 })
             });
 
@@ -152,12 +154,23 @@
             
             if (data.success && data.reply) {
                 textarea.value = data.reply;
+                console.log(`✅ Respuesta generada con contexto de ${data.threadMessagesCount || 0} mensajes`);
+                
+                // Mostrar toast informativo
+                if (window.showSuccessToast) {
+                    window.showSuccessToast(`✅ Respuesta generada con contexto de ${data.threadMessagesCount || 0} mensajes`);
+                }
             } else {
-                // Fallback: generar respuesta simple
-                textarea.value = `Estimado/a,\n\nGracias por su mensaje. Hemos recibido su correo y le responderemos a la brevedad.\n\nSaludos cordiales`;
+                throw new Error(data.error || 'Error generando respuesta');
             }
         } catch (error) {
-            console.error('Error generando respuesta:', error);
+            console.error('❌ Error generando respuesta:', error);
+            
+            // Mostrar error al usuario
+            if (window.showErrorToast) {
+                window.showErrorToast('Error generando respuesta con IA');
+            }
+            
             // Fallback: generar respuesta simple
             textarea.value = `Estimado/a,\n\nGracias por su mensaje. Hemos recibido su correo y le responderemos a la brevedad.\n\nSaludos cordiales`;
         } finally {

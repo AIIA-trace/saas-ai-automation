@@ -595,31 +595,6 @@ class GoogleEmailService {
    * @param {string} emailId - ID del email
    * @returns {Promise<boolean>} Éxito de la operación
    */
-  async deleteEmail(clientId, emailId) {
-    try {
-      const auth = await this.getAuthenticatedClient(clientId);
-      const gmail = google.gmail({ version: 'v1', auth });
-
-      // Mover a papelera (TRASH)
-      await gmail.users.messages.trash({
-        userId: 'me',
-        id: emailId
-      });
-
-      logger.info(`✅ Email ${emailId} movido a papelera para cliente ${clientId}`);
-      return true;
-
-    } catch (error) {
-      logger.error(`❌ Error eliminando email: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Desconectar cuenta de Gmail
-   * @param {number} clientId - ID del cliente
-   * @returns {Promise<boolean>} Éxito de la operación
-   */
   async disconnectAccount(clientId) {
     try {
       await prisma.emailAccount.updateMany({
@@ -637,6 +612,69 @@ class GoogleEmailService {
 
     } catch (error) {
       logger.error(`❌ Error desconectando cuenta: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener hilo completo de emails
+   * @param {number} clientId - ID del cliente
+   * @param {string} threadId - ID del hilo
+   * @returns {Promise<Object>} Hilo con todos los mensajes
+   */
+  async getThread(clientId, threadId) {
+    try {
+      const auth = await this.getAuthenticatedClient(clientId);
+      const gmail = google.gmail({ version: 'v1', auth });
+
+      // Obtener el hilo completo
+      const thread = await gmail.users.threads.get({
+        userId: 'me',
+        id: threadId,
+        format: 'full'
+      });
+
+      // Procesar mensajes del hilo
+      const messages = thread.data.messages.map(msg => {
+        const headers = msg.payload.headers;
+        const getHeader = (name) => {
+          const header = headers.find(h => h.name.toLowerCase() === name.toLowerCase());
+          return header ? header.value : '';
+        };
+
+        // Extraer cuerpo del mensaje
+        let body = '';
+        if (msg.payload.body && msg.payload.body.data) {
+          body = Buffer.from(msg.payload.body.data, 'base64').toString('utf-8');
+        } else if (msg.payload.parts) {
+          const textPart = msg.payload.parts.find(part => part.mimeType === 'text/plain' || part.mimeType === 'text/html');
+          if (textPart && textPart.body && textPart.body.data) {
+            body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
+          }
+        }
+
+        return {
+          id: msg.id,
+          threadId: msg.threadId,
+          from: getHeader('From'),
+          to: getHeader('To'),
+          cc: getHeader('Cc'),
+          subject: getHeader('Subject'),
+          date: getHeader('Date'),
+          body: body,
+          snippet: msg.snippet
+        };
+      });
+
+      logger.info(`✅ Hilo ${threadId} obtenido con ${messages.length} mensajes`);
+
+      return {
+        id: threadId,
+        messages: messages
+      };
+
+    } catch (error) {
+      logger.error(`❌ Error obteniendo hilo: ${error.message}`);
       throw error;
     }
   }

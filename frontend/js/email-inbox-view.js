@@ -1237,12 +1237,13 @@
         document.querySelectorAll('.reply-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const msgId = this.dataset.msgId;
+                const emailId = this.dataset.emailId;
                 const from = this.dataset.from;
                 const subject = this.dataset.subject;
                 const messageId = this.dataset.messageId;
                 const threadId = this.dataset.threadId;
                 
-                showReplyForm(msgId, from, subject, messageId, threadId);
+                showReplyForm(msgId, from, subject, messageId, threadId, emailId);
             });
         });
 
@@ -1471,6 +1472,7 @@
                         <div id="reply-buttons-${msgId}" class="mt-3 pt-3 border-top">
                             <button class="btn btn-sm btn-primary me-2 reply-btn" 
                                     data-msg-id="${msgId}" 
+                                    data-email-id="${msg.id}" 
                                     data-from="${escapeAttr(msg.from)}" 
                                     data-subject="${escapeAttr(msg.subject)}" 
                                     data-message-id="${msg.messageId}" 
@@ -1520,7 +1522,7 @@
     /**
      * Mostrar formulario de respuesta para un mensaje específico
      */
-    function showReplyForm(msgId, from, subject, messageId, threadId) {
+    function showReplyForm(msgId, from, subject, messageId, threadId, emailId = null) {
         // Ocultar todos los demás formularios y mostrar todos los botones
         document.querySelectorAll('[id^="reply-form-"]').forEach(form => {
             form.classList.add('d-none');
@@ -1552,7 +1554,7 @@
             }, 100);
 
             // Configurar event listeners si no están configurados
-            setupReplyFormListenersForMessage(msgId, from, subject, messageId, threadId);
+            setupReplyFormListenersForMessage(msgId, from, subject, messageId, threadId, emailId);
         }
     }
 
@@ -1585,7 +1587,7 @@
     /**
      * Configurar event listeners para un formulario de respuesta específico
      */
-    function setupReplyFormListenersForMessage(msgId, from, subject, messageId, threadId) {
+    function setupReplyFormListenersForMessage(msgId, from, subject, messageId, threadId, emailId = null) {
         const formContainer = document.getElementById(`reply-form-${msgId}`);
         if (!formContainer) return;
 
@@ -1630,7 +1632,7 @@
         const aiBtn = document.getElementById(`generate-ai-response-btn-${msgId}`);
         if (aiBtn) {
             aiBtn.addEventListener('click', () => {
-                generateAIResponseForMessage(from, subject, msgId);
+                generateAIResponseForMessage(from, subject, msgId, emailId, threadId);
             });
         }
 
@@ -1675,15 +1677,22 @@
     /**
      * Generar respuesta IA para mensaje específico
      */
-    function generateAIResponseForMessage(from, subject, msgId) {
-        const email = { from, subject };
+    function generateAIResponseForMessage(from, subject, msgId, emailId, threadId) {
+        // Obtener el email completo del array allEmails
+        const email = allEmails.find(e => e.id === emailId) || { 
+            id: emailId,
+            from: from, 
+            subject: subject,
+            threadId: threadId
+        };
+        
         if (window.generateAIResponse) {
             // Temporalmente cambiar el ID del textarea
             const textarea = document.getElementById(`reply-textarea-${msgId}`);
             if (textarea) {
                 const originalId = textarea.id;
                 textarea.id = 'reply-textarea';
-                window.generateAIResponse(email);
+                window.generateAIResponse(email, threadId);
                 setTimeout(() => {
                     textarea.id = originalId;
                 }, 100);
