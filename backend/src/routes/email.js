@@ -257,6 +257,63 @@ router.get('/inbox', authenticate, async (req, res) => {
 });
 
 /**
+ * Marcar email como leído
+ * POST /api/email/mark-read
+ */
+router.post('/mark-read', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { emailId } = req.body;
+
+    if (!emailId) {
+      return res.status(400).json({
+        success: false,
+        error: 'emailId es requerido'
+      });
+    }
+
+    // Obtener cuenta activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay cuenta de email conectada'
+      });
+    }
+
+    // Marcar como leído según el proveedor
+    if (emailAccount.provider === 'google') {
+      await googleEmailService.markAsRead(clientId, emailId);
+    } else if (emailAccount.provider === 'microsoft') {
+      await microsoftEmailService.markAsRead(clientId, emailId);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Proveedor no soportado'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Email marcado como leído'
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error marcando email como leído: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Enviar email
  * POST /api/email/send
  */

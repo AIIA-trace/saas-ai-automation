@@ -307,6 +307,35 @@ class GoogleEmailService {
   }
 
   /**
+   * Marcar email como leído
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email
+   * @returns {Promise<boolean>} Éxito de la operación
+   */
+  async markAsRead(clientId, emailId) {
+    try {
+      const auth = await this.getAuthenticatedClient(clientId);
+      const gmail = google.gmail({ version: 'v1', auth });
+
+      // Remover la etiqueta UNREAD
+      await gmail.users.messages.modify({
+        userId: 'me',
+        id: emailId,
+        requestBody: {
+          removeLabelIds: ['UNREAD']
+        }
+      });
+
+      logger.info(`✅ Email ${emailId} marcado como leído para cliente ${clientId}`);
+      return true;
+
+    } catch (error) {
+      logger.error(`❌ Error marcando email como leído: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Desconectar cuenta de Gmail
    * @param {number} clientId - ID del cliente
    * @returns {Promise<boolean>} Éxito de la operación
