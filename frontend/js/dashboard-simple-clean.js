@@ -1116,6 +1116,21 @@ function createEmailsTabContent() {
     return `
         <!-- 2. Gestión de Emails -->
         <div class="tab-pane animate-fadeIn" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
+            <!-- Mensaje de carga -->
+            <div id="email-loading-message" class="container-fluid pt-4" style="display: none;">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary mb-4" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <h4 class="mb-3">Cargando emails...</h4>
+                        <p class="text-muted">
+                            Estamos obteniendo tus emails desde tu cuenta de correo. Esto puede tardar unos segundos.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Mensaje inicial cuando no hay emails configurados -->
             <div id="email-not-configured-message" class="container-fluid pt-4">
                 <div class="card border-0 shadow-sm">

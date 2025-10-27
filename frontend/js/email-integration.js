@@ -382,6 +382,9 @@ function loadEmailInbox() {
     
     console.log('📧 Cargando bandeja de entrada...');
     
+    // Marcar que estamos cargando emails
+    window.emailsLoading = true;
+    
     fetch(`${API_BASE_URL}/api/email/inbox?limit=50`, {
         method: 'GET',
         headers: {
@@ -396,12 +399,14 @@ function loadEmailInbox() {
         return response.json();
     })
     .then(data => {
+        window.emailsLoading = false;
         if (data.success && data.emails) {
             console.log(`✅ ${data.emails.length} emails cargados desde ${data.provider}`);
             displayEmailsInTable(data.emails);
         }
     })
     .catch(error => {
+        window.emailsLoading = false;
         console.error('❌ Error al cargar bandeja de entrada:', error);
     });
 }

@@ -9,16 +9,60 @@
     'use strict';
 
     let hasInitialized = false; // Flag para evitar múltiples inicializaciones
+    let checkAttempts = 0;
+    const maxAttempts = 10; // Máximo 10 intentos (10 segundos)
 
     // Esperar a que el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
-        // Esperar 5 segundos para que email-integration.js cargue los 50 emails de Gmail
-        setTimeout(function() {
-            if (!hasInitialized) {
-                initInboxView();
-            }
-        }, 5000);
+        // Verificar periódicamente si los emails están cargando o ya se cargaron
+        checkEmailsStatus();
     });
+
+    /**
+     * Verificar el estado de carga de emails
+     */
+    function checkEmailsStatus() {
+        if (hasInitialized) return;
+
+        checkAttempts++;
+        console.log(`🔍 Verificando estado de emails (intento ${checkAttempts}/${maxAttempts})...`);
+
+        const loadingMsg = document.getElementById('email-loading-message');
+        const notConfiguredMsg = document.getElementById('email-not-configured-message');
+        const emailTableBody = document.getElementById('emails-table-body');
+
+        // Si está cargando, mostrar mensaje de carga
+        if (window.emailsLoading === true) {
+            console.log('⏳ Emails cargando, mostrando spinner...');
+            if (loadingMsg) loadingMsg.style.display = 'block';
+            if (notConfiguredMsg) notConfiguredMsg.style.display = 'none';
+            
+            // Seguir verificando
+            setTimeout(checkEmailsStatus, 1000);
+            return;
+        }
+
+        // Si ya hay emails en la tabla, inicializar vista
+        const emailRows = emailTableBody ? emailTableBody.querySelectorAll('tr') : [];
+        if (emailRows.length > 0) {
+            console.log(`✅ ${emailRows.length} emails detectados, inicializando vista...`);
+            if (loadingMsg) loadingMsg.style.display = 'none';
+            initInboxView();
+            return;
+        }
+
+        // Si llegamos al máximo de intentos, mostrar mensaje de no configurado
+        if (checkAttempts >= maxAttempts) {
+            console.log('⏱️ Tiempo de espera agotado, mostrando mensaje de no configurado...');
+            if (loadingMsg) loadingMsg.style.display = 'none';
+            if (notConfiguredMsg) notConfiguredMsg.style.display = 'block';
+            hasInitialized = true;
+            return;
+        }
+
+        // Seguir verificando
+        setTimeout(checkEmailsStatus, 1000);
+    }
 
     /**
      * Inicializar vista de bandeja de entrada
@@ -45,20 +89,22 @@
         // Si no hay emails, mostrar mensaje y no continuar
         if (emails.length === 0) {
             console.log('⏳ No hay emails configurados, mostrando mensaje inicial...');
-            // Mostrar mensaje de "no configurado"
+            const loadingMsg = document.getElementById('email-loading-message');
             const notConfiguredMsg = document.getElementById('email-not-configured-message');
-            if (notConfiguredMsg) {
-                notConfiguredMsg.style.display = 'block';
-            }
+            
+            // Ocultar mensaje de carga y mostrar mensaje de "no configurado"
+            if (loadingMsg) loadingMsg.style.display = 'none';
+            if (notConfiguredMsg) notConfiguredMsg.style.display = 'block';
+            
             hasInitialized = true; // Marcar como inicializado para no reintentar
             return;
         }
 
-        // Ocultar mensaje de "no configurado"
+        // Ocultar ambos mensajes (carga y no configurado)
+        const loadingMsg = document.getElementById('email-loading-message');
         const notConfiguredMsg = document.getElementById('email-not-configured-message');
-        if (notConfiguredMsg) {
-            notConfiguredMsg.style.display = 'none';
-        }
+        if (loadingMsg) loadingMsg.style.display = 'none';
+        if (notConfiguredMsg) notConfiguredMsg.style.display = 'none';
 
         // Marcar como inicializado para evitar loops
         hasInitialized = true;
