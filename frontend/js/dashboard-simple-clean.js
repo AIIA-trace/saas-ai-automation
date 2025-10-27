@@ -9310,7 +9310,7 @@ function createReplyModal(emailId, sender, subject, withAI = false) {
     // Si es respuesta con IA, generar respuesta después de un breve retraso
     if (withAI) {
         setTimeout(() => {
-            const aiResponse = generateAIResponse(emailId, subject);
+            const aiResponse = generateDemoAIResponse(emailId, subject);
             const contentElement = document.getElementById(`reply-content-${emailId}`);
             if (contentElement) {
                 contentElement.value = aiResponse;
@@ -9325,12 +9325,12 @@ function createReplyModal(emailId, sender, subject, withAI = false) {
 }
 
 /**
- * Generar respuesta de IA para un email
+ * Generar respuesta de IA para un email (DEMO/FALLBACK)
  * @param {number} emailId - ID del email
  * @param {string} subject - Asunto del email
  * @returns {string} - Respuesta generada por IA
  */
-function generateAIResponse(emailId, subject) {
+function generateDemoAIResponse(emailId, subject) {
     // Simulación de respuestas generadas por IA
     const responses = [
         `Estimado/a cliente,\n\nGracias por su mensaje sobre "${subject}".\n\nHemos recibido su consulta y nos pondremos en contacto con usted a la mayor brevedad posible para proporcionarle toda la información que necesita.\n\nSaludos cordiales,\nEquipo de Atención al Cliente`,
@@ -9382,7 +9382,7 @@ function regenerateAIReply(emailId) {
         // Generar respuesta diferente
         const currentDate = new Date();
         const seed = currentDate.getSeconds(); // Usar los segundos como semilla para variar la respuesta
-        const aiResponse = generateAIResponse(emailId + seed, subject);
+        const aiResponse = generateDemoAIResponse(emailId + seed, subject);
         
         document.getElementById(`reply-content-${emailId}`).value = aiResponse;
         document.getElementById(`ai-loading-${emailId}`).style.display = 'none';
