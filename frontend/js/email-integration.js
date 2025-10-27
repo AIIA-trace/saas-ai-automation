@@ -25,23 +25,24 @@ function initEmailIntegration() {
     });
     
     if (emailProviderSelect) {
-        // Manejar cambios en el selector de proveedor
-        emailProviderSelect.addEventListener('change', function() {
-            const selectedProvider = this.value;
+        // Función para actualizar el estado del botón según el proveedor
+        const updateButtonState = function(selectedProvider) {
+            console.log('🔄 Actualizando estado del botón para proveedor:', selectedProvider);
             
             // Habilitar/deshabilitar botón de conexión según el proveedor seleccionado
-            if (selectedProvider) {
+            if (selectedProvider && connectEmailBtn) {
                 connectEmailBtn.disabled = false;
+                console.log('✅ Botón habilitado para:', selectedProvider);
                 
                 // Mostrar sección correspondiente según el proveedor
                 if (selectedProvider === 'other') {
                     // Para IMAP/SMTP manual, mostrar campos adicionales
-                    emailOAuthSection.classList.add('d-none');
-                    emailManualSection.classList.remove('d-none');
+                    if (emailOAuthSection) emailOAuthSection.classList.add('d-none');
+                    if (emailManualSection) emailManualSection.classList.remove('d-none');
                 } else {
                     // Para proveedores OAuth (Google, Microsoft, Yahoo)
-                    emailOAuthSection.classList.remove('d-none');
-                    emailManualSection.classList.add('d-none');
+                    if (emailOAuthSection) emailOAuthSection.classList.remove('d-none');
+                    if (emailManualSection) emailManualSection.classList.add('d-none');
                     
                     // Actualizar texto del botón según el proveedor
                     switch(selectedProvider) {
@@ -58,11 +59,26 @@ function initEmailIntegration() {
                 }
             } else {
                 // Si no hay proveedor seleccionado, deshabilitar botón
-                connectEmailBtn.disabled = true;
-                emailOAuthSection.classList.add('d-none');
-                emailManualSection.classList.add('d-none');
+                if (connectEmailBtn) {
+                    connectEmailBtn.disabled = true;
+                    console.log('❌ Botón deshabilitado (sin proveedor)');
+                }
+                if (emailOAuthSection) emailOAuthSection.classList.add('d-none');
+                if (emailManualSection) emailManualSection.classList.add('d-none');
             }
+        };
+        
+        // Manejar cambios en el selector de proveedor
+        emailProviderSelect.addEventListener('change', function() {
+            updateButtonState(this.value);
         });
+        
+        // Inicializar el estado del botón con el valor actual del selector
+        const currentProvider = emailProviderSelect.value;
+        if (currentProvider) {
+            console.log('🔍 Proveedor ya seleccionado al cargar:', currentProvider);
+            updateButtonState(currentProvider);
+        }
         
         // Configurar el botón de conexión
         if (connectEmailBtn) {
