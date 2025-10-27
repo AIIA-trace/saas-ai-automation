@@ -133,28 +133,32 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
      */
     console.log('📦 Definiendo window.generateAIResponse...');
     window.generateAIResponse = async function(email, threadId = null) {
-        console.log('🎬🎬🎬 ===== FUNCIÓN generateAIResponse EJECUTÁNDOSE ===== 🎬🎬🎬');
-        console.log('🎬 TIMESTAMP:', new Date().toISOString());
-        console.log('📧 Email recibido:', JSON.stringify(email, null, 2));
-        console.log('🧵 ThreadId recibido:', threadId);
-        console.log('🔍 Stack trace:', new Error().stack);
+        // PRIMER LOG - DEBE APARECER SIEMPRE
+        console.log('🚨🚨🚨 INICIO ABSOLUTO DE LA FUNCIÓN 🚨🚨🚨');
         
-        const generateBtn = document.getElementById('generate-ai-response-btn');
-        const textarea = document.getElementById('reply-textarea');
-        
-        console.log('🔍 Elementos buscados:', {
-            generateBtn: !!generateBtn,
-            textarea: !!textarea,
-            generateBtnId: generateBtn?.id,
-            textareaId: textarea?.id
-        });
-        
-        if (!generateBtn || !textarea) {
-            console.error('❌ No se encontraron elementos necesarios, abortando');
-            console.error('❌ generateBtn existe:', !!generateBtn);
-            console.error('❌ textarea existe:', !!textarea);
-            return 'ABORTED_NO_ELEMENTS';
-        }
+        try {
+            console.log('🎬🎬🎬 ===== FUNCIÓN generateAIResponse EJECUTÁNDOSE ===== 🎬🎬🎬');
+            console.log('🎬 TIMESTAMP:', new Date().toISOString());
+            console.log('📧 Email recibido:', JSON.stringify(email, null, 2));
+            console.log('🧵 ThreadId recibido:', threadId);
+            console.log('🔍 Stack trace:', new Error().stack);
+            
+            const generateBtn = document.getElementById('generate-ai-response-btn');
+            const textarea = document.getElementById('reply-textarea');
+            
+            console.log('🔍 Elementos buscados:', {
+                generateBtn: !!generateBtn,
+                textarea: !!textarea,
+                generateBtnId: generateBtn?.id,
+                textareaId: textarea?.id
+            });
+            
+            if (!generateBtn || !textarea) {
+                console.error('❌ No se encontraron elementos necesarios, abortando');
+                console.error('❌ generateBtn existe:', !!generateBtn);
+                console.error('❌ textarea existe:', !!textarea);
+                return 'ABORTED_NO_ELEMENTS';
+            }
 
         console.log('✅ Elementos encontrados, continuando...');
 
@@ -206,23 +210,28 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
                 console.error('❌ Respuesta no exitosa:', data);
                 throw new Error(data.error || 'Error generando respuesta');
             }
-        } catch (error) {
-            console.error('❌ Error generando respuesta:', error);
-            console.error('❌ Error stack:', error.stack);
-            
-            // Mostrar error al usuario
-            if (window.showErrorToast) {
-                window.showErrorToast('Error generando respuesta con IA');
+            } catch (error) {
+                console.error('❌ Error generando respuesta:', error);
+                console.error('❌ Error stack:', error.stack);
+                
+                // Mostrar error al usuario
+                if (window.showErrorToast) {
+                    window.showErrorToast('Error generando respuesta con IA');
+                }
+                
+                // Fallback: generar respuesta simple
+                console.log('📝 Usando respuesta fallback');
+                textarea.value = `Estimado/a,\n\nGracias por su mensaje. Hemos recibido su correo y le responderemos a la brevedad.\n\nSaludos cordiales`;
+            } finally {
+                console.log('🔄 Restaurando botón...');
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-robot me-2"></i>Generar respuesta con IA';
+                console.log('✅ generateAIResponse COMPLETADO');
             }
-            
-            // Fallback: generar respuesta simple
-            console.log('📝 Usando respuesta fallback');
-            textarea.value = `Estimado/a,\n\nGracias por su mensaje. Hemos recibido su correo y le responderemos a la brevedad.\n\nSaludos cordiales`;
-        } finally {
-            console.log('🔄 Restaurando botón...');
-            generateBtn.disabled = false;
-            generateBtn.innerHTML = '<i class="fas fa-robot me-2"></i>Generar respuesta con IA';
-            console.log('✅ generateAIResponse COMPLETADO');
+        } catch (outerError) {
+            console.error('🚨🚨🚨 ERROR CRÍTICO EN FUNCIÓN:', outerError);
+            console.error('🚨 Stack:', outerError.stack);
+            return 'CRITICAL_ERROR';
         }
     };
     
