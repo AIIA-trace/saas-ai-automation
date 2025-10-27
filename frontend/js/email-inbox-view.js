@@ -8,40 +8,27 @@
 (function() {
     'use strict';
 
+    let hasInitialized = false; // Flag para evitar múltiples inicializaciones
+
     // Esperar a que el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
-        // Esperar 4 segundos para que TODOS los scripts carguen los emails primero
-        setTimeout(initInboxView, 4000);
-    });
-
-    // También observar cambios en la tabla de emails
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList') {
-                const emailTableBody = document.getElementById('emails-table-body');
-                if (emailTableBody && emailTableBody.querySelectorAll('tr').length > 0) {
-                    console.log('📧 Emails detectados en la tabla, esperando para transformar vista...');
-                    // Desconectar el observer para evitar loops
-                    observer.disconnect();
-                    // Esperar un poco más para asegurar que todos los scripts terminen
-                    setTimeout(initInboxView, 1000);
-                }
+        // Esperar 5 segundos para que email-integration.js cargue los 50 emails de Gmail
+        setTimeout(function() {
+            if (!hasInitialized) {
+                initInboxView();
             }
-        });
-    });
-
-    // Observar el body para detectar cuando se cargue la tabla
-    document.addEventListener('DOMContentLoaded', function() {
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+        }, 5000);
     });
 
     /**
      * Inicializar vista de bandeja de entrada
      */
     function initInboxView() {
+        if (hasInitialized) {
+            console.log('⚠️ Vista de bandeja ya inicializada, omitiendo...');
+            return;
+        }
+
         console.log('📧 Inicializando vista de bandeja de entrada...');
 
         // Buscar el contenedor de emails
@@ -54,6 +41,16 @@
         // IMPORTANTE: Extraer emails ANTES de reemplazar el contenido
         const emails = extractEmailsBeforeReplacing();
         console.log(`📧 ${emails.length} emails capturados antes de reemplazar layout`);
+
+        // Si no hay emails, esperar un poco más
+        if (emails.length === 0) {
+            console.log('⏳ No hay emails todavía, esperando 2 segundos más...');
+            setTimeout(initInboxView, 2000);
+            return;
+        }
+
+        // Marcar como inicializado para evitar loops
+        hasInitialized = true;
 
         // Reemplazar el contenido con la nueva vista
         createInboxLayout(emailsContent);
