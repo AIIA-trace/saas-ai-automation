@@ -129,7 +129,11 @@ function improveReplyModal() {
         }
     };
     
-    // Modificar sendReply para incluir CC en los logs
+    // NOTA: La función window.sendReply ahora está definida en email-reply-handler.js
+    // y maneja el envío real de emails. Esta sobreescritura legacy se comenta para evitar conflictos.
+    
+    /*
+    // Modificar sendReply para incluir CC en los logs (LEGACY - COMENTADO)
     const originalSendReply = window.sendReply || function() {};
     window.sendReply = function(emailId) {
         const to = document.getElementById(`reply-to-${emailId}`)?.value || '';
@@ -164,6 +168,7 @@ function improveReplyModal() {
             window.UsageTracker.updateUI();
         }
     };
+    */
 }
 
 /**
