@@ -1733,9 +1733,28 @@
                 const originalBtnId = generateBtn.id;
                 
                 console.log('🔄 Cambiando IDs temporalmente...');
+                console.log('📋 IDs ANTES del cambio:', {
+                    textareaId: textarea.id,
+                    btnId: generateBtn.id
+                });
+                
                 // Cambiar IDs temporalmente
                 textarea.id = 'reply-textarea';
                 generateBtn.id = 'generate-ai-response-btn';
+                
+                console.log('📋 IDs DESPUÉS del cambio:', {
+                    textareaId: textarea.id,
+                    btnId: generateBtn.id
+                });
+                
+                // VERIFICAR que los elementos existen con los nuevos IDs
+                const verifyTextarea = document.getElementById('reply-textarea');
+                const verifyBtn = document.getElementById('generate-ai-response-btn');
+                console.log('✅ Verificación de elementos con nuevos IDs:', {
+                    textareaExists: !!verifyTextarea,
+                    btnExists: !!verifyBtn,
+                    sonLosMismos: verifyTextarea === textarea && verifyBtn === generateBtn
+                });
                 
                 try {
                     console.log('🚀 Llamando window.generateAIResponse...');
@@ -1748,14 +1767,23 @@
                     
                     console.log('✅ window.generateAIResponse completado');
                     console.log('📊 Resultado:', result);
+                    
+                    if (result === 'ABORTED_NO_ELEMENTS') {
+                        console.error('🚨 La función abortó porque no encontró los elementos!');
+                    }
                 } catch (error) {
                     console.error('❌ Error en window.generateAIResponse:', error);
                     console.error('❌ Stack:', error.stack);
                 } finally {
                     console.log('🔄 Restaurando IDs originales...');
+                    console.log('📋 Restaurando a:', {
+                        textareaId: originalTextareaId,
+                        btnId: originalBtnId
+                    });
                     // Restaurar IDs originales
                     textarea.id = originalTextareaId;
                     generateBtn.id = originalBtnId;
+                    console.log('✅ IDs restaurados correctamente');
                 }
             } else {
                 console.warn('⚠️ No se encontraron textarea o botón');
