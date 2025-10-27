@@ -133,10 +133,11 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
      */
     console.log('📦 Definiendo window.generateAIResponse...');
     window.generateAIResponse = async function(email, threadId = null) {
-        console.log('🎬🎬🎬 generateAIResponse INICIADO en email-reply-handler.js 🎬🎬🎬');
-        console.log('🎬 PRIMERA LÍNEA DE LA FUNCIÓN');
-        console.log('📧 Email recibido:', email);
+        console.log('🎬🎬🎬 ===== FUNCIÓN generateAIResponse EJECUTÁNDOSE ===== 🎬🎬🎬');
+        console.log('🎬 TIMESTAMP:', new Date().toISOString());
+        console.log('📧 Email recibido:', JSON.stringify(email, null, 2));
         console.log('🧵 ThreadId recibido:', threadId);
+        console.log('🔍 Stack trace:', new Error().stack);
         
         const generateBtn = document.getElementById('generate-ai-response-btn');
         const textarea = document.getElementById('reply-textarea');
@@ -150,7 +151,9 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
         
         if (!generateBtn || !textarea) {
             console.error('❌ No se encontraron elementos necesarios, abortando');
-            return;
+            console.error('❌ generateBtn existe:', !!generateBtn);
+            console.error('❌ textarea existe:', !!textarea);
+            return 'ABORTED_NO_ELEMENTS';
         }
 
         console.log('✅ Elementos encontrados, continuando...');
