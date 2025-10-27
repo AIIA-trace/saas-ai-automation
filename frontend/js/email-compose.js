@@ -378,6 +378,12 @@
             return;
         }
 
+        console.log('📧 Enviando email compuesto:', {
+            subject: subject,
+            bodyLength: body.length,
+            bodyPreview: body.substring(0, 200)
+        });
+
         sendBtn.disabled = true;
         sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
 
@@ -391,6 +397,11 @@
                 <div>${body.replace(/\n/g, '<br>')}</div>
                 ${signature ? `<br><br><div>--<br>${signature}</div>` : ''}
             `;
+            
+            console.log('📦 Body con firma:', {
+                length: bodyWithSignature.length,
+                preview: bodyWithSignature.substring(0, 300)
+            });
 
             // Construir lista de destinatarios
             const toList = recipients.to.join(', ');
