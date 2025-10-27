@@ -1195,6 +1195,7 @@
                 <div id="reply-buttons-main-message" class="mt-3 pt-3 border-top">
                     <button class="btn btn-primary me-2 reply-btn" 
                             data-msg-id="main-message" 
+                            data-email-id="${currentMessage.id}" 
                             data-from="${escapeAttr(currentMessage.from)}" 
                             data-subject="${escapeAttr(currentMessage.subject)}" 
                             data-message-id="${currentMessage.messageId}" 
@@ -1237,11 +1238,15 @@
         document.querySelectorAll('.reply-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const msgId = this.dataset.msgId;
-                const emailId = this.dataset.emailId;
+                const emailId = this.dataset.emailId;  // Leer emailId del data attribute
                 const from = this.dataset.from;
                 const subject = this.dataset.subject;
                 const messageId = this.dataset.messageId;
                 const threadId = this.dataset.threadId;
+                
+                console.log('🔘 Click en botón Responder:', {
+                    msgId, emailId, from, subject, messageId, threadId
+                });
                 
                 showReplyForm(msgId, from, subject, messageId, threadId, emailId);
             });
