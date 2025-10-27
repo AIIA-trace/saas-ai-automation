@@ -1630,10 +1630,28 @@
 
         // Configurar botón generar IA
         const aiBtn = document.getElementById(`generate-ai-response-btn-${msgId}`);
+        console.log(`🔍 Configurando botón IA para ${msgId}:`, {
+            btnExists: !!aiBtn,
+            emailId: emailId,
+            threadId: threadId
+        });
+        
         if (aiBtn) {
-            aiBtn.addEventListener('click', () => {
+            // Remover listeners anteriores
+            const newAiBtn = aiBtn.cloneNode(true);
+            aiBtn.parentNode.replaceChild(newAiBtn, aiBtn);
+            
+            newAiBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(`🤖 CLICK en botón IA para ${msgId}`, {
+                    from, subject, msgId, emailId, threadId
+                });
                 generateAIResponseForMessage(from, subject, msgId, emailId, threadId);
             });
+            console.log(`✅ Event listener configurado para botón IA ${msgId}`);
+        } else {
+            console.warn(`⚠️ No se encontró botón IA para ${msgId}`);
         }
 
         // Configurar botón enviar
