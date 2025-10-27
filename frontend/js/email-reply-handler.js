@@ -244,16 +244,23 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
      * Enviar respuesta
      */
     async function sendReply(email, threadId) {
+        console.log('📧 sendReply llamado con:', { email, threadId });
+        
         const textarea = document.getElementById('reply-textarea');
         const sendBtn = document.getElementById('send-reply-btn');
         
-        if (!textarea || !sendBtn) return;
+        if (!textarea || !sendBtn) {
+            console.error('❌ No se encontraron elementos:', { textarea: !!textarea, sendBtn: !!sendBtn });
+            return;
+        }
 
         const replyText = textarea.value.trim();
         if (!replyText) {
             alert('Por favor escribe una respuesta');
             return;
         }
+
+        console.log('📝 Texto de respuesta:', replyText.substring(0, 100));
 
         // Deshabilitar botón
         sendBtn.disabled = true;
@@ -278,23 +285,29 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
             const cc = ccInput ? ccInput.value.trim() : null;
             const bcc = bccInput ? bccInput.value.trim() : null;
 
+            const payload = {
+                to: email.from,
+                cc: cc,
+                bcc: bcc,
+                subject: email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`,
+                body: bodyWithSignature,
+                threadId: threadId,
+                inReplyTo: email.messageId,
+                references: email.references || email.messageId,
+                attachments: selectedAttachments
+            };
+
+            console.log('📦 Payload construido:', payload);
+            console.log('📧 email.from:', email.from);
+            console.log('📧 email.subject:', email.subject);
+
             const response = await fetch(`${API_BASE_URL}/api/email/send`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    to: email.from,
-                    cc: cc,
-                    bcc: bcc,
-                    subject: email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`,
-                    body: bodyWithSignature,
-                    threadId: threadId,
-                    inReplyTo: email.messageId,
-                    references: email.references || email.messageId,
-                    attachments: selectedAttachments
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
