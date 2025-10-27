@@ -127,6 +127,7 @@
     /**
      * Generar respuesta con IA (con contexto del hilo completo)
      */
+    console.log('📦 Definiendo window.generateAIResponse...');
     window.generateAIResponse = async function(email, threadId = null) {
         console.log('🎬 generateAIResponse INICIADO en email-reply-handler.js');
         console.log('📧 Email recibido:', email);
