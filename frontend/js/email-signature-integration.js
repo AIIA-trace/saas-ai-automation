@@ -53,6 +53,11 @@ Tel: +34 91 123 45 67
         
         // Agregar firma a un contenido
         addSignatureToContent: function(content) {
+            // Validar que content existe y es string
+            if (!content || typeof content !== 'string') {
+                return content;
+            }
+            
             // Si ya hay una firma, no agregar otra
             if (content.includes('--\n') || content.includes('--<br>')) {
                 return content;
@@ -123,18 +128,8 @@ function extendEmailSendingFunctions() {
     };
     
     // Extender la función de generación de respuesta AI
-    const originalGenerateAI = window.generateAIResponse || function() {};
-    window.generateAIResponse = function(emailId, subject) {
-        // Obtener respuesta original
-        let response = originalGenerateAI.apply(this, arguments);
-        
-        // Agregar firma
-        if (window.EmailSignature) {
-            response = window.EmailSignature.addSignatureToContent(response);
-        }
-        
-        return response;
-    };
+    // NOTA: generateAIResponse ahora es asíncrona, no necesitamos extenderla aquí
+    // La firma se agrega en el backend o en el momento del envío
 }
 
 /**
