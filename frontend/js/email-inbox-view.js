@@ -1258,21 +1258,28 @@
                 const msgId = this.dataset.msgId;
                 const subject = this.dataset.subject;
                 
-                // Obtener el contenido del mensaje
-                const messageContainer = document.querySelector(`[data-message-id="${msgId}"]`);
+                // Obtener el contenido del mensaje desde el DOM
                 let body = '';
                 
-                if (messageContainer) {
-                    const bodyElement = messageContainer.querySelector('.email-body, .message-body');
+                // Buscar el contenedor del mensaje por su ID
+                const messageElement = document.getElementById(`message-${msgId}`);
+                if (messageElement) {
+                    const bodyElement = messageElement.querySelector('.email-body, .message-body');
                     if (bodyElement) {
                         // Obtener el texto sin HTML
                         body = bodyElement.innerText || bodyElement.textContent || '';
                     }
                 }
                 
-                // Si es el mensaje principal, intentar obtener de currentEmail
-                if (msgId === 'main-message' && currentEmail) {
-                    body = currentEmail.body || currentEmail.preview || body;
+                // Si no se encontró, intentar buscar por data-message-id
+                if (!body) {
+                    const messageByDataAttr = document.querySelector(`[data-message-id="${msgId}"]`);
+                    if (messageByDataAttr) {
+                        const bodyElement = messageByDataAttr.querySelector('.email-body, .message-body');
+                        if (bodyElement) {
+                            body = bodyElement.innerText || bodyElement.textContent || '';
+                        }
+                    }
                 }
                 
                 console.log('📤 Reenviando mensaje:', { msgId, subject, bodyLength: body.length });
