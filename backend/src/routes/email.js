@@ -747,9 +747,11 @@ router.post('/generate-reply', authenticate, async (req, res) => {
     logger.info(`📧 Obteniendo detalles del email ${emailId}...`);
     let currentEmail;
     if (emailAccount.provider === 'google') {
-      currentEmail = await googleEmailService.getEmailDetails(clientId, emailId);
+      const emailDetails = await googleEmailService.getEmailDetails(clientId, emailId);
+      currentEmail = emailDetails.email;
     } else if (emailAccount.provider === 'microsoft') {
-      currentEmail = await microsoftEmailService.getEmailDetails(clientId, emailId);
+      const emailDetails = await microsoftEmailService.getEmailDetails(clientId, emailId);
+      currentEmail = emailDetails.email;
     } else {
       logger.error(`❌ Proveedor no soportado: ${emailAccount.provider}`);
       return res.status(400).json({
@@ -785,7 +787,7 @@ router.post('/generate-reply', authenticate, async (req, res) => {
 
     // Filtrar solo mensajes del mismo remitente/destinatario (hilo hermético)
     logger.info('🔍 Filtrando hilo hermético...');
-    const senderEmail = currentEmail.from.toLowerCase();
+    const senderEmail = currentEmail.from ? currentEmail.from.toLowerCase() : '';
     const recipientEmail = currentEmail.to ? currentEmail.to.toLowerCase() : '';
     
     logger.info(`📧 Filtros: sender=${senderEmail}, recipient=${recipientEmail}`);
