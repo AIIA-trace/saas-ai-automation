@@ -1677,7 +1677,7 @@
     /**
      * Generar respuesta IA para mensaje específico
      */
-    function generateAIResponseForMessage(from, subject, msgId, emailId, threadId) {
+    async function generateAIResponseForMessage(from, subject, msgId, emailId, threadId) {
         // Obtener el email completo del array allEmails
         const email = allEmails.find(e => e.id === emailId) || { 
             id: emailId,
@@ -1689,13 +1689,24 @@
         if (window.generateAIResponse) {
             // Temporalmente cambiar el ID del textarea
             const textarea = document.getElementById(`reply-textarea-${msgId}`);
-            if (textarea) {
-                const originalId = textarea.id;
+            const generateBtn = document.getElementById(`generate-ai-response-btn-${msgId}`);
+            
+            if (textarea && generateBtn) {
+                const originalTextareaId = textarea.id;
+                const originalBtnId = generateBtn.id;
+                
+                // Cambiar IDs temporalmente
                 textarea.id = 'reply-textarea';
-                window.generateAIResponse(email, threadId);
-                setTimeout(() => {
-                    textarea.id = originalId;
-                }, 100);
+                generateBtn.id = 'generate-ai-response-btn';
+                
+                try {
+                    // Esperar a que la función asíncrona termine
+                    await window.generateAIResponse(email, threadId);
+                } finally {
+                    // Restaurar IDs originales
+                    textarea.id = originalTextareaId;
+                    generateBtn.id = originalBtnId;
+                }
             }
         }
     }
