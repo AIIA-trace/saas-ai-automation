@@ -572,6 +572,14 @@ class TwilioStreamHandler {
       // Transferir sesión al streamSid real
       try {
         const connectionData = this.openaiRealtimeService.activeConnections.get(preSessionId);
+        
+        // ✅ VALIDAR que la sesión esté en buen estado
+        if (!connectionData || !connectionData.ws || connectionData.ws.readyState !== 1) {
+          logger.warn(`⚠️ [${streamSid}] Sesión pre-inicializada en mal estado, usando flujo normal`);
+          this.openaiRealtimeService.activeConnections.delete(preSessionId);
+          throw new Error('Pre-initialized session in bad state');
+        }
+        
         this.openaiRealtimeService.activeConnections.set(streamSid, connectionData);
         this.openaiRealtimeService.activeConnections.delete(preSessionId);
         logger.info(`🔄 [${streamSid}] Conexión transferida: ${preSessionId} → ${streamSid}`);

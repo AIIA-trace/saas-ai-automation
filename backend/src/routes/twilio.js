@@ -245,6 +245,14 @@ router.post('/webhook', async (req, res) => {
                 memoryContext
             );
             logger.info(`✅ [${CallSid}] OpenAI pre-inicializado exitosamente`);
+            
+            // 🧹 TIMEOUT: Limpiar sesión si no se usa en 30 segundos
+            setTimeout(() => {
+                if (openaiRealtimeService.activeConnections.has(preSessionId)) {
+                    logger.warn(`⏰ [${CallSid}] Sesión pre-inicializada no utilizada, limpiando...`);
+                    openaiRealtimeService.closeConnection(preSessionId);
+                }
+            }, 30000);
         } catch (error) {
             logger.error(`❌ [${CallSid}] Error pre-inicializando OpenAI: ${error.message}`);
             // Continuar sin pre-inicialización (fallback a flujo normal)
