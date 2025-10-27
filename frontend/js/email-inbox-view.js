@@ -10,8 +10,32 @@
 
     // Esperar a que el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
-        // Esperar 3 segundos para que el dashboard cargue los emails
-        setTimeout(initInboxView, 3000);
+        // Esperar 4 segundos para que TODOS los scripts carguen los emails primero
+        setTimeout(initInboxView, 4000);
+    });
+
+    // También observar cambios en la tabla de emails
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                const emailTableBody = document.getElementById('emails-table-body');
+                if (emailTableBody && emailTableBody.querySelectorAll('tr').length > 0) {
+                    console.log('📧 Emails detectados en la tabla, esperando para transformar vista...');
+                    // Desconectar el observer para evitar loops
+                    observer.disconnect();
+                    // Esperar un poco más para asegurar que todos los scripts terminen
+                    setTimeout(initInboxView, 1000);
+                }
+            }
+        });
+    });
+
+    // Observar el body para detectar cuando se cargue la tabla
+    document.addEventListener('DOMContentLoaded', function() {
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
     });
 
     /**
@@ -115,25 +139,43 @@
         // Buscar la tabla original de emails
         const emailTableBody = document.getElementById('emails-table-body');
         if (!emailTableBody) {
-            console.warn('⚠️ No se encontró la tabla de emails original');
+            console.warn('⚠️ No se encontró la tabla de emails original, buscando filas alternativas...');
+            
+            // Intentar buscar filas de email por clase
+            const emailRows = document.querySelectorAll('.email-row');
+            if (emailRows.length > 0) {
+                console.log(`📧 Encontradas ${emailRows.length} filas de email por clase`);
+                extractEmailsFromRows(emailRows);
+                return;
+            }
+            
+            // Si no hay emails, mostrar mensaje vacío
+            renderEmailList([]);
             return;
         }
 
         // Extraer emails de la tabla
         const emailRows = emailTableBody.querySelectorAll('tr');
+        extractEmailsFromRows(emailRows);
+    }
+
+    /**
+     * Extraer emails de las filas
+     */
+    function extractEmailsFromRows(emailRows) {
         const emails = [];
 
         emailRows.forEach((row, index) => {
             const cells = row.querySelectorAll('td');
             if (cells.length >= 5) {
                 const email = {
-                    id: index + 1,
+                    id: row.dataset.emailId || (index + 1),
                     important: cells[0].querySelector('.fa-star')?.classList.contains('text-warning'),
                     sender: cells[1].textContent.trim(),
                     subject: cells[2].textContent.trim(),
                     preview: cells[3].textContent.trim(),
                     date: cells[4].textContent.trim(),
-                    unread: row.classList.contains('unread')
+                    unread: row.classList.contains('unread') || row.classList.contains('fw-bold')
                 };
                 emails.push(email);
             }
