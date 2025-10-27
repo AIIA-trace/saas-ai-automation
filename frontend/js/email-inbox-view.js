@@ -1604,9 +1604,25 @@
         const attachInput = document.getElementById(`attachment-input-${msgId}`);
         
         if (attachBtn && attachInput) {
-            attachBtn.addEventListener('click', () => attachInput.click());
+            // Remover listeners anteriores si existen
+            const newAttachBtn = attachBtn.cloneNode(true);
+            attachBtn.parentNode.replaceChild(newAttachBtn, attachBtn);
+            
+            newAttachBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(`Click en adjuntar para ${msgId}`);
+                attachInput.click();
+            });
+            
             attachInput.addEventListener('change', function(e) {
+                console.log(`Archivo seleccionado para ${msgId}`);
                 handleFileSelectionForMessage(e, msgId);
+            });
+        } else {
+            console.warn(`No se encontraron elementos de adjuntar para ${msgId}`, {
+                attachBtn: !!attachBtn,
+                attachInput: !!attachInput
             });
         }
 
