@@ -357,6 +357,7 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
 
     // Exportar funciones
     window.formatFileSize = formatFileSize;
+    window.sendReply = sendReply;
 
     /**
      * Mostrar toast de éxito (se cierra automáticamente)
