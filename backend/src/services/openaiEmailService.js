@@ -18,20 +18,47 @@ class OpenAIEmailService {
    */
   async generateEmailReply(threadMessages, currentEmail, clientId) {
     try {
+      logger.info('🎬 ===== INICIO generateEmailReply =====');
       logger.info('🤖 Generando respuesta de email con IA...');
+      logger.info(`📊 Datos recibidos:`, {
+        threadMessagesCount: threadMessages.length,
+        currentEmailFrom: currentEmail.from,
+        currentEmailSubject: currentEmail.subject,
+        clientId: clientId
+      });
 
       // Obtener contexto completo del cliente desde la base de datos
+      logger.info('🔍 Obteniendo contexto del cliente...');
       const clientContext = await getClientContext(clientId);
       logger.info(`📋 Contexto cargado para ${clientContext.companyName}`);
+      logger.info(`📋 Contexto incluye:`, {
+        companyName: clientContext.companyName,
+        industry: clientContext.industry,
+        servicesCount: clientContext.services?.length || 0,
+        hasFAQs: !!clientContext.faqs,
+        hasContextFiles: !!clientContext.contextFiles
+      });
 
       // Construir contexto del hilo
+      logger.info('📝 Construyendo contexto del hilo...');
       const threadContext = this.buildThreadContext(threadMessages);
+      logger.info(`✅ Contexto del hilo construido: ${threadContext.length} caracteres`);
       
       // Construir prompt
+      logger.info('📝 Construyendo prompts...');
       const systemPrompt = this.buildSystemPrompt(clientContext);
       const userPrompt = this.buildUserPrompt(threadContext, currentEmail);
+      
+      logger.info(`✅ System prompt: ${systemPrompt.length} caracteres`);
+      logger.info(`✅ User prompt: ${userPrompt.length} caracteres`);
 
       // Llamar a OpenAI
+      logger.info('🚀 Llamando a OpenAI API...');
+      logger.info(`📍 Modelo: gpt-4o`);
+      logger.info(`🌡️ Temperature: 0.7`);
+      logger.info(`📏 Max tokens: 1000`);
+      logger.info(`🔑 API Key configurada: ${!!process.env.OPENAI_API_KEY}`);
+
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
@@ -42,13 +69,30 @@ class OpenAIEmailService {
         max_tokens: 1000
       });
 
+      logger.info('✅ Respuesta recibida de OpenAI');
+      logger.info(`📊 Completion info:`, {
+        id: completion.id,
+        model: completion.model,
+        usage: completion.usage
+      });
+
       const generatedReply = completion.choices[0].message.content.trim();
       
       logger.info('✅ Respuesta generada exitosamente');
+      logger.info(`📝 Longitud: ${generatedReply.length} caracteres`);
+      logger.info(`📄 Primeros 150 caracteres: ${generatedReply.substring(0, 150)}...`);
+      logger.info('🏁 ===== FIN generateEmailReply EXITOSO =====');
+      
       return generatedReply;
 
     } catch (error) {
+      logger.error('❌ ===== ERROR EN generateEmailReply =====');
       logger.error('❌ Error generando respuesta con IA:', error);
+      logger.error('❌ Error message:', error.message);
+      logger.error('❌ Error stack:', error.stack);
+      if (error.response) {
+        logger.error('❌ OpenAI API response:', error.response.data);
+      }
       throw new Error(`Error al generar respuesta: ${error.message}`);
     }
   }

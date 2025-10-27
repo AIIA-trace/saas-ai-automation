@@ -711,7 +711,11 @@ router.post('/generate-reply', authenticate, async (req, res) => {
     const clientId = req.client.id;
     const { emailId, threadId } = req.body;
 
+    logger.info('🎬 ===== INICIO GENERATE-REPLY =====');
+    logger.info(`📥 Request recibido:`, { clientId, emailId, threadId });
+
     if (!emailId) {
+      logger.error('❌ emailId faltante en request');
       return res.status(400).json({
         success: false,
         error: 'emailId es requerido'
@@ -721,6 +725,7 @@ router.post('/generate-reply', authenticate, async (req, res) => {
     logger.info(`🤖 Generando respuesta IA para email ${emailId} del cliente ${clientId}`);
 
     // Obtener cuenta de email activa
+    logger.info('🔍 Buscando cuenta de email activa...');
     const emailAccount = await prisma.emailAccount.findFirst({
       where: {
         clientId: clientId,
@@ -729,24 +734,35 @@ router.post('/generate-reply', authenticate, async (req, res) => {
     });
 
     if (!emailAccount) {
+      logger.error('❌ No hay cuenta de email activa');
       return res.status(404).json({
         success: false,
         error: 'No hay cuenta de email activa'
       });
     }
 
+    logger.info(`✅ Cuenta encontrada: ${emailAccount.provider} - ${emailAccount.email}`);
+
     // Obtener detalles del email actual
+    logger.info(`📧 Obteniendo detalles del email ${emailId}...`);
     let currentEmail;
     if (emailAccount.provider === 'google') {
       currentEmail = await googleEmailService.getEmailDetails(clientId, emailId);
     } else if (emailAccount.provider === 'microsoft') {
       currentEmail = await microsoftEmailService.getEmailDetails(clientId, emailId);
     } else {
+      logger.error(`❌ Proveedor no soportado: ${emailAccount.provider}`);
       return res.status(400).json({
         success: false,
         error: 'Proveedor no soportado'
       });
     }
+
+    logger.info(`✅ Email obtenido:`, {
+      from: currentEmail.from,
+      subject: currentEmail.subject,
+      date: currentEmail.date
+    });
 
     // Obtener hilo completo si existe threadId
     let threadMessages = [];
@@ -756,17 +772,25 @@ router.post('/generate-reply', authenticate, async (req, res) => {
       if (emailAccount.provider === 'google') {
         const threadData = await googleEmailService.getThread(clientId, threadId);
         threadMessages = threadData.messages || [];
+        logger.info(`✅ Hilo cargado de Gmail: ${threadMessages.length} mensajes`);
       } else if (emailAccount.provider === 'microsoft') {
         // Microsoft no tiene concepto de thread como Gmail, usar conversationId
         const conversationEmails = await microsoftEmailService.getConversationEmails(clientId, currentEmail.conversationId);
         threadMessages = conversationEmails || [];
+        logger.info(`✅ Conversación cargada de Microsoft: ${threadMessages.length} mensajes`);
       }
+    } else {
+      logger.warn('⚠️ No se proporcionó threadId, usando solo email actual');
     }
 
     // Filtrar solo mensajes del mismo remitente/destinatario (hilo hermético)
+    logger.info('🔍 Filtrando hilo hermético...');
     const senderEmail = currentEmail.from.toLowerCase();
     const recipientEmail = currentEmail.to ? currentEmail.to.toLowerCase() : '';
     
+    logger.info(`📧 Filtros: sender=${senderEmail}, recipient=${recipientEmail}`);
+    
+    const originalCount = threadMessages.length;
     threadMessages = threadMessages.filter(msg => {
       const msgFrom = (msg.from || '').toLowerCase();
       const msgTo = (msg.to || '').toLowerCase();
@@ -776,28 +800,44 @@ router.post('/generate-reply', authenticate, async (req, res) => {
              (msgFrom === recipientEmail || msgTo === recipientEmail);
     });
 
+    logger.info(`✅ Filtrado: ${originalCount} → ${threadMessages.length} mensajes`);
+
     // Ordenar mensajes cronológicamente (más antiguos primero)
     threadMessages.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    logger.info(`📚 Hilo hermético cargado: ${threadMessages.length} mensajes`);
+    logger.info(`📚 Hilo hermético ordenado: ${threadMessages.length} mensajes`);
 
     // Generar respuesta con IA (el servicio cargará el contexto completo del cliente)
+    logger.info('🤖 Llamando a OpenAI Email Service...');
+    logger.info(`📦 Datos enviados a IA:`, {
+      threadMessagesCount: threadMessages.length,
+      currentEmailFrom: currentEmail.from,
+      currentEmailSubject: currentEmail.subject,
+      clientId: clientId
+    });
+
     const generatedReply = await openaiEmailService.generateEmailReply(
       threadMessages,
       currentEmail,
       clientId
     );
 
-    logger.info('✅ Respuesta generada exitosamente');
+    logger.info('✅ Respuesta generada exitosamente por OpenAI');
+    logger.info(`📝 Longitud de respuesta: ${generatedReply.length} caracteres`);
+    logger.info(`📄 Primeros 100 caracteres: ${generatedReply.substring(0, 100)}...`);
 
+    logger.info('📤 Enviando respuesta al frontend...');
     res.json({
       success: true,
       reply: generatedReply,
       threadMessagesCount: threadMessages.length
     });
 
+    logger.info('🏁 ===== FIN GENERATE-REPLY EXITOSO =====');
+
   } catch (error) {
-    logger.error(`❌ Error generando respuesta con IA: ${error.message}`);
+    logger.error(`❌ ===== ERROR EN GENERATE-REPLY =====`);
+    logger.error(`❌ Error: ${error.message}`);
+    logger.error(`❌ Stack: ${error.stack}`);
     res.status(500).json({
       success: false,
       error: error.message
