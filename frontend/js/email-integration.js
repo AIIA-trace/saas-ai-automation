@@ -95,12 +95,13 @@ function connectWithGoogle() {
     // Verificar si ya existe un token guardado
     const token = localStorage.getItem('authToken');
     if (!token) {
-        toastr.error('Error de autenticación', 'Error');
+        console.error('No hay token de autenticación');
+        alert('Error de autenticación. Por favor, inicia sesión nuevamente.');
         return;
     }
     
-    // Obtener clientId de Google desde el backend
-    fetch('/api/email/oauth/google/config', {
+    // Obtener URL de autorización desde el backend
+    fetch(`${API_BASE_URL}/api/email/oauth/google`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -113,29 +114,19 @@ function connectWithGoogle() {
         }
         return response.json();
     })
-    .then(config => {
-        // Guardar estado para verificar después del callback
-        sessionStorage.setItem('emailOAuthPending', 'google');
-        
-        // Construir URL de autorización de Google
-        const redirectUri = `${window.location.origin}/oauth/callback`;
-        const scope = 'https://mail.google.com/ https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.compose';
-        const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
-        
-        // Abrir ventana de autenticación
-        const authWindow = window.open(authUrl, 'googleOAuth', 'width=600,height=700');
-        
-        // Verificar periódicamente si la ventana se cerró
-        const checkWindow = setInterval(() => {
-            if (authWindow.closed) {
-                clearInterval(checkWindow);
-                checkOAuthCallback();
-            }
-        }, 500);
+    .then(data => {
+        if (data.success && data.authUrl) {
+            console.log('✅ URL de autorización obtenida');
+            
+            // Redirigir a la URL de autorización de Google
+            window.location.href = data.authUrl;
+        } else {
+            throw new Error('No se pudo obtener la URL de autorización');
+        }
     })
     .catch(error => {
-        console.error('❌ Error al obtener configuración de Google OAuth:', error);
-        toastr.error('Error al conectar con Google', 'Error');
+        console.error('❌ Error al obtener URL de Google OAuth:', error);
+        alert('Error al conectar con Google: ' + error.message);
     });
 }
 
@@ -148,12 +139,13 @@ function connectWithMicrosoft() {
     // Verificar si ya existe un token guardado
     const token = localStorage.getItem('authToken');
     if (!token) {
-        toastr.error('Error de autenticación', 'Error');
+        console.error('No hay token de autenticación');
+        alert('Error de autenticación. Por favor, inicia sesión nuevamente.');
         return;
     }
     
-    // Obtener clientId de Microsoft desde el backend
-    fetch('/api/email/oauth/microsoft/config', {
+    // Obtener URL de autorización desde el backend
+    fetch(`${API_BASE_URL}/api/email/oauth/microsoft`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -166,29 +158,19 @@ function connectWithMicrosoft() {
         }
         return response.json();
     })
-    .then(config => {
-        // Guardar estado para verificar después del callback
-        sessionStorage.setItem('emailOAuthPending', 'microsoft');
-        
-        // Construir URL de autorización de Microsoft
-        const redirectUri = `${window.location.origin}/oauth/callback`;
-        const scope = 'offline_access Mail.Read Mail.ReadWrite Mail.Send';
-        const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
-        
-        // Abrir ventana de autenticación
-        const authWindow = window.open(authUrl, 'microsoftOAuth', 'width=600,height=700');
-        
-        // Verificar periódicamente si la ventana se cerró
-        const checkWindow = setInterval(() => {
-            if (authWindow.closed) {
-                clearInterval(checkWindow);
-                checkOAuthCallback();
-            }
-        }, 500);
+    .then(data => {
+        if (data.success && data.authUrl) {
+            console.log('✅ URL de autorización obtenida');
+            
+            // Redirigir a la URL de autorización de Microsoft
+            window.location.href = data.authUrl;
+        } else {
+            throw new Error('No se pudo obtener la URL de autorización');
+        }
     })
     .catch(error => {
-        console.error('❌ Error al obtener configuración de Microsoft OAuth:', error);
-        toastr.error('Error al conectar con Microsoft', 'Error');
+        console.error('❌ Error al obtener URL de Microsoft OAuth:', error);
+        alert('Error al conectar con Microsoft: ' + error.message);
     });
 }
 
@@ -314,7 +296,7 @@ function loadEmailConnectionStatus() {
     const token = localStorage.getItem('authToken');
     if (!token) return;
     
-    fetch('/api/email/connection', {
+    fetch(`${API_BASE_URL}/api/email/accounts`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -328,13 +310,127 @@ function loadEmailConnectionStatus() {
         return response.json();
     })
     .then(data => {
-        if (data.connected) {
-            updateEmailConnectionStatus(data);
+        if (data.success && data.accounts && data.accounts.length > 0) {
+            const account = data.accounts[0]; // Tomar la primera cuenta activa
+            updateEmailConnectionStatus({
+                connected: true,
+                provider: account.provider,
+                email: account.email
+            });
+            
+            // Cargar bandeja de entrada automáticamente
+            loadEmailInbox();
         }
     })
     .catch(error => {
         console.error('❌ Error al cargar estado de conexión de email:', error);
     });
+}
+
+/**
+ * Cargar bandeja de entrada desde la API
+ */
+function loadEmailInbox() {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    
+    console.log('📧 Cargando bandeja de entrada...');
+    
+    fetch(`${API_BASE_URL}/api/email/inbox?limit=50`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success && data.emails) {
+            console.log(`✅ ${data.emails.length} emails cargados desde ${data.provider}`);
+            displayEmailsInTable(data.emails);
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error al cargar bandeja de entrada:', error);
+    });
+}
+
+/**
+ * Mostrar emails en la tabla
+ */
+function displayEmailsInTable(emails) {
+    const tableBody = document.getElementById('emails-table-body');
+    if (!tableBody) return;
+    
+    if (emails.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No hay emails en la bandeja de entrada</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tableBody.innerHTML = emails.map(email => {
+        const date = new Date(email.date);
+        const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+        const isUnread = !email.isRead;
+        const rowClass = isUnread ? 'fw-bold' : '';
+        
+        return `
+            <tr class="email-row ${rowClass}" data-email-id="${email.id}">
+                <td class="text-center">
+                    <i class="fas fa-star ${email.isStarred ? 'text-warning' : 'text-muted'}"></i>
+                </td>
+                <td>${escapeHtml(email.from || email.fromName || 'Desconocido')}</td>
+                <td>${escapeHtml(email.subject || '(Sin asunto)')}</td>
+                <td>${escapeHtml(email.snippet || email.body?.substring(0, 100) || '')}</td>
+                <td>${formattedDate}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary view-email-btn" data-email-id="${email.id}">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    // Agregar event listeners a los botones de ver
+    document.querySelectorAll('.view-email-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const emailId = this.dataset.emailId;
+            const email = emails.find(e => e.id === emailId);
+            if (email) {
+                showEmailModal(email);
+            }
+        });
+    });
+}
+
+/**
+ * Escapar HTML para prevenir XSS
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Mostrar modal con detalles del email
+ */
+function showEmailModal(email) {
+    // TODO: Implementar modal de detalles del email
+    console.log('Mostrar email:', email);
+    alert(`De: ${email.from}\nAsunto: ${email.subject}\n\n${email.body || email.snippet}`);
 }
 
 /**
