@@ -438,8 +438,13 @@
         
         const email = allEmails.find(e => e.id == emailId);
         if (email) {
-            email.important = !email.important;
+            const newImportantState = !email.important;
+            email.important = newImportantState;
+            
             console.log(`⭐ Email ${emailId} marcado como ${email.important ? 'importante' : 'normal'}`);
+            
+            // Actualizar en el backend (Gmail)
+            toggleImportantInBackend(emailId, newImportantState);
             
             // Re-renderizar para aplicar filtros y búsqueda actuales
             const searchInput = document.getElementById('email-search-input');
@@ -451,6 +456,45 @@
                 renderEmailList(allEmails);
             }
         }
+    }
+
+    /**
+     * Marcar email como importante en el backend
+     */
+    function toggleImportantInBackend(emailId, starred) {
+        const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+        if (!token) {
+            console.warn('⚠️ No hay token de autenticación');
+            return;
+        }
+
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
+        fetch(`${API_BASE_URL}/api/email/toggle-starred`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                emailId: emailId,
+                starred: starred
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                console.log(`✅ Email ${emailId} ${starred ? 'marcado' : 'desmarcado'} como importante en Gmail`);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cambiando estado de importante:', error);
+        });
     }
 
     /**

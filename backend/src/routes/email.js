@@ -365,6 +365,63 @@ router.post('/mark-read', authenticate, async (req, res) => {
 });
 
 /**
+ * Marcar/desmarcar email como importante
+ * POST /api/email/toggle-starred
+ */
+router.post('/toggle-starred', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { emailId, starred } = req.body;
+
+    if (!emailId || typeof starred !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'emailId y starred (boolean) son requeridos'
+      });
+    }
+
+    // Obtener cuenta activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay cuenta de email conectada'
+      });
+    }
+
+    // Cambiar estado según el proveedor
+    if (emailAccount.provider === 'google') {
+      await googleEmailService.toggleStarred(clientId, emailId, starred);
+    } else if (emailAccount.provider === 'microsoft') {
+      await microsoftEmailService.toggleStarred(clientId, emailId, starred);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Proveedor no soportado'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: starred ? 'Email marcado como importante' : 'Email desmarcado como importante'
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error cambiando estado de importante: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Obtener detalles de un email (incluyendo hilo)
  * GET /api/email/:emailId/details
  */
