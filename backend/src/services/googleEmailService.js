@@ -249,13 +249,40 @@ class GoogleEmailService {
     };
 
     let body = '';
+    let htmlBody = '';
+    const attachments = [];
+
+    // Función recursiva para extraer partes del mensaje
+    const extractParts = (parts) => {
+      if (!parts) return;
+
+      for (const part of parts) {
+        if (part.mimeType === 'text/plain' && part.body.data && !body) {
+          body = Buffer.from(part.body.data, 'base64').toString('utf-8');
+        } else if (part.mimeType === 'text/html' && part.body.data) {
+          htmlBody = Buffer.from(part.body.data, 'base64').toString('utf-8');
+        } else if (part.filename && part.body.attachmentId) {
+          // Es un adjunto
+          attachments.push({
+            filename: part.filename,
+            mimeType: part.mimeType,
+            size: part.body.size,
+            attachmentId: part.body.attachmentId
+          });
+        }
+
+        // Recursión para partes anidadas
+        if (part.parts) {
+          extractParts(part.parts);
+        }
+      }
+    };
+
+    // Extraer body y adjuntos
     if (message.payload.body.data) {
       body = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
     } else if (message.payload.parts) {
-      const textPart = message.payload.parts.find(part => part.mimeType === 'text/plain');
-      if (textPart && textPart.body.data) {
-        body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
-      }
+      extractParts(message.payload.parts);
     }
 
     return {
@@ -265,16 +292,61 @@ class GoogleEmailService {
       to: getHeader('To'),
       subject: getHeader('Subject'),
       date: getHeader('Date'),
-      body: body,
+      messageId: getHeader('Message-ID'),
+      references: getHeader('References'),
+      body: htmlBody || body,
       snippet: message.snippet,
       labelIds: message.labelIds || [],
       isRead: !message.labelIds?.includes('UNREAD'),
-      isStarred: message.labelIds?.includes('STARRED')
+      isStarred: message.labelIds?.includes('STARRED'),
+      attachments: attachments
     };
   }
 
   /**
-   * Enviar email
+   * Obtener detalles completos de un email (incluyendo hilo)
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email
+   * @returns {Promise<Object>} Detalles del email y su hilo
+   */
+  async getEmailDetails(clientId, emailId) {
+    try {
+      const auth = await this.getAuthenticatedClient(clientId);
+      const gmail = google.gmail({ version: 'v1', auth });
+
+      // Obtener el mensaje
+      const message = await gmail.users.messages.get({
+        userId: 'me',
+        id: emailId,
+        format: 'full'
+      });
+
+      const emailData = this.parseGmailMessage(message.data);
+
+      // Obtener el hilo completo
+      const thread = await gmail.users.threads.get({
+        userId: 'me',
+        id: message.data.threadId,
+        format: 'full'
+      });
+
+      // Parsear todos los mensajes del hilo
+      const threadMessages = thread.data.messages.map(msg => this.parseGmailMessage(msg));
+
+      return {
+        email: emailData,
+        thread: threadMessages,
+        threadId: message.data.threadId
+      };
+
+    } catch (error) {
+      logger.error(`❌ Error obteniendo detalles del email: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Enviar email (con soporte para respuestas y adjuntos)
    * @param {number} clientId - ID del cliente
    * @param {Object} emailData - Datos del email
    * @returns {Promise<Object>} Resultado del envío
@@ -284,32 +356,74 @@ class GoogleEmailService {
       const auth = await this.getAuthenticatedClient(clientId);
       const gmail = google.gmail({ version: 'v1', auth });
 
-      // Construir mensaje en formato RFC 2822
-      const message = [
-        `To: ${emailData.to}`,
-        `Subject: ${emailData.subject}`,
-        '',
-        emailData.body
-      ].join('\n');
+      let messageParts = [];
+      const boundary = '===============' + Date.now() + '==';
 
+      // Headers básicos
+      messageParts.push(`To: ${emailData.to}`);
+      messageParts.push(`Subject: ${emailData.subject}`);
+      
+      // Si es una respuesta, agregar headers de threading
+      if (emailData.inReplyTo) {
+        messageParts.push(`In-Reply-To: ${emailData.inReplyTo}`);
+        messageParts.push(`References: ${emailData.references || emailData.inReplyTo}`);
+      }
+
+      // Si hay adjuntos, usar multipart
+      if (emailData.attachments && emailData.attachments.length > 0) {
+        messageParts.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+        messageParts.push('');
+        
+        // Parte del texto
+        messageParts.push(`--${boundary}`);
+        messageParts.push('Content-Type: text/html; charset="UTF-8"');
+        messageParts.push('');
+        messageParts.push(emailData.body);
+        
+        // Adjuntos
+        for (const attachment of emailData.attachments) {
+          messageParts.push(`--${boundary}`);
+          messageParts.push(`Content-Type: ${attachment.mimeType}`);
+          messageParts.push('Content-Transfer-Encoding: base64');
+          messageParts.push(`Content-Disposition: attachment; filename="${attachment.filename}"`);
+          messageParts.push('');
+          messageParts.push(attachment.data);
+        }
+        
+        messageParts.push(`--${boundary}--`);
+      } else {
+        messageParts.push('Content-Type: text/html; charset="UTF-8"');
+        messageParts.push('');
+        messageParts.push(emailData.body);
+      }
+
+      const message = messageParts.join('\n');
       const encodedMessage = Buffer.from(message)
         .toString('base64')
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
+      const requestBody = {
+        raw: encodedMessage
+      };
+
+      // Si es una respuesta, incluir threadId
+      if (emailData.threadId) {
+        requestBody.threadId = emailData.threadId;
+      }
+
       const response = await gmail.users.messages.send({
         userId: 'me',
-        requestBody: {
-          raw: encodedMessage
-        }
+        requestBody: requestBody
       });
 
       logger.info(`✅ Email enviado exitosamente: ${response.data.id}`);
 
       return {
         success: true,
-        messageId: response.data.id
+        messageId: response.data.id,
+        threadId: response.data.threadId
       };
 
     } catch (error) {

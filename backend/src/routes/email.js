@@ -316,13 +316,63 @@ router.post('/mark-read', authenticate, async (req, res) => {
 });
 
 /**
- * Enviar email
+ * Obtener detalles de un email (incluyendo hilo)
+ * GET /api/email/:emailId/details
+ */
+router.get('/:emailId/details', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const emailId = req.params.emailId;
+
+    // Obtener cuenta activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay cuenta de email conectada'
+      });
+    }
+
+    let details = {};
+
+    // Obtener detalles según el proveedor
+    if (emailAccount.provider === 'google') {
+      details = await googleEmailService.getEmailDetails(clientId, emailId);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Proveedor no soportado'
+      });
+    }
+
+    res.json({
+      success: true,
+      ...details
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error obteniendo detalles del email: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Enviar email (con soporte para respuestas y adjuntos)
  * POST /api/email/send
  */
 router.post('/send', authenticate, async (req, res) => {
   try {
     const clientId = req.client.id;
-    const { to, subject, body } = req.body;
+    const { to, subject, body, threadId, inReplyTo, references, attachments } = req.body;
 
     if (!to || !subject || !body) {
       return res.status(400).json({
@@ -346,13 +396,23 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
+    const emailData = {
+      to,
+      subject,
+      body,
+      threadId,
+      inReplyTo,
+      references,
+      attachments: attachments || []
+    };
+
     let result;
 
     // Enviar email según el proveedor
     if (emailAccount.provider === 'google') {
-      result = await googleEmailService.sendEmail(clientId, { to, subject, body });
+      result = await googleEmailService.sendEmail(clientId, emailData);
     } else if (emailAccount.provider === 'microsoft') {
-      result = await microsoftEmailService.sendEmail(clientId, { to, subject, body });
+      result = await microsoftEmailService.sendEmail(clientId, emailData);
     } else {
       return res.status(400).json({
         success: false,
