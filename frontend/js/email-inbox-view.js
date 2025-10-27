@@ -51,11 +51,67 @@
             return;
         }
 
+        // IMPORTANTE: Extraer emails ANTES de reemplazar el contenido
+        const emails = extractEmailsBeforeReplacing();
+        console.log(`📧 ${emails.length} emails capturados antes de reemplazar layout`);
+
         // Reemplazar el contenido con la nueva vista
         createInboxLayout(emailsContent);
 
-        // Cargar emails en la nueva vista
-        loadEmailsIntoInbox();
+        // Renderizar emails en la nueva vista
+        renderEmailList(emails);
+    }
+
+    /**
+     * Extraer emails ANTES de reemplazar el layout
+     */
+    function extractEmailsBeforeReplacing() {
+        const emails = [];
+
+        // Intentar buscar la tabla original
+        const emailTableBody = document.getElementById('emails-table-body');
+        if (emailTableBody) {
+            const rows = emailTableBody.querySelectorAll('tr');
+            console.log(`📧 Encontradas ${rows.length} filas en tabla original`);
+            
+            rows.forEach((row, index) => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 5) {
+                    emails.push({
+                        id: row.dataset.emailId || (index + 1),
+                        important: cells[0].querySelector('.fa-star')?.classList.contains('text-warning'),
+                        sender: cells[1].textContent.trim(),
+                        subject: cells[2].textContent.trim(),
+                        preview: cells[3].textContent.trim(),
+                        date: cells[4].textContent.trim(),
+                        unread: row.classList.contains('unread') || row.classList.contains('fw-bold')
+                    });
+                }
+            });
+        }
+
+        // Si no se encontró la tabla, buscar por clase
+        if (emails.length === 0) {
+            const emailRows = document.querySelectorAll('.email-row');
+            console.log(`📧 Encontradas ${emailRows.length} filas por clase .email-row`);
+            
+            emailRows.forEach((row, index) => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 5) {
+                    emails.push({
+                        id: row.dataset.emailId || (index + 1),
+                        important: cells[0].querySelector('.fa-star')?.classList.contains('text-warning'),
+                        sender: cells[1].textContent.trim(),
+                        subject: cells[2].textContent.trim(),
+                        preview: cells[3].textContent.trim(),
+                        date: cells[4].textContent.trim(),
+                        unread: row.classList.contains('unread') || row.classList.contains('fw-bold')
+                    });
+                }
+            });
+        }
+
+        return emails;
     }
 
     /**
