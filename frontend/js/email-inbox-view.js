@@ -1289,7 +1289,7 @@
         `;
     }
 
-    // Agregar estilos CSS para el checkbox personalizado
+    // Agregar estilos CSS para el checkbox personalizado y contenido de emails
     const style = document.createElement('style');
     style.textContent = `
         .custom-checkbox {
@@ -1323,6 +1323,56 @@
             color: white;
             font-size: 12px;
             font-weight: bold;
+        }
+
+        /* Prevenir scroll horizontal en contenido de emails */
+        .email-body {
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .email-body * {
+            max-width: 100% !important;
+            word-wrap: break-word !important;
+            word-break: break-word !important;
+        }
+
+        .email-body img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+
+        .email-body table {
+            max-width: 100% !important;
+            table-layout: fixed !important;
+        }
+
+        .email-body pre {
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+            overflow-x: auto !important;
+            max-width: 100% !important;
+        }
+
+        /* Truncar preview en lista de emails */
+        .email-list-item .text-truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        /* Asegurar que el panel de contenido no cause scroll horizontal */
+        #inbox-email-content {
+            overflow-x: hidden;
+            max-width: 100%;
+        }
+
+        #inbox-email-content > div {
+            max-width: 100%;
         }
     `;
     document.head.appendChild(style);
