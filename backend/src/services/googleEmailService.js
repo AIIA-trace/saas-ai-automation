@@ -590,6 +590,32 @@ class GoogleEmailService {
   }
 
   /**
+   * Eliminar email (mover a papelera)
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email
+   * @returns {Promise<boolean>} Éxito de la operación
+   */
+  async deleteEmail(clientId, emailId) {
+    try {
+      const auth = await this.getAuthenticatedClient(clientId);
+      const gmail = google.gmail({ version: 'v1', auth });
+
+      // Mover a papelera (TRASH)
+      await gmail.users.messages.trash({
+        userId: 'me',
+        id: emailId
+      });
+
+      logger.info(`✅ Email ${emailId} movido a papelera para cliente ${clientId}`);
+      return true;
+
+    } catch (error) {
+      logger.error(`❌ Error eliminando email: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Desconectar cuenta de Gmail
    * @param {number} clientId - ID del cliente
    * @returns {Promise<boolean>} Éxito de la operación

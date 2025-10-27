@@ -1159,14 +1159,9 @@
                 <div class="border-bottom pb-3 mb-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <h4 class="mb-0">${currentMessage.subject || '(Sin asunto)'}</h4>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" title="Archivar">
-                                <i class="fas fa-archive"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
+                        <button class="btn btn-outline-danger btn-sm" onclick="window.InboxView.deleteEmail('${currentMessage.id}')" title="Eliminar">
+                            <i class="fas fa-trash me-1"></i>Eliminar
+                        </button>
                     </div>
                     
                     <div class="d-flex align-items-start">
@@ -1197,11 +1192,11 @@
                 ${renderAttachments(currentMessage.attachments, currentMessage.id)}
 
                 <!-- Botones de acción del mensaje principal -->
-                <div class="mt-3 pt-3 border-top">
-                    <button class="btn btn-sm btn-primary me-2" onclick="window.InboxView.showReplyForm('main-message', '${currentMessage.from}', '${currentMessage.subject}', '${currentMessage.messageId}', '${threadId}')">
+                <div id="reply-buttons-main-message" class="mt-3 pt-3 border-top">
+                    <button class="btn btn-primary me-2" onclick="window.InboxView.showReplyForm('main-message', '${currentMessage.from}', '${currentMessage.subject}', '${currentMessage.messageId}', '${threadId}')">
                         <i class="fas fa-reply me-1"></i>Responder
                     </button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="window.InboxView.showForwardForm('main-message', '${currentMessage.subject}', '${escapeHtml(currentMessage.body)}')">
+                    <button class="btn btn-outline-primary" onclick="window.InboxView.showForwardForm('main-message', '${currentMessage.subject}', '${escapeHtml(currentMessage.body)}')">
                         <i class="fas fa-share me-1"></i>Reenviar
                     </button>
                 </div>
@@ -1435,11 +1430,11 @@
                         ${msg.attachments && msg.attachments.length > 0 ? renderAttachments(msg.attachments, msg.id) : ''}
                         
                         <!-- Botones de acción -->
-                        <div class="mt-3 pt-3 border-top">
-                            <button class="btn btn-sm btn-outline-primary me-2" onclick="window.InboxView.showReplyForm('${msgId}', '${msg.from}', '${msg.subject}', '${msg.messageId}', '${threadId}')">
+                        <div id="reply-buttons-${msgId}" class="mt-3 pt-3 border-top">
+                            <button class="btn btn-sm btn-primary me-2" onclick="window.InboxView.showReplyForm('${msgId}', '${msg.from}', '${msg.subject}', '${msg.messageId}', '${threadId}')">
                                 <i class="fas fa-reply me-1"></i>Responder
                             </button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="window.InboxView.showForwardForm('${msgId}', '${msg.subject}', '${msg.body}')">
+                            <button class="btn btn-sm btn-outline-primary" onclick="window.InboxView.showForwardForm('${msgId}', '${msg.subject}', '${msg.body}')">
                                 <i class="fas fa-share me-1"></i>Reenviar
                             </button>
                         </div>
@@ -1481,10 +1476,19 @@
      * Mostrar formulario de respuesta para un mensaje específico
      */
     function showReplyForm(msgId, from, subject, messageId, threadId) {
-        // Ocultar todos los demás formularios
+        // Ocultar todos los demás formularios y mostrar todos los botones
         document.querySelectorAll('[id^="reply-form-"]').forEach(form => {
             form.classList.add('d-none');
         });
+        document.querySelectorAll('[id^="reply-buttons-"]').forEach(buttons => {
+            buttons.classList.remove('d-none');
+        });
+
+        // Ocultar los botones de este mensaje
+        const replyButtons = document.getElementById(`reply-buttons-${msgId}`);
+        if (replyButtons) {
+            replyButtons.classList.add('d-none');
+        }
 
         // Mostrar el formulario de este mensaje
         const replyForm = document.getElementById(`reply-form-${msgId}`);
@@ -1612,7 +1616,7 @@
                     <small class="text-muted" id="attachment-info"></small>
                 </div>
                 <div>
-                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="document.getElementById('reply-form-${msgId}').classList.add('d-none')">
+                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="window.InboxView.cancelReply('${msgId}')">
                         Cancelar
                     </button>
                     <button class="btn btn-primary" id="send-reply-btn">
@@ -1798,6 +1802,92 @@
     document.head.appendChild(style);
 
     /**
+     * Cancelar respuesta y volver a mostrar botones
+     */
+    function cancelReply(msgId) {
+        // Ocultar formulario
+        const replyForm = document.getElementById(`reply-form-${msgId}`);
+        if (replyForm) {
+            replyForm.classList.add('d-none');
+        }
+
+        // Mostrar botones
+        const replyButtons = document.getElementById(`reply-buttons-${msgId}`);
+        if (replyButtons) {
+            replyButtons.classList.remove('d-none');
+        }
+    }
+
+    /**
+     * Eliminar email
+     */
+    function deleteEmail(emailId) {
+        if (!confirm('¿Estás seguro de que quieres eliminar este email?')) {
+            return;
+        }
+
+        const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+        if (!token) {
+            console.warn('⚠️ No hay token de autenticación');
+            return;
+        }
+
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
+        fetch(`${API_BASE_URL}/api/email/${emailId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Mostrar toast de éxito
+                if (window.showSuccessToast) {
+                    window.showSuccessToast('✅ Email eliminado correctamente');
+                }
+
+                // Remover el email de la lista
+                allEmails = allEmails.filter(e => e.id !== emailId);
+                
+                // Re-renderizar lista
+                renderEmailList(allEmails);
+
+                // Limpiar el panel de contenido
+                const contentContainer = document.getElementById('inbox-email-content');
+                if (contentContainer) {
+                    contentContainer.innerHTML = `
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-envelope-open-text fa-4x mb-3 opacity-25"></i>
+                                <h5>Email eliminado</h5>
+                                <p>Selecciona otro email para verlo</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                console.log(`✅ Email ${emailId} eliminado correctamente`);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error eliminando email:', error);
+            if (window.showErrorToast) {
+                window.showErrorToast('Error al eliminar el email');
+            } else {
+                alert('Error al eliminar el email');
+            }
+        });
+    }
+
+    /**
      * Escapar HTML para prevenir XSS
      */
     function escapeHtml(text) {
@@ -1820,7 +1910,9 @@
         replyToSpecificMessage: replyToSpecificMessage,
         showReplyForm: showReplyForm,
         showForwardForm: showForwardForm,
-        previewAttachment: previewAttachment
+        previewAttachment: previewAttachment,
+        deleteEmail: deleteEmail,
+        cancelReply: cancelReply
     };
 
 })();

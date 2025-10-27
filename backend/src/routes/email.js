@@ -422,6 +422,63 @@ router.post('/mark-read', authenticate, async (req, res) => {
 });
 
 /**
+ * Eliminar email (mover a papelera)
+ * DELETE /api/email/:emailId
+ */
+router.delete('/:emailId', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { emailId } = req.params;
+
+    if (!emailId) {
+      return res.status(400).json({
+        success: false,
+        error: 'emailId es requerido'
+      });
+    }
+
+    // Obtener cuenta activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay cuenta de email conectada'
+      });
+    }
+
+    // Eliminar según el proveedor
+    if (emailAccount.provider === 'google') {
+      await googleEmailService.deleteEmail(clientId, emailId);
+    } else if (emailAccount.provider === 'microsoft') {
+      await microsoftEmailService.deleteEmail(clientId, emailId);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Proveedor no soportado'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Email eliminado correctamente'
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error eliminando email: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Marcar/desmarcar email como importante
  * POST /api/email/toggle-starred
  */
