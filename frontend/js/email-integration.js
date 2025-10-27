@@ -7,12 +7,22 @@
  * Inicializar la integración de email
  */
 function initEmailIntegration() {
+    console.log('🔄 Inicializando integración de email...');
+    
     // Configurar el selector de proveedor de correo
     const emailProviderSelect = document.getElementById('email_provider');
     const connectEmailBtn = document.getElementById('connect-email-btn');
     const emailOAuthSection = document.getElementById('email-oauth-section');
     const emailManualSection = document.getElementById('email-manual-section');
     const emailConsentCheckbox = document.getElementById('email_consent');
+    
+    console.log('📋 Elementos encontrados:', {
+        emailProviderSelect: !!emailProviderSelect,
+        connectEmailBtn: !!connectEmailBtn,
+        emailOAuthSection: !!emailOAuthSection,
+        emailManualSection: !!emailManualSection,
+        emailConsentCheckbox: !!emailConsentCheckbox
+    });
     
     if (emailProviderSelect) {
         // Manejar cambios en el selector de proveedor
@@ -56,15 +66,26 @@ function initEmailIntegration() {
         
         // Configurar el botón de conexión
         if (connectEmailBtn) {
+            console.log('✅ Botón de conexión encontrado, agregando event listener...');
             connectEmailBtn.addEventListener('click', function() {
+                console.log('🖱️ Click en botón de conexión detectado');
                 const selectedProvider = emailProviderSelect.value;
-                const emailConsent = emailConsentCheckbox.checked;
+                const emailConsent = emailConsentCheckbox ? emailConsentCheckbox.checked : false;
+                
+                console.log('📊 Estado actual:', {
+                    selectedProvider,
+                    emailConsent,
+                    hasCheckbox: !!emailConsentCheckbox
+                });
                 
                 // Verificar consentimiento
                 if (!emailConsent) {
+                    console.warn('⚠️ Consentimiento no dado');
                     toastr.error('Debes dar tu consentimiento para acceder a tu correo electrónico', 'Error');
                     return;
                 }
+                
+                console.log(`🚀 Iniciando conexión con ${selectedProvider}...`);
                 
                 // Iniciar proceso de autenticación según el proveedor
                 switch(selectedProvider) {
@@ -77,8 +98,13 @@ function initEmailIntegration() {
                     case 'yahoo':
                         connectWithYahoo();
                         break;
+                    default:
+                        console.error('❌ Proveedor no reconocido:', selectedProvider);
+                        toastr.error('Proveedor no soportado', 'Error');
                 }
             });
+        } else {
+            console.error('❌ Botón de conexión NO encontrado');
         }
     }
     
