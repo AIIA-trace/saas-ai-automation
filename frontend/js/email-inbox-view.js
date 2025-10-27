@@ -1663,7 +1663,7 @@
         const sendBtn = document.getElementById(`send-reply-btn-${msgId}`);
         if (sendBtn) {
             sendBtn.addEventListener('click', () => {
-                sendReplyForMessage(from, subject, messageId, threadId, msgId);
+                sendReplyForMessage(from, subject, messageId, threadId, msgId, emailId);
             });
         }
     }
@@ -1758,10 +1758,10 @@
     /**
      * Enviar respuesta para mensaje específico
      */
-    function sendReplyForMessage(from, subject, messageId, threadId, msgId) {
-        console.log('📧 sendReplyForMessage llamado con:', { from, subject, messageId, threadId, msgId });
+    function sendReplyForMessage(from, subject, messageId, threadId, msgId, emailId = null) {
+        console.log('📧 sendReplyForMessage llamado con:', { from, subject, messageId, threadId, msgId, emailId });
         
-        const email = { from, subject, messageId };
+        const email = { from, subject, messageId, id: emailId };
         console.log('📦 Objeto email construido:', email);
         
         if (!window.sendReply) {
