@@ -81,16 +81,18 @@ async function getClientContext(clientId) {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       select: {
-        name: true,
-        company: true,
+        contactName: true,        // Cambio: name → contactName
+        companyName: true,         // Cambio: company → companyName
+        companyDescription: true,  // Agregado
         email: true,
         phone: true,
         website: true,
+        industry: true,            // Agregado
         companyInfo: true,
         businessHours: true,
         faqs: true,
         contextFiles: true,
-        emailSignature: true
+        emailConfig: true          // Cambio: emailSignature → emailConfig (contiene signature)
       }
     });
 
@@ -109,10 +111,10 @@ async function getClientContext(clientId) {
 
     // Extraer información de la empresa
     const companyInfo = client.companyInfo || {};
-    const companyName = client.company || companyInfo.name || 'nuestra empresa';
-    const userName = client.name || 'el equipo';
-    const companyDescription = companyInfo.description || '';
-    const industry = companyInfo.industry || '';
+    const companyName = client.companyName || companyInfo.name || 'nuestra empresa';
+    const userName = client.contactName || 'el equipo';
+    const companyDescription = client.companyDescription || companyInfo.description || '';
+    const industry = client.industry || companyInfo.industry || '';
     const services = companyInfo.services || [];
 
     // Formatear horarios
@@ -131,6 +133,10 @@ async function getClientContext(clientId) {
       website: client.website
     };
 
+    // Obtener firma desde emailConfig
+    const emailConfig = client.emailConfig || {};
+    const emailSignature = emailConfig.signature || '';
+
     return {
       companyName,
       userName,
@@ -141,7 +147,7 @@ async function getClientContext(clientId) {
       faqs,
       contextFiles,
       contactInfo,
-      emailSignature: client.emailSignature || ''
+      emailSignature
     };
 
   } catch (error) {
