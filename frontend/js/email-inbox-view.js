@@ -1154,7 +1154,7 @@
         const previousMessages = sortedThread.slice(1);
 
         let html = `
-            <div class="p-4">
+            <div class="p-4" id="message-main-message" data-message-id="main-message">
                 <!-- Cabecera del email -->
                 <div class="border-bottom pb-3 mb-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
@@ -1467,7 +1467,7 @@
         messages.forEach((msg, index) => {
             const msgId = `thread-msg-${index}`;
             html += `
-                <div class="card mb-3">
+                <div class="card mb-3" id="message-${msgId}" data-message-id="${msgId}">
                     <div class="card-header bg-light" style="cursor: pointer;" onclick="window.InboxView.toggleThreadMessage('${msgId}')">
                         <div class="d-flex align-items-center">
                             <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" 
@@ -1481,7 +1481,7 @@
                             <i class="fas fa-chevron-down" id="${msgId}-icon"></i>
                         </div>
                     </div>
-                    <div class="card-body collapse" id="${msgId}">
+                    <div class="card-body collapse" id="${msgId}-body">
                         <!-- Destinatarios -->
                         <div class="mb-3 small text-muted">
                             <div><strong>De:</strong> ${msg.from || 'Desconocido'}</div>
@@ -1533,7 +1533,7 @@
      * Toggle mensaje del hilo (expandir/colapsar)
      */
     function toggleThreadMessage(msgId) {
-        const content = document.getElementById(msgId);
+        const content = document.getElementById(`${msgId}-body`);
         const icon = document.getElementById(`${msgId}-icon`);
         
         if (content && icon) {
