@@ -14,6 +14,16 @@
      * Configurar event listeners del formulario de respuesta
      */
     window.setupReplyFormListeners = function(email, threadId) {
+        // Botón mostrar CC/BCC
+        const showCcBtn = document.getElementById('show-reply-cc-btn');
+        if (showCcBtn) {
+            showCcBtn.addEventListener('click', function() {
+                document.getElementById('reply-cc-container').classList.remove('d-none');
+                document.getElementById('reply-bcc-container').classList.remove('d-none');
+                this.style.display = 'none';
+            });
+        }
+
         // Botón adjuntar archivo
         const attachBtn = document.getElementById('attach-file-btn');
         const attachInput = document.getElementById('attachment-input');
@@ -188,6 +198,12 @@
                 ${signature ? `<br><br><div>--<br>${signature}</div>` : ''}
             `;
 
+            // Obtener CC y BCC si existen
+            const ccInput = document.getElementById('reply-cc');
+            const bccInput = document.getElementById('reply-bcc');
+            const cc = ccInput ? ccInput.value.trim() : null;
+            const bcc = bccInput ? bccInput.value.trim() : null;
+
             const response = await fetch(`${API_BASE_URL}/api/email/send`, {
                 method: 'POST',
                 headers: {
@@ -196,6 +212,8 @@
                 },
                 body: JSON.stringify({
                     to: email.from,
+                    cc: cc,
+                    bcc: bcc,
                     subject: email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`,
                     body: bodyWithSignature,
                     threadId: threadId,

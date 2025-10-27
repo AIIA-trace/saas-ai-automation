@@ -416,6 +416,15 @@ class GoogleEmailService {
 
       // Headers básicos
       messageParts.push(`To: ${emailData.to}`);
+      
+      // CC y BCC si existen
+      if (emailData.cc) {
+        messageParts.push(`Cc: ${emailData.cc}`);
+      }
+      if (emailData.bcc) {
+        messageParts.push(`Bcc: ${emailData.bcc}`);
+      }
+      
       messageParts.push(`Subject: ${emailData.subject}`);
       
       // Si es una respuesta, agregar headers de threading

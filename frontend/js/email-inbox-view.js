@@ -136,6 +136,11 @@
 
         // Configurar event listeners para filtros
         setupFilterListeners();
+
+        // Inicializar modal de composición
+        if (window.initComposeModal) {
+            window.initComposeModal();
+        }
     }
 
     /**
@@ -200,7 +205,12 @@
                     <!-- Panel lateral: Lista de emails -->
                     <div class="col-md-4 border-end" style="height: calc(100vh - 150px); overflow-y: auto;">
                         <div class="p-3 border-bottom bg-light">
-                            <h5 class="mb-0"><i class="fas fa-inbox me-2"></i>Bandeja de Entrada</h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-inbox me-2"></i>Bandeja de Entrada</h5>
+                                <button class="btn btn-primary btn-sm" id="compose-email-btn">
+                                    <i class="fas fa-pen me-1"></i>Redactar
+                                </button>
+                            </div>
                         </div>
                         
                         <!-- Buscador -->
@@ -1164,6 +1174,27 @@
         return `
             <div class="mt-4 pt-4 border-top">
                 <h6 class="mb-3">Responder</h6>
+                
+                <!-- Destinatarios (Para) -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Para:</label>
+                    <input type="text" class="form-control form-control-sm" id="reply-to" value="${email.from}" readonly>
+                </div>
+
+                <!-- CC/BCC (oculto por defecto) -->
+                <div class="mb-3 d-none" id="reply-cc-container">
+                    <label class="form-label small fw-bold">CC:</label>
+                    <input type="text" class="form-control form-control-sm" id="reply-cc" placeholder="Agregar CC (separar con comas)">
+                </div>
+
+                <div class="mb-3 d-none" id="reply-bcc-container">
+                    <label class="form-label small fw-bold">CCO:</label>
+                    <input type="text" class="form-control form-control-sm" id="reply-bcc" placeholder="Agregar CCO (separar con comas)">
+                </div>
+
+                <button class="btn btn-sm btn-outline-secondary mb-3" id="show-reply-cc-btn">
+                    <i class="fas fa-plus me-1"></i>Agregar CC/CCO
+                </button>
                 
                 <!-- Botón generar respuesta con IA -->
                 <div class="mb-3">
