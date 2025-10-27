@@ -920,7 +920,8 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
                 type: 'server_vad',
                 threshold: 0.5,  // ✅ Sensibilidad normal - se desactiva dinámicamente cuando bot habla
                 prefix_padding_ms: 300,
-                silence_duration_ms: 1500  // ⚡ 1500ms para permitir pausas naturales sin cortarse
+                silence_duration_ms: 700,  // ⚡ Reducido a 700ms para respuestas más rápidas
+                create_response: true  // 🔥 CRÍTICO: Generar respuesta automáticamente cuando usuario termina de hablar
               },
               temperature: 0.7,  // 🎯 Reducido para más consistencia y menos bucles
               max_response_output_tokens: 'inf',  // ✅ Sin límite - respuestas completas
@@ -1017,7 +1018,8 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
             type: 'server_vad',
             threshold: 0.5,  // ✅ Sensibilidad normal para detectar usuario
             prefix_padding_ms: 300,
-            silence_duration_ms: 1200  // ⚡ 1200ms para que el bot complete frases
+            silence_duration_ms: 700,  // ⚡ 700ms para respuestas rápidas
+            create_response: true  // 🔥 CRÍTICO: Generar respuesta automáticamente
           }
         }
       };
