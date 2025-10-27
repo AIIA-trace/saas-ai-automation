@@ -787,10 +787,27 @@ router.post('/generate-reply', authenticate, async (req, res) => {
 
     // Filtrar solo mensajes del mismo remitente/destinatario (hilo hermético)
     logger.info('🔍 Filtrando hilo hermético...');
-    const senderEmail = currentEmail.from ? currentEmail.from.toLowerCase() : '';
+    
+    // Validar que currentEmail tenga los campos necesarios
+    if (!currentEmail || !currentEmail.from) {
+      logger.error('❌ currentEmail.from es undefined o null');
+      logger.error('❌ currentEmail:', JSON.stringify(currentEmail, null, 2));
+      return res.status(500).json({
+        success: false,
+        error: 'Email actual no tiene remitente válido'
+      });
+    }
+    
+    const senderEmail = currentEmail.from.toLowerCase();
     const recipientEmail = currentEmail.to ? currentEmail.to.toLowerCase() : '';
     
     logger.info(`📧 Filtros: sender=${senderEmail}, recipient=${recipientEmail}`);
+    logger.info(`📧 Mensajes en hilo antes de filtrar: ${threadMessages.length}`);
+    
+    // Log de los primeros 3 mensajes para debug
+    threadMessages.slice(0, 3).forEach((msg, idx) => {
+      logger.info(`📧 Mensaje ${idx + 1}: from="${msg.from}", to="${msg.to}"`);
+    });
     
     const originalCount = threadMessages.length;
     threadMessages = threadMessages.filter(msg => {
