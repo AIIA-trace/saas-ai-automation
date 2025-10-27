@@ -1589,15 +1589,130 @@
         const formContainer = document.getElementById(`reply-form-${msgId}`);
         if (!formContainer) return;
 
-        const email = {
-            from: from,
-            subject: subject,
-            messageId: messageId
-        };
+        // Configurar botón CC/BCC
+        const showCcBtn = document.getElementById(`show-reply-cc-btn-${msgId}`);
+        if (showCcBtn) {
+            showCcBtn.addEventListener('click', function() {
+                document.getElementById(`reply-cc-container-${msgId}`).classList.remove('d-none');
+                document.getElementById(`reply-bcc-container-${msgId}`).classList.remove('d-none');
+                this.style.display = 'none';
+            });
+        }
 
-        // Usar la función existente de reply-handler
-        if (window.setupReplyFormListeners) {
-            window.setupReplyFormListeners(email, threadId);
+        // Configurar botón adjuntar
+        const attachBtn = document.getElementById(`attach-file-btn-${msgId}`);
+        const attachInput = document.getElementById(`attachment-input-${msgId}`);
+        
+        if (attachBtn && attachInput) {
+            attachBtn.addEventListener('click', () => attachInput.click());
+            attachInput.addEventListener('change', function(e) {
+                handleFileSelectionForMessage(e, msgId);
+            });
+        }
+
+        // Configurar botón generar IA
+        const aiBtn = document.getElementById(`generate-ai-response-btn-${msgId}`);
+        if (aiBtn) {
+            aiBtn.addEventListener('click', () => {
+                generateAIResponseForMessage(from, subject, msgId);
+            });
+        }
+
+        // Configurar botón enviar
+        const sendBtn = document.getElementById(`send-reply-btn-${msgId}`);
+        if (sendBtn) {
+            sendBtn.addEventListener('click', () => {
+                sendReplyForMessage(from, subject, messageId, threadId, msgId);
+            });
+        }
+    }
+
+    /**
+     * Manejar selección de archivos para un mensaje específico
+     */
+    function handleFileSelectionForMessage(event, msgId) {
+        // Reutilizar la lógica existente pero con IDs únicos
+        if (window.handleFileSelection) {
+            // Temporalmente cambiar los IDs para que la función existente funcione
+            const originalAttachInput = document.getElementById('attachment-input');
+            const originalSelectedAttachments = document.getElementById('selected-attachments');
+            const originalAttachInfo = document.getElementById('attachment-info');
+            
+            // Crear referencias temporales
+            const tempAttachInput = document.getElementById(`attachment-input-${msgId}`);
+            const tempSelectedAttachments = document.getElementById(`selected-attachments-${msgId}`);
+            const tempAttachInfo = document.getElementById(`attachment-info-${msgId}`);
+            
+            if (tempAttachInput) tempAttachInput.id = 'attachment-input';
+            if (tempSelectedAttachments) tempSelectedAttachments.id = 'selected-attachments';
+            if (tempAttachInfo) tempAttachInfo.id = 'attachment-info';
+            
+            window.handleFileSelection(event);
+            
+            // Restaurar IDs
+            if (tempAttachInput) tempAttachInput.id = `attachment-input-${msgId}`;
+            if (tempSelectedAttachments) tempSelectedAttachments.id = `selected-attachments-${msgId}`;
+            if (tempAttachInfo) tempAttachInfo.id = `attachment-info-${msgId}`;
+        }
+    }
+
+    /**
+     * Generar respuesta IA para mensaje específico
+     */
+    function generateAIResponseForMessage(from, subject, msgId) {
+        const email = { from, subject };
+        if (window.generateAIResponse) {
+            // Temporalmente cambiar el ID del textarea
+            const textarea = document.getElementById(`reply-textarea-${msgId}`);
+            if (textarea) {
+                const originalId = textarea.id;
+                textarea.id = 'reply-textarea';
+                window.generateAIResponse(email);
+                setTimeout(() => {
+                    textarea.id = originalId;
+                }, 100);
+            }
+        }
+    }
+
+    /**
+     * Enviar respuesta para mensaje específico
+     */
+    function sendReplyForMessage(from, subject, messageId, threadId, msgId) {
+        const email = { from, subject, messageId };
+        if (window.sendReply) {
+            // Temporalmente cambiar IDs
+            const textarea = document.getElementById(`reply-textarea-${msgId}`);
+            const ccInput = document.getElementById(`reply-cc-${msgId}`);
+            const bccInput = document.getElementById(`reply-bcc-${msgId}`);
+            const sendBtn = document.getElementById(`send-reply-btn-${msgId}`);
+            
+            if (textarea) {
+                const originalTextareaId = textarea.id;
+                textarea.id = 'reply-textarea';
+                
+                if (ccInput) {
+                    const originalCcId = ccInput.id;
+                    ccInput.id = 'reply-cc';
+                    if (bccInput) {
+                        const originalBccId = bccInput.id;
+                        bccInput.id = 'reply-bcc';
+                        if (sendBtn) {
+                            const originalSendId = sendBtn.id;
+                            sendBtn.id = 'send-reply-btn';
+                            
+                            window.sendReply(email, threadId);
+                            
+                            setTimeout(() => {
+                                textarea.id = originalTextareaId;
+                                ccInput.id = originalCcId;
+                                bccInput.id = originalBccId;
+                                sendBtn.id = originalSendId;
+                            }, 100);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1619,52 +1734,52 @@
             <!-- Destinatarios (Para) -->
             <div class="mb-3">
                 <label class="form-label small fw-bold">Para:</label>
-                <input type="text" class="form-control form-control-sm" id="reply-to" value="${email.from}" readonly>
+                <input type="text" class="form-control form-control-sm" id="reply-to-${msgId}" value="${email.from}" readonly>
             </div>
 
             <!-- CC/BCC (oculto por defecto) -->
-            <div class="mb-3 d-none" id="reply-cc-container">
+            <div class="mb-3 d-none" id="reply-cc-container-${msgId}">
                 <label class="form-label small fw-bold">CC:</label>
-                <input type="text" class="form-control form-control-sm" id="reply-cc" placeholder="Agregar CC (separar con comas)">
+                <input type="text" class="form-control form-control-sm" id="reply-cc-${msgId}" placeholder="Agregar CC (separar con comas)">
             </div>
 
-            <div class="mb-3 d-none" id="reply-bcc-container">
+            <div class="mb-3 d-none" id="reply-bcc-container-${msgId}">
                 <label class="form-label small fw-bold">CCO:</label>
-                <input type="text" class="form-control form-control-sm" id="reply-bcc" placeholder="Agregar CCO (separar con comas)">
+                <input type="text" class="form-control form-control-sm" id="reply-bcc-${msgId}" placeholder="Agregar CCO (separar con comas)">
             </div>
 
-            <button class="btn btn-sm btn-outline-secondary mb-3" id="show-reply-cc-btn">
+            <button class="btn btn-sm btn-outline-secondary mb-3" id="show-reply-cc-btn-${msgId}">
                 <i class="fas fa-plus me-1"></i>Agregar CC/CCO
             </button>
             
             <!-- Botón generar respuesta con IA -->
             <div class="mb-3">
-                <button class="btn btn-sm btn-outline-primary" id="generate-ai-response-btn">
+                <button class="btn btn-sm btn-outline-primary" id="generate-ai-response-btn-${msgId}">
                     <i class="fas fa-robot me-2"></i>Generar respuesta con IA
                 </button>
             </div>
 
             <!-- Textarea de respuesta -->
-            <textarea class="form-control mb-3" id="reply-textarea" rows="6" 
+            <textarea class="form-control mb-3" id="reply-textarea-${msgId}" rows="6" 
                       placeholder="Escribe tu respuesta..."></textarea>
             
             <!-- Adjuntos seleccionados -->
-            <div id="selected-attachments" class="mb-3"></div>
+            <div id="selected-attachments-${msgId}" class="mb-3"></div>
             
             <!-- Botones de acción -->
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <input type="file" id="attachment-input" multiple style="display: none;" accept="*/*">
-                    <button class="btn btn-sm btn-outline-secondary me-2" id="attach-file-btn">
+                    <input type="file" id="attachment-input-${msgId}" multiple style="display: none;" accept="*/*">
+                    <button class="btn btn-sm btn-outline-secondary me-2" id="attach-file-btn-${msgId}">
                         <i class="fas fa-paperclip me-1"></i>Adjuntar archivo (máx 20MB)
                     </button>
-                    <small class="text-muted" id="attachment-info"></small>
+                    <small class="text-muted" id="attachment-info-${msgId}"></small>
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary me-2" onclick="window.InboxView.cancelReply('${msgId}')">
                         Cancelar
                     </button>
-                    <button class="btn btn-primary" id="send-reply-btn">
+                    <button class="btn btn-primary" id="send-reply-btn-${msgId}">
                         <i class="fas fa-paper-plane me-2"></i>Enviar respuesta
                     </button>
                 </div>
