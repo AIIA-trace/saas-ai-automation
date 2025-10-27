@@ -219,7 +219,7 @@
                                 <span class="input-group-text bg-white">
                                     <i class="fas fa-search text-muted"></i>
                                 </span>
-                                <input type="text" class="form-control" id="inbox-search" placeholder="Buscar emails...">
+                                <input type="text" class="form-control" id="email-search-input" placeholder="Buscar emails...">
                             </div>
                         </div>
 
@@ -810,14 +810,25 @@
      * Cargar más emails para la bandeja de entrada
      */
     function loadMoreEmailsForInbox() {
-        if (!window.loadMoreEmails) {
-            console.warn('⚠️ Función loadMoreEmails no disponible');
+        // Verificar si ya hay una carga en progreso
+        if (window.emailsLoadingMore) {
+            console.log('⏳ Ya hay una carga en progreso...');
             return;
         }
 
-        // Mostrar indicador de carga
+        // Verificar si hay más emails para cargar
+        if (!window.emailNextPageToken) {
+            console.log('✅ No hay más emails para cargar');
+            showEndOfInbox();
+            return;
+        }
+
+        // Marcar como cargando
+        window.emailsLoadingMore = true;
+
+        // Mostrar indicador de carga (solo si no existe ya)
         const emailListContainer = document.getElementById('inbox-email-list');
-        if (emailListContainer) {
+        if (emailListContainer && !document.getElementById('loading-more-emails')) {
             const loadingIndicator = document.createElement('div');
             loadingIndicator.id = 'loading-more-emails';
             loadingIndicator.className = 'text-center py-3 border-top';
@@ -830,48 +841,96 @@
             emailListContainer.appendChild(loadingIndicator);
         }
 
-        // Llamar a la función de carga
-        window.loadMoreEmails();
+        // Cargar más emails desde el backend
+        const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
 
-        // Observar cuando se agreguen nuevos emails
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    // Remover indicador de carga
-                    const loadingIndicator = document.getElementById('loading-more-emails');
-                    if (loadingIndicator) {
-                        loadingIndicator.remove();
-                    }
+        const endpoint = currentMailbox === 'sent' 
+            ? `/api/email/sent?limit=30&pageToken=${window.emailNextPageToken}`
+            : `/api/email/inbox?limit=30&pageToken=${window.emailNextPageToken}`;
 
-                    // Re-extraer y renderizar todos los emails
-                    const emails = extractEmailsBeforeReplacing();
-                    if (emails.length > allEmails.length) {
-                        allEmails = emails;
-                        
-                        // Aplicar filtro y búsqueda actual
-                        const searchInput = document.getElementById('email-search-input');
-                        const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
-                        
-                        if (searchTerm) {
-                            searchInEmails(searchTerm);
-                        } else {
-                            renderEmailList(allEmails);
-                        }
-                        
-                        console.log(`✅ ${emails.length} emails totales en bandeja`);
-                    }
+        fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Remover indicador de carga
+            const loadingIndicator = document.getElementById('loading-more-emails');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
 
-                    observer.disconnect();
+            if (data.success && data.emails && data.emails.length > 0) {
+                console.log(`✅ ${data.emails.length} emails adicionales cargados`);
+                
+                // Actualizar nextPageToken
+                window.emailNextPageToken = data.nextPageToken;
+                
+                // Mapear nuevos emails
+                const newEmails = data.emails.map(email => ({
+                    id: email.id,
+                    sender: currentMailbox === 'sent' ? (email.to || 'Desconocido') : (email.from || 'Desconocido'),
+                    from: email.from,
+                    to: email.to,
+                    subject: email.subject,
+                    preview: email.snippet || email.body?.substring(0, 100) || '',
+                    date: formatEmailDate(email.date),
+                    unread: !email.isRead,
+                    important: email.isStarred
+                }));
+
+                // Agregar a la lista existente
+                allEmails = [...allEmails, ...newEmails];
+                
+                // Re-renderizar
+                renderEmailList(allEmails);
+                
+                // Si no hay más, mostrar mensaje
+                if (!data.nextPageToken) {
+                    showEndOfInbox();
                 }
-            });
+            } else {
+                // No hay más emails
+                showEndOfInbox();
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando más emails:', error);
+            const loadingIndicator = document.getElementById('loading-more-emails');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+        })
+        .finally(() => {
+            // Desmarcar como cargando
+            window.emailsLoadingMore = false;
         });
+    }
 
-        // Observar cambios en la tabla
-        const tableBody = document.getElementById('emails-table-body');
-        if (tableBody) {
-            observer.observe(tableBody, {
-                childList: true
-            });
+    /**
+     * Mostrar mensaje de fin de bandeja
+     */
+    function showEndOfInbox() {
+        const emailListContainer = document.getElementById('inbox-email-list');
+        if (emailListContainer && !document.getElementById('end-of-inbox')) {
+            const endMessage = document.createElement('div');
+            endMessage.id = 'end-of-inbox';
+            endMessage.className = 'text-center py-3 border-top';
+            endMessage.innerHTML = `
+                <p class="mb-0 text-muted small">
+                    <i class="fas fa-check-circle me-2"></i>Fin de la bandeja
+                </p>
+            `;
+            emailListContainer.appendChild(endMessage);
         }
     }
 
@@ -1137,11 +1196,23 @@
                 <!-- Adjuntos del mensaje actual -->
                 ${renderAttachments(currentMessage.attachments, currentMessage.id)}
 
-                <!-- Mensajes anteriores del hilo -->
-                ${previousMessages.length > 0 ? renderThreadMessages(previousMessages) : ''}
+                <!-- Botones de acción del mensaje principal -->
+                <div class="mt-3 pt-3 border-top">
+                    <button class="btn btn-sm btn-primary me-2" onclick="window.InboxView.showReplyForm('main-message', '${currentMessage.from}', '${currentMessage.subject}', '${currentMessage.messageId}', '${threadId}')">
+                        <i class="fas fa-reply me-1"></i>Responder
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="window.InboxView.showForwardForm('main-message', '${currentMessage.subject}', '${escapeHtml(currentMessage.body)}')">
+                        <i class="fas fa-share me-1"></i>Reenviar
+                    </button>
+                </div>
 
-                <!-- Formulario de respuesta -->
-                ${renderReplyForm(currentMessage, threadId)}
+                <!-- Formulario de respuesta del mensaje principal (oculto por defecto) -->
+                <div id="reply-form-main-message" class="mt-3 pt-3 border-top d-none">
+                    ${renderReplyFormInline(currentMessage, threadId, 'main-message')}
+                </div>
+
+                <!-- Mensajes anteriores del hilo -->
+                ${previousMessages.length > 0 ? renderThreadMessages(previousMessages, threadId) : ''}
             </div>
         `;
 
@@ -1194,7 +1265,7 @@
     /**
      * Renderizar mensajes anteriores del hilo
      */
-    function renderThreadMessages(messages) {
+    function renderThreadMessages(messages, threadId) {
         let html = `
             <div class="mt-4 pt-4 border-top">
                 <h6 class="text-muted mb-3">
@@ -1236,11 +1307,19 @@
                         <!-- Adjuntos -->
                         ${msg.attachments && msg.attachments.length > 0 ? renderAttachments(msg.attachments, msg.id) : ''}
                         
-                        <!-- Botón responder a este mensaje -->
+                        <!-- Botones de acción -->
                         <div class="mt-3 pt-3 border-top">
-                            <button class="btn btn-sm btn-outline-primary" onclick="window.InboxView.replyToSpecificMessage('${msg.id}', '${msg.from}', '${msg.subject}', '${msg.messageId}')">
-                                <i class="fas fa-reply me-1"></i>Responder a este mensaje
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="window.InboxView.showReplyForm('${msgId}', '${msg.from}', '${msg.subject}', '${msg.messageId}', '${threadId}')">
+                                <i class="fas fa-reply me-1"></i>Responder
                             </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="window.InboxView.showForwardForm('${msgId}', '${msg.subject}', '${msg.body}')">
+                                <i class="fas fa-share me-1"></i>Reenviar
+                            </button>
+                        </div>
+                        
+                        <!-- Formulario de respuesta (oculto por defecto) -->
+                        <div id="reply-form-${msgId}" class="mt-3 pt-3 border-top d-none">
+                            ${renderReplyFormInline(msg, threadId, msgId)}
                         </div>
                     </div>
                 </div>
@@ -1272,27 +1351,153 @@
     }
 
     /**
-     * Responder a un mensaje específico del hilo
+     * Mostrar formulario de respuesta para un mensaje específico
      */
-    function replyToSpecificMessage(emailId, from, subject, messageId) {
-        // Scroll al formulario de respuesta
-        const replyForm = document.querySelector('#reply-textarea');
+    function showReplyForm(msgId, from, subject, messageId, threadId) {
+        // Ocultar todos los demás formularios
+        document.querySelectorAll('[id^="reply-form-"]').forEach(form => {
+            form.classList.add('d-none');
+        });
+
+        // Mostrar el formulario de este mensaje
+        const replyForm = document.getElementById(`reply-form-${msgId}`);
         if (replyForm) {
-            replyForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            replyForm.classList.remove('d-none');
             
-            // Actualizar el campo Para con el remitente de este mensaje
-            const replyToInput = document.getElementById('reply-to');
-            if (replyToInput) {
-                replyToInput.value = from;
-            }
-            
-            // Focus en el textarea
-            setTimeout(() => replyForm.focus(), 500);
+            // Scroll al formulario
+            setTimeout(() => {
+                replyForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Focus en textarea
+                const textarea = replyForm.querySelector('textarea');
+                if (textarea) {
+                    textarea.focus();
+                }
+            }, 100);
+
+            // Configurar event listeners si no están configurados
+            setupReplyFormListenersForMessage(msgId, from, subject, messageId, threadId);
         }
     }
 
     /**
-     * Renderizar formulario de respuesta
+     * Mostrar formulario de reenvío
+     */
+    function showForwardForm(msgId, subject, body) {
+        // Por ahora, abrir el modal de composición con el contenido
+        if (window.initComposeModal) {
+            // Abrir modal
+            const modal = new bootstrap.Modal(document.getElementById('compose-email-modal'));
+            modal.show();
+            
+            // Pre-llenar asunto y cuerpo
+            setTimeout(() => {
+                const subjectInput = document.getElementById('compose-subject');
+                const bodyTextarea = document.getElementById('compose-body');
+                
+                if (subjectInput) {
+                    subjectInput.value = `Fwd: ${subject}`;
+                }
+                
+                if (bodyTextarea) {
+                    bodyTextarea.value = `\n\n---------- Mensaje reenviado ----------\n\n${body}`;
+                }
+            }, 300);
+        }
+    }
+
+    /**
+     * Configurar event listeners para un formulario de respuesta específico
+     */
+    function setupReplyFormListenersForMessage(msgId, from, subject, messageId, threadId) {
+        const formContainer = document.getElementById(`reply-form-${msgId}`);
+        if (!formContainer) return;
+
+        const email = {
+            from: from,
+            subject: subject,
+            messageId: messageId
+        };
+
+        // Usar la función existente de reply-handler
+        if (window.setupReplyFormListeners) {
+            window.setupReplyFormListeners(email, threadId);
+        }
+    }
+
+    /**
+     * Responder a un mensaje específico del hilo (función legacy, mantener por compatibilidad)
+     */
+    function replyToSpecificMessage(emailId, from, subject, messageId) {
+        // Redirigir a la nueva función
+        showReplyForm('main-message', from, subject, messageId, emailId);
+    }
+
+    /**
+     * Renderizar formulario de respuesta inline (con ID único)
+     */
+    function renderReplyFormInline(email, threadId, msgId) {
+        return `
+            <h6 class="mb-3">Responder a este mensaje</h6>
+            
+            <!-- Destinatarios (Para) -->
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Para:</label>
+                <input type="text" class="form-control form-control-sm" id="reply-to" value="${email.from}" readonly>
+            </div>
+
+            <!-- CC/BCC (oculto por defecto) -->
+            <div class="mb-3 d-none" id="reply-cc-container">
+                <label class="form-label small fw-bold">CC:</label>
+                <input type="text" class="form-control form-control-sm" id="reply-cc" placeholder="Agregar CC (separar con comas)">
+            </div>
+
+            <div class="mb-3 d-none" id="reply-bcc-container">
+                <label class="form-label small fw-bold">CCO:</label>
+                <input type="text" class="form-control form-control-sm" id="reply-bcc" placeholder="Agregar CCO (separar con comas)">
+            </div>
+
+            <button class="btn btn-sm btn-outline-secondary mb-3" id="show-reply-cc-btn">
+                <i class="fas fa-plus me-1"></i>Agregar CC/CCO
+            </button>
+            
+            <!-- Botón generar respuesta con IA -->
+            <div class="mb-3">
+                <button class="btn btn-sm btn-outline-primary" id="generate-ai-response-btn">
+                    <i class="fas fa-robot me-2"></i>Generar respuesta con IA
+                </button>
+            </div>
+
+            <!-- Textarea de respuesta -->
+            <textarea class="form-control mb-3" id="reply-textarea" rows="6" 
+                      placeholder="Escribe tu respuesta..."></textarea>
+            
+            <!-- Adjuntos seleccionados -->
+            <div id="selected-attachments" class="mb-3"></div>
+            
+            <!-- Botones de acción -->
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <input type="file" id="attachment-input" multiple style="display: none;" accept="*/*">
+                    <button class="btn btn-sm btn-outline-secondary me-2" id="attach-file-btn">
+                        <i class="fas fa-paperclip me-1"></i>Adjuntar archivo (máx 20MB)
+                    </button>
+                    <small class="text-muted" id="attachment-info"></small>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="document.getElementById('reply-form-${msgId}').classList.add('d-none')">
+                        Cancelar
+                    </button>
+                    <button class="btn btn-primary" id="send-reply-btn">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar respuesta
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Renderizar formulario de respuesta (función legacy)
      */
     function renderReplyForm(email, threadId) {
         return `
@@ -1465,6 +1670,16 @@
     `;
     document.head.appendChild(style);
 
+    /**
+     * Escapar HTML para prevenir XSS
+     */
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     // Exportar funciones globalmente si es necesario
     window.InboxView = {
         init: initInboxView,
@@ -1475,7 +1690,9 @@
         loadEmailDetails: loadEmailDetails,
         downloadAttachment: window.downloadAttachment,
         toggleThreadMessage: toggleThreadMessage,
-        replyToSpecificMessage: replyToSpecificMessage
+        replyToSpecificMessage: replyToSpecificMessage,
+        showReplyForm: showReplyForm,
+        showForwardForm: showForwardForm
     };
 
 })();
