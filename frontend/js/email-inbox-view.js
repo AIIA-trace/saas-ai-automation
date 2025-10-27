@@ -33,7 +33,7 @@
 
         // Si está cargando, mostrar mensaje de carga
         if (window.emailsLoading === true) {
-            console.log('⏳ Emails cargando, mostrando spinner...');
+            console.log('⏳ Emails cargando desde Gmail, mostrando spinner...');
             if (loadingMsg) loadingMsg.style.display = 'block';
             if (notConfiguredMsg) notConfiguredMsg.style.display = 'none';
             
@@ -42,12 +42,27 @@
             return;
         }
 
-        // Si ya hay emails en la tabla, inicializar vista
+        // Si ya hay emails en la tabla Y no está cargando, inicializar vista
         const emailRows = emailTableBody ? emailTableBody.querySelectorAll('tr') : [];
-        if (emailRows.length > 0) {
-            console.log(`✅ ${emailRows.length} emails detectados, inicializando vista...`);
+        
+        // Verificar que no sean emails de prueba (los de prueba tienen IDs 1, 2, 3)
+        const hasRealEmails = Array.from(emailRows).some(row => {
+            const emailId = row.dataset.emailId;
+            // Los emails reales de Gmail tienen IDs largos (16+ caracteres)
+            return emailId && emailId.length > 10;
+        });
+
+        if (emailRows.length > 0 && hasRealEmails) {
+            console.log(`✅ ${emailRows.length} emails REALES de Gmail detectados, inicializando vista...`);
             if (loadingMsg) loadingMsg.style.display = 'none';
             initInboxView();
+            return;
+        }
+
+        // Si hay emails pero son de prueba, seguir esperando
+        if (emailRows.length > 0 && !hasRealEmails && checkAttempts < maxAttempts) {
+            console.log(`⏳ Detectados ${emailRows.length} emails de prueba, esperando emails reales...`);
+            setTimeout(checkEmailsStatus, 1000);
             return;
         }
 
