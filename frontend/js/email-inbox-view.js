@@ -1899,13 +1899,7 @@
                     window.showSuccessToast('✅ Email eliminado correctamente');
                 }
 
-                // Remover el email de la lista
-                allEmails = allEmails.filter(e => e.id !== emailId);
-                
-                // Re-renderizar lista
-                renderEmailList(allEmails);
-
-                // Limpiar el panel de contenido
+                // Limpiar el panel de contenido primero
                 const contentContainer = document.getElementById('inbox-email-content');
                 if (contentContainer) {
                     contentContainer.innerHTML = `
@@ -1917,6 +1911,13 @@
                             </div>
                         </div>
                     `;
+                }
+
+                // Recargar la bandeja actual
+                if (currentMailbox === 'sent') {
+                    loadSentEmails();
+                } else {
+                    loadInboxEmails();
                 }
 
                 console.log(`✅ Email ${emailId} eliminado correctamente`);
