@@ -42,11 +42,22 @@
         const emails = extractEmailsBeforeReplacing();
         console.log(`📧 ${emails.length} emails capturados antes de reemplazar layout`);
 
-        // Si no hay emails, esperar un poco más
+        // Si no hay emails, mostrar mensaje y no continuar
         if (emails.length === 0) {
-            console.log('⏳ No hay emails todavía, esperando 2 segundos más...');
-            setTimeout(initInboxView, 2000);
+            console.log('⏳ No hay emails configurados, mostrando mensaje inicial...');
+            // Mostrar mensaje de "no configurado"
+            const notConfiguredMsg = document.getElementById('email-not-configured-message');
+            if (notConfiguredMsg) {
+                notConfiguredMsg.style.display = 'block';
+            }
+            hasInitialized = true; // Marcar como inicializado para no reintentar
             return;
+        }
+
+        // Ocultar mensaje de "no configurado"
+        const notConfiguredMsg = document.getElementById('email-not-configured-message');
+        if (notConfiguredMsg) {
+            notConfiguredMsg.style.display = 'none';
         }
 
         // Marcar como inicializado para evitar loops

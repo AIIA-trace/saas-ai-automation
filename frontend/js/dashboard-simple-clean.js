@@ -1116,109 +1116,27 @@ function createEmailsTabContent() {
     return `
         <!-- 2. Gestión de Emails -->
         <div class="tab-pane animate-fadeIn" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
-            <div class="container-fluid pt-2 pb-0">
-                <div class="dashboard-card">
-                    <div class="card-body p-0">
-                        <!-- Filtros de emails -->
-                        <div class="filter-container">
-                            <div class="row align-items-center">
-                                <div class="col-md-7">
-                                    <div class="d-flex align-items-center flex-wrap">
-                                        <span class="me-3 text-secondary fw-medium">Filtrar por:</span>
-                                        <div class="filter-option">
-                                            <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-all" checked>
-                                            <label class="form-check-label" for="filter-emails-all">Todos</label>
-                                        </div>
-                                        <div class="filter-option">
-                                            <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-unread">
-                                            <label class="form-check-label" for="filter-emails-unread">No leídos</label>
-                                        </div>
-                                        <div class="filter-option">
-                                            <input class="form-check-input" type="radio" name="email-filter" id="filter-emails-spam">
-                                            <label class="form-check-label" for="filter-emails-spam">Spam</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-5 text-md-end mt-2 mt-md-0">
-                                    <small class="text-muted"><i class="far fa-clock me-1"></i>Última actualización: <span id="last-update-emails-time">2024-02-20 12:15</span></small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Buscador de emails -->
-                        <div class="dashboard-filters p-3 border-bottom">
-                            <div class="row align-items-center">
-                                <div class="col-md-6">
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-white border-end-0">
-                                            <i class="fas fa-search text-muted"></i>
-                                        </span>
-                                        <input type="text" class="form-control border-start-0" id="email-search-input" 
-                                               placeholder="Buscar emails..." 
-                                               aria-label="Buscar emails">
-                                        <button class="btn btn-link text-decoration-none d-none" type="button" id="clear-emails-search">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 text-md-end mt-2 mt-md-0">
-                                    <small class="text-muted" id="emails-search-results">Mostrando todos los emails</small>
-                                </div>
-                            </div>
-                            <!-- Disclaimer para datos de prueba -->
-                            <div class="row mt-2">
-                                <div class="col-12">
-                                    <div class="alert alert-info py-2 mb-0 test-data-disclaimer" style="font-size: 0.75rem;">
-                                        <i class="fas fa-info-circle me-1"></i> <strong>Datos de prueba:</strong> Estos datos serán reemplazados por los emails reales una vez completes la configuración.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Lista de emails -->
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: auto;">
-                            <table class="dashboard-table" style="width: 100%; table-layout: fixed; min-width: 750px;">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 40px; text-align: center;"><i class="fas fa-star"></i></th>
-                                        <th style="width: 140px;">Remitente</th>
-                                        <th style="width: 150px;">Asunto</th>
-                                        <th style="width: 250px;">Contenido</th>
-                                        <th style="width: 80px;">Fecha</th>
-                                        <th style="width: 90px; text-align: center;">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="emails-table-body">
-                                     <!-- Los emails se cargarán dinámicamente -->
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <!-- Paginación -->
-                        <div class="d-flex justify-content-between align-items-center p-3 border-top">
-                            <div>
-                                <small class="text-muted">Mostrando 5 de 42 emails</small>
-                            </div>
-                            <nav aria-label="Page navigation">
-                                <ul class="pagination pagination-sm mb-0">
-                                    <li class="page-item disabled">
-                                        <a class="page-link" href="#" aria-label="Previous">
-                                            <span aria-hidden="true">&laquo;</span>
-                                        </a>
-                                    </li>
-                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="#" aria-label="Next">
-                                            <span aria-hidden="true">&raquo;</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </div>
+            <!-- Mensaje inicial cuando no hay emails configurados -->
+            <div id="email-not-configured-message" class="container-fluid pt-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-envelope-open-text fa-4x text-muted mb-4"></i>
+                        <h4 class="mb-3">No hay emails configurados todavía</h4>
+                        <p class="text-muted mb-4">
+                            Para empezar a gestionar tus emails, primero debes configurar tu cuenta de correo en la sección <strong>Configuración del Bot</strong>.
+                        </p>
+                        <button class="btn btn-primary" onclick="document.getElementById('call-bot-tab').click()">
+                            <i class="fas fa-cog me-2"></i>Ir a Configuración del Bot
+                        </button>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Tabla temporal para que email-inbox-view.js pueda capturar emails -->
+            <div style="display: none;">
+                <table>
+                    <tbody id="emails-table-body"></tbody>
+                </table>
             </div>
         </div>
     `;
