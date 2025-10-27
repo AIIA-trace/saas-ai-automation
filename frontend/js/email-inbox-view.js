@@ -1258,7 +1258,25 @@
                 const msgId = this.dataset.msgId;
                 const subject = this.dataset.subject;
                 
-                showForwardForm(msgId, subject, '');
+                // Obtener el contenido del mensaje
+                const messageContainer = document.querySelector(`[data-message-id="${msgId}"]`);
+                let body = '';
+                
+                if (messageContainer) {
+                    const bodyElement = messageContainer.querySelector('.email-body, .message-body');
+                    if (bodyElement) {
+                        // Obtener el texto sin HTML
+                        body = bodyElement.innerText || bodyElement.textContent || '';
+                    }
+                }
+                
+                // Si es el mensaje principal, intentar obtener de currentEmail
+                if (msgId === 'main-message' && currentEmail) {
+                    body = currentEmail.body || currentEmail.preview || body;
+                }
+                
+                console.log('📤 Reenviando mensaje:', { msgId, subject, bodyLength: body.length });
+                showForwardForm(msgId, subject, body);
             });
         });
     }
@@ -1579,11 +1597,25 @@
                 const bodyTextarea = document.getElementById('compose-body');
                 
                 if (subjectInput) {
-                    subjectInput.value = `Fwd: ${subject}`;
+                    // Agregar "Fwd:" solo si no lo tiene ya
+                    const fwdSubject = subject.startsWith('Fwd:') ? subject : `Fwd: ${subject}`;
+                    subjectInput.value = fwdSubject;
                 }
                 
-                if (bodyTextarea) {
-                    bodyTextarea.value = `\n\n---------- Mensaje reenviado ----------\n\n${body}`;
+                if (bodyTextarea && body) {
+                    // Formatear el mensaje reenviado
+                    const forwardedMessage = `
+
+
+---------- Mensaje reenviado ----------
+Asunto: ${subject}
+
+${body}`;
+                    bodyTextarea.value = forwardedMessage;
+                    
+                    // Colocar el cursor al inicio para que el usuario pueda escribir antes
+                    bodyTextarea.focus();
+                    bodyTextarea.setSelectionRange(0, 0);
                 }
             }, 300);
         }
