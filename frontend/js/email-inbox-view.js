@@ -57,6 +57,9 @@
 
         // Renderizar emails en la nueva vista
         renderEmailList(emails);
+
+        // Configurar event listeners para filtros
+        setupFilterListeners();
     }
 
     /**
@@ -240,12 +243,24 @@
         renderEmailList(emails);
     }
 
+    // Variable global para almacenar todos los emails
+    let allEmails = [];
+    let currentFilter = 'all';
+
     /**
      * Renderizar lista de emails
      */
     function renderEmailList(emails) {
+        // Guardar todos los emails para filtrado
+        allEmails = emails;
+
         const listContainer = document.getElementById('inbox-email-list');
-        if (!listContainer || emails.length === 0) {
+        if (!listContainer) return;
+
+        // Aplicar filtro actual
+        const filteredEmails = filterEmails(allEmails, currentFilter);
+
+        if (filteredEmails.length === 0) {
             listContainer.innerHTML = `
                 <div class="text-center py-5 text-muted">
                     <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
@@ -256,19 +271,23 @@
         }
 
         let html = '';
-        emails.forEach(email => {
+        filteredEmails.forEach(email => {
             const unreadClass = email.unread ? 'bg-light fw-bold' : '';
-            const importantIcon = email.important ? '<i class="fas fa-star text-warning me-2"></i>' : '';
+            const importantIcon = email.important ? '<i class="fas fa-star text-warning me-2"></i>' : '<i class="far fa-star text-muted me-2"></i>';
             
             html += `
                 <div class="email-list-item border-bottom p-3 ${unreadClass}" 
                      style="cursor: pointer; transition: background-color 0.2s;"
                      data-email-id="${email.id}"
+                     data-unread="${email.unread}"
+                     data-important="${email.important}"
                      onmouseover="this.style.backgroundColor='#f8f9fa'"
                      onmouseout="this.style.backgroundColor='${email.unread ? '#f8f9fa' : 'white'}'">
                     <div class="d-flex justify-content-between align-items-start mb-1">
                         <div class="flex-grow-1">
-                            ${importantIcon}
+                            <span class="star-icon" style="cursor: pointer;" onclick="window.InboxView.toggleImportant('${email.id}', event)">
+                                ${importantIcon}
+                            </span>
                             <span class="text-dark">${email.sender}</span>
                         </div>
                         <small class="text-muted">${email.date}</small>
@@ -281,21 +300,103 @@
 
         listContainer.innerHTML = html;
 
-        // Agregar event listeners
+        // Agregar event listeners para click en email
         const emailItems = listContainer.querySelectorAll('.email-list-item');
         emailItems.forEach(item => {
-            item.addEventListener('click', function() {
+            item.addEventListener('click', function(e) {
+                // Ignorar click en estrella
+                if (e.target.closest('.star-icon')) return;
+                
                 const emailId = this.dataset.emailId;
-                const email = emails.find(e => e.id == emailId);
+                const email = allEmails.find(e => e.id == emailId);
                 if (email) {
                     showEmailContent(email);
                     // Marcar como leído
+                    email.unread = false;
                     this.classList.remove('bg-light', 'fw-bold');
+                    this.dataset.unread = 'false';
                 }
             });
         });
 
-        console.log('✅ Lista de emails renderizada');
+        console.log(`✅ ${filteredEmails.length} emails renderizados (filtro: ${currentFilter})`);
+    }
+
+    /**
+     * Filtrar emails según criterio
+     */
+    function filterEmails(emails, filter) {
+        switch(filter) {
+            case 'unread':
+                return emails.filter(e => e.unread);
+            case 'important':
+                return emails.filter(e => e.important);
+            case 'all':
+            default:
+                return emails;
+        }
+    }
+
+    /**
+     * Cambiar filtro activo
+     */
+    function setFilter(filter) {
+        currentFilter = filter;
+        console.log(`🔍 Filtro cambiado a: ${filter}`);
+        renderEmailList(allEmails);
+    }
+
+    /**
+     * Toggle importante
+     */
+    function toggleImportant(emailId, event) {
+        event.stopPropagation();
+        
+        const email = allEmails.find(e => e.id == emailId);
+        if (email) {
+            email.important = !email.important;
+            console.log(`⭐ Email ${emailId} marcado como ${email.important ? 'importante' : 'normal'}`);
+            renderEmailList(allEmails);
+        }
+    }
+
+    /**
+     * Configurar event listeners para los filtros
+     */
+    function setupFilterListeners() {
+        console.log('🔧 Configurando filtros de bandeja de entrada...');
+
+        // Botón "Todos"
+        const filterAll = document.getElementById('filter-all');
+        if (filterAll) {
+            filterAll.addEventListener('change', function() {
+                if (this.checked) {
+                    setFilter('all');
+                }
+            });
+        }
+
+        // Botón "No leídos"
+        const filterUnread = document.getElementById('filter-unread');
+        if (filterUnread) {
+            filterUnread.addEventListener('change', function() {
+                if (this.checked) {
+                    setFilter('unread');
+                }
+            });
+        }
+
+        // Botón "Importantes"
+        const filterImportant = document.getElementById('filter-important');
+        if (filterImportant) {
+            filterImportant.addEventListener('change', function() {
+                if (this.checked) {
+                    setFilter('important');
+                }
+            });
+        }
+
+        console.log('✅ Filtros configurados correctamente');
     }
 
     /**
@@ -390,7 +491,9 @@
     window.InboxView = {
         init: initInboxView,
         renderEmailList: renderEmailList,
-        showEmailContent: showEmailContent
+        showEmailContent: showEmailContent,
+        setFilter: setFilter,
+        toggleImportant: toggleImportant
     };
 
 })();
