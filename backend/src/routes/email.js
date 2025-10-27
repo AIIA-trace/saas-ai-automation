@@ -4,11 +4,9 @@ const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger');
 const googleEmailService = require('../services/googleEmailService');
 const microsoftEmailService = require('../services/microsoftEmailService');
+const { authenticate } = require('./auth');
 
 const prisma = new PrismaClient();
-
-// Middleware de autenticación
-const authenticate = require('../middleware/authenticate');
 
 // ===== GOOGLE OAUTH =====
 
