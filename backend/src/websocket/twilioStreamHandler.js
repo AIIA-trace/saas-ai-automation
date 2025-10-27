@@ -565,6 +565,10 @@ class TwilioStreamHandler {
     if (hasPreInitSession) {
       logger.info(`✅ [${streamSid}] REUTILIZANDO sesión pre-inicializada: ${preSessionId}`);
       
+      // 🔍 CRÍTICO: Extraer callerPhone de customParameters
+      const callerPhone = data.start?.customParameters?.From || data.start?.customParameters?.from;
+      logger.info(`🔍 [${streamSid}] Extrayendo callerPhone: ${callerPhone || 'NO DETECTADO'}`);
+      
       // Transferir sesión al streamSid real
       try {
         const connectionData = this.openaiRealtimeService.activeConnections.get(preSessionId);
@@ -574,6 +578,19 @@ class TwilioStreamHandler {
         
         // Obtener cliente y memoria (ya están cargados pero necesitamos en streamData)
         await this.getClientForStream(streamSid, callSid, clientId);
+        
+        // 💾 CRÍTICO: Guardar callerPhone en streamData
+        const streamData = this.activeStreams.get(streamSid);
+        if (streamData) {
+          if (callerPhone) {
+            streamData.callerPhone = callerPhone;
+            logger.info(`✅ [${streamSid}] callerPhone guardado: ${callerPhone}`);
+          } else if (streamData.callerMemory?.callerPhone) {
+            streamData.callerPhone = streamData.callerMemory.callerPhone;
+            logger.info(`✅ [${streamSid}] callerPhone desde memoria: ${streamData.callerMemory.callerPhone}`);
+          }
+          logger.info(`🔍 [${streamSid}] Verificación - callerPhone: ${this.activeStreams.get(streamSid)?.callerPhone}`);
+        }
         
         // Enviar saludo INMEDIATAMENTE (sesión ya lista)
         await this.sendInitialGreeting(this.activeStreams.get(streamSid)?.ws || null, { streamSid, callSid });
