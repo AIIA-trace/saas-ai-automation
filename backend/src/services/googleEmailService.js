@@ -17,7 +17,10 @@ class GoogleEmailService {
       throw new Error('Faltan credenciales de Google OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)');
     }
 
-    const redirectUri = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/email/oauth/google/callback`;
+    // Usar la URL del backend, no del frontend
+    const redirectUri = `${process.env.BACKEND_URL || 'http://localhost:10000'}/api/email/oauth/google/callback`;
+    
+    logger.info(`🔗 Google OAuth redirect URI: ${redirectUri}`);
 
     this.oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,

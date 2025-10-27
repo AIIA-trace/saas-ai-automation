@@ -41,17 +41,27 @@ router.get('/oauth/google', authenticate, (req, res) => {
  */
 router.get('/oauth/google/callback', async (req, res) => {
   try {
-    const { code, state } = req.query;
+    const { code, state, error } = req.query;
+
+    // Si Google envió un error, manejarlo
+    if (error) {
+      logger.error(`❌ Error de Google OAuth: ${error}`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard.html?email_error=google&reason=${error}`);
+    }
 
     if (!code) {
+      logger.error('❌ Código de autorización no proporcionado');
       return res.status(400).send('Código de autorización no proporcionado');
     }
 
     // Extraer clientId del state
     const { clientId } = JSON.parse(state);
+    logger.info(`✅ Callback de Google recibido para cliente ${clientId}`);
 
     // Intercambiar código por tokens
     const result = await googleEmailService.exchangeCodeForTokens(code, clientId);
+
+    logger.info(`✅ Tokens de Google obtenidos exitosamente para ${result.email}`);
 
     // Redirigir al dashboard con mensaje de éxito
     res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard.html?email_connected=google&email=${result.email}`);
