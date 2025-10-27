@@ -1235,10 +1235,12 @@
         attachments.forEach(attachment => {
             const icon = getFileIcon(attachment.mimeType);
             const sizeFormatted = formatFileSize(attachment.size);
+            const canPreview = canPreviewFile(attachment.mimeType);
             
             html += `
                 <div class="col-md-6">
-                    <div class="card">
+                    <div class="card" style="cursor: ${canPreview ? 'pointer' : 'default'};" 
+                         ${canPreview ? `onclick="window.InboxView.previewAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}', '${attachment.mimeType}')"` : ''}>
                         <div class="card-body p-3">
                             <div class="d-flex align-items-center">
                                 <i class="${icon} fa-2x text-primary me-3"></i>
@@ -1246,11 +1248,20 @@
                                     <div class="fw-medium small">${attachment.filename}</div>
                                     <div class="text-muted" style="font-size: 0.75rem;">${sizeFormatted}</div>
                                 </div>
-                                <button class="btn btn-sm btn-outline-primary" 
-                                        onclick="window.InboxView.downloadAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}')"
-                                        title="Descargar">
-                                    <i class="fas fa-download"></i>
-                                </button>
+                                <div class="btn-group btn-group-sm">
+                                    ${canPreview ? `
+                                        <button class="btn btn-outline-primary" 
+                                                onclick="event.stopPropagation(); window.InboxView.previewAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}', '${attachment.mimeType}')"
+                                                title="Vista previa">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    ` : ''}
+                                    <button class="btn btn-outline-primary" 
+                                            onclick="event.stopPropagation(); window.InboxView.downloadAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}')"
+                                            title="Descargar">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1260,6 +1271,122 @@
         
         html += '</div></div>';
         return html;
+    }
+
+    /**
+     * Verificar si un archivo puede tener preview
+     */
+    function canPreviewFile(mimeType) {
+        if (!mimeType) return false;
+        
+        const previewableTypes = [
+            'image/', 
+            'application/pdf',
+            'text/',
+            'application/json',
+            'application/xml'
+        ];
+        
+        return previewableTypes.some(type => mimeType.startsWith(type));
+    }
+
+    /**
+     * Mostrar preview de adjunto
+     */
+    function previewAttachment(emailId, attachmentId, filename, mimeType) {
+        const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
+        // Crear modal de preview
+        const modalHTML = `
+            <div class="modal fade" id="attachment-preview-modal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-file me-2"></i>${filename}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body" style="max-height: 70vh; overflow: auto;">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <p class="mt-3 text-muted">Cargando preview...</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            <button type="button" class="btn btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
+                                <i class="fas fa-download me-2"></i>Descargar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remover modal anterior si existe
+        const existingModal = document.getElementById('attachment-preview-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Agregar modal al DOM
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('attachment-preview-modal'));
+        modal.show();
+
+        // Cargar contenido
+        fetch(`${API_BASE_URL}/api/email/${emailId}/attachment/${attachmentId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            const modalBody = document.querySelector('#attachment-preview-modal .modal-body');
+            const url = URL.createObjectURL(blob);
+
+            let previewHTML = '';
+
+            if (mimeType.startsWith('image/')) {
+                previewHTML = `<img src="${url}" class="img-fluid" alt="${filename}">`;
+            } else if (mimeType === 'application/pdf') {
+                previewHTML = `<iframe src="${url}" style="width: 100%; height: 600px; border: none;"></iframe>`;
+            } else if (mimeType.startsWith('text/') || mimeType === 'application/json' || mimeType === 'application/xml') {
+                blob.text().then(text => {
+                    modalBody.innerHTML = `<pre class="bg-light p-3 rounded" style="max-height: 600px; overflow: auto;"><code>${escapeHtml(text)}</code></pre>`;
+                });
+                return;
+            } else {
+                previewHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No se puede mostrar preview para este tipo de archivo. 
+                        <button class="btn btn-sm btn-primary ms-3" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
+                            <i class="fas fa-download me-1"></i>Descargar
+                        </button>
+                    </div>
+                `;
+            }
+
+            modalBody.innerHTML = previewHTML;
+        })
+        .catch(error => {
+            console.error('Error cargando preview:', error);
+            const modalBody = document.querySelector('#attachment-preview-modal .modal-body');
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error al cargar el archivo
+                </div>
+            `;
+        });
     }
 
     /**
@@ -1692,7 +1819,8 @@
         toggleThreadMessage: toggleThreadMessage,
         replyToSpecificMessage: replyToSpecificMessage,
         showReplyForm: showReplyForm,
-        showForwardForm: showForwardForm
+        showForwardForm: showForwardForm,
+        previewAttachment: previewAttachment
     };
 
 })();
