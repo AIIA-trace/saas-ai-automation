@@ -390,12 +390,12 @@
                              style="min-width: 20px; margin-right: 10px; margin-top: 2px;"
                              onclick="window.InboxView.toggleImportant('${email.id}', event)">
                         </div>
-                        <div class="flex-grow-1">
+                        <div class="flex-grow-1" style="min-width: 0;">
                             <div class="d-flex justify-content-between align-items-start mb-1">
-                                <span class="text-dark fw-medium">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
-                                <small class="text-muted ms-2">${email.date}</small>
+                                <span class="text-dark fw-medium text-truncate" style="flex: 1; min-width: 0;">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
+                                <small class="text-muted ms-2" style="flex-shrink: 0;">${email.date}</small>
                             </div>
-                            <div class="text-dark mb-1">${email.subject || '(Sin asunto)'}</div>
+                            <div class="text-dark mb-1 text-truncate">${email.subject || '(Sin asunto)'}</div>
                             <div class="text-muted small text-truncate">${email.preview || email.snippet || ''}</div>
                         </div>
                     </div>
@@ -961,12 +961,12 @@
                              style="min-width: 20px; margin-right: 10px; margin-top: 2px;"
                              onclick="window.InboxView.toggleImportant('${email.id}', event)">
                         </div>
-                        <div class="flex-grow-1">
+                        <div class="flex-grow-1" style="min-width: 0;">
                             <div class="d-flex justify-content-between align-items-start mb-1">
-                                <span class="text-dark fw-medium">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
-                                <small class="text-muted ms-2">${email.date}</small>
+                                <span class="text-dark fw-medium text-truncate" style="flex: 1; min-width: 0;">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
+                                <small class="text-muted ms-2" style="flex-shrink: 0;">${email.date}</small>
                             </div>
-                            <div class="text-dark mb-1">${email.subject || '(Sin asunto)'}</div>
+                            <div class="text-dark mb-1 text-truncate">${email.subject || '(Sin asunto)'}</div>
                             <div class="text-muted small text-truncate">${email.preview || email.snippet || ''}</div>
                         </div>
                     </div>
@@ -1229,7 +1229,7 @@
                         </div>
                         
                         <!-- Contenido completo -->
-                        <div class="mb-3" style="max-height: 400px; overflow-y: auto;">
+                        <div class="email-body mb-3" style="max-height: 400px; overflow-y: auto;">
                             ${msg.body || msg.snippet || ''}
                         </div>
                         
@@ -1427,6 +1427,21 @@
             max-width: 100%;
         }
 
+        /* Truncar texto en lista de emails */
+        .email-list-item > div {
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .email-list-item .text-dark,
+        .email-list-item .text-muted {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+            display: block;
+        }
+
         /* Asegurar que el panel de contenido no cause scroll horizontal */
         #inbox-email-content {
             overflow-x: hidden;
@@ -1435,6 +1450,17 @@
 
         #inbox-email-content > div {
             max-width: 100%;
+        }
+
+        /* Panel lateral de lista de emails */
+        #inbox-email-list {
+            overflow-x: hidden;
+            max-width: 100%;
+        }
+
+        #inbox-email-list .email-list-item {
+            max-width: 100%;
+            overflow: hidden;
         }
     `;
     document.head.appendChild(style);
