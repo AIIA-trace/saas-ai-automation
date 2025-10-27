@@ -591,26 +591,33 @@ router.get('/:emailId/details', authenticate, async (req, res) => {
  */
 async function addSignatureToBody(clientId, body) {
   try {
-    // Obtener firma del cliente
+    // Obtener firma del cliente desde emailConfig
     const client = await prisma.client.findUnique({
       where: { id: clientId },
-      select: { emailSignature: true }
+      select: { emailConfig: true }
     });
 
-    const signature = client?.emailSignature;
+    const emailConfig = client?.emailConfig || {};
+    const signature = emailConfig.signature;
+    
+    logger.info(`🖊️ Firma obtenida para cliente ${clientId}: ${signature ? 'SÍ' : 'NO'}`);
     
     // Si no hay firma configurada, retornar body sin cambios
     if (!signature || signature.trim() === '') {
+      logger.info('⚠️ No hay firma configurada, enviando email sin firma');
       return body;
     }
 
     // Si el body ya contiene la firma, no agregarla de nuevo
     if (body.includes(signature)) {
+      logger.info('✅ El body ya contiene la firma, no se agrega de nuevo');
       return body;
     }
 
     // Determinar si el body es HTML o texto plano
     const isHTML = body.includes('<br>') || body.includes('<p>') || body.includes('<div>');
+    
+    logger.info(`📝 Agregando firma (formato: ${isHTML ? 'HTML' : 'texto plano'})`);
     
     if (isHTML) {
       // Para HTML, agregar firma con formato HTML
@@ -622,6 +629,7 @@ async function addSignatureToBody(clientId, body) {
     }
   } catch (error) {
     logger.error(`⚠️ Error agregando firma: ${error.message}`);
+    logger.error(`⚠️ Stack: ${error.stack}`);
     return body; // Retornar body original si hay error
   }
 }
