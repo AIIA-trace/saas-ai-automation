@@ -630,26 +630,88 @@
         currentMailbox = mailbox;
         console.log(`📬 Cambiando a bandeja: ${mailbox === 'inbox' ? 'Recibidos' : 'Enviados'}`);
 
-        // Mostrar spinner
-        const listContainer = document.getElementById('inbox-email-list');
-        if (listContainer) {
-            listContainer.innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                    <p class="mt-3 text-muted">Cargando ${mailbox === 'inbox' ? 'recibidos' : 'enviados'}...</p>
-                </div>
-            `;
-        }
-
         // Cargar emails de la bandeja correspondiente
         if (mailbox === 'sent') {
+            // Mostrar spinner solo para enviados
+            const listContainer = document.getElementById('inbox-email-list');
+            if (listContainer) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Cargando enviados...</p>
+                    </div>
+                `;
+            }
             loadSentEmails();
         } else {
-            // Recargar inbox
-            window.location.reload();
+            // Recargar inbox sin recargar página
+            console.log('🔄 Recargando bandeja de entrada...');
+            loadInboxEmails();
         }
+    }
+
+    /**
+     * Cargar emails de la bandeja de entrada
+     */
+    function loadInboxEmails() {
+        const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+        if (!token) {
+            console.warn('⚠️ No hay token de autenticación');
+            return;
+        }
+
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
+        // Mostrar indicador sutil de carga (sin reemplazar toda la lista)
+        const listContainer = document.getElementById('inbox-email-list');
+        const existingEmails = listContainer ? listContainer.innerHTML : '';
+        
+        fetch(`${API_BASE_URL}/api/email/inbox?limit=50`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.emails) {
+                console.log(`✅ ${data.emails.length} emails recibidos actualizados`);
+                
+                // Guardar nextPageToken
+                window.emailNextPageToken = data.nextPageToken;
+                
+                // Mapear emails al formato esperado
+                const mappedEmails = data.emails.map(email => ({
+                    id: email.id,
+                    sender: email.from || 'Desconocido',
+                    from: email.from,
+                    to: email.to,
+                    subject: email.subject,
+                    preview: email.snippet || email.body?.substring(0, 100) || '',
+                    date: formatEmailDate(email.date),
+                    unread: !email.isRead,
+                    important: email.isStarred
+                }));
+
+                allEmails = mappedEmails;
+                renderEmailList(mappedEmails);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando emails recibidos:', error);
+            // Restaurar contenido anterior si hay error
+            if (listContainer && existingEmails) {
+                listContainer.innerHTML = existingEmails;
+            }
+        });
     }
 
     /**
