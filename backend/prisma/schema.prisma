@@ -59,6 +59,7 @@ model Client {
   emailLogs              EmailLog[]
   notifications          Notification[]
   twilioNumbers          TwilioNumber[]
+  emailAccounts          EmailAccount[]
 
   @@index([email])
   @@index([plan])
@@ -212,4 +213,25 @@ model CallerMemory {
   @@index([callerPhone])
   @@index([expiresAt])
   @@index([lastCallDate])
+}
+
+model EmailAccount {
+  id            Int      @id @default(autoincrement())
+  clientId      Int
+  provider      String   // 'google', 'microsoft', 'yahoo', 'other'
+  email         String
+  accessToken   String?  @db.Text
+  refreshToken  String?  @db.Text
+  tokenExpiry   DateTime?
+  isActive      Boolean  @default(true)
+  lastSync      DateTime?
+  metadata      Json?    // Información adicional del proveedor
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, email])
+  @@index([clientId])
+  @@index([provider])
+  @@index([isActive])
 }

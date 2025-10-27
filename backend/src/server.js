@@ -20,6 +20,7 @@ const setupRouter = require('./routes/setup');
 const twilioRouter = require('./routes/twilio');
 const azureTTSRouter = require('./routes/azure-tts');
 const testAudioRouter = require('./routes/testAudio');
+const emailRouter = require('./routes/email');
 
 // Inicializar servicios
 console.log(' Inicializando servicios...');
@@ -93,6 +94,7 @@ app.use('/api/test-voices', testVoicesRouter);
 app.use('/api/twilio', twilioRouter);
 app.use('/api/azure-tts', azureTTSRouter);
 app.use('/api/test-audio', testAudioRouter);
+app.use('/api/email', emailRouter);  // 📧 Rutas de email con OAuth
 app.use('/api', apiRouter);  // 🔧 CRÍTICO: Router principal con /api/client, /api/profile, etc.
 
 // 📊 RUTA DE MÉTRICAS PARA MONITOREO
