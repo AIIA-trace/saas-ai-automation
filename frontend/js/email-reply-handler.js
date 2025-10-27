@@ -4,8 +4,12 @@
  * Maneja el envío de respuestas, adjuntos y generación IA
  */
 
+console.log('🚀 email-reply-handler.js CARGANDO...');
+
 (function() {
     'use strict';
+    
+    console.log('🎬 email-reply-handler.js IIFE EJECUTÁNDOSE...');
 
     // Variable para almacenar adjuntos seleccionados
     let selectedAttachments = [];
