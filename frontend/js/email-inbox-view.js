@@ -493,7 +493,145 @@
             });
         }
 
+        // Configurar buscador
+        setupSearchListener();
+
         console.log('✅ Filtros configurados correctamente');
+    }
+
+    /**
+     * Configurar event listener para el buscador
+     */
+    function setupSearchListener() {
+        const searchInput = document.getElementById('email-search-input');
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim().toLowerCase();
+            searchInEmails(searchTerm);
+        });
+
+        console.log('🔍 Buscador de emails configurado');
+    }
+
+    /**
+     * Buscar en emails
+     */
+    function searchInEmails(searchTerm) {
+        if (!allEmails || allEmails.length === 0) {
+            console.warn('⚠️ No hay emails para buscar');
+            return;
+        }
+
+        let filteredEmails = allEmails;
+
+        // Si hay término de búsqueda, filtrar
+        if (searchTerm) {
+            filteredEmails = allEmails.filter(email => {
+                const sender = (email.sender || email.from || email.fromName || '').toLowerCase();
+                const subject = (email.subject || '').toLowerCase();
+                const preview = (email.preview || email.snippet || email.body || '').toLowerCase();
+                
+                return sender.includes(searchTerm) || 
+                       subject.includes(searchTerm) || 
+                       preview.includes(searchTerm);
+            });
+            
+            console.log(`🔍 Búsqueda: "${searchTerm}" - ${filteredEmails.length} resultados`);
+        }
+
+        // Aplicar filtro actual también
+        const finalEmails = filterEmails(filteredEmails, currentFilter);
+
+        // Renderizar resultados
+        renderFilteredEmails(finalEmails);
+
+        // Actualizar mensaje de resultados
+        updateSearchResults(searchTerm, finalEmails.length);
+    }
+
+    /**
+     * Renderizar emails filtrados (sin guardar en allEmails)
+     */
+    function renderFilteredEmails(emails) {
+        const listContainer = document.getElementById('inbox-email-list');
+        if (!listContainer) return;
+
+        if (emails.length === 0) {
+            listContainer.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                    <p>No se encontraron emails</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        emails.forEach(email => {
+            const unreadClass = email.unread ? 'bg-light fw-bold' : '';
+            const importantIcon = email.important ? '<i class="fas fa-star text-warning me-2"></i>' : '<i class="far fa-star text-muted me-2"></i>';
+            
+            html += `
+                <div class="email-list-item border-bottom p-3 ${unreadClass}" 
+                     style="cursor: pointer; transition: background-color 0.2s;"
+                     data-email-id="${email.id}"
+                     data-unread="${email.unread}"
+                     data-important="${email.important}"
+                     onmouseover="this.style.backgroundColor='#f8f9fa'"
+                     onmouseout="this.style.backgroundColor='${email.unread ? '#f8f9fa' : 'white'}'">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="flex-grow-1">
+                            <span class="star-icon" style="cursor: pointer;" onclick="window.InboxView.toggleImportant('${email.id}', event)">
+                                ${importantIcon}
+                            </span>
+                            <span class="text-dark">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
+                        </div>
+                        <small class="text-muted">${email.date}</small>
+                    </div>
+                    <div class="text-dark mb-1">${email.subject || '(Sin asunto)'}</div>
+                    <div class="text-muted small text-truncate">${email.preview || email.snippet || ''}</div>
+                </div>
+            `;
+        });
+
+        listContainer.innerHTML = html;
+
+        // Agregar event listeners
+        const emailItems = listContainer.querySelectorAll('.email-list-item');
+        emailItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (e.target.closest('.star-icon')) return;
+                
+                const emailId = this.dataset.emailId;
+                const email = allEmails.find(e => e.id == emailId);
+                if (email) {
+                    showEmailContent(email);
+                    email.unread = false;
+                    this.classList.remove('bg-light', 'fw-bold');
+                    this.dataset.unread = 'false';
+                    markEmailAsReadInBackend(emailId);
+                }
+            });
+        });
+    }
+
+    /**
+     * Actualizar mensaje de resultados de búsqueda
+     */
+    function updateSearchResults(searchTerm, count) {
+        const searchResultsElement = document.getElementById('emails-search-results');
+        if (!searchResultsElement) return;
+
+        if (!searchTerm) {
+            searchResultsElement.textContent = 'Mostrando todos los emails';
+        } else if (count === 0) {
+            searchResultsElement.textContent = 'No se encontraron emails';
+        } else if (count === 1) {
+            searchResultsElement.textContent = '1 email encontrado';
+        } else {
+            searchResultsElement.textContent = `${count} emails encontrados`;
+        }
     }
 
     /**
