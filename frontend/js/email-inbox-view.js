@@ -1193,10 +1193,17 @@
 
                 <!-- Botones de acción del mensaje principal -->
                 <div id="reply-buttons-main-message" class="mt-3 pt-3 border-top">
-                    <button class="btn btn-primary me-2" onclick="window.InboxView.showReplyForm('main-message', '${currentMessage.from}', '${currentMessage.subject}', '${currentMessage.messageId}', '${threadId}')">
+                    <button class="btn btn-primary me-2 reply-btn" 
+                            data-msg-id="main-message" 
+                            data-from="${escapeHtml(currentMessage.from)}" 
+                            data-subject="${escapeHtml(currentMessage.subject)}" 
+                            data-message-id="${currentMessage.messageId}" 
+                            data-thread-id="${threadId}">
                         <i class="fas fa-reply me-1"></i>Responder
                     </button>
-                    <button class="btn btn-outline-primary" onclick="window.InboxView.showForwardForm('main-message', '${currentMessage.subject}', '${escapeHtml(currentMessage.body)}')">
+                    <button class="btn btn-outline-primary forward-btn" 
+                            data-msg-id="main-message" 
+                            data-subject="${escapeHtml(currentMessage.subject)}">
                         <i class="fas fa-share me-1"></i>Reenviar
                     </button>
                 </div>
@@ -1213,10 +1220,41 @@
 
         contentContainer.innerHTML = html;
         
-        // Configurar event listeners
+        // Configurar event listeners para formulario principal
         setupReplyFormListeners(currentMessage, threadId);
         
+        // Configurar event listeners para botones de reply y forward
+        setupReplyForwardButtons();
+        
         console.log('✅ Detalles del email renderizados');
+    }
+
+    /**
+     * Configurar event listeners para botones de responder y reenviar
+     */
+    function setupReplyForwardButtons() {
+        // Botones de responder
+        document.querySelectorAll('.reply-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const msgId = this.dataset.msgId;
+                const from = this.dataset.from;
+                const subject = this.dataset.subject;
+                const messageId = this.dataset.messageId;
+                const threadId = this.dataset.threadId;
+                
+                showReplyForm(msgId, from, subject, messageId, threadId);
+            });
+        });
+
+        // Botones de reenviar
+        document.querySelectorAll('.forward-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const msgId = this.dataset.msgId;
+                const subject = this.dataset.subject;
+                
+                showForwardForm(msgId, subject, '');
+            });
+        });
     }
 
     /**
@@ -1431,10 +1469,17 @@
                         
                         <!-- Botones de acción -->
                         <div id="reply-buttons-${msgId}" class="mt-3 pt-3 border-top">
-                            <button class="btn btn-sm btn-primary me-2" onclick="window.InboxView.showReplyForm('${msgId}', '${msg.from}', '${msg.subject}', '${msg.messageId}', '${threadId}')">
+                            <button class="btn btn-sm btn-primary me-2 reply-btn" 
+                                    data-msg-id="${msgId}" 
+                                    data-from="${escapeHtml(msg.from)}" 
+                                    data-subject="${escapeHtml(msg.subject)}" 
+                                    data-message-id="${msg.messageId}" 
+                                    data-thread-id="${threadId}">
                                 <i class="fas fa-reply me-1"></i>Responder
                             </button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="window.InboxView.showForwardForm('${msgId}', '${msg.subject}', '${msg.body}')">
+                            <button class="btn btn-sm btn-outline-primary forward-btn" 
+                                    data-msg-id="${msgId}" 
+                                    data-subject="${escapeHtml(msg.subject)}">
                                 <i class="fas fa-share me-1"></i>Reenviar
                             </button>
                         </div>
