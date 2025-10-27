@@ -236,6 +236,61 @@ class GoogleEmailService {
   }
 
   /**
+   * Obtener emails enviados (sent)
+   * @param {number} clientId - ID del cliente
+   * @param {number} maxResults - Número máximo de emails a obtener
+   * @param {string} pageToken - Token para paginación
+   * @returns {Promise<Object>} Lista de emails enviados y nextPageToken
+   */
+  async getSent(clientId, maxResults = 50, pageToken = null) {
+    try {
+      const auth = await this.getAuthenticatedClient(clientId);
+      const gmail = google.gmail({ version: 'v1', auth });
+
+      // Obtener lista de mensajes enviados
+      const listParams = {
+        userId: 'me',
+        maxResults: maxResults,
+        labelIds: ['SENT']
+      };
+
+      // Agregar pageToken si existe
+      if (pageToken) {
+        listParams.pageToken = pageToken;
+      }
+
+      const response = await gmail.users.messages.list(listParams);
+
+      const messages = response.data.messages || [];
+      const nextPageToken = response.data.nextPageToken || null;
+
+      // Obtener detalles de cada mensaje
+      const emailPromises = messages.map(async (message) => {
+        const msg = await gmail.users.messages.get({
+          userId: 'me',
+          id: message.id,
+          format: 'full'
+        });
+
+        return this.parseGmailMessage(msg.data);
+      });
+
+      const emails = await Promise.all(emailPromises);
+
+      logger.info(`📤 Obtenidos ${emails.length} emails enviados de Gmail para cliente ${clientId} (nextPageToken: ${nextPageToken ? 'sí' : 'no'})`);
+
+      return {
+        emails: emails,
+        nextPageToken: nextPageToken
+      };
+
+    } catch (error) {
+      logger.error(`❌ Error obteniendo emails enviados de Gmail: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Parsear mensaje de Gmail a formato estándar
    * @param {Object} message - Mensaje de Gmail
    * @returns {Object} Email parseado

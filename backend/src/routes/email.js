@@ -202,6 +202,63 @@ router.delete('/accounts/:provider', authenticate, async (req, res) => {
 // ===== BANDEJA DE ENTRADA =====
 
 /**
+ * Obtener emails enviados
+ * GET /api/email/sent
+ */
+router.get('/sent', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const maxResults = parseInt(req.query.limit) || 50;
+    const pageToken = req.query.pageToken || null;
+
+    // Obtener cuenta activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay cuenta de email conectada'
+      });
+    }
+
+    let result = {};
+
+    // Obtener emails enviados según el proveedor
+    if (emailAccount.provider === 'google') {
+      result = await googleEmailService.getSent(clientId, maxResults, pageToken);
+    } else if (emailAccount.provider === 'microsoft') {
+      result = await microsoftEmailService.getSent(clientId, maxResults, pageToken);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Proveedor no soportado'
+      });
+    }
+
+    res.json({
+      success: true,
+      provider: emailAccount.provider,
+      email: emailAccount.email,
+      emails: result.emails || result,
+      count: (result.emails || result).length,
+      nextPageToken: result.nextPageToken || null
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error obteniendo emails enviados: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Obtener bandeja de entrada
  * GET /api/email/inbox
  */

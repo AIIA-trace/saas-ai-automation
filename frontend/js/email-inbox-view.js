@@ -8,9 +8,13 @@
 (function() {
     'use strict';
 
-    let hasInitialized = false; // Flag para evitar múltiples inicializaciones
+    // Variables globales del módulo
+    let allEmails = [];
+    let currentFilter = 'all';
+    let currentMailbox = 'inbox'; // 'inbox' o 'sent'
+    let hasInitialized = false;
     let checkAttempts = 0;
-    const maxAttempts = 10; // Máximo 10 intentos (10 segundos)
+    const maxAttempts = 10; // Max 10 attempts (10 seconds)
 
     // Esperar a que el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
@@ -209,12 +213,27 @@
                             </div>
                         </div>
 
-                        <!-- Filtros -->
+                        <!-- Filtros de bandeja -->
+                        <div class="p-3 border-bottom">
+                            <div class="btn-group btn-group-sm w-100 mb-2" role="group">
+                                <input type="radio" class="btn-check" name="mailbox-type" id="mailbox-inbox" checked>
+                                <label class="btn btn-outline-success" for="mailbox-inbox">
+                                    <i class="fas fa-inbox me-1"></i>Recibidos
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="mailbox-type" id="mailbox-sent">
+                                <label class="btn btn-outline-success" for="mailbox-sent">
+                                    <i class="fas fa-paper-plane me-1"></i>Enviados
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Filtros de estado -->
                         <div class="p-3 border-bottom">
                             <div class="btn-group btn-group-sm w-100" role="group">
                                 <input type="radio" class="btn-check" name="inbox-filter" id="filter-all" checked>
                                 <label class="btn btn-outline-primary" for="filter-all">
-                                    <i class="fas fa-inbox me-1"></i>Todos
+                                    <i class="fas fa-list me-1"></i>Todos
                                 </label>
                                 
                                 <input type="radio" class="btn-check" name="inbox-filter" id="filter-unread">
@@ -319,10 +338,6 @@
         // Renderizar emails en la lista
         renderEmailList(emails);
     }
-
-    // Variable global para almacenar todos los emails
-    let allEmails = [];
-    let currentFilter = 'all';
 
     /**
      * Renderizar lista de emails
@@ -539,6 +554,26 @@
     function setupFilterListeners() {
         console.log('🔧 Configurando filtros de bandeja de entrada...');
 
+        // Botones de tipo de bandeja
+        const mailboxInbox = document.getElementById('mailbox-inbox');
+        const mailboxSent = document.getElementById('mailbox-sent');
+
+        if (mailboxInbox) {
+            mailboxInbox.addEventListener('change', function() {
+                if (this.checked) {
+                    switchMailbox('inbox');
+                }
+            });
+        }
+
+        if (mailboxSent) {
+            mailboxSent.addEventListener('change', function() {
+                if (this.checked) {
+                    switchMailbox('sent');
+                }
+            });
+        }
+
         // Botón "Todos"
         const filterAll = document.getElementById('filter-all');
         if (filterAll) {
@@ -576,6 +611,95 @@
         setupInfiniteScroll();
 
         console.log('✅ Filtros configurados correctamente');
+    }
+
+    /**
+     * Cambiar de bandeja (Recibidos/Enviados)
+     */
+    function switchMailbox(mailbox) {
+        currentMailbox = mailbox;
+        console.log(`📬 Cambiando a bandeja: ${mailbox === 'inbox' ? 'Recibidos' : 'Enviados'}`);
+
+        // Mostrar spinner
+        const listContainer = document.getElementById('inbox-email-list');
+        if (listContainer) {
+            listContainer.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Cargando ${mailbox === 'inbox' ? 'recibidos' : 'enviados'}...</p>
+                </div>
+            `;
+        }
+
+        // Cargar emails de la bandeja correspondiente
+        if (mailbox === 'sent') {
+            loadSentEmails();
+        } else {
+            // Recargar inbox
+            window.location.reload();
+        }
+    }
+
+    /**
+     * Cargar emails enviados
+     */
+    function loadSentEmails() {
+        const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+        if (!token) {
+            console.warn('⚠️ No hay token de autenticación');
+            return;
+        }
+
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
+        fetch(`${API_BASE_URL}/api/email/sent?limit=50`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.emails) {
+                console.log(`✅ ${data.emails.length} emails enviados cargados`);
+                
+                // Mapear emails enviados al formato esperado
+                const mappedEmails = data.emails.map(email => ({
+                    id: email.id,
+                    sender: email.to || 'Desconocido', // En enviados, mostramos el destinatario
+                    from: email.from,
+                    to: email.to,
+                    subject: email.subject,
+                    preview: email.snippet || email.body?.substring(0, 100) || '',
+                    date: formatEmailDate(email.date),
+                    unread: !email.isRead,
+                    important: email.isStarred
+                }));
+
+                allEmails = mappedEmails;
+                renderEmailList(mappedEmails);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando emails enviados:', error);
+            const listContainer = document.getElementById('inbox-email-list');
+            if (listContainer) {
+                listContainer.innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error al cargar emails enviados
+                    </div>
+                `;
+            }
+        });
     }
 
     /**
