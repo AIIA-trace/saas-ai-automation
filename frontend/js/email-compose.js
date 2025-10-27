@@ -418,14 +418,26 @@
             const data = await response.json();
             
             if (data.success) {
-                alert('✅ Email enviado correctamente');
+                // Mostrar toast de éxito
+                showSuccessToast('✅ Email enviado correctamente');
+                
+                // Cerrar modal
                 closeComposeModal();
-                // Recargar bandeja
-                if (window.location.reload) {
-                    setTimeout(() => window.location.reload(), 500);
+                
+                // Recargar bandeja sin recargar página
+                if (window.InboxView && window.InboxView.loadEmailDetails) {
+                    // Si estamos en vista de inbox, recargar
+                    const mailboxInbox = document.getElementById('mailbox-inbox');
+                    if (mailboxInbox && mailboxInbox.checked) {
+                        setTimeout(() => {
+                            if (typeof loadInboxEmails === 'function') {
+                                loadInboxEmails();
+                            }
+                        }, 500);
+                    }
                 }
             } else {
-                alert('Error al enviar email: ' + (data.error || 'Error desconocido'));
+                showErrorToast('Error al enviar email: ' + (data.error || 'Error desconocido'));
             }
         } catch (error) {
             console.error('Error enviando email:', error);

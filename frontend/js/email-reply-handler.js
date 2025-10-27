@@ -226,7 +226,10 @@
             const data = await response.json();
             
             if (data.success) {
-                alert('✅ Respuesta enviada correctamente');
+                // Mostrar toast de éxito
+                showSuccessToast('✅ Respuesta enviada correctamente');
+                
+                // Limpiar formulario
                 textarea.value = '';
                 selectedAttachments = [];
                 updateAttachmentsDisplay();
@@ -236,7 +239,7 @@
                     setTimeout(() => window.InboxView.loadEmailDetails(email.id), 1000);
                 }
             } else {
-                alert('Error al enviar respuesta: ' + (data.error || 'Error desconocido'));
+                showErrorToast('Error al enviar respuesta: ' + (data.error || 'Error desconocido'));
             }
         } catch (error) {
             console.error('Error enviando respuesta:', error);
@@ -280,5 +283,100 @@
 
     // Exportar funciones
     window.formatFileSize = formatFileSize;
+
+    /**
+     * Mostrar toast de éxito (se cierra automáticamente)
+     */
+    window.showSuccessToast = function(message) {
+        const toast = createToast(message, 'success');
+        document.body.appendChild(toast);
+        
+        // Mostrar con animación
+        setTimeout(() => toast.classList.add('show'), 10);
+        
+        // Ocultar después de 1 segundo
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 1000);
+    };
+
+    /**
+     * Mostrar toast de error
+     */
+    window.showErrorToast = function(message) {
+        const toast = createToast(message, 'error');
+        document.body.appendChild(toast);
+        
+        // Mostrar con animación
+        setTimeout(() => toast.classList.add('show'), 10);
+        
+        // Ocultar después de 3 segundos
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
+    /**
+     * Crear elemento toast
+     */
+    function createToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `custom-toast custom-toast-${type}`;
+        toast.innerHTML = `
+            <div class="custom-toast-content">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        return toast;
+    }
+
+    // Agregar estilos CSS para los toasts
+    const toastStyle = document.createElement('style');
+    toastStyle.textContent = `
+        .custom-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+            max-width: 400px;
+        }
+
+        .custom-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .custom-toast-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .custom-toast-error {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .custom-toast-content {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .custom-toast-content i {
+            font-size: 18px;
+        }
+    `;
+    document.head.appendChild(toastStyle);
 
 })();
