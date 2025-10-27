@@ -601,7 +601,6 @@ window.connectWithGoogle = connectWithGoogle;
 window.connectWithMicrosoft = connectWithMicrosoft;
 window.connectWithYahoo = connectWithYahoo;
 window.disconnectEmailAccount = disconnectEmailAccount;
-window.saveManualEmailConfig = saveManualEmailConfig;
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
