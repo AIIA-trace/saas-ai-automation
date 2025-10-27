@@ -1759,7 +1759,10 @@
      * Enviar respuesta para mensaje específico
      */
     function sendReplyForMessage(from, subject, messageId, threadId, msgId) {
+        console.log('📧 sendReplyForMessage llamado con:', { from, subject, messageId, threadId, msgId });
+        
         const email = { from, subject, messageId };
+        console.log('📦 Objeto email construido:', email);
         
         if (!window.sendReply) {
             console.error('❌ window.sendReply no está definido');
