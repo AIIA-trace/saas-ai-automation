@@ -1739,11 +1739,18 @@
                 
                 try {
                     console.log('🚀 Llamando window.generateAIResponse...');
+                    console.log('📦 Tipo:', typeof window.generateAIResponse);
+                    console.log('📧 Email:', email);
+                    console.log('🧵 ThreadId:', threadId);
+                    
                     // Esperar a que la función asíncrona termine
-                    await window.generateAIResponse(email, threadId);
+                    const result = await window.generateAIResponse(email, threadId);
+                    
                     console.log('✅ window.generateAIResponse completado');
+                    console.log('📊 Resultado:', result);
                 } catch (error) {
                     console.error('❌ Error en window.generateAIResponse:', error);
+                    console.error('❌ Stack:', error.stack);
                 } finally {
                     console.log('🔄 Restaurando IDs originales...');
                     // Restaurar IDs originales
