@@ -1195,15 +1195,15 @@
                 <div id="reply-buttons-main-message" class="mt-3 pt-3 border-top">
                     <button class="btn btn-primary me-2 reply-btn" 
                             data-msg-id="main-message" 
-                            data-from="${escapeHtml(currentMessage.from)}" 
-                            data-subject="${escapeHtml(currentMessage.subject)}" 
+                            data-from="${escapeAttr(currentMessage.from)}" 
+                            data-subject="${escapeAttr(currentMessage.subject)}" 
                             data-message-id="${currentMessage.messageId}" 
                             data-thread-id="${threadId}">
                         <i class="fas fa-reply me-1"></i>Responder
                     </button>
                     <button class="btn btn-outline-primary forward-btn" 
                             data-msg-id="main-message" 
-                            data-subject="${escapeHtml(currentMessage.subject)}">
+                            data-subject="${escapeAttr(currentMessage.subject)}">
                         <i class="fas fa-share me-1"></i>Reenviar
                     </button>
                 </div>
@@ -1471,15 +1471,15 @@
                         <div id="reply-buttons-${msgId}" class="mt-3 pt-3 border-top">
                             <button class="btn btn-sm btn-primary me-2 reply-btn" 
                                     data-msg-id="${msgId}" 
-                                    data-from="${escapeHtml(msg.from)}" 
-                                    data-subject="${escapeHtml(msg.subject)}" 
+                                    data-from="${escapeAttr(msg.from)}" 
+                                    data-subject="${escapeAttr(msg.subject)}" 
                                     data-message-id="${msg.messageId}" 
                                     data-thread-id="${threadId}">
                                 <i class="fas fa-reply me-1"></i>Responder
                             </button>
                             <button class="btn btn-sm btn-outline-primary forward-btn" 
                                     data-msg-id="${msgId}" 
-                                    data-subject="${escapeHtml(msg.subject)}">
+                                    data-subject="${escapeAttr(msg.subject)}">
                                 <i class="fas fa-share me-1"></i>Reenviar
                             </button>
                         </div>
@@ -1941,6 +1941,19 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Escapar para atributos HTML (reemplaza comillas)
+     */
+    function escapeAttr(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/'/g, '&#39;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
     // Exportar funciones globalmente si es necesario
