@@ -214,6 +214,11 @@
                             </div>
                         </div>
 
+                        <!-- Contador de resultados -->
+                        <div class="px-3 py-2 bg-light border-bottom">
+                            <small class="text-muted" id="emails-search-results">Mostrando todos los emails</small>
+                        </div>
+
                         <!-- Lista de emails -->
                         <div id="inbox-email-list">
                             <div class="text-center py-5">
@@ -330,7 +335,7 @@
         let html = '';
         filteredEmails.forEach(email => {
             const unreadClass = email.unread ? 'bg-light fw-bold' : '';
-            const importantIcon = email.important ? '<i class="fas fa-star text-warning me-2"></i>' : '<i class="far fa-star text-muted me-2"></i>';
+            const checkboxClass = email.important ? 'custom-checkbox checked' : 'custom-checkbox';
             
             html += `
                 <div class="email-list-item border-bottom p-3 ${unreadClass}" 
@@ -340,17 +345,20 @@
                      data-important="${email.important}"
                      onmouseover="this.style.backgroundColor='#f8f9fa'"
                      onmouseout="this.style.backgroundColor='${email.unread ? '#f8f9fa' : 'white'}'">
-                    <div class="d-flex justify-content-between align-items-start mb-1">
-                        <div class="flex-grow-1">
-                            <span class="star-icon" style="cursor: pointer;" onclick="window.InboxView.toggleImportant('${email.id}', event)">
-                                ${importantIcon}
-                            </span>
-                            <span class="text-dark">${email.sender}</span>
+                    <div class="d-flex align-items-start mb-2">
+                        <div class="${checkboxClass}" 
+                             style="min-width: 20px; margin-right: 10px; margin-top: 2px;"
+                             onclick="window.InboxView.toggleImportant('${email.id}', event)">
                         </div>
-                        <small class="text-muted">${email.date}</small>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <span class="text-dark fw-medium">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
+                                <small class="text-muted ms-2">${email.date}</small>
+                            </div>
+                            <div class="text-dark mb-1">${email.subject || '(Sin asunto)'}</div>
+                            <div class="text-muted small text-truncate">${email.preview || email.snippet || ''}</div>
+                        </div>
                     </div>
-                    <div class="text-dark mb-1">${email.subject}</div>
-                    <div class="text-muted small text-truncate">${email.preview}</div>
                 </div>
             `;
         });
@@ -417,7 +425,16 @@
         if (email) {
             email.important = !email.important;
             console.log(`⭐ Email ${emailId} marcado como ${email.important ? 'importante' : 'normal'}`);
-            renderEmailList(allEmails);
+            
+            // Re-renderizar para aplicar filtros y búsqueda actuales
+            const searchInput = document.getElementById('email-search-input');
+            const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            
+            if (searchTerm) {
+                searchInEmails(searchTerm);
+            } else {
+                renderEmailList(allEmails);
+            }
         }
     }
 
@@ -570,7 +587,7 @@
         let html = '';
         emails.forEach(email => {
             const unreadClass = email.unread ? 'bg-light fw-bold' : '';
-            const importantIcon = email.important ? '<i class="fas fa-star text-warning me-2"></i>' : '<i class="far fa-star text-muted me-2"></i>';
+            const checkboxClass = email.important ? 'custom-checkbox checked' : 'custom-checkbox';
             
             html += `
                 <div class="email-list-item border-bottom p-3 ${unreadClass}" 
@@ -580,17 +597,20 @@
                      data-important="${email.important}"
                      onmouseover="this.style.backgroundColor='#f8f9fa'"
                      onmouseout="this.style.backgroundColor='${email.unread ? '#f8f9fa' : 'white'}'">
-                    <div class="d-flex justify-content-between align-items-start mb-1">
-                        <div class="flex-grow-1">
-                            <span class="star-icon" style="cursor: pointer;" onclick="window.InboxView.toggleImportant('${email.id}', event)">
-                                ${importantIcon}
-                            </span>
-                            <span class="text-dark">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
+                    <div class="d-flex align-items-start mb-2">
+                        <div class="${checkboxClass}" 
+                             style="min-width: 20px; margin-right: 10px; margin-top: 2px;"
+                             onclick="window.InboxView.toggleImportant('${email.id}', event)">
                         </div>
-                        <small class="text-muted">${email.date}</small>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <span class="text-dark fw-medium">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
+                                <small class="text-muted ms-2">${email.date}</small>
+                            </div>
+                            <div class="text-dark mb-1">${email.subject || '(Sin asunto)'}</div>
+                            <div class="text-muted small text-truncate">${email.preview || email.snippet || ''}</div>
+                        </div>
                     </div>
-                    <div class="text-dark mb-1">${email.subject || '(Sin asunto)'}</div>
-                    <div class="text-muted small text-truncate">${email.preview || email.snippet || ''}</div>
                 </div>
             `;
         });
@@ -721,6 +741,44 @@
         contentContainer.innerHTML = html;
         console.log('✅ Contenido del email mostrado:', email.subject);
     }
+
+    // Agregar estilos CSS para el checkbox personalizado
+    const style = document.createElement('style');
+    style.textContent = `
+        .custom-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #6c757d;
+            border-radius: 3px;
+            display: inline-block;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        
+        .custom-checkbox:hover {
+            border-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        
+        .custom-checkbox.checked {
+            background-color: #ffc107;
+            border-color: #ffc107;
+        }
+        
+        .custom-checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    `;
+    document.head.appendChild(style);
 
     // Exportar funciones globalmente si es necesario
     window.InboxView = {
