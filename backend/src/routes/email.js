@@ -209,6 +209,7 @@ router.get('/inbox', authenticate, async (req, res) => {
   try {
     const clientId = req.client.id;
     const maxResults = parseInt(req.query.limit) || 50;
+    const pageToken = req.query.pageToken || null;
 
     // Obtener cuenta activa
     const emailAccount = await prisma.emailAccount.findFirst({
@@ -225,13 +226,13 @@ router.get('/inbox', authenticate, async (req, res) => {
       });
     }
 
-    let emails = [];
+    let result = {};
 
     // Obtener emails según el proveedor
     if (emailAccount.provider === 'google') {
-      emails = await googleEmailService.getInbox(clientId, maxResults);
+      result = await googleEmailService.getInbox(clientId, maxResults, pageToken);
     } else if (emailAccount.provider === 'microsoft') {
-      emails = await microsoftEmailService.getInbox(clientId, maxResults);
+      result = await microsoftEmailService.getInbox(clientId, maxResults, pageToken);
     } else {
       return res.status(400).json({
         success: false,
@@ -243,8 +244,9 @@ router.get('/inbox', authenticate, async (req, res) => {
       success: true,
       provider: emailAccount.provider,
       email: emailAccount.email,
-      emails: emails,
-      count: emails.length
+      emails: result.emails || result,
+      count: (result.emails || result).length,
+      nextPageToken: result.nextPageToken || null
     });
 
   } catch (error) {

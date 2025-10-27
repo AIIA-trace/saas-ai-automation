@@ -513,7 +513,111 @@
         // Configurar buscador
         setupSearchListener();
 
+        // Configurar scroll infinito
+        setupInfiniteScroll();
+
         console.log('✅ Filtros configurados correctamente');
+    }
+
+    /**
+     * Configurar scroll infinito
+     */
+    function setupInfiniteScroll() {
+        const emailListContainer = document.getElementById('inbox-email-list');
+        if (!emailListContainer) return;
+
+        // Obtener el contenedor padre con scroll
+        const scrollContainer = emailListContainer.closest('[style*="overflow-y"]');
+        if (!scrollContainer) {
+            console.warn('⚠️ No se encontró contenedor con scroll');
+            return;
+        }
+
+        scrollContainer.addEventListener('scroll', function() {
+            // Verificar si llegamos al final (con margen de 100px)
+            const scrollTop = this.scrollTop;
+            const scrollHeight = this.scrollHeight;
+            const clientHeight = this.clientHeight;
+
+            if (scrollTop + clientHeight >= scrollHeight - 100) {
+                // Cargar más emails si hay disponibles
+                if (window.emailNextPageToken && !window.emailsLoadingMore) {
+                    console.log('📜 Llegaste al final, cargando más emails...');
+                    loadMoreEmailsForInbox();
+                }
+            }
+        });
+
+        console.log('✅ Scroll infinito configurado');
+    }
+
+    /**
+     * Cargar más emails para la bandeja de entrada
+     */
+    function loadMoreEmailsForInbox() {
+        if (!window.loadMoreEmails) {
+            console.warn('⚠️ Función loadMoreEmails no disponible');
+            return;
+        }
+
+        // Mostrar indicador de carga
+        const emailListContainer = document.getElementById('inbox-email-list');
+        if (emailListContainer) {
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.id = 'loading-more-emails';
+            loadingIndicator.className = 'text-center py-3 border-top';
+            loadingIndicator.innerHTML = `
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-2 mb-0 text-muted small">Cargando más emails...</p>
+            `;
+            emailListContainer.appendChild(loadingIndicator);
+        }
+
+        // Llamar a la función de carga
+        window.loadMoreEmails();
+
+        // Observar cuando se agreguen nuevos emails
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    // Remover indicador de carga
+                    const loadingIndicator = document.getElementById('loading-more-emails');
+                    if (loadingIndicator) {
+                        loadingIndicator.remove();
+                    }
+
+                    // Re-extraer y renderizar todos los emails
+                    const emails = extractEmailsBeforeReplacing();
+                    if (emails.length > allEmails.length) {
+                        allEmails = emails;
+                        
+                        // Aplicar filtro y búsqueda actual
+                        const searchInput = document.getElementById('email-search-input');
+                        const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+                        
+                        if (searchTerm) {
+                            searchInEmails(searchTerm);
+                        } else {
+                            renderEmailList(allEmails);
+                        }
+                        
+                        console.log(`✅ ${emails.length} emails totales en bandeja`);
+                    }
+
+                    observer.disconnect();
+                }
+            });
+        });
+
+        // Observar cambios en la tabla
+        const tableBody = document.getElementById('emails-table-body');
+        if (tableBody) {
+            observer.observe(tableBody, {
+                childList: true
+            });
+        }
     }
 
     /**

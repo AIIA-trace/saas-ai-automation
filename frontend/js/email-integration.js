@@ -373,6 +373,10 @@ function loadEmailConnectionStatus() {
     });
 }
 
+// Variable global para paginación
+window.emailNextPageToken = null;
+window.emailsLoadingMore = false;
+
 /**
  * Cargar bandeja de entrada desde la API
  */
@@ -402,6 +406,11 @@ function loadEmailInbox() {
         window.emailsLoading = false;
         if (data.success && data.emails) {
             console.log(`✅ ${data.emails.length} emails cargados desde ${data.provider}`);
+            
+            // Guardar nextPageToken para paginación
+            window.emailNextPageToken = data.nextPageToken;
+            console.log(`📄 NextPageToken: ${window.emailNextPageToken ? 'disponible' : 'no hay más'}`);
+            
             displayEmailsInTable(data.emails);
         }
     })
@@ -410,6 +419,56 @@ function loadEmailInbox() {
         console.error('❌ Error al cargar bandeja de entrada:', error);
     });
 }
+
+/**
+ * Cargar más emails (paginación)
+ */
+function loadMoreEmails() {
+    if (!window.emailNextPageToken || window.emailsLoadingMore) {
+        console.log('⚠️ No hay más emails o ya se está cargando');
+        return;
+    }
+
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    
+    console.log('📧 Cargando más emails...');
+    window.emailsLoadingMore = true;
+    
+    fetch(`${API_BASE_URL}/api/email/inbox?limit=50&pageToken=${window.emailNextPageToken}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        window.emailsLoadingMore = false;
+        if (data.success && data.emails) {
+            console.log(`✅ ${data.emails.length} emails adicionales cargados`);
+            
+            // Actualizar nextPageToken
+            window.emailNextPageToken = data.nextPageToken;
+            console.log(`📄 NextPageToken: ${window.emailNextPageToken ? 'disponible' : 'no hay más'}`);
+            
+            // Agregar nuevos emails a la tabla
+            appendEmailsToTable(data.emails);
+        }
+    })
+    .catch(error => {
+        window.emailsLoadingMore = false;
+        console.error('❌ Error al cargar más emails:', error);
+    });
+}
+
+// Exportar función globalmente
+window.loadMoreEmails = loadMoreEmails;
 
 /**
  * Mostrar emails en la tabla
@@ -464,6 +523,55 @@ function displayEmailsInTable(emails) {
             }
         });
     });
+}
+
+/**
+ * Agregar emails a la tabla (para paginación)
+ */
+function appendEmailsToTable(emails) {
+    const tableBody = document.getElementById('emails-table-body');
+    if (!tableBody) return;
+    
+    const newRows = emails.map(email => {
+        const date = new Date(email.date);
+        const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+        const isUnread = !email.isRead;
+        const rowClass = isUnread ? 'fw-bold' : '';
+        
+        return `
+            <tr class="email-row ${rowClass}" data-email-id="${email.id}">
+                <td class="text-center">
+                    <i class="fas fa-star ${email.isStarred ? 'text-warning' : 'text-muted'}"></i>
+                </td>
+                <td>${escapeHtml(email.from || email.fromName || 'Desconocido')}</td>
+                <td>${escapeHtml(email.subject || '(Sin asunto)')}</td>
+                <td>${escapeHtml(email.snippet || email.body?.substring(0, 100) || '')}</td>
+                <td>${formattedDate}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary view-email-btn" data-email-id="${email.id}">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    tableBody.insertAdjacentHTML('beforeend', newRows);
+    
+    // Agregar event listeners a los nuevos botones
+    const newButtons = tableBody.querySelectorAll('.view-email-btn:not([data-listener])');
+    newButtons.forEach(btn => {
+        btn.setAttribute('data-listener', 'true');
+        btn.addEventListener('click', function() {
+            const emailId = this.dataset.emailId;
+            const email = emails.find(e => e.id === emailId);
+            if (email) {
+                showEmailModal(email);
+            }
+        });
+    });
+    
+    console.log(`✅ ${emails.length} emails agregados a la tabla`);
 }
 
 /**

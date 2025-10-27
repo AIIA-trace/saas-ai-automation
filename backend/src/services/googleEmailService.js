@@ -184,21 +184,30 @@ class GoogleEmailService {
    * Obtener bandeja de entrada (inbox)
    * @param {number} clientId - ID del cliente
    * @param {number} maxResults - Número máximo de emails a obtener
-   * @returns {Promise<Array>} Lista de emails
+   * @param {string} pageToken - Token para paginación
+   * @returns {Promise<Object>} Lista de emails y nextPageToken
    */
-  async getInbox(clientId, maxResults = 50) {
+  async getInbox(clientId, maxResults = 50, pageToken = null) {
     try {
       const auth = await this.getAuthenticatedClient(clientId);
       const gmail = google.gmail({ version: 'v1', auth });
 
       // Obtener lista de mensajes
-      const response = await gmail.users.messages.list({
+      const listParams = {
         userId: 'me',
         maxResults: maxResults,
         labelIds: ['INBOX']
-      });
+      };
+
+      // Agregar pageToken si existe
+      if (pageToken) {
+        listParams.pageToken = pageToken;
+      }
+
+      const response = await gmail.users.messages.list(listParams);
 
       const messages = response.data.messages || [];
+      const nextPageToken = response.data.nextPageToken || null;
 
       // Obtener detalles de cada mensaje
       const emailPromises = messages.map(async (message) => {
@@ -213,9 +222,12 @@ class GoogleEmailService {
 
       const emails = await Promise.all(emailPromises);
 
-      logger.info(`📧 Obtenidos ${emails.length} emails de Gmail para cliente ${clientId}`);
+      logger.info(`📧 Obtenidos ${emails.length} emails de Gmail para cliente ${clientId} (nextPageToken: ${nextPageToken ? 'sí' : 'no'})`);
 
-      return emails;
+      return {
+        emails: emails,
+        nextPageToken: nextPageToken
+      };
 
     } catch (error) {
       logger.error(`❌ Error obteniendo inbox de Gmail: ${error.message}`);
