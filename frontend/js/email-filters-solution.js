@@ -20,11 +20,11 @@ window.addEventListener('load', function() {
 function initEmailFiltersFix() {
     console.log('🔧 Inicializando solución para los filtros de email...');
     
-    // 1. Obtener referencias a los botones de filtro
-    const filterAll = document.getElementById('filter-emails-all');
-    const filterUnread = document.getElementById('filter-emails-unread');
-    const filterImportant = document.getElementById('filter-emails-important');
-    const filterSpam = document.getElementById('filter-emails-spam');
+    // 1. Obtener referencias a los botones de filtro (usar let para poder reasignar)
+    let filterAll = document.getElementById('filter-emails-all');
+    let filterUnread = document.getElementById('filter-emails-unread');
+    let filterImportant = document.getElementById('filter-emails-important');
+    let filterSpam = document.getElementById('filter-emails-spam');
     
     console.log('Estado de los botones:', 
         filterAll ? '✅' : '❌', 
