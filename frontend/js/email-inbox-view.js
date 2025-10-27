@@ -1025,12 +1025,12 @@
         const contentContainer = document.getElementById('inbox-email-content');
         if (!contentContainer) return;
 
-        // Ordenar thread por fecha (más antiguos primero)
-        const sortedThread = thread.sort((a, b) => new Date(a.date) - new Date(b.date));
+        // Ordenar thread por fecha (más NUEVOS primero)
+        const sortedThread = thread.sort((a, b) => new Date(b.date) - new Date(a.date));
         
-        // El último mensaje es el actual
-        const currentMessage = sortedThread[sortedThread.length - 1];
-        const previousMessages = sortedThread.slice(0, -1);
+        // El primer mensaje es el más reciente
+        const currentMessage = sortedThread[0];
+        const previousMessages = sortedThread.slice(1);
 
         let html = `
             <div class="p-4">
@@ -1048,7 +1048,7 @@
                         </div>
                     </div>
                     
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-start">
                         <div class="me-3">
                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
                                  style="width: 48px; height: 48px; font-size: 20px;">
@@ -1057,14 +1057,18 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fw-bold">${currentMessage.from || 'Desconocido'}</div>
-                            <div class="text-muted small">Para: mí</div>
+                            <div class="text-muted small">
+                                <div><strong>Para:</strong> ${currentMessage.to || 'mí'}</div>
+                                ${currentMessage.cc ? `<div><strong>CC:</strong> ${currentMessage.cc}</div>` : ''}
+                                ${currentMessage.bcc ? `<div><strong>CCO:</strong> ${currentMessage.bcc}</div>` : ''}
+                            </div>
                         </div>
                         <div class="text-muted small">${formatEmailDate(currentMessage.date)}</div>
                     </div>
                 </div>
 
                 <!-- Contenido del email -->
-                <div class="email-body mb-4">
+                <div class="email-body mb-4" style="max-height: 500px; overflow-y: auto;">
                     ${currentMessage.body || currentMessage.snippet || ''}
                 </div>
 
@@ -1137,10 +1141,11 @@
         `;
 
         messages.forEach((msg, index) => {
+            const msgId = `thread-msg-${index}`;
             html += `
-                <div class="card mb-3 ${index < messages.length - 1 ? 'opacity-75' : ''}">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
+                <div class="card mb-3">
+                    <div class="card-header bg-light" style="cursor: pointer;" onclick="window.InboxView.toggleThreadMessage('${msgId}')">
+                        <div class="d-flex align-items-center">
                             <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" 
                                  style="width: 32px; height: 32px; font-size: 14px;">
                                 ${(msg.from || 'U').charAt(0).toUpperCase()}
@@ -1149,15 +1154,32 @@
                                 <div class="fw-medium small">${msg.from || 'Desconocido'}</div>
                                 <div class="text-muted" style="font-size: 0.75rem;">${formatEmailDate(msg.date)}</div>
                             </div>
+                            <i class="fas fa-chevron-down" id="${msgId}-icon"></i>
                         </div>
-                        <div class="small">${msg.snippet || msg.body?.substring(0, 200) || ''}</div>
-                        ${msg.attachments && msg.attachments.length > 0 ? `
-                            <div class="mt-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-paperclip me-1"></i>${msg.attachments.length} adjunto(s)
-                                </small>
-                            </div>
-                        ` : ''}
+                    </div>
+                    <div class="card-body collapse" id="${msgId}">
+                        <!-- Destinatarios -->
+                        <div class="mb-3 small text-muted">
+                            <div><strong>De:</strong> ${msg.from || 'Desconocido'}</div>
+                            <div><strong>Para:</strong> ${msg.to || 'mí'}</div>
+                            ${msg.cc ? `<div><strong>CC:</strong> ${msg.cc}</div>` : ''}
+                            ${msg.bcc ? `<div><strong>CCO:</strong> ${msg.bcc}</div>` : ''}
+                        </div>
+                        
+                        <!-- Contenido completo -->
+                        <div class="mb-3" style="max-height: 400px; overflow-y: auto;">
+                            ${msg.body || msg.snippet || ''}
+                        </div>
+                        
+                        <!-- Adjuntos -->
+                        ${msg.attachments && msg.attachments.length > 0 ? renderAttachments(msg.attachments, msg.id) : ''}
+                        
+                        <!-- Botón responder a este mensaje -->
+                        <div class="mt-3 pt-3 border-top">
+                            <button class="btn btn-sm btn-outline-primary" onclick="window.InboxView.replyToSpecificMessage('${msg.id}', '${msg.from}', '${msg.subject}', '${msg.messageId}')">
+                                <i class="fas fa-reply me-1"></i>Responder a este mensaje
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1165,6 +1187,46 @@
 
         html += '</div>';
         return html;
+    }
+
+    /**
+     * Toggle mensaje del hilo (expandir/colapsar)
+     */
+    function toggleThreadMessage(msgId) {
+        const content = document.getElementById(msgId);
+        const icon = document.getElementById(`${msgId}-icon`);
+        
+        if (content && icon) {
+            if (content.classList.contains('show')) {
+                content.classList.remove('show');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                content.classList.add('show');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            }
+        }
+    }
+
+    /**
+     * Responder a un mensaje específico del hilo
+     */
+    function replyToSpecificMessage(emailId, from, subject, messageId) {
+        // Scroll al formulario de respuesta
+        const replyForm = document.querySelector('#reply-textarea');
+        if (replyForm) {
+            replyForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Actualizar el campo Para con el remitente de este mensaje
+            const replyToInput = document.getElementById('reply-to');
+            if (replyToInput) {
+                replyToInput.value = from;
+            }
+            
+            // Focus en el textarea
+            setTimeout(() => replyForm.focus(), 500);
+        }
     }
 
     /**
@@ -1273,7 +1335,9 @@
         setFilter: setFilter,
         toggleImportant: toggleImportant,
         loadEmailDetails: loadEmailDetails,
-        downloadAttachment: window.downloadAttachment
+        downloadAttachment: window.downloadAttachment,
+        toggleThreadMessage: toggleThreadMessage,
+        replyToSpecificMessage: replyToSpecificMessage
     };
 
 })();

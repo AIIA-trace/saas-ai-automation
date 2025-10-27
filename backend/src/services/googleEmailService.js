@@ -345,6 +345,8 @@ class GoogleEmailService {
       threadId: message.threadId,
       from: getHeader('From'),
       to: getHeader('To'),
+      cc: getHeader('Cc'),
+      bcc: getHeader('Bcc'),
       subject: getHeader('Subject'),
       date: getHeader('Date'),
       messageId: getHeader('Message-ID'),
