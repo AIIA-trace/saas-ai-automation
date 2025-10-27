@@ -1,5 +1,5 @@
 const OpenAI = require('openai');
-const logger = require('../config/logger');
+const logger = require('../utils/logger');
 const { getClientContext, buildSystemPrompt: buildBaseSystemPrompt } = require('../utils/clientContextHelper');
 
 class OpenAIEmailService {
