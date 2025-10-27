@@ -133,7 +133,8 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
      */
     console.log('📦 Definiendo window.generateAIResponse...');
     window.generateAIResponse = async function(email, threadId = null) {
-        console.log('🎬 generateAIResponse INICIADO en email-reply-handler.js');
+        console.log('🎬🎬🎬 generateAIResponse INICIADO en email-reply-handler.js 🎬🎬🎬');
+        console.log('🎬 PRIMERA LÍNEA DE LA FUNCIÓN');
         console.log('📧 Email recibido:', email);
         console.log('🧵 ThreadId recibido:', threadId);
         
@@ -220,7 +221,11 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
             generateBtn.innerHTML = '<i class="fas fa-robot me-2"></i>Generar respuesta con IA';
             console.log('✅ generateAIResponse COMPLETADO');
         }
-    }
+    };
+    
+    console.log('✅✅✅ window.generateAIResponse DEFINIDA ✅✅✅');
+    console.log('🔍 Tipo de window.generateAIResponse:', typeof window.generateAIResponse);
+    console.log('🔍 Es async?:', window.generateAIResponse.constructor.name === 'AsyncFunction');
 
     /**
      * Enviar respuesta
