@@ -133,7 +133,6 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
      */
     console.log('📦 Definiendo window.generateAIResponse...');
     window.generateAIResponse = async function(email, threadId = null) {
-        alert('FUNCIÓN EJECUTADA!'); // ← ALERTA VISIBLE
         console.log('🎬🎬🎬 generateAIResponse INICIADO en email-reply-handler.js 🎬🎬🎬');
         console.log('🎬 PRIMERA LÍNEA DE LA FUNCIÓN');
         console.log('📧 Email recibido:', email);
