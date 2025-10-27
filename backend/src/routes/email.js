@@ -259,6 +259,55 @@ router.get('/inbox', authenticate, async (req, res) => {
 });
 
 /**
+ * Descargar adjunto
+ * GET /api/email/:emailId/attachment/:attachmentId
+ */
+router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { emailId, attachmentId } = req.params;
+
+    // Obtener cuenta activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay cuenta de email conectada'
+      });
+    }
+
+    let attachmentData;
+
+    // Obtener adjunto según el proveedor
+    if (emailAccount.provider === 'google') {
+      attachmentData = await googleEmailService.getAttachment(clientId, emailId, attachmentId);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Proveedor no soportado'
+      });
+    }
+
+    // Enviar archivo
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.send(attachmentData);
+
+  } catch (error) {
+    logger.error(`❌ Error descargando adjunto: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Marcar email como leído
  * POST /api/email/mark-read
  */

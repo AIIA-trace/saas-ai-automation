@@ -765,19 +765,87 @@
         const contentContainer = document.getElementById('inbox-email-content');
         if (!contentContainer) return;
 
-        const html = `
+        // Mostrar spinner mientras carga
+        contentContainer.innerHTML = `
+            <div class="d-flex align-items-center justify-content-center h-100">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="text-muted">Cargando detalles del email...</p>
+                </div>
+            </div>
+        `;
+
+        // Cargar detalles completos del email desde el backend
+        loadEmailDetails(email.id);
+    }
+
+    /**
+     * Cargar detalles completos del email (con hilo y adjuntos)
+     */
+    function loadEmailDetails(emailId) {
+        const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+        if (!token) {
+            console.warn('⚠️ No hay token de autenticación');
+            return;
+        }
+
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
+        fetch(`${API_BASE_URL}/api/email/${emailId}/details`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                renderEmailDetails(data.email, data.thread, data.threadId);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando detalles del email:', error);
+            const contentContainer = document.getElementById('inbox-email-content');
+            if (contentContainer) {
+                contentContainer.innerHTML = `
+                    <div class="alert alert-danger m-4">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error al cargar los detalles del email
+                    </div>
+                `;
+            }
+        });
+    }
+
+    /**
+     * Renderizar detalles completos del email
+     */
+    function renderEmailDetails(email, thread, threadId) {
+        const contentContainer = document.getElementById('inbox-email-content');
+        if (!contentContainer) return;
+
+        // Ordenar thread por fecha (más antiguos primero)
+        const sortedThread = thread.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        // El último mensaje es el actual
+        const currentMessage = sortedThread[sortedThread.length - 1];
+        const previousMessages = sortedThread.slice(0, -1);
+
+        let html = `
             <div class="p-4">
                 <!-- Cabecera del email -->
                 <div class="border-bottom pb-3 mb-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <h4 class="mb-0">${email.subject}</h4>
+                        <h4 class="mb-0">${currentMessage.subject || '(Sin asunto)'}</h4>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" title="Responder">
-                                <i class="fas fa-reply"></i>
-                            </button>
-                            <button class="btn btn-outline-secondary" title="Reenviar">
-                                <i class="fas fa-share"></i>
-                            </button>
                             <button class="btn btn-outline-secondary" title="Archivar">
                                 <i class="fas fa-archive"></i>
                             </button>
@@ -791,59 +859,158 @@
                         <div class="me-3">
                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
                                  style="width: 48px; height: 48px; font-size: 20px;">
-                                ${email.sender.charAt(0).toUpperCase()}
+                                ${(currentMessage.from || 'U').charAt(0).toUpperCase()}
                             </div>
                         </div>
                         <div class="flex-grow-1">
-                            <div class="fw-bold">${email.sender}</div>
+                            <div class="fw-bold">${currentMessage.from || 'Desconocido'}</div>
                             <div class="text-muted small">Para: mí</div>
                         </div>
-                        <div class="text-muted small">${email.date}</div>
+                        <div class="text-muted small">${formatEmailDate(currentMessage.date)}</div>
                     </div>
                 </div>
 
                 <!-- Contenido del email -->
-                <div class="email-body">
-                    <p>${email.preview}</p>
-                    <p class="text-muted mt-4">
-                        <em>Este es un email de prueba. El contenido completo se mostrará aquí cuando se integre con el backend.</em>
-                    </p>
+                <div class="email-body mb-4">
+                    ${currentMessage.body || currentMessage.snippet || ''}
                 </div>
 
-                <!-- Hilo de conversación (si existe) -->
-                <div class="mt-5 pt-4 border-top">
-                    <h6 class="text-muted mb-3">
-                        <i class="fas fa-comments me-2"></i>Hilo de conversación
-                    </h6>
-                    <div class="alert alert-light">
-                        <i class="fas fa-info-circle me-2"></i>
-                        No hay mensajes anteriores en este hilo
-                    </div>
-                </div>
+                <!-- Adjuntos del mensaje actual -->
+                ${renderAttachments(currentMessage.attachments, currentMessage.id)}
 
-                <!-- Respuesta rápida -->
-                <div class="mt-4 pt-4 border-top">
-                    <h6 class="mb-3">Responder</h6>
-                    <textarea class="form-control mb-3" rows="4" placeholder="Escribe tu respuesta..."></textarea>
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <button class="btn btn-sm btn-outline-secondary me-2">
-                                <i class="fas fa-paperclip me-1"></i>Adjuntar
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-image me-1"></i>Imagen
-                            </button>
-                        </div>
-                        <button class="btn btn-primary">
-                            <i class="fas fa-paper-plane me-2"></i>Enviar
-                        </button>
-                    </div>
-                </div>
+                <!-- Mensajes anteriores del hilo -->
+                ${previousMessages.length > 0 ? renderThreadMessages(previousMessages) : ''}
+
+                <!-- Formulario de respuesta -->
+                ${renderReplyForm(currentMessage, threadId)}
             </div>
         `;
 
         contentContainer.innerHTML = html;
-        console.log('✅ Contenido del email mostrado:', email.subject);
+        
+        // Configurar event listeners
+        setupReplyFormListeners(currentMessage, threadId);
+        
+        console.log('✅ Detalles del email renderizados');
+    }
+
+    /**
+     * Renderizar adjuntos
+     */
+    function renderAttachments(attachments, emailId) {
+        if (!attachments || attachments.length === 0) return '';
+
+        let html = '<div class="border-top pt-3 mb-4"><h6 class="mb-3"><i class="fas fa-paperclip me-2"></i>Adjuntos</h6><div class="row g-2">';
+        
+        attachments.forEach(attachment => {
+            const icon = getFileIcon(attachment.mimeType);
+            const sizeFormatted = formatFileSize(attachment.size);
+            
+            html += `
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center">
+                                <i class="${icon} fa-2x text-primary me-3"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium small">${attachment.filename}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">${sizeFormatted}</div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="window.InboxView.downloadAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}')"
+                                        title="Descargar">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div></div>';
+        return html;
+    }
+
+    /**
+     * Renderizar mensajes anteriores del hilo
+     */
+    function renderThreadMessages(messages) {
+        let html = `
+            <div class="mt-4 pt-4 border-top">
+                <h6 class="text-muted mb-3">
+                    <i class="fas fa-comments me-2"></i>Mensajes anteriores (${messages.length})
+                </h6>
+        `;
+
+        messages.forEach((msg, index) => {
+            html += `
+                <div class="card mb-3 ${index < messages.length - 1 ? 'opacity-75' : ''}">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" 
+                                 style="width: 32px; height: 32px; font-size: 14px;">
+                                ${(msg.from || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-medium small">${msg.from || 'Desconocido'}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">${formatEmailDate(msg.date)}</div>
+                            </div>
+                        </div>
+                        <div class="small">${msg.snippet || msg.body?.substring(0, 200) || ''}</div>
+                        ${msg.attachments && msg.attachments.length > 0 ? `
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-paperclip me-1"></i>${msg.attachments.length} adjunto(s)
+                                </small>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Renderizar formulario de respuesta
+     */
+    function renderReplyForm(email, threadId) {
+        return `
+            <div class="mt-4 pt-4 border-top">
+                <h6 class="mb-3">Responder</h6>
+                
+                <!-- Botón generar respuesta con IA -->
+                <div class="mb-3">
+                    <button class="btn btn-sm btn-outline-primary" id="generate-ai-response-btn">
+                        <i class="fas fa-robot me-2"></i>Generar respuesta con IA
+                    </button>
+                </div>
+
+                <!-- Textarea de respuesta -->
+                <textarea class="form-control mb-3" id="reply-textarea" rows="6" 
+                          placeholder="Escribe tu respuesta..."></textarea>
+                
+                <!-- Adjuntos seleccionados -->
+                <div id="selected-attachments" class="mb-3"></div>
+                
+                <!-- Botones de acción -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <input type="file" id="attachment-input" multiple style="display: none;" accept="*/*">
+                        <button class="btn btn-sm btn-outline-secondary me-2" id="attach-file-btn">
+                            <i class="fas fa-paperclip me-1"></i>Adjuntar archivo (máx 20MB)
+                        </button>
+                        <small class="text-muted" id="attachment-info"></small>
+                    </div>
+                    <button class="btn btn-primary" id="send-reply-btn">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar respuesta
+                    </button>
+                </div>
+            </div>
+        `;
     }
 
     // Agregar estilos CSS para el checkbox personalizado
@@ -890,7 +1057,9 @@
         renderEmailList: renderEmailList,
         showEmailContent: showEmailContent,
         setFilter: setFilter,
-        toggleImportant: toggleImportant
+        toggleImportant: toggleImportant,
+        loadEmailDetails: loadEmailDetails,
+        downloadAttachment: window.downloadAttachment
     };
 
 })();

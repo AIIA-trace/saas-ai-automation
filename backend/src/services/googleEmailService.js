@@ -433,6 +433,36 @@ class GoogleEmailService {
   }
 
   /**
+   * Obtener adjunto
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email
+   * @param {string} attachmentId - ID del adjunto
+   * @returns {Promise<Buffer>} Datos del adjunto
+   */
+  async getAttachment(clientId, emailId, attachmentId) {
+    try {
+      const auth = await this.getAuthenticatedClient(clientId);
+      const gmail = google.gmail({ version: 'v1', auth });
+
+      const attachment = await gmail.users.messages.attachments.get({
+        userId: 'me',
+        messageId: emailId,
+        id: attachmentId
+      });
+
+      // Decodificar base64
+      const data = Buffer.from(attachment.data.data, 'base64');
+      
+      logger.info(`✅ Adjunto obtenido: ${attachmentId}`);
+      return data;
+
+    } catch (error) {
+      logger.error(`❌ Error obteniendo adjunto: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Marcar email como leído
    * @param {number} clientId - ID del cliente
    * @param {string} emailId - ID del email
