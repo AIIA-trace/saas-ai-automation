@@ -1701,6 +1701,10 @@
      * Generar respuesta IA para mensaje específico
      */
     async function generateAIResponseForMessage(from, subject, msgId, emailId, threadId) {
+        console.log('🎯 generateAIResponseForMessage iniciado:', {
+            from, subject, msgId, emailId, threadId
+        });
+        
         // Obtener el email completo del array allEmails
         const email = allEmails.find(e => e.id === emailId) || { 
             id: emailId,
@@ -1709,28 +1713,48 @@
             threadId: threadId
         };
         
+        console.log('📧 Email construido:', email);
+        console.log('🔍 window.generateAIResponse existe?', !!window.generateAIResponse);
+        
         if (window.generateAIResponse) {
             // Temporalmente cambiar el ID del textarea
             const textarea = document.getElementById(`reply-textarea-${msgId}`);
             const generateBtn = document.getElementById(`generate-ai-response-btn-${msgId}`);
             
+            console.log('🔍 Elementos encontrados:', {
+                textarea: !!textarea,
+                generateBtn: !!generateBtn,
+                textareaId: textarea?.id,
+                btnId: generateBtn?.id
+            });
+            
             if (textarea && generateBtn) {
                 const originalTextareaId = textarea.id;
                 const originalBtnId = generateBtn.id;
                 
+                console.log('🔄 Cambiando IDs temporalmente...');
                 // Cambiar IDs temporalmente
                 textarea.id = 'reply-textarea';
                 generateBtn.id = 'generate-ai-response-btn';
                 
                 try {
+                    console.log('🚀 Llamando window.generateAIResponse...');
                     // Esperar a que la función asíncrona termine
                     await window.generateAIResponse(email, threadId);
+                    console.log('✅ window.generateAIResponse completado');
+                } catch (error) {
+                    console.error('❌ Error en window.generateAIResponse:', error);
                 } finally {
+                    console.log('🔄 Restaurando IDs originales...');
                     // Restaurar IDs originales
                     textarea.id = originalTextareaId;
                     generateBtn.id = originalBtnId;
                 }
+            } else {
+                console.warn('⚠️ No se encontraron textarea o botón');
             }
+        } else {
+            console.error('❌ window.generateAIResponse no existe!');
         }
     }
 
