@@ -132,19 +132,20 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
      * Generar respuesta con IA (con contexto del hilo completo)
      */
     console.log('📦 Definiendo window.generateAIResponse...');
-    window.generateAIResponse = async function(email, threadId = null) {
+    window.generateAIResponse = async function(email, threadId = null, textareaId = 'reply-textarea', btnId = 'generate-ai-response-btn') {
         // PRIMER LOG - DEBE APARECER SIEMPRE
         console.log('🚨🚨🚨 INICIO ABSOLUTO DE LA FUNCIÓN 🚨🚨🚨');
         
         try {
             console.log('🎬🎬🎬 ===== FUNCIÓN generateAIResponse EJECUTÁNDOSE ===== 🎬🎬🎬');
             console.log('🎬 TIMESTAMP:', new Date().toISOString());
-            console.log('📧 Email recibido:', JSON.stringify(email, null, 2));
+            console.log('📧 Email recibido:', email);
             console.log('🧵 ThreadId recibido:', threadId);
-            console.log('🔍 Stack trace:', new Error().stack);
+            console.log('🆔 TextareaId:', textareaId);
+            console.log('🆔 BtnId:', btnId);
             
-            const generateBtn = document.getElementById('generate-ai-response-btn');
-            const textarea = document.getElementById('reply-textarea');
+            const generateBtn = document.getElementById(btnId);
+            const textarea = document.getElementById(textareaId);
             
             console.log('🔍 Elementos buscados:', {
                 generateBtn: !!generateBtn,

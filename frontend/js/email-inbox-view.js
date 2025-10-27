@@ -1717,76 +1717,38 @@
         console.log('🔍 window.generateAIResponse existe?', !!window.generateAIResponse);
         
         if (window.generateAIResponse) {
-            // Temporalmente cambiar el ID del textarea
-            const textarea = document.getElementById(`reply-textarea-${msgId}`);
-            const generateBtn = document.getElementById(`generate-ai-response-btn-${msgId}`);
+            const textareaId = `reply-textarea-${msgId}`;
+            const btnId = `generate-ai-response-btn-${msgId}`;
             
-            console.log('🔍 Elementos encontrados:', {
-                textarea: !!textarea,
-                generateBtn: !!generateBtn,
-                textareaId: textarea?.id,
-                btnId: generateBtn?.id
+            console.log('🔍 Verificando elementos:', {
+                textareaId,
+                btnId,
+                textareaExists: !!document.getElementById(textareaId),
+                btnExists: !!document.getElementById(btnId)
             });
             
-            if (textarea && generateBtn) {
-                const originalTextareaId = textarea.id;
-                const originalBtnId = generateBtn.id;
+            try {
+                console.log('🚀 Llamando window.generateAIResponse con IDs específicos...');
+                console.log('📦 Tipo:', typeof window.generateAIResponse);
+                console.log('📧 Email:', email);
+                console.log('🧵 ThreadId:', threadId);
+                console.log('🆔 TextareaId:', textareaId);
+                console.log('🆔 BtnId:', btnId);
                 
-                console.log('🔄 Cambiando IDs temporalmente...');
-                console.log('📋 IDs ANTES del cambio:', {
-                    textareaId: textarea.id,
-                    btnId: generateBtn.id
-                });
+                // Llamar directamente con los IDs correctos
+                const result = await window.generateAIResponse(email, threadId, textareaId, btnId);
                 
-                // Cambiar IDs temporalmente
-                textarea.id = 'reply-textarea';
-                generateBtn.id = 'generate-ai-response-btn';
+                console.log('✅ window.generateAIResponse completado');
+                console.log('📊 Resultado:', result);
                 
-                console.log('📋 IDs DESPUÉS del cambio:', {
-                    textareaId: textarea.id,
-                    btnId: generateBtn.id
-                });
-                
-                // VERIFICAR que los elementos existen con los nuevos IDs
-                const verifyTextarea = document.getElementById('reply-textarea');
-                const verifyBtn = document.getElementById('generate-ai-response-btn');
-                console.log('✅ Verificación de elementos con nuevos IDs:', {
-                    textareaExists: !!verifyTextarea,
-                    btnExists: !!verifyBtn,
-                    sonLosMismos: verifyTextarea === textarea && verifyBtn === generateBtn
-                });
-                
-                try {
-                    console.log('🚀 Llamando window.generateAIResponse...');
-                    console.log('📦 Tipo:', typeof window.generateAIResponse);
-                    console.log('📧 Email:', email);
-                    console.log('🧵 ThreadId:', threadId);
-                    
-                    // Esperar a que la función asíncrona termine
-                    const result = await window.generateAIResponse(email, threadId);
-                    
-                    console.log('✅ window.generateAIResponse completado');
-                    console.log('📊 Resultado:', result);
-                    
-                    if (result === 'ABORTED_NO_ELEMENTS') {
-                        console.error('🚨 La función abortó porque no encontró los elementos!');
-                    }
-                } catch (error) {
-                    console.error('❌ Error en window.generateAIResponse:', error);
-                    console.error('❌ Stack:', error.stack);
-                } finally {
-                    console.log('🔄 Restaurando IDs originales...');
-                    console.log('📋 Restaurando a:', {
-                        textareaId: originalTextareaId,
-                        btnId: originalBtnId
-                    });
-                    // Restaurar IDs originales
-                    textarea.id = originalTextareaId;
-                    generateBtn.id = originalBtnId;
-                    console.log('✅ IDs restaurados correctamente');
+                if (result === 'ABORTED_NO_ELEMENTS') {
+                    console.error('🚨 La función abortó porque no encontró los elementos!');
+                } else if (result === 'CRITICAL_ERROR') {
+                    console.error('🚨 Error crítico en la función!');
                 }
-            } else {
-                console.warn('⚠️ No se encontraron textarea o botón');
+            } catch (error) {
+                console.error('❌ Error en window.generateAIResponse:', error);
+                console.error('❌ Stack:', error.stack);
             }
         } else {
             console.error('❌ window.generateAIResponse no existe!');
