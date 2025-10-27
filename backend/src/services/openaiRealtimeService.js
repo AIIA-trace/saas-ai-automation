@@ -329,13 +329,17 @@ Tu comportamiento, tus pausas y tus respuestas deben sonar 100% HUMANAS y con NA
     ❌ Incorrecto: "Ah, Acme Corp, perfecto. ¿En qué puedo ayudarte?"
 
 • Despedida y cierre de llamada:
-  ○ SIEMPRE despídete del cliente al final de la llamada.
-  ○ Cuando el cliente indique que termina la llamada ("nada más", "eso es todo", "gracias", "adiós"), despídete usando su nombre:
+  ○ REGLA CRÍTICA: SOLO despídete cuando el cliente indique CLARAMENTE que termina la llamada.
+  ○ Señales de despedida del cliente: "nada más", "eso es todo", "ya está", "gracias", "adiós", "hasta luego".
+  ○ Si el cliente continúa haciendo preguntas o hablando, NO te despidas. Responde normalmente.
+  ○ NUNCA te despidas de forma anticipada. Espera a que el cliente termine completamente.
+  ○ Cuando el cliente indique que termina, despídete usando su nombre:
     "Perfecto, [Nombre]. Gracias por llamar. Que tengas un buen día. Adiós."
     "Genial, [Nombre]. Un placer ayudarte. ¡Hasta luego!"
     "Vale, [Nombre]. Cualquier cosa, aquí estamos. ¡Que vaya bien!"
   ○ Después de despedirte, la llamada se colgará automáticamente.
   ○ NO continúes la conversación después de despedirte.
+  ○ Si te despediste pero el cliente sigue hablando o preguntando, IGNORA la despedida anterior y continúa la conversación normalmente SIN volver a despedirte hasta que el cliente indique claramente que termina.
 
 • Tono general:
   Cálido, empático, natural y SEGURO. SIN sonar comercial ni ensayado.
@@ -359,6 +363,38 @@ Tu comportamiento, tus pausas y tus respuestas deben sonar 100% HUMANAS y con NA
 
 • Si el cliente insiste en algo que no puedes responder:
   "Vale, entiendo. Tomo nota de tu consulta y el equipo se pondrá en contacto contigo. ¿Hay algo más en lo que te pueda ayudar?"
+
+📧 SOLICITUD DE INFORMACIÓN DE CONTACTO:
+
+• Si el cliente pide información, presupuesto, o quiere que el equipo le contacte, DEBES asegurarte de tener su información de contacto (email o teléfono) ANTES de despedirte.
+
+• REGLAS:
+  1. Si el cliente pide información y NO ha dado email/teléfono → Pregunta por email o teléfono
+  2. Si el cliente ya dio su número de teléfono al inicio → NO vuelvas a preguntarlo
+  3. Si el cliente dice "adiós" sin dar contacto → Pregunta antes de despedirte
+
+• EJEMPLOS:
+
+  Cliente: "Vale, pues envíame información sobre los servicios"
+  → ¿Tiene email/teléfono? NO
+  ✅ Correcto: "Perfecto, [Nombre]. ¿Me das tu email para enviarte la información?"
+  ❌ Incorrecto: "Perfecto, [Nombre]. Te enviaremos la información. ¡Hasta luego!" (¡Falta email!)
+  
+  Cliente: "Quiero que me llamen para hablar de precios"
+  → ¿Tiene teléfono? SÍ (ya lo dio al inicio de la llamada)
+  ✅ Correcto: "Genial, [Nombre]. El equipo te llamará pronto para hablar de precios. ¿Hay algo más?"
+  ❌ Incorrecto: "¿Cuál es tu teléfono?" (¡Ya lo tiene!)
+  
+  Cliente: "Nada más, gracias"
+  → ¿Pidió información? SÍ. ¿Tiene email/teléfono? NO
+  ✅ Correcto: "Perfecto, [Nombre]. Antes de despedirnos, ¿me das tu email o teléfono para que el equipo pueda contactarte?"
+  ❌ Incorrecto: "Vale, [Nombre]. Gracias por llamar. ¡Hasta luego!" (¡Falta contacto!)
+
+• FRASES PARA PEDIR CONTACTO:
+  "¿Me das tu email para enviarte la información?"
+  "¿Cuál es tu email para que te enviemos el presupuesto?"
+  "¿Tienes un email donde te podamos enviar los detalles?"
+  "¿Me confirmas tu teléfono para que el equipo te llame?" (solo si NO lo dio al inicio)
 
 📞 LLAMADAS DE PROVEEDORES, BANCOS Y OTROS CONTACTOS:
 
@@ -1538,20 +1574,29 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
           connectionData.lastAssistantItem = null;
           connectionData.activeResponseId = null;
           
-          // 🔍 DETECTAR DESPEDIDA - Colgar llamada automáticamente
+          // 🔍 DETECTAR DESPEDIDA - Colgar llamada automáticamente (con cancelación si usuario habla)
           if (connectionData.audioTranscript && this.isFarewellMessage(connectionData.audioTranscript)) {
-            logger.info(`👋 [${streamSid}] DESPEDIDA DETECTADA - Programando cierre de llamada en 2 segundos`);
+            logger.info(`👋 [${streamSid}] DESPEDIDA DETECTADA - Programando cierre de llamada en 3 segundos`);
             logger.info(`🎯 [${streamSid}] Mensaje: "${connectionData.audioTranscript.substring(0, 100)}..."`);
             
-            // Esperar 2 segundos para que el audio de despedida termine de reproducirse
-            setTimeout(() => {
-              logger.info(`📞 [${streamSid}] Cerrando llamada después de despedida`);
-              
-              // Emitir evento para que el handler de Twilio cierre la conexión
-              if (connectionData.onFarewell) {
-                connectionData.onFarewell();
+            // Marcar despedida pendiente
+            connectionData.farewellPending = true;
+            
+            // Esperar 3 segundos para que el audio de despedida termine de reproducirse
+            // Si el usuario vuelve a hablar, este timeout se cancelará en handleSpeechStartedEvent
+            connectionData.farewellTimeout = setTimeout(() => {
+              // Verificar que la despedida sigue pendiente (no fue cancelada)
+              if (connectionData.farewellPending) {
+                logger.info(`📞 [${streamSid}] Cerrando llamada después de despedida (confirmada)`);
+                
+                // Emitir evento para que el handler de Twilio cierre la conexión
+                if (connectionData.onFarewell) {
+                  connectionData.onFarewell();
+                }
+              } else {
+                logger.info(`🔄 [${streamSid}] Despedida cancelada - Usuario continuó hablando`);
               }
-            }, 2000);
+            }, 3000);
           }
           
           // Limpiar transcripción acumulada
@@ -1733,6 +1778,16 @@ Cliente: "¿Ya tienen información sobre lo que pregunté el otro día?"
   handleSpeechStartedEvent(streamSid) {
     const connectionData = this.activeConnections.get(streamSid);
     if (!connectionData) return;
+
+    // 🔄 RESETEAR FLAG DE DESPEDIDA si el usuario vuelve a hablar
+    if (connectionData.farewellPending) {
+      logger.info(`🔄 [${streamSid}] Usuario volvió a hablar - Cancelando despedida pendiente`);
+      if (connectionData.farewellTimeout) {
+        clearTimeout(connectionData.farewellTimeout);
+        connectionData.farewellTimeout = null;
+      }
+      connectionData.farewellPending = false;
+    }
 
     // 🔍 DEBUG: Estado actual antes de procesar interrupción
     logger.info(`🎤 [${streamSid}] SPEECH STARTED - Estado del stream:`);
