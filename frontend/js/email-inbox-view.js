@@ -1760,40 +1760,49 @@
      */
     function sendReplyForMessage(from, subject, messageId, threadId, msgId) {
         const email = { from, subject, messageId };
-        if (window.sendReply) {
-            // Temporalmente cambiar IDs
-            const textarea = document.getElementById(`reply-textarea-${msgId}`);
-            const ccInput = document.getElementById(`reply-cc-${msgId}`);
-            const bccInput = document.getElementById(`reply-bcc-${msgId}`);
-            const sendBtn = document.getElementById(`send-reply-btn-${msgId}`);
-            
-            if (textarea) {
-                const originalTextareaId = textarea.id;
-                textarea.id = 'reply-textarea';
-                
-                if (ccInput) {
-                    const originalCcId = ccInput.id;
-                    ccInput.id = 'reply-cc';
-                    if (bccInput) {
-                        const originalBccId = bccInput.id;
-                        bccInput.id = 'reply-bcc';
-                        if (sendBtn) {
-                            const originalSendId = sendBtn.id;
-                            sendBtn.id = 'send-reply-btn';
-                            
-                            window.sendReply(email, threadId);
-                            
-                            setTimeout(() => {
-                                textarea.id = originalTextareaId;
-                                ccInput.id = originalCcId;
-                                bccInput.id = originalBccId;
-                                sendBtn.id = originalSendId;
-                            }, 100);
-                        }
-                    }
-                }
-            }
+        
+        if (!window.sendReply) {
+            console.error('❌ window.sendReply no está definido');
+            return;
         }
+        
+        // Obtener elementos
+        const textarea = document.getElementById(`reply-textarea-${msgId}`);
+        const ccInput = document.getElementById(`reply-cc-${msgId}`);
+        const bccInput = document.getElementById(`reply-bcc-${msgId}`);
+        const sendBtn = document.getElementById(`send-reply-btn-${msgId}`);
+        
+        if (!textarea) {
+            console.error('❌ No se encontró el textarea');
+            return;
+        }
+        
+        // Guardar IDs originales
+        const originalIds = {
+            textarea: textarea.id,
+            cc: ccInput ? ccInput.id : null,
+            bcc: bccInput ? bccInput.id : null,
+            send: sendBtn ? sendBtn.id : null
+        };
+        
+        // Cambiar IDs temporalmente
+        textarea.id = 'reply-textarea';
+        if (ccInput) ccInput.id = 'reply-cc';
+        if (bccInput) bccInput.id = 'reply-bcc';
+        if (sendBtn) sendBtn.id = 'send-reply-btn';
+        
+        console.log('📤 Llamando a window.sendReply con:', { email, threadId });
+        
+        // Llamar a sendReply
+        window.sendReply(email, threadId);
+        
+        // Restaurar IDs después de un momento
+        setTimeout(() => {
+            textarea.id = originalIds.textarea;
+            if (ccInput && originalIds.cc) ccInput.id = originalIds.cc;
+            if (bccInput && originalIds.bcc) bccInput.id = originalIds.bcc;
+            if (sendBtn && originalIds.send) sendBtn.id = originalIds.send;
+        }, 100);
     }
 
     /**
