@@ -239,6 +239,15 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
     console.log('✅✅✅ window.generateAIResponse DEFINIDA ✅✅✅');
     console.log('🔍 Tipo de window.generateAIResponse:', typeof window.generateAIResponse);
     console.log('🔍 Es async?:', window.generateAIResponse.constructor.name === 'AsyncFunction');
+    console.log('🔍 Código de la función (primeros 200 chars):', window.generateAIResponse.toString().substring(0, 200));
+    
+    // Proteger contra sobreescritura
+    Object.defineProperty(window, 'generateAIResponse', {
+        value: window.generateAIResponse,
+        writable: false,
+        configurable: false
+    });
+    console.log('🔒 window.generateAIResponse PROTEGIDA contra sobreescritura');
 
     /**
      * Enviar respuesta
