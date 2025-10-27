@@ -587,6 +587,46 @@ router.get('/:emailId/details', authenticate, async (req, res) => {
 });
 
 /**
+ * Agregar firma al cuerpo del email
+ */
+async function addSignatureToBody(clientId, body) {
+  try {
+    // Obtener firma del cliente
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { emailSignature: true }
+    });
+
+    const signature = client?.emailSignature;
+    
+    // Si no hay firma configurada, retornar body sin cambios
+    if (!signature || signature.trim() === '') {
+      return body;
+    }
+
+    // Si el body ya contiene la firma, no agregarla de nuevo
+    if (body.includes(signature)) {
+      return body;
+    }
+
+    // Determinar si el body es HTML o texto plano
+    const isHTML = body.includes('<br>') || body.includes('<p>') || body.includes('<div>');
+    
+    if (isHTML) {
+      // Para HTML, agregar firma con formato HTML
+      const formattedSignature = signature.replace(/\n/g, '<br>');
+      return `${body}<br><br>--<br>${formattedSignature}`;
+    } else {
+      // Para texto plano
+      return `${body}\n\n--\n${signature}`;
+    }
+  } catch (error) {
+    logger.error(`⚠️ Error agregando firma: ${error.message}`);
+    return body; // Retornar body original si hay error
+  }
+}
+
+/**
  * Enviar email (con soporte para respuestas y adjuntos)
  * POST /api/email/send
  */
@@ -617,10 +657,13 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
+    // Agregar firma automáticamente al cuerpo del email
+    const bodyWithSignature = await addSignatureToBody(clientId, body);
+
     const emailData = {
       to,
       subject,
-      body,
+      body: bodyWithSignature,
       threadId,
       inReplyTo,
       references,
@@ -640,6 +683,8 @@ router.post('/send', authenticate, async (req, res) => {
         error: 'Proveedor no soportado'
       });
     }
+
+    logger.info(`✅ Email enviado con firma a ${to}`);
 
     res.json({
       success: true,
