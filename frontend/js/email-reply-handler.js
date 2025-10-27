@@ -128,22 +128,46 @@
      * Generar respuesta con IA (con contexto del hilo completo)
      */
     async function generateAIResponse(email, threadId = null) {
+        console.log('🎬 generateAIResponse INICIADO en email-reply-handler.js');
+        console.log('📧 Email recibido:', email);
+        console.log('🧵 ThreadId recibido:', threadId);
+        
         const generateBtn = document.getElementById('generate-ai-response-btn');
         const textarea = document.getElementById('reply-textarea');
         
-        if (!generateBtn || !textarea) return;
+        console.log('🔍 Elementos buscados:', {
+            generateBtn: !!generateBtn,
+            textarea: !!textarea,
+            generateBtnId: generateBtn?.id,
+            textareaId: textarea?.id
+        });
+        
+        if (!generateBtn || !textarea) {
+            console.error('❌ No se encontraron elementos necesarios, abortando');
+            return;
+        }
+
+        console.log('✅ Elementos encontrados, continuando...');
 
         // Deshabilitar botón y mostrar loading
         generateBtn.disabled = true;
         generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generando con IA...';
+        console.log('⏳ Botón deshabilitado y mostrando loading');
 
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
             const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
 
-            console.log('🤖 Generando respuesta con IA para email:', email.id, 'threadId:', threadId);
+            console.log('🤖 Preparando llamada al backend...');
+            console.log('📍 URL:', `${API_BASE_URL}/api/email/generate-reply`);
+            console.log('🔑 Token existe:', !!token);
+            console.log('📦 Payload:', {
+                emailId: email.id,
+                threadId: threadId || email.threadId
+            });
 
             // Usar el nuevo endpoint con contexto del hilo
+            console.log('🚀 Haciendo fetch...');
             const response = await fetch(`${API_BASE_URL}/api/email/generate-reply`, {
                 method: 'POST',
                 headers: {
@@ -156,9 +180,12 @@
                 })
             });
 
+            console.log('📥 Respuesta recibida, status:', response.status);
             const data = await response.json();
+            console.log('📊 Data parseada:', data);
             
             if (data.success && data.reply) {
+                console.log('✅ Respuesta exitosa, escribiendo en textarea...');
                 textarea.value = data.reply;
                 console.log(`✅ Respuesta generada con contexto de ${data.threadMessagesCount || 0} mensajes`);
                 
@@ -167,10 +194,12 @@
                     window.showSuccessToast(`✅ Respuesta generada con contexto de ${data.threadMessagesCount || 0} mensajes`);
                 }
             } else {
+                console.error('❌ Respuesta no exitosa:', data);
                 throw new Error(data.error || 'Error generando respuesta');
             }
         } catch (error) {
             console.error('❌ Error generando respuesta:', error);
+            console.error('❌ Error stack:', error.stack);
             
             // Mostrar error al usuario
             if (window.showErrorToast) {
@@ -178,10 +207,13 @@
             }
             
             // Fallback: generar respuesta simple
+            console.log('📝 Usando respuesta fallback');
             textarea.value = `Estimado/a,\n\nGracias por su mensaje. Hemos recibido su correo y le responderemos a la brevedad.\n\nSaludos cordiales`;
         } finally {
+            console.log('🔄 Restaurando botón...');
             generateBtn.disabled = false;
             generateBtn.innerHTML = '<i class="fas fa-robot me-2"></i>Generar respuesta con IA';
+            console.log('✅ generateAIResponse COMPLETADO');
         }
     }
 
