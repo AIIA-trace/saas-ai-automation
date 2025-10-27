@@ -14,6 +14,11 @@
      * Configurar event listeners del formulario de respuesta
      */
     window.setupReplyFormListeners = function(email, threadId) {
+        console.log('🔧 setupReplyFormListeners llamado con:', {
+            emailId: email?.id,
+            threadId: threadId
+        });
+        
         // Botón mostrar CC/BCC
         const showCcBtn = document.getElementById('show-reply-cc-btn');
         if (showCcBtn) {
@@ -39,6 +44,7 @@
         // Botón generar respuesta con IA
         const generateBtn = document.getElementById('generate-ai-response-btn');
         if (generateBtn) {
+            console.log('✅ Configurando botón IA del formulario principal con emailId:', email?.id);
             generateBtn.addEventListener('click', () => generateAIResponse(email, threadId));
         }
 
