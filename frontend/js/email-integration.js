@@ -3,11 +3,15 @@
  * Este archivo contiene las funciones necesarias para la integración con Gmail, Outlook y otros proveedores
  */
 
+// Definir API_BASE_URL si no existe
+const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
 /**
  * Inicializar la integración de email
  */
 function initEmailIntegration() {
     console.log('🔄 Inicializando integración de email...');
+    console.log('🌐 API_BASE_URL:', API_BASE_URL);
     
     // Configurar el selector de proveedor de correo
     const emailProviderSelect = document.getElementById('email_provider');
@@ -602,15 +606,20 @@ window.connectWithMicrosoft = connectWithMicrosoft;
 window.connectWithYahoo = connectWithYahoo;
 window.disconnectEmailAccount = disconnectEmailAccount;
 
-// Inicializar cuando el DOM esté listo
+// Inicializar cuando el DOM esté listo Y después de que el dashboard se haya cargado
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔄 Inicializando módulo de integración de correo electrónico...');
-    initEmailIntegration();
     
-    // Verificar si hay un proceso de OAuth pendiente
-    const pendingProvider = sessionStorage.getItem('emailOAuthPending');
-    if (pendingProvider) {
-        console.log(`🔄 Verificando proceso de OAuth pendiente para ${pendingProvider}...`);
-        checkOAuthCallback();
-    }
+    // Esperar a que el dashboard cree los elementos (delay de 2 segundos)
+    setTimeout(function() {
+        console.log('⏰ Iniciando integración de email después del delay...');
+        initEmailIntegration();
+        
+        // Verificar si hay un proceso de OAuth pendiente
+        const pendingProvider = sessionStorage.getItem('emailOAuthPending');
+        if (pendingProvider) {
+            console.log(`🔄 Verificando proceso de OAuth pendiente para ${pendingProvider}...`);
+            checkOAuthCallback();
+        }
+    }, 2000);
 });
