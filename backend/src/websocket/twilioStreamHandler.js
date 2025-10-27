@@ -595,9 +595,6 @@ class TwilioStreamHandler {
     
     // Obtener cliente, memoria del llamante y enviar saludo UNA SOLA VEZ
     this.getClientForStream(streamSid, callSid, clientId).then(async () => {
-      // Obtener número del llamante desde customParameters
-      let streamData = this.activeStreams.get(streamSid);
-      
       // 🔍 DEBUG: Mostrar TODOS los customParameters
       logger.info(`🔍 [${streamSid}] DEBUG customParameters completos:`);
       logger.info(`🔍 [${streamSid}] ${JSON.stringify(data.start?.customParameters, null, 2)}`);
@@ -613,11 +610,19 @@ class TwilioStreamHandler {
         logger.error(`❌ [${streamSid}] NO SE CARGARÁ MEMORIA - Bot responderá como cliente nuevo`);
       } else {
         logger.info(`✅ [${streamSid}] Número del llamante detectado: ${callerPhone}`);
-        // 💾 Guardar número de teléfono en streamData para usarlo después
+        // 💾 CRÍTICO: Guardar DIRECTAMENTE en activeStreams para garantizar persistencia
+        const streamData = this.activeStreams.get(streamSid);
         if (streamData) {
           streamData.callerPhone = callerPhone;
+          // ✅ Verificar que se guardó correctamente
+          logger.info(`✅ [${streamSid}] callerPhone guardado en streamData: ${this.activeStreams.get(streamSid)?.callerPhone}`);
+        } else {
+          logger.error(`❌ [${streamSid}] streamData no existe en activeStreams - NO SE PUEDE GUARDAR callerPhone`);
         }
       }
+      
+      // Obtener streamData actualizado DESPUÉS de guardar callerPhone
+      let streamData = this.activeStreams.get(streamSid);
       
       logger.info(`🏢 [${streamSid}] Cliente ID: ${streamData?.client?.id || 'NO DISPONIBLE'}`);
       
