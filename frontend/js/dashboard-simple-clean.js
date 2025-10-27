@@ -9390,10 +9390,11 @@ function regenerateAIReply(emailId) {
 }
 
 /**
- * Enviar respuesta a un email
+ * Enviar respuesta a un email (LEGACY - NO USAR)
+ * NOTA: Esta función está deprecada. Usar window.sendReply de email-reply-handler.js
  * @param {number} emailId - ID del email
  */
-function sendReply(emailId) {
+function sendReplyLegacy(emailId) {
     // Obtener información del usuario actual
     const userId = window.UsageTracker?.getCurrentUserId() || 'desconocido';
     console.log(`📤 Enviando respuesta al email ID: ${emailId} por el usuario ${userId}`);

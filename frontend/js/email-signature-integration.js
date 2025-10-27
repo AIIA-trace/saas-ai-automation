@@ -84,8 +84,11 @@ Tel: +34 91 123 45 67
 
 /**
  * Extiende las funciones de envío de emails para incluir la firma
+ * NOTA: Esta extensión está deprecada. La firma ahora se maneja en email-reply-handler.js
  */
 function extendEmailSendingFunctions() {
+    // COMENTADO: La función window.sendReply ahora maneja la firma internamente
+    /*
     // Extender la función de envío de respuesta
     const originalSendReply = window.sendReply || function() {};
     window.sendReply = function(emailId) {
@@ -97,6 +100,7 @@ function extendEmailSendingFunctions() {
         // Llamar a la función original
         return originalSendReply.apply(this, arguments);
     };
+    */
     
     // Extender la función de envío de email reenviado
     const originalSendForwarded = window.sendForwardedEmail || function() {};
