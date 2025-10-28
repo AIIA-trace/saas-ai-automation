@@ -54,10 +54,7 @@ function initEmailIntegration() {
                             connectEmailBtn.innerHTML = '<i class="fab fa-google me-2"></i>Conectar con Google';
                             break;
                         case 'microsoft':
-                            connectEmailBtn.innerHTML = '<i class="fab fa-microsoft me-2"></i>Conectar con Microsoft';
-                            break;
-                        case 'yahoo':
-                            connectEmailBtn.innerHTML = '<i class="fab fa-yahoo me-2"></i>Conectar con Yahoo';
+                            connectEmailBtn.innerHTML = '<i class="fab fa-microsoft me-2"></i>Conectar con Outlook';
                             break;
                     }
                 }
@@ -114,9 +111,6 @@ function initEmailIntegration() {
                         break;
                     case 'microsoft':
                         connectWithMicrosoft();
-                        break;
-                    case 'yahoo':
-                        connectWithYahoo();
                         break;
                     default:
                         console.error('❌ Proveedor no reconocido:', selectedProvider);
@@ -196,58 +190,6 @@ function connectWithMicrosoft() {
     window.location.href = `${API_BASE_URL}/api/email/oauth/outlook/authorize`;
 }
 
-/**
- * Conectar con Yahoo Mail
- */
-function connectWithYahoo() {
-    console.log('🔌 Iniciando conexión con Yahoo...');
-    
-    // Verificar si ya existe un token guardado
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-        toastr.error('Error de autenticación', 'Error');
-        return;
-    }
-    
-    // Obtener clientId de Yahoo desde el backend
-    fetch('/api/email/oauth/yahoo/config', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(config => {
-        // Guardar estado para verificar después del callback
-        sessionStorage.setItem('emailOAuthPending', 'yahoo');
-        
-        // Construir URL de autorización de Yahoo
-        const redirectUri = `${window.location.origin}/oauth/callback`;
-        const scope = 'mail-r mail-w';
-        const authUrl = `https://api.login.yahoo.com/oauth2/request_auth?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
-        
-        // Abrir ventana de autenticación
-        const authWindow = window.open(authUrl, 'yahooOAuth', 'width=600,height=700');
-        
-        // Verificar periódicamente si la ventana se cerró
-        const checkWindow = setInterval(() => {
-            if (authWindow.closed) {
-                clearInterval(checkWindow);
-                checkOAuthCallback();
-            }
-        }, 500);
-    })
-    .catch(error => {
-        console.error('❌ Error al obtener configuración de Yahoo OAuth:', error);
-        toastr.error('Error al conectar con Yahoo', 'Error');
-    });
-}
 
 /**
  * Verificar si el proceso de OAuth se completó correctamente
@@ -614,22 +556,50 @@ function updateEmailConnectionStatus(data) {
  * Desconectar cuenta de correo
  */
 function disconnectEmailAccount() {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
     if (!token) {
         toastr.error('Error de autenticación', 'Error');
         return;
     }
     
     // Confirmar antes de desconectar
-    if (!confirm('¿Estás seguro de que deseas desconectar tu cuenta de correo? Esta acción detendrá la gestión automática de emails.')) {
+    if (!confirm('¿Estás seguro de que deseas desconectar tu cuenta de correo? Esta acción detendrá la gestión automática de emails y ocultará la bandeja de entrada.')) {
         return;
     }
     
-    fetch('/api/email/connection', {
-        method: 'DELETE',
+    console.log('🔌 Desconectando cuenta de correo...');
+    
+    // Primero obtener el proveedor actual para saber qué endpoint usar
+    fetch(`${API_BASE_URL}/api/email/accounts`, {
+        method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.accounts && data.accounts.length > 0) {
+            const provider = data.accounts[0].provider;
+            console.log(`📧 Proveedor detectado: ${provider}`);
+            
+            // Desconectar según el proveedor
+            let deleteEndpoint = '';
+            if (provider === 'google') {
+                deleteEndpoint = `${API_BASE_URL}/api/email/accounts/google`;
+            } else if (provider === 'microsoft' || provider === 'outlook') {
+                deleteEndpoint = `${API_BASE_URL}/api/email/oauth/outlook/disconnect`;
+            }
+            
+            return fetch(deleteEndpoint, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+        } else {
+            throw new Error('No hay cuenta conectada');
         }
     })
     .then(response => {
@@ -639,6 +609,7 @@ function disconnectEmailAccount() {
         return response.json();
     })
     .then(data => {
+        console.log('✅ Cuenta desconectada:', data);
         toastr.success('Cuenta de correo desconectada correctamente', 'Desconexión exitosa');
         
         // Resetear UI
@@ -657,10 +628,27 @@ function disconnectEmailAccount() {
         if (emailProviderSelect) {
             emailProviderSelect.value = '';
         }
+        
+        // Limpiar bandeja de entrada si existe
+        if (window.InboxView && window.InboxView.clearInbox) {
+            console.log('🗑️ Limpiando bandeja de entrada...');
+            window.InboxView.clearInbox();
+        }
+        
+        // Ocultar sección de bandeja de entrada
+        const inboxSection = document.getElementById('inbox-section');
+        if (inboxSection) {
+            inboxSection.classList.add('d-none');
+        }
+        
+        // Recargar página para refrescar todo
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
     })
     .catch(error => {
         console.error('❌ Error al desconectar cuenta de correo:', error);
-        toastr.error('Error al desconectar cuenta', 'Error');
+        toastr.error('Error al desconectar cuenta: ' + error.message, 'Error');
     });
 }
 
@@ -692,7 +680,6 @@ function getProviderName(provider) {
 // Exportar funciones para uso global
 window.connectWithGoogle = connectWithGoogle;
 window.connectWithMicrosoft = connectWithMicrosoft;
-window.connectWithYahoo = connectWithYahoo;
 window.disconnectEmailAccount = disconnectEmailAccount;
 
 // Inicializar cuando el DOM esté listo Y después de que el dashboard se haya cargado

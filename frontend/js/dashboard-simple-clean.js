@@ -1436,8 +1436,6 @@ function createCallConfigTabContent() {
                                                                 <option value="" selected>Selecciona un proveedor</option>
                                                                 <option value="google">Google (Gmail)</option>
                                                                 <option value="microsoft">Microsoft (Outlook)</option>
-                                                                <option value="yahoo">Yahoo Mail</option>
-                                                                <option value="other">Otro (IMAP/SMTP)</option>
                                                             </select>
                                                         </div>
                                                         
