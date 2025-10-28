@@ -180,44 +180,20 @@ function connectWithGoogle() {
  * Conectar con Microsoft (Outlook)
  */
 function connectWithMicrosoft() {
-    console.log('🔌 Iniciando conexión con Microsoft...');
+    console.log('🔌 Iniciando conexión con Microsoft Outlook...');
     
     // Verificar si ya existe un token guardado
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
     if (!token) {
         console.error('No hay token de autenticación');
-        alert('Error de autenticación. Por favor, inicia sesión nuevamente.');
+        toastr.error('Error de autenticación. Por favor, inicia sesión nuevamente.', 'Error');
         return;
     }
     
-    // Obtener URL de autorización desde el backend
-    fetch(`${API_BASE_URL}/api/email/oauth/microsoft`, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success && data.authUrl) {
-            console.log('✅ URL de autorización obtenida');
-            
-            // Redirigir a la URL de autorización de Microsoft
-            window.location.href = data.authUrl;
-        } else {
-            throw new Error('No se pudo obtener la URL de autorización');
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error al obtener URL de Microsoft OAuth:', error);
-        alert('Error al conectar con Microsoft: ' + error.message);
-    });
+    console.log('✅ Token encontrado, redirigiendo a OAuth de Outlook...');
+    
+    // Redirigir directamente al endpoint de autorización de Outlook
+    window.location.href = `${API_BASE_URL}/api/email/oauth/outlook/authorize`;
 }
 
 /**
