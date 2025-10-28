@@ -5,9 +5,14 @@ const logger = require('../utils/logger');
 const googleEmailService = require('../services/googleEmailService');
 const microsoftEmailService = require('../services/microsoftEmailService');
 const openaiEmailService = require('../services/openaiEmailService');
+const EmailServiceFactory = require('../services/email/emailServiceFactory');
+const outlookAuthRouter = require('./email/outlookAuth');
 const { authenticate } = require('./auth');
 
 const prisma = new PrismaClient();
+
+// Montar rutas de autenticación de Outlook
+router.use('/oauth/outlook', outlookAuthRouter);
 
 // ===== GOOGLE OAUTH =====
 
@@ -291,6 +296,10 @@ router.get('/inbox', authenticate, async (req, res) => {
       result = await googleEmailService.getInbox(clientId, maxResults, pageToken);
     } else if (emailAccount.provider === 'microsoft') {
       result = await microsoftEmailService.getInbox(clientId, maxResults, pageToken);
+    } else if (emailAccount.provider === 'outlook') {
+      // Usar el nuevo servicio de Outlook
+      const emailService = EmailServiceFactory.getServiceForAccount(emailAccount);
+      result = await emailService.listMessages(maxResults, pageToken);
     } else {
       return res.status(400).json({
         success: false,
