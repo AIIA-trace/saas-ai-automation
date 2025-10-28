@@ -184,10 +184,37 @@ function connectWithMicrosoft() {
         return;
     }
     
-    console.log('✅ Token encontrado, redirigiendo a OAuth de Outlook...');
+    console.log('✅ Token encontrado, obteniendo URL de autorización...');
     
-    // Redirigir directamente al endpoint de autorización de Outlook
-    window.location.href = `${API_BASE_URL}/api/email/oauth/outlook/authorize`;
+    // Obtener URL de autorización desde el backend (igual que Google)
+    fetch(`${API_BASE_URL}/api/email/oauth/outlook/authorize`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        // Si es una redirección, seguirla
+        if (response.redirected) {
+            window.location.href = response.url;
+            return;
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data && data.authUrl) {
+            console.log('✅ URL de autorización obtenida');
+            window.location.href = data.authUrl;
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error al obtener URL de Outlook OAuth:', error);
+        toastr.error('Error al conectar con Outlook: ' + error.message, 'Error');
+    });
 }
 
 
