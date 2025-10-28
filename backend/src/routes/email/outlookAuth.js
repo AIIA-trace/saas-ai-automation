@@ -97,12 +97,24 @@ router.get('/callback', async (req, res) => {
         }
 
         logger.info('✅ Tokens obtenidos de Outlook');
+        logger.info(`🔑 Access token recibido (primeros 50 chars): ${tokenData.access_token?.substring(0, 50)}...`);
+        logger.info(`🔑 Refresh token presente: ${tokenData.refresh_token ? 'Sí' : 'No'}`);
+        logger.info(`🔑 Expires in: ${tokenData.expires_in} segundos`);
 
         // Obtener información del usuario de Microsoft Graph
+        logger.info('📧 Obteniendo información del usuario de Microsoft Graph...');
         const userResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
             headers: {
                 'Authorization': `Bearer ${tokenData.access_token}`
             }
+        }).catch(error => {
+            logger.error('❌ Error obteniendo info de usuario de Microsoft Graph:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                headers: error.response?.headers
+            });
+            throw error;
         });
 
         const userData = userResponse.data;
