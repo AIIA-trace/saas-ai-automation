@@ -512,15 +512,20 @@ class MicrosoftEmailService {
     try {
       const graphClient = await this.getAuthenticatedClient(clientId);
 
-      // Buscar todos los mensajes con el mismo conversationId
+      // Obtener todos los mensajes recientes (últimos 50)
+      // No podemos usar filter porque Microsoft Graph a veces lo rechaza
       const response = await graphClient
         .api('/me/messages')
-        .filter(`conversationId eq '${conversationId}'`)
-        .select('id,subject,from,toRecipients,receivedDateTime,bodyPreview,body,isRead')
-        .orderby('receivedDateTime ASC')
+        .top(50)
+        .select('id,subject,from,toRecipients,receivedDateTime,bodyPreview,body,isRead,conversationId')
+        .orderby('receivedDateTime DESC')
         .get();
 
-      const messages = response.value.map(message => this.parseOutlookMessage(message));
+      // Filtrar manualmente por conversationId
+      const messages = response.value
+        .filter(msg => msg.conversationId === conversationId)
+        .map(message => this.parseOutlookMessage(message))
+        .sort((a, b) => new Date(a.date) - new Date(b.date)); // Ordenar ascendente por fecha
 
       logger.info(`✅ Hilo ${conversationId} obtenido con ${messages.length} mensajes`);
 
