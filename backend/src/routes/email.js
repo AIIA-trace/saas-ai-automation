@@ -354,6 +354,8 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
     // Obtener adjunto según el proveedor
     if (emailAccount.provider === 'google') {
       attachmentData = await googleEmailService.getAttachment(clientId, emailId, attachmentId);
+    } else if (emailAccount.provider === 'microsoft') {
+      attachmentData = await microsoftEmailService.getAttachment(clientId, emailId, attachmentId);
     } else {
       return res.status(400).json({
         success: false,
@@ -1009,10 +1011,8 @@ router.post('/thread-summary', authenticate, async (req, res) => {
       const threadData = await googleEmailService.getThread(clientId, threadId);
       threadMessages = threadData.messages || [];
     } else if (emailAccount.provider === 'microsoft') {
-      return res.status(400).json({
-        success: false,
-        error: 'Resumen de hilo no disponible para Microsoft aún'
-      });
+      const threadData = await microsoftEmailService.getThread(clientId, threadId);
+      threadMessages = threadData.messages || [];
     }
 
     // Generar resumen
