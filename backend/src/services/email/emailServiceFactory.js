@@ -1,7 +1,7 @@
 const GmailService = require('../googleEmailService');
 const OutlookService = require('./outlookService');
 const prisma = require('../../config/database');
-const logger = require('../../config/logger');
+const logger = require('../../utils/logger');
 
 /**
  * Factory para crear el servicio de email apropiado según el proveedor

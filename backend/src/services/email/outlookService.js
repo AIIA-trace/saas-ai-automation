@@ -1,5 +1,5 @@
 const { Client } = require('@microsoft/microsoft-graph-client');
-const logger = require('../../config/logger');
+const logger = require('../../utils/logger');
 
 /**
  * Servicio para interactuar con Microsoft Graph API (Outlook/Office 365)
