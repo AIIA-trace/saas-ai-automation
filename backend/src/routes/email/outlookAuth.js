@@ -3,15 +3,16 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const logger = require('../../utils/logger');
 const axios = require('axios');
+const { authenticate } = require('../auth');
+
 const prisma = new PrismaClient();
-const { authenticateToken } = require('../../middleware/auth');
 
 /**
  * Iniciar flujo de autenticación OAuth con Microsoft
  */
-router.get('/authorize', authenticateToken, (req, res) => {
+router.get('/authorize', authenticate, (req, res) => {
     try {
-        const clientId = req.user.clientId;
+        const clientId = req.client.id;
         
         if (!clientId) {
             return res.status(400).json({ error: 'Cliente no encontrado' });
@@ -57,24 +58,22 @@ router.get('/callback', async (req, res) => {
         logger.info(`✅ Código de autorización recibido para cliente ${clientId}`);
 
         // Intercambiar código por tokens
-        const tokenResponse = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
-            method: 'POST',
+        const tokenResponse = await axios.post('https://login.microsoftonline.com/common/oauth2/v2.0/token', new URLSearchParams({
+            client_id: process.env.MICROSOFT_CLIENT_ID,
+            client_secret: process.env.MICROSOFT_CLIENT_SECRET,
+            code: code,
+            redirect_uri: process.env.MICROSOFT_REDIRECT_URI,
+            grant_type: 'authorization_code',
+            scope: 'https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access'
+        }), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: process.env.MICROSOFT_CLIENT_ID,
-                client_secret: process.env.MICROSOFT_CLIENT_SECRET,
-                code: code,
-                redirect_uri: process.env.MICROSOFT_REDIRECT_URI,
-                grant_type: 'authorization_code',
-                scope: 'https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access'
-            })
+            }
         });
 
-        const tokenData = await tokenResponse.json();
+        const tokenData = tokenResponse.data;
 
-        if (!tokenResponse.ok) {
+        if (tokenData.error) {
             logger.error('❌ Error obteniendo tokens de Outlook:', tokenData);
             return res.redirect(`/dashboard.html?error=outlook_token_failed&message=${encodeURIComponent(tokenData.error_description)}`);
         }
@@ -82,13 +81,13 @@ router.get('/callback', async (req, res) => {
         logger.info('✅ Tokens obtenidos de Outlook');
 
         // Obtener información del usuario de Microsoft Graph
-        const userResponse = await fetch('https://graph.microsoft.com/v1.0/me', {
+        const userResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
             headers: {
                 'Authorization': `Bearer ${tokenData.access_token}`
             }
         });
 
-        const userData = await userResponse.json();
+        const userData = userResponse.data;
         const userEmail = userData.mail || userData.userPrincipalName;
 
         logger.info(`📧 Email de Outlook: ${userEmail}`);
@@ -132,9 +131,9 @@ router.get('/callback', async (req, res) => {
 /**
  * Refrescar token de acceso
  */
-router.post('/refresh', authenticateToken, async (req, res) => {
+router.post('/refresh', authenticate, async (req, res) => {
     try {
-        const clientId = req.user.clientId;
+        const clientId = req.client.id;
 
         // Buscar cuenta de Outlook
         const emailAccount = await prisma.emailAccount.findFirst({
@@ -151,23 +150,21 @@ router.post('/refresh', authenticateToken, async (req, res) => {
         logger.info(`🔄 Refrescando token de Outlook para ${emailAccount.email}`);
 
         // Solicitar nuevo token
-        const tokenResponse = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
-            method: 'POST',
+        const tokenResponse = await axios.post('https://login.microsoftonline.com/common/oauth2/v2.0/token', new URLSearchParams({
+            client_id: process.env.MICROSOFT_CLIENT_ID,
+            client_secret: process.env.MICROSOFT_CLIENT_SECRET,
+            refresh_token: emailAccount.refreshToken,
+            grant_type: 'refresh_token',
+            scope: 'https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access'
+        }), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: process.env.MICROSOFT_CLIENT_ID,
-                client_secret: process.env.MICROSOFT_CLIENT_SECRET,
-                refresh_token: emailAccount.refreshToken,
-                grant_type: 'refresh_token',
-                scope: 'https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access'
-            })
+            }
         });
 
-        const tokenData = await tokenResponse.json();
+        const tokenData = tokenResponse.data;
 
-        if (!tokenResponse.ok) {
+        if (tokenData.error) {
             logger.error('❌ Error refrescando token de Outlook:', tokenData);
             return res.status(401).json({ error: 'Error refrescando token', details: tokenData.error_description });
         }
@@ -199,9 +196,9 @@ router.post('/refresh', authenticateToken, async (req, res) => {
 /**
  * Desconectar cuenta de Outlook
  */
-router.delete('/disconnect', authenticateToken, async (req, res) => {
+router.delete('/disconnect', authenticate, async (req, res) => {
     try {
-        const clientId = req.user.clientId;
+        const clientId = req.client.id;
 
         await prisma.emailAccount.deleteMany({
             where: {
