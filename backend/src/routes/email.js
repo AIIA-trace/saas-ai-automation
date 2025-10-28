@@ -410,6 +410,10 @@ router.post('/mark-read', authenticate, async (req, res) => {
       await googleEmailService.markAsRead(clientId, emailId);
     } else if (emailAccount.provider === 'microsoft') {
       await microsoftEmailService.markAsRead(clientId, emailId);
+    } else if (emailAccount.provider === 'outlook') {
+      // Usar el nuevo servicio de Outlook
+      const emailService = EmailServiceFactory.getServiceForAccount(emailAccount);
+      await emailService.markAsRead(emailId);
     } else {
       return res.status(400).json({
         success: false,
@@ -467,6 +471,10 @@ router.delete('/:emailId', authenticate, async (req, res) => {
       await googleEmailService.deleteEmail(clientId, emailId);
     } else if (emailAccount.provider === 'microsoft') {
       await microsoftEmailService.deleteEmail(clientId, emailId);
+    } else if (emailAccount.provider === 'outlook') {
+      // Usar el nuevo servicio de Outlook
+      const emailService = EmailServiceFactory.getServiceForAccount(emailAccount);
+      await emailService.deleteMessage(emailId);
     } else {
       return res.status(400).json({
         success: false,
@@ -574,6 +582,18 @@ router.get('/:emailId/details', authenticate, async (req, res) => {
     // Obtener detalles según el proveedor
     if (emailAccount.provider === 'google') {
       details = await googleEmailService.getEmailDetails(clientId, emailId);
+    } else if (emailAccount.provider === 'microsoft') {
+      details = await microsoftEmailService.getEmailDetails(clientId, emailId);
+    } else if (emailAccount.provider === 'outlook') {
+      // Usar el nuevo servicio de Outlook
+      const emailService = EmailServiceFactory.getServiceForAccount(emailAccount);
+      const email = await emailService.getMessage(emailId);
+      const thread = await emailService.getThread(email.threadId);
+      details = {
+        email: email,
+        thread: thread,
+        threadId: email.threadId
+      };
     } else {
       return res.status(400).json({
         success: false,
@@ -694,6 +714,24 @@ router.post('/send', authenticate, async (req, res) => {
       result = await googleEmailService.sendEmail(clientId, emailData);
     } else if (emailAccount.provider === 'microsoft') {
       result = await microsoftEmailService.sendEmail(clientId, emailData);
+    } else if (emailAccount.provider === 'outlook') {
+      // Usar el nuevo servicio de Outlook
+      const emailService = EmailServiceFactory.getServiceForAccount(emailAccount);
+      
+      // Si es una respuesta (tiene threadId o inReplyTo), usar sendReply
+      if (emailData.inReplyTo || emailData.threadId) {
+        result = await emailService.sendReply(emailData.inReplyTo, bodyWithSignature, {
+          cc: emailData.cc,
+          bcc: emailData.bcc
+        });
+      } else {
+        // Email nuevo
+        result = await emailService.sendMessage(to, subject, bodyWithSignature, {
+          cc: emailData.cc,
+          bcc: emailData.bcc,
+          inReplyTo: emailData.inReplyTo
+        });
+      }
     } else {
       return res.status(400).json({
         success: false,
@@ -769,6 +807,10 @@ router.post('/generate-reply', authenticate, async (req, res) => {
     } else if (emailAccount.provider === 'microsoft') {
       const emailDetails = await microsoftEmailService.getEmailDetails(clientId, emailId);
       currentEmail = emailDetails.email;
+    } else if (emailAccount.provider === 'outlook') {
+      // Usar el nuevo servicio de Outlook
+      const emailService = EmailServiceFactory.getServiceForAccount(emailAccount);
+      currentEmail = await emailService.getMessage(emailId);
     } else {
       logger.error(`❌ Proveedor no soportado: ${emailAccount.provider}`);
       return res.status(400).json({
@@ -797,6 +839,11 @@ router.post('/generate-reply', authenticate, async (req, res) => {
         const conversationEmails = await microsoftEmailService.getConversationEmails(clientId, currentEmail.conversationId);
         threadMessages = conversationEmails || [];
         logger.info(`✅ Conversación cargada de Microsoft: ${threadMessages.length} mensajes`);
+      } else if (emailAccount.provider === 'outlook') {
+        // Usar el nuevo servicio de Outlook
+        const emailService = EmailServiceFactory.getServiceForAccount(emailAccount);
+        threadMessages = await emailService.getThread(threadId);
+        logger.info(`✅ Conversación cargada de Outlook: ${threadMessages.length} mensajes`);
       }
     } else {
       logger.warn('⚠️ No se proporcionó threadId, usando solo email actual');
