@@ -835,9 +835,9 @@ router.post('/generate-reply', authenticate, async (req, res) => {
         threadMessages = threadData.messages || [];
         logger.info(`✅ Hilo cargado de Gmail: ${threadMessages.length} mensajes`);
       } else if (emailAccount.provider === 'microsoft') {
-        // Microsoft no tiene concepto de thread como Gmail, usar conversationId
-        const conversationEmails = await microsoftEmailService.getConversationEmails(clientId, currentEmail.conversationId);
-        threadMessages = conversationEmails || [];
+        // Microsoft usa conversationId para agrupar emails
+        const threadData = await microsoftEmailService.getThread(clientId, threadId);
+        threadMessages = threadData.messages || [];
         logger.info(`✅ Conversación cargada de Microsoft: ${threadMessages.length} mensajes`);
       } else if (emailAccount.provider === 'outlook') {
         // Usar el nuevo servicio de Outlook
