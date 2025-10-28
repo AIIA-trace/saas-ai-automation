@@ -127,24 +127,26 @@ router.get('/callback', async (req, res) => {
 
         const emailAccount = await prisma.emailAccount.upsert({
             where: {
-                clientId_provider: {
+                clientId_email: {
                     clientId: parseInt(clientId),
-                    provider: 'outlook'
+                    email: userEmail
                 }
             },
             update: {
-                email: userEmail,
+                provider: 'microsoft',
                 accessToken: tokenData.access_token,
                 refreshToken: tokenData.refresh_token,
-                tokenExpiresAt: expiresAt
+                tokenExpiry: expiresAt,
+                isActive: true
             },
             create: {
                 clientId: parseInt(clientId),
                 email: userEmail,
-                provider: 'outlook',
+                provider: 'microsoft',
                 accessToken: tokenData.access_token,
                 refreshToken: tokenData.refresh_token,
-                tokenExpiresAt: expiresAt
+                tokenExpiry: expiresAt,
+                isActive: true
             }
         });
 
