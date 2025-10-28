@@ -64,6 +64,9 @@ router.get('/callback', async (req, res) => {
         }
 
         logger.info(`✅ Código de autorización recibido para cliente ${clientId}`);
+        logger.info(`🔑 Client ID: ${process.env.MICROSOFT_CLIENT_ID}`);
+        logger.info(`🔑 Redirect URI: ${process.env.MICROSOFT_REDIRECT_URI}`);
+        logger.info(`🔑 Client Secret presente: ${process.env.MICROSOFT_CLIENT_SECRET ? 'Sí' : 'No'}`);
 
         // Intercambiar código por tokens
         const tokenResponse = await axios.post('https://login.microsoftonline.com/common/oauth2/v2.0/token', new URLSearchParams({
@@ -77,6 +80,13 @@ router.get('/callback', async (req, res) => {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
+        }).catch(error => {
+            logger.error('❌ Error detallado de Microsoft:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                headers: error.response?.headers
+            });
+            throw error;
         });
 
         const tokenData = tokenResponse.data;
