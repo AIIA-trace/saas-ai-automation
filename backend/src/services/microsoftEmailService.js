@@ -577,13 +577,21 @@ class MicrosoftEmailService {
     try {
       const graphClient = await this.getAuthenticatedClient(clientId);
 
-      const message = {
-        comment: replyData.body
+      // Microsoft Graph API reply endpoint espera 'comment' para el cuerpo
+      // y automáticamente mantiene el thread
+      const replyPayload = {
+        message: {
+          body: {
+            contentType: 'HTML',
+            content: replyData.body
+          }
+        },
+        comment: replyData.body // También incluir como comment para compatibilidad
       };
 
       await graphClient
         .api(`/me/messages/${emailId}/reply`)
-        .post(message);
+        .post(replyPayload);
 
       logger.info(`✅ Respuesta enviada al email ${emailId}`);
 
