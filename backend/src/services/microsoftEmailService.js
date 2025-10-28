@@ -374,7 +374,7 @@ class MicrosoftEmailService {
    * Obtener detalles de un email
    * @param {number} clientId - ID del cliente
    * @param {string} emailId - ID del email
-   * @returns {Promise<Object>} Detalles del email
+   * @returns {Promise<Object>} Detalles del email con thread
    */
   async getEmailDetails(clientId, emailId) {
     try {
@@ -382,20 +382,41 @@ class MicrosoftEmailService {
 
       const message = await graphClient
         .api(`/me/messages/${emailId}`)
-        .select('id,subject,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,sentDateTime,bodyPreview,body,isRead,flag,hasAttachments,internetMessageId')
+        .select('id,subject,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,sentDateTime,bodyPreview,body,isRead,flag,hasAttachments,internetMessageId,conversationId')
         .get();
 
-      const emailDetails = {
+      const emailData = {
         ...this.parseOutlookMessage(message),
         cc: message.ccRecipients?.map(r => r.emailAddress.address).join(', ') || '',
         bcc: message.bccRecipients?.map(r => r.emailAddress.address).join(', ') || '',
         hasAttachments: message.hasAttachments,
-        messageId: message.internetMessageId
+        messageId: message.internetMessageId,
+        threadId: message.conversationId
       };
 
-      logger.info(`✅ Detalles del email ${emailId} obtenidos`);
+      // Obtener el hilo completo usando conversationId
+      let threadMessages = [];
+      if (message.conversationId) {
+        try {
+          const threadData = await this.getThread(clientId, message.conversationId);
+          threadMessages = threadData.messages || [];
+        } catch (error) {
+          logger.warn(`⚠️ No se pudo obtener el hilo: ${error.message}`);
+          // Si falla, usar solo el mensaje actual
+          threadMessages = [emailData];
+        }
+      } else {
+        // Si no hay conversationId, usar solo el mensaje actual
+        threadMessages = [emailData];
+      }
 
-      return emailDetails;
+      logger.info(`✅ Detalles del email ${emailId} obtenidos con ${threadMessages.length} mensajes en el hilo`);
+
+      return {
+        email: emailData,
+        thread: threadMessages,
+        threadId: message.conversationId
+      };
 
     } catch (error) {
       logger.error(`❌ Error obteniendo detalles del email: ${error.message}`);
