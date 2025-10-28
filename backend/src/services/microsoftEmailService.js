@@ -404,6 +404,184 @@ class MicrosoftEmailService {
   }
 
   /**
+   * Marcar/desmarcar email como importante (starred/flagged)
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email
+   * @param {boolean} starred - true para marcar, false para desmarcar
+   * @returns {Promise<boolean>} Éxito de la operación
+   */
+  async toggleStarred(clientId, emailId, starred) {
+    try {
+      const graphClient = await this.getAuthenticatedClient(clientId);
+
+      await graphClient
+        .api(`/me/messages/${emailId}`)
+        .patch({
+          flag: {
+            flagStatus: starred ? 'flagged' : 'notFlagged'
+          }
+        });
+
+      logger.info(`✅ Email ${emailId} ${starred ? 'marcado' : 'desmarcado'} como importante`);
+      return true;
+
+    } catch (error) {
+      logger.error(`❌ Error cambiando estado de importante: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Eliminar email (mover a papelera)
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email
+   * @returns {Promise<boolean>} Éxito de la operación
+   */
+  async deleteEmail(clientId, emailId) {
+    try {
+      const graphClient = await this.getAuthenticatedClient(clientId);
+
+      await graphClient
+        .api(`/me/messages/${emailId}`)
+        .delete();
+
+      logger.info(`✅ Email ${emailId} eliminado`);
+      return true;
+
+    } catch (error) {
+      logger.error(`❌ Error eliminando email: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener adjunto de un email
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email
+   * @param {string} attachmentId - ID del adjunto
+   * @returns {Promise<Buffer>} Datos del adjunto
+   */
+  async getAttachment(clientId, emailId, attachmentId) {
+    try {
+      const graphClient = await this.getAuthenticatedClient(clientId);
+
+      const attachment = await graphClient
+        .api(`/me/messages/${emailId}/attachments/${attachmentId}`)
+        .get();
+
+      // El contenido viene en base64
+      const data = Buffer.from(attachment.contentBytes, 'base64');
+
+      logger.info(`✅ Adjunto ${attachmentId} obtenido`);
+      return data;
+
+    } catch (error) {
+      logger.error(`❌ Error obteniendo adjunto: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener hilo completo de emails (conversación)
+   * @param {number} clientId - ID del cliente
+   * @param {string} conversationId - ID de la conversación
+   * @returns {Promise<Object>} Hilo con todos los mensajes
+   */
+  async getThread(clientId, conversationId) {
+    try {
+      const graphClient = await this.getAuthenticatedClient(clientId);
+
+      // Buscar todos los mensajes con el mismo conversationId
+      const response = await graphClient
+        .api('/me/messages')
+        .filter(`conversationId eq '${conversationId}'`)
+        .select('id,subject,from,toRecipients,receivedDateTime,bodyPreview,body,isRead')
+        .orderby('receivedDateTime ASC')
+        .get();
+
+      const messages = response.value.map(message => this.parseOutlookMessage(message));
+
+      logger.info(`✅ Hilo ${conversationId} obtenido con ${messages.length} mensajes`);
+
+      return {
+        id: conversationId,
+        messages: messages
+      };
+
+    } catch (error) {
+      logger.error(`❌ Error obteniendo hilo: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Responder a un email
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email original
+   * @param {Object} replyData - Datos de la respuesta
+   * @returns {Promise<Object>} Resultado del envío
+   */
+  async replyToEmail(clientId, emailId, replyData) {
+    try {
+      const graphClient = await this.getAuthenticatedClient(clientId);
+
+      const message = {
+        comment: replyData.body
+      };
+
+      await graphClient
+        .api(`/me/messages/${emailId}/reply`)
+        .post(message);
+
+      logger.info(`✅ Respuesta enviada al email ${emailId}`);
+
+      return {
+        success: true
+      };
+
+    } catch (error) {
+      logger.error(`❌ Error respondiendo email: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Reenviar un email
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email original
+   * @param {Object} forwardData - Datos del reenvío
+   * @returns {Promise<Object>} Resultado del envío
+   */
+  async forwardEmail(clientId, emailId, forwardData) {
+    try {
+      const graphClient = await this.getAuthenticatedClient(clientId);
+
+      const message = {
+        comment: forwardData.body || '',
+        toRecipients: forwardData.to.split(',').map(email => ({
+          emailAddress: {
+            address: email.trim()
+          }
+        }))
+      };
+
+      await graphClient
+        .api(`/me/messages/${emailId}/forward`)
+        .post(message);
+
+      logger.info(`✅ Email ${emailId} reenviado a ${forwardData.to}`);
+
+      return {
+        success: true
+      };
+
+    } catch (error) {
+      logger.error(`❌ Error reenviando email: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Desconectar cuenta de Outlook
    * @param {number} clientId - ID del cliente
    * @returns {Promise<boolean>} Éxito de la operación
