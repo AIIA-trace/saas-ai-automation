@@ -31,10 +31,17 @@ router.get('/authorize', authenticate, (req, res) => {
         logger.info(`🔐 Iniciando OAuth de Outlook para cliente ${clientId}`);
         logger.info(`📍 Redirect URI: ${process.env.MICROSOFT_REDIRECT_URI}`);
 
-        res.redirect(authUrl.toString());
+        // Devolver URL como JSON (igual que Google) en lugar de redirigir
+        res.json({
+            success: true,
+            authUrl: authUrl.toString()
+        });
     } catch (error) {
         logger.error('❌ Error en autorización de Outlook:', error);
-        res.status(500).json({ error: 'Error iniciando autenticación' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Error iniciando autenticación' 
+        });
     }
 });
 

@@ -198,17 +198,16 @@ function connectWithMicrosoft() {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        // Si es una redirección, seguirla
-        if (response.redirected) {
-            window.location.href = response.url;
-            return;
-        }
         return response.json();
     })
     .then(data => {
-        if (data && data.authUrl) {
+        if (data.success && data.authUrl) {
             console.log('✅ URL de autorización obtenida');
+            
+            // Redirigir a la URL de autorización de Microsoft
             window.location.href = data.authUrl;
+        } else {
+            throw new Error('No se pudo obtener la URL de autorización');
         }
     })
     .catch(error => {
