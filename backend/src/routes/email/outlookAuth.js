@@ -25,7 +25,7 @@ router.get('/authorize', authenticate, (req, res) => {
         authUrl.searchParams.append('response_type', 'code');
         authUrl.searchParams.append('redirect_uri', process.env.MICROSOFT_REDIRECT_URI);
         authUrl.searchParams.append('response_mode', 'query');
-        authUrl.searchParams.append('scope', 'https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access');
+        authUrl.searchParams.append('scope', 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access');
         authUrl.searchParams.append('state', clientId.toString());
 
         logger.info(`🔐 Iniciando OAuth de Outlook para cliente ${clientId}`);
@@ -75,7 +75,7 @@ router.get('/callback', async (req, res) => {
             code: code,
             redirect_uri: process.env.MICROSOFT_REDIRECT_URI,
             grant_type: 'authorization_code',
-            scope: 'https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access'
+            scope: 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access'
         }), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -185,7 +185,7 @@ router.post('/refresh', authenticate, async (req, res) => {
             client_secret: process.env.MICROSOFT_CLIENT_SECRET,
             refresh_token: emailAccount.refreshToken,
             grant_type: 'refresh_token',
-            scope: 'https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access'
+            scope: 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access'
         }), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
