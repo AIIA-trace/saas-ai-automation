@@ -1,4 +1,4 @@
-const GmailService = require('./gmailService');
+const GmailService = require('../googleEmailService');
 const OutlookService = require('./outlookService');
 const prisma = require('../../config/database');
 const logger = require('../../config/logger');
