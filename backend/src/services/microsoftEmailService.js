@@ -276,28 +276,54 @@ class MicrosoftEmailService {
     try {
       const graphClient = await this.getAuthenticatedClient(clientId);
 
+      // Construir destinatarios TO
+      const toRecipients = emailData.to.split(',').map(email => ({
+        emailAddress: { address: email.trim() }
+      }));
+
       const message = {
         subject: emailData.subject,
         body: {
-          contentType: 'Text',
+          contentType: 'HTML',  // Cambiar a HTML para soportar formato
           content: emailData.body
         },
-        toRecipients: [
-          {
-            emailAddress: {
-              address: emailData.to
-            }
-          }
-        ]
+        toRecipients: toRecipients
       };
 
-      await graphClient
-        .api('/me/sendMail')
-        .post({
-          message: message
-        });
+      // Agregar CC si existe
+      if (emailData.cc) {
+        message.ccRecipients = emailData.cc.split(',').map(email => ({
+          emailAddress: { address: email.trim() }
+        }));
+      }
 
-      logger.info(`✅ Email enviado exitosamente a ${emailData.to}`);
+      // Agregar BCC si existe
+      if (emailData.bcc) {
+        message.bccRecipients = emailData.bcc.split(',').map(email => ({
+          emailAddress: { address: email.trim() }
+        }));
+      }
+
+      // Si es una respuesta, usar reply endpoint
+      if (emailData.inReplyTo) {
+        await graphClient
+          .api(`/me/messages/${emailData.inReplyTo}/reply`)
+          .post({
+            message: message,
+            comment: emailData.body
+          });
+
+        logger.info(`✅ Respuesta enviada exitosamente a ${emailData.to}`);
+      } else {
+        // Email nuevo
+        await graphClient
+          .api('/me/sendMail')
+          .post({
+            message: message
+          });
+
+        logger.info(`✅ Email enviado exitosamente a ${emailData.to}`);
+      }
 
       return {
         success: true
