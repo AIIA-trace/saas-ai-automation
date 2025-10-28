@@ -310,6 +310,100 @@ class MicrosoftEmailService {
   }
 
   /**
+   * Obtener emails enviados
+   * @param {number} clientId - ID del cliente
+   * @param {number} maxResults - Número máximo de emails a obtener
+   * @returns {Promise<Array>} Lista de emails enviados
+   */
+  async getSent(clientId, maxResults = 50) {
+    try {
+      const graphClient = await this.getAuthenticatedClient(clientId);
+
+      // Obtener mensajes de la carpeta de enviados
+      const response = await graphClient
+        .api('/me/mailFolders/sentitems/messages')
+        .top(maxResults)
+        .select('id,subject,from,toRecipients,sentDateTime,bodyPreview,body,isRead')
+        .orderby('sentDateTime DESC')
+        .get();
+
+      const emails = response.value.map(message => ({
+        ...this.parseOutlookMessage(message),
+        date: message.sentDateTime
+      }));
+
+      logger.info(`📧 Obtenidos ${emails.length} emails enviados de Outlook para cliente ${clientId}`);
+
+      return emails;
+
+    } catch (error) {
+      logger.error(`❌ Error obteniendo emails enviados de Outlook: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Marcar email como leído
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email
+   * @returns {Promise<Object>} Resultado de la operación
+   */
+  async markAsRead(clientId, emailId) {
+    try {
+      const graphClient = await this.getAuthenticatedClient(clientId);
+
+      await graphClient
+        .api(`/me/messages/${emailId}`)
+        .patch({
+          isRead: true
+        });
+
+      logger.info(`✅ Email ${emailId} marcado como leído`);
+
+      return {
+        success: true
+      };
+
+    } catch (error) {
+      logger.error(`❌ Error marcando email como leído: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener detalles de un email
+   * @param {number} clientId - ID del cliente
+   * @param {string} emailId - ID del email
+   * @returns {Promise<Object>} Detalles del email
+   */
+  async getEmailDetails(clientId, emailId) {
+    try {
+      const graphClient = await this.getAuthenticatedClient(clientId);
+
+      const message = await graphClient
+        .api(`/me/messages/${emailId}`)
+        .select('id,subject,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,sentDateTime,bodyPreview,body,isRead,flag,hasAttachments,internetMessageId')
+        .get();
+
+      const emailDetails = {
+        ...this.parseOutlookMessage(message),
+        cc: message.ccRecipients?.map(r => r.emailAddress.address).join(', ') || '',
+        bcc: message.bccRecipients?.map(r => r.emailAddress.address).join(', ') || '',
+        hasAttachments: message.hasAttachments,
+        messageId: message.internetMessageId
+      };
+
+      logger.info(`✅ Detalles del email ${emailId} obtenidos`);
+
+      return emailDetails;
+
+    } catch (error) {
+      logger.error(`❌ Error obteniendo detalles del email: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Desconectar cuenta de Outlook
    * @param {number} clientId - ID del cliente
    * @returns {Promise<boolean>} Éxito de la operación
