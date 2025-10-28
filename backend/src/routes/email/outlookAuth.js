@@ -47,6 +47,7 @@ router.get('/authorize', authenticate, (req, res) => {
 
 /**
  * Callback de OAuth - Recibir código de autorización
+ * NO requiere autenticación porque viene desde Microsoft
  */
 router.get('/callback', async (req, res) => {
     try {
