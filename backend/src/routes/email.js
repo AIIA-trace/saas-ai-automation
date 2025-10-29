@@ -757,6 +757,9 @@ router.post('/send', authenticate, async (req, res) => {
     let result;
 
     // Enviar email según el proveedor
+    logger.info(`📧 Enviando email con proveedor: ${emailAccount.provider}`);
+    logger.info(`📧 Email account: ${emailAccount.email}`);
+    
     if (emailAccount.provider === 'google') {
       result = await googleEmailService.sendEmail(clientId, emailData);
     } else if (emailAccount.provider === 'microsoft') {
