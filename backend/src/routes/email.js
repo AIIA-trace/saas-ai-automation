@@ -674,7 +674,14 @@ router.post('/send', authenticate, async (req, res) => {
     const clientId = req.client.id;
     const { to, subject, body, threadId, inReplyTo, references, attachments } = req.body;
 
-    logger.info(`📧 POST /send - Datos recibidos:`, { to, subject, threadId, inReplyTo });
+    logger.info(`📧 POST /send - Datos recibidos:`, { 
+      to, 
+      subject, 
+      threadId, 
+      inReplyTo,
+      bodyLength: body?.length,
+      allKeys: Object.keys(req.body)
+    });
 
     if (!to || !subject || !body) {
       return res.status(400).json({
@@ -717,14 +724,28 @@ router.post('/send', authenticate, async (req, res) => {
     if (emailAccount.provider === 'google') {
       result = await googleEmailService.sendEmail(clientId, emailData);
     } else if (emailAccount.provider === 'microsoft') {
-      // Para Microsoft, si inReplyTo es un conversationId (empieza con AQQk), 
-      // necesitamos obtener el último mensaje de ese thread
-      if (emailData.inReplyTo && emailData.inReplyTo.startsWith('AQQk')) {
-        logger.warn(`⚠️ inReplyTo parece ser un conversationId, buscando el último mensaje...`);
-        // Por ahora, enviar como email nuevo para evitar el error
-        emailData.inReplyTo = null;
-        logger.info(`✅ Enviando como email nuevo en lugar de respuesta`);
+      // Para Microsoft, si no hay inReplyTo pero hay threadId, obtener el último mensaje del thread
+      if (!emailData.inReplyTo && emailData.threadId) {
+        logger.info(`📧 No hay inReplyTo, pero hay threadId. Obteniendo último mensaje del thread...`);
+        try {
+          const threadData = await microsoftEmailService.getThread(clientId, emailData.threadId);
+          if (threadData.messages && threadData.messages.length > 0) {
+            // Obtener el último mensaje del thread (el más reciente)
+            const lastMessage = threadData.messages[threadData.messages.length - 1];
+            emailData.inReplyTo = lastMessage.id;
+            logger.info(`✅ inReplyTo establecido a: ${emailData.inReplyTo}`);
+          }
+        } catch (error) {
+          logger.warn(`⚠️ No se pudo obtener el thread, enviando como email nuevo: ${error.message}`);
+        }
       }
+      
+      // Si inReplyTo es un conversationId (empieza con AQQk), convertir a null
+      if (emailData.inReplyTo && emailData.inReplyTo.startsWith('AQQk')) {
+        logger.warn(`⚠️ inReplyTo es un conversationId, no un messageId. Enviando como email nuevo.`);
+        emailData.inReplyTo = null;
+      }
+      
       result = await microsoftEmailService.sendEmail(clientId, emailData);
     } else if (emailAccount.provider === 'outlook') {
       // Usar el nuevo servicio de Outlook
