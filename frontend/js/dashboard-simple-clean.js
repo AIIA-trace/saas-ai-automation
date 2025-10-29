@@ -1539,6 +1539,27 @@ function createCallConfigTabContent() {
                                             </div>
                                         </div>
                                         
+                                        <!-- Firma de email -->
+                                        <div class="col-md-6">
+                                            <div class="card border-light h-100">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                        <h6 class="card-subtitle mb-0 text-muted">Firma de Email</h6>
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="email_signature_enabled" name="email_signature_enabled">
+                                                            <label class="form-check-label" for="email_signature_enabled">Activar</label>
+                                                        </div>
+                                                    </div>
+                                                    <label for="email_signature" class="form-label">Contenido de la Firma</label>
+                                                    <textarea class="form-control" id="email_signature" name="email_signature" rows="6" placeholder="Nombre
+Empresa
+Teléfono
+Email
+Web"></textarea>
+                                                    <div class="form-text">Primera línea: Nombre (negrita grande), Segunda línea: Empresa (negrita), Resto: Datos normales</div>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                     </div>
                                 </div>
@@ -3652,12 +3673,18 @@ function loadCallConfiguration() {
             }
         }
         
-        if (emailConfig.emailSignature) {
-            const emailSignatureTextarea = document.getElementById('email_signature');
-            if (emailSignatureTextarea) {
-                emailSignatureTextarea.value = emailConfig.emailSignature;
-                console.log('✍️ Firma de email cargada');
-            }
+        // Cargar firma de email
+        const emailSignatureTextarea = document.getElementById('email_signature');
+        const emailSignatureEnabled = document.getElementById('email_signature_enabled');
+        
+        if (emailSignatureTextarea && emailConfig.emailSignature) {
+            emailSignatureTextarea.value = emailConfig.emailSignature;
+            console.log('✍️ Firma de email cargada');
+        }
+        
+        if (emailSignatureEnabled) {
+            emailSignatureEnabled.checked = emailConfig.emailSignatureEnabled || false;
+            console.log('✅ Firma de email habilitada:', emailConfig.emailSignatureEnabled);
         }
         
         if (emailConfig.forwardingRules) {
@@ -7065,6 +7092,7 @@ function saveUnifiedConfig() {
                     outgoingEmail: document.getElementById('outgoing_email')?.value || '',
                     consentGiven: document.getElementById('email_consent')?.checked || false,
                     emailSignature: document.getElementById('email_signature')?.value || '',
+                    emailSignatureEnabled: document.getElementById('email_signature_enabled')?.checked || false,
                     forwardingRules: document.getElementById('forward_rules')?.value || ''
                 };
                 

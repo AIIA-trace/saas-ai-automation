@@ -618,6 +618,59 @@ router.get('/:emailId/details', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * Agregar firma al cuerpo del email (solo si está habilitada)
+ */
+async function addSignatureToBody(clientId, body) {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { emailConfig: true }
+    });
+
+    const emailConfig = client?.emailConfig || {};
+    
+    // Verificar si la firma está habilitada
+    if (!emailConfig.emailSignatureEnabled) {
+      logger.info('⚠️ Firma de email deshabilitada, no se agrega');
+      return body;
+    }
+    
+    const signature = emailConfig.emailSignature;
+    
+    if (!signature || signature.trim() === '') {
+      logger.info('⚠️ No hay firma configurada');
+      return body;
+    }
+
+    // Si el body ya contiene la firma, no agregarla de nuevo
+    if (body.includes(signature)) {
+      logger.info('✅ El body ya contiene la firma');
+      return body;
+    }
+
+    // Formatear firma con HTML
+    const lines = signature.split('\n').filter(line => line.trim());
+    const name = lines[0] || '';
+    const company = lines[1] || '';
+    const rest = lines.slice(2).join('<br>');
+    
+    const formattedSignature = `
+      <div style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd;">
+        <p style="margin: 5px 0;"><strong style="font-size: 16px;">${name}</strong></p>
+        ${company ? `<p style="margin: 5px 0;"><strong>${company}</strong></p>` : ''}
+        ${rest ? `<p style="margin: 5px 0;">${rest}</p>` : ''}
+      </div>
+    `;
+
+    logger.info(`📝 Agregando firma de email`);
+    
+    return `${body}${formattedSignature}`;
+  } catch (error) {
+    logger.error(`⚠️ Error agregando firma: ${error.message}`);
+    return body;
+  }
+}
 
 /**
  * Enviar email (con soporte para respuestas y adjuntos)
@@ -662,11 +715,14 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
+    // Agregar firma si está habilitada
+    const bodyWithSignature = await addSignatureToBody(clientId, body);
+
     // Validar email para prevenir spam
     const validation = emailSpamPrevention.validateEmail({
       to,
       subject,
-      body: body
+      body: bodyWithSignature
     });
 
     // Log de validación
