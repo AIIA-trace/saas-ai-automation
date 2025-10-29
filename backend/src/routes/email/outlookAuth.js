@@ -235,11 +235,11 @@ router.delete('/disconnect', authenticate, async (req, res) => {
         await prisma.emailAccount.deleteMany({
             where: {
                 clientId: clientId,
-                provider: 'outlook'
+                provider: 'microsoft'
             }
         });
 
-        logger.info(`✅ Cuenta de Outlook desconectada para cliente ${clientId}`);
+        logger.info(`✅ Cuenta de Microsoft/Outlook desconectada para cliente ${clientId}`);
 
         res.json({
             success: true,
