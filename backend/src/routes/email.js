@@ -680,7 +680,8 @@ router.post('/send', authenticate, async (req, res) => {
       threadId, 
       inReplyTo,
       bodyLength: body?.length,
-      allKeys: Object.keys(req.body)
+      allKeys: Object.keys(req.body),
+      fullBody: req.body  // Ver TODO el body para debug
     });
 
     if (!to || !subject || !body) {
