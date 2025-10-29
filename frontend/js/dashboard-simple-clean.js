@@ -1539,24 +1539,6 @@ function createCallConfigTabContent() {
                                             </div>
                                         </div>
                                         
-                                        <!-- Firma de email -->
-                                        <div class="col-md-6">
-                                            <div class="card border-light h-100">
-                                                <div class="card-body p-3">
-                                                    <h6 class="card-subtitle mb-3 text-muted">Firma de Email</h6>
-                                                    <label for="email_signature" class="form-label">Plantilla de Firma</label>
-                                                    <textarea class="form-control" id="email_signature" name="email_signature" rows="8" required placeholder="Introduce la plantilla para la firma de los emails...">Atentamente,
-{NOMBRE}
-{CARGO}
-{EMPRESA}
-Tel: {TELEFONO}
-Email: {EMAIL}
-Web: {WEB}</textarea>
-                                                    <div class="form-text">Puedes usar las variables: {NOMBRE}, {CARGO}, {EMPRESA}, {TELEFONO}, {EMAIL}, {WEB}</div>
-                                                    <div class="form-text text-danger"><small><i class="fas fa-asterisk me-1"></i>Incluir los valores reales dentro de los corchetes</small></div>
-                                                </div>
-                                            </div>
-                                        </div>
 
                                     </div>
                                 </div>

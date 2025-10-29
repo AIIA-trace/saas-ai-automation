@@ -618,82 +618,6 @@ router.get('/:emailId/details', authenticate, async (req, res) => {
   }
 });
 
-/**
- * Agregar firma al cuerpo del email
- */
-async function addSignatureToBody(clientId, body) {
-  try {
-    // Obtener firma y datos del cliente desde emailConfig
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { 
-        emailConfig: true,
-        contactName: true,
-        companyName: true,
-        phone: true,
-        email: true,
-        website: true
-      }
-    });
-
-    const emailConfig = client?.emailConfig || {};
-    const signature = emailConfig.emailSignature || emailConfig.signature;
-    
-    logger.info(`🖊️ Firma obtenida para cliente ${clientId}: ${signature ? 'SÍ' : 'NO'}`);
-    
-    // Si no hay firma configurada, crear una básica con los datos del cliente
-    let formattedSignature = '';
-    
-    if (!signature || signature.trim() === '') {
-      logger.info('⚠️ No hay firma configurada, creando firma básica');
-      
-      // Crear firma básica con formato HTML
-      const name = client?.contactName || 'Usuario';
-      const company = client?.companyName || '';
-      const phone = client?.phone || '';
-      const email = client?.email || '';
-      const website = client?.website || '';
-      
-      formattedSignature = `
-        <div style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd;">
-          <p style="margin: 5px 0;"><strong style="font-size: 16px;">${name}</strong></p>
-          ${company ? `<p style="margin: 5px 0;"><strong>${company}</strong></p>` : ''}
-          ${phone ? `<p style="margin: 5px 0;">${phone}</p>` : ''}
-          ${email ? `<p style="margin: 5px 0;">${email}</p>` : ''}
-          ${website ? `<p style="margin: 5px 0;">${website}</p>` : ''}
-        </div>
-      `;
-    } else {
-      // Usar la firma configurada y formatearla con HTML
-      const lines = signature.split('\n');
-      const name = lines[0] || '';
-      const company = lines[1] || '';
-      const rest = lines.slice(2).join('<br>');
-      
-      formattedSignature = `
-        <div style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd;">
-          <p style="margin: 5px 0;"><strong style="font-size: 16px;">${name}</strong></p>
-          ${company ? `<p style="margin: 5px 0;"><strong>${company}</strong></p>` : ''}
-          ${rest ? `<p style="margin: 5px 0;">${rest}</p>` : ''}
-        </div>
-      `;
-    }
-
-    // Si el body ya contiene la firma, no agregarla de nuevo
-    if (body.includes(formattedSignature) || (signature && body.includes(signature))) {
-      logger.info('✅ El body ya contiene la firma, no se agrega de nuevo');
-      return body;
-    }
-
-    logger.info(`📝 Agregando firma con formato HTML`);
-    
-    return `${body}${formattedSignature}`;
-  } catch (error) {
-    logger.error(`⚠️ Error agregando firma: ${error.message}`);
-    logger.error(`⚠️ Stack: ${error.stack}`);
-    return body; // Retornar body original si hay error
-  }
-}
 
 /**
  * Enviar email (con soporte para respuestas y adjuntos)
@@ -738,14 +662,11 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
-    // Agregar firma automáticamente al cuerpo del email
-    const bodyWithSignature = await addSignatureToBody(clientId, body);
-
     // Validar email para prevenir spam
     const validation = emailSpamPrevention.validateEmail({
       to,
       subject,
-      body: bodyWithSignature
+      body: body
     });
 
     // Log de validación
