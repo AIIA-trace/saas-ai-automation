@@ -681,6 +681,18 @@ function disconnectEmailAccount() {
             console.log('🗑️ Campo de email limpiado');
         }
         
+        // Mostrar checkbox de consentimiento de nuevo
+        const emailConsentContainer = document.getElementById('email-consent-container');
+        const emailConsentCheckbox = document.getElementById('email_consent');
+        if (emailConsentContainer) {
+            emailConsentContainer.style.display = 'block';
+            console.log('✅ Checkbox de consentimiento mostrado de nuevo');
+        }
+        if (emailConsentCheckbox) {
+            emailConsentCheckbox.checked = false;
+            console.log('🔲 Checkbox de consentimiento desmarcado');
+        }
+        
         // Limpiar bandeja de entrada si existe
         if (window.InboxView && window.InboxView.clearInbox) {
             console.log('🗑️ Limpiando bandeja de entrada...');
