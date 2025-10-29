@@ -1187,7 +1187,7 @@
 
                 <!-- Contenido del email -->
                 <div class="email-body mb-4" style="max-height: 500px; overflow-y: auto;">
-                    ${currentMessage.body || currentMessage.snippet || ''}
+                    ${processEmailBody(currentMessage.body || currentMessage.snippet || '')}
                 </div>
 
                 <!-- Adjuntos del mensaje actual -->
