@@ -122,6 +122,20 @@ router.get('/callback', async (req, res) => {
 
         logger.info(`📧 Email de Outlook: ${userEmail}`);
 
+        // Desactivar todas las cuentas Microsoft anteriores del cliente
+        await prisma.emailAccount.updateMany({
+            where: {
+                clientId: parseInt(clientId),
+                provider: 'microsoft',
+                isActive: true
+            },
+            data: {
+                isActive: false
+            }
+        });
+
+        logger.info(`🔄 Cuentas Microsoft anteriores desactivadas para cliente ${clientId}`);
+
         // Guardar o actualizar cuenta en base de datos
         const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 

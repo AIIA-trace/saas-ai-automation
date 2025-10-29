@@ -1440,9 +1440,9 @@ function createCallConfigTabContent() {
                                                         </div>
                                                         
                                                         <div class="col-md-6">
-                                                            <label for="outgoing_email" class="form-label">Email de Salida</label>
+                                                            <label for="outgoing_email" class="form-label">Email</label>
                                                             <input type="email" class="form-control" id="outgoing_email" name="outgoing_email" placeholder="tucorreo@ejemplo.com" required>
-                                                            <div class="form-text">Email desde el que se enviarán las respuestas automáticas</div>
+                                                            <div class="form-text">Este email se configurará como bandeja de entrada y email de salida</div>
                                                         </div>
                                                     </div>
                                                     

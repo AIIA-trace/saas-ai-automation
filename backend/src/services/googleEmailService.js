@@ -76,6 +76,20 @@ class GoogleEmailService {
 
       const email = userInfo.data.email;
 
+      // Desactivar todas las cuentas Google anteriores del cliente
+      await prisma.emailAccount.updateMany({
+        where: {
+          clientId: clientId,
+          provider: 'google',
+          isActive: true
+        },
+        data: {
+          isActive: false
+        }
+      });
+
+      logger.info(`🔄 Cuentas Google anteriores desactivadas para cliente ${clientId}`);
+
       // Guardar o actualizar cuenta en la base de datos
       const emailAccount = await prisma.emailAccount.upsert({
         where: {

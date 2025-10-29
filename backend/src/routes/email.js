@@ -673,10 +673,12 @@ async function addSignatureToBody(clientId, body) {
 router.post('/send', authenticate, async (req, res) => {
   try {
     const clientId = req.client.id;
-    const { to, subject, body, threadId, inReplyTo, references, attachments } = req.body;
+    const { to, cc, bcc, subject, body, threadId, inReplyTo, references, attachments } = req.body;
 
     logger.info(`📧 POST /send - Datos recibidos:`, { 
       to, 
+      cc,
+      bcc,
       subject, 
       threadId, 
       inReplyTo,
@@ -736,6 +738,8 @@ router.post('/send', authenticate, async (req, res) => {
 
     const emailData = {
       to,
+      cc: cc || null,
+      bcc: bcc || null,
       subject,
       body: validation.emailData.body, // Usar body mejorado
       threadId,
