@@ -673,10 +673,11 @@ function disconnectEmailAccount() {
             emailProviderSelect.value = '';
         }
         
-        // Limpiar campo de email
+        // Limpiar campo de email INMEDIATAMENTE
         const outgoingEmailInput = document.getElementById('outgoing_email');
         if (outgoingEmailInput) {
             outgoingEmailInput.value = '';
+            outgoingEmailInput.placeholder = 'tucorreo@ejemplo.com';
             console.log('🗑️ Campo de email limpiado');
         }
         
@@ -693,9 +694,10 @@ function disconnectEmailAccount() {
         }
         
         // Recargar página SIN parámetros de URL para evitar cache
+        // Aumentar tiempo para que el backend actualice la BD
         setTimeout(() => {
-            window.location.href = window.location.pathname;
-        }, 1000);
+            window.location.href = window.location.pathname + '?t=' + Date.now();
+        }, 1500);
     })
     .catch(error => {
         console.error('❌ Error desconectando cuenta:', error);
