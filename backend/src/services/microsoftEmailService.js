@@ -259,24 +259,43 @@ class MicrosoftEmailService {
 
       // Obtener email de la cuenta para filtrar
       const accountEmail = await this.getAccountEmail(clientId);
+      
+      logger.info(`📧 Total mensajes obtenidos de Microsoft: ${response.value.length}`);
+      logger.info(`📧 Email de la cuenta: ${accountEmail}`);
+
+      // Log TODOS los emails antes de filtrar
+      logger.info(`📬 TODOS los mensajes (antes de filtrar):`, response.value.map(m => ({
+        from: m.from?.emailAddress?.address,
+        to: m.toRecipients?.map(r => r.emailAddress.address).join(', '),
+        subject: m.subject,
+        date: m.receivedDateTime
+      })));
 
       // Filtrar manualmente los emails enviados (excluir los que YO envié)
       const emails = response.value
         .filter(message => {
-          // Excluir si el remitente es la cuenta actual
-          return message.from?.emailAddress?.address?.toLowerCase() !== accountEmail?.toLowerCase();
+          const fromEmail = message.from?.emailAddress?.address?.toLowerCase();
+          const isFromMe = fromEmail === accountEmail?.toLowerCase();
+          
+          if (isFromMe) {
+            logger.info(`🚫 Filtrando email enviado por mí: ${message.subject}`);
+          }
+          
+          return !isFromMe;
         })
         .map(message => this.parseOutlookMessage(message));
 
-      logger.info(`📧 Obtenidos ${emails.length} emails de Outlook para cliente ${clientId}`);
+      logger.info(`📧 Emails después de filtrar enviados: ${emails.length}`);
       
-      // Log de los últimos 3 emails para debug
+      // Log de los últimos 5 emails para debug
       if (emails.length > 0) {
-        logger.info(`📬 Últimos emails:`, emails.slice(0, 3).map(e => ({
+        logger.info(`📬 Últimos emails (después de filtrar):`, emails.slice(0, 5).map(e => ({
           from: e.from,
           subject: e.subject,
           date: e.date
         })));
+      } else {
+        logger.warn(`⚠️ No hay emails después de filtrar. Verifica si todos son enviados por ti.`);
       }
 
       return emails;

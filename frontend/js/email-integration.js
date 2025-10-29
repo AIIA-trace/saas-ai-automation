@@ -582,14 +582,23 @@ function updateEmailConnectionStatus(data) {
  * Desconectar cuenta de correo
  */
 function disconnectEmailAccount() {
+    console.log('🔌 INICIO disconnectEmailAccount()');
+    
     const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    console.log('🔑 Token encontrado:', !!token);
+    
     if (!token) {
-        toastr.error('Error de autenticación', 'Error');
+        console.error('❌ No hay token de autenticación');
+        alert('Error de autenticación. Por favor, recarga la página.');
         return;
     }
     
     // Confirmar antes de desconectar
-    if (!confirm('¿Estás seguro de que deseas desconectar tu cuenta de correo? Esta acción detendrá la gestión automática de emails y ocultará la bandeja de entrada.')) {
+    const confirmed = confirm('¿Estás seguro de que deseas desconectar tu cuenta de correo?');
+    console.log('✅ Usuario confirmó:', confirmed);
+    
+    if (!confirmed) {
+        console.log('❌ Usuario canceló la desconexión');
         return;
     }
     
@@ -603,8 +612,13 @@ function disconnectEmailAccount() {
             'Content-Type': 'application/json'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('📧 Response de /api/email/accounts:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('📧 Data de accounts:', data);
+        
         if (data.success && data.accounts && data.accounts.length > 0) {
             const provider = data.accounts[0].provider;
             console.log(`📧 Proveedor detectado: ${provider}`);
@@ -616,6 +630,8 @@ function disconnectEmailAccount() {
             } else if (provider === 'microsoft' || provider === 'outlook') {
                 deleteEndpoint = `${API_BASE_URL}/api/email/oauth/outlook/disconnect`;
             }
+            
+            console.log(`🔗 Endpoint de desconexión: ${deleteEndpoint}`);
             
             return fetch(deleteEndpoint, {
                 method: 'DELETE',
@@ -629,14 +645,16 @@ function disconnectEmailAccount() {
         }
     })
     .then(response => {
+        console.log('🔗 Response de DELETE:', response.status, response.statusText);
+        
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
         return response.json();
     })
     .then(data => {
-        console.log('✅ Cuenta desconectada:', data);
-        toastr.success('Cuenta de correo desconectada correctamente', 'Desconexión exitosa');
+        console.log('✅ Cuenta desconectada exitosamente:', data);
+        alert('Cuenta de correo desconectada correctamente');
         
         // Resetear UI
         const emailConnectionStatus = document.getElementById('email-connection-status');
@@ -673,10 +691,14 @@ function disconnectEmailAccount() {
         }, 1500);
     })
     .catch(error => {
-        console.error('❌ Error al desconectar cuenta de correo:', error);
-        toastr.error('Error al desconectar cuenta: ' + error.message, 'Error');
+        console.error('❌ Error desconectando cuenta:', error);
+        console.error('❌ Stack:', error.stack);
+        alert(`Error al desconectar: ${error.message}`);
     });
 }
+
+// Exponer globalmente para que el botón pueda llamarla
+window.disconnectEmailAccount = disconnectEmailAccount;
 
 /**
  * Guardar configuración manual de IMAP/SMTP
