@@ -253,6 +253,7 @@ class MicrosoftEmailService {
   parseOutlookMessage(message) {
     return {
       id: message.id,
+      messageId: message.id,  // Agregar messageId para compatibilidad con frontend
       from: message.from?.emailAddress?.address || '',
       fromName: message.from?.emailAddress?.name || '',
       to: message.toRecipients?.map(r => r.emailAddress.address).join(', ') || '',
@@ -431,7 +432,8 @@ class MicrosoftEmailService {
         cc: message.ccRecipients?.map(r => r.emailAddress.address).join(', ') || '',
         bcc: message.bccRecipients?.map(r => r.emailAddress.address).join(', ') || '',
         hasAttachments: message.hasAttachments,
-        messageId: message.internetMessageId,
+        messageId: message.id,  // Usar el ID de Microsoft Graph API (no internetMessageId)
+        internetMessageId: message.internetMessageId,  // Guardar también el header para referencias
         threadId: message.conversationId
       };
 
