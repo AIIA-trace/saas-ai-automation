@@ -236,6 +236,15 @@ class MicrosoftEmailService {
       const emails = response.value.map(message => this.parseOutlookMessage(message));
 
       logger.info(`📧 Obtenidos ${emails.length} emails de Outlook para cliente ${clientId}`);
+      
+      // Log de los últimos 3 emails para debug
+      if (emails.length > 0) {
+        logger.info(`📬 Últimos emails:`, emails.slice(0, 3).map(e => ({
+          from: e.from,
+          subject: e.subject,
+          date: e.date
+        })));
+      }
 
       return emails;
 
