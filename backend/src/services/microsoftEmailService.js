@@ -253,7 +253,7 @@ class MicrosoftEmailService {
         .api('/me/messages')
         .top(maxResults)
         .select('id,subject,from,toRecipients,receivedDateTime,sentDateTime,bodyPreview,body,isRead,flag,parentFolderId')
-        .filter("isDraft eq false and receivedDateTime ne null")
+        .filter("isDraft eq false")
         .orderby('receivedDateTime DESC')
         .get();
 
