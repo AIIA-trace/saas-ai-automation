@@ -9,6 +9,8 @@
 
     /**
      * Formatear fecha de email
+     * - Mismo día: solo hora (ej: "14:30")
+     * - Días anteriores: fecha + hora (ej: "28 oct, 14:30")
      */
     window.formatEmailDate = function(dateString) {
         if (!dateString) return '';
@@ -16,18 +18,25 @@
         try {
             const date = new Date(dateString);
             const now = new Date();
-            const diffMs = now - date;
+            
+            // Comparar solo la fecha (ignorar hora)
+            const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const nowOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const diffMs = nowOnly - dateOnly;
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+            const timeStr = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
             if (diffDays === 0) {
-                // Hoy: mostrar hora
-                return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-            } else if (diffDays === 1) {
-                return 'Ayer';
-            } else if (diffDays < 7) {
-                return date.toLocaleDateString('es-ES', { weekday: 'short' });
+                // Hoy: solo hora
+                return timeStr;
             } else {
-                return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                // Días anteriores: fecha + hora
+                const dateStr = date.toLocaleDateString('es-ES', { 
+                    day: '2-digit', 
+                    month: 'short'
+                });
+                return `${dateStr}, ${timeStr}`;
             }
         } catch (error) {
             return dateString;
