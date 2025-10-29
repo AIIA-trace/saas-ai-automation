@@ -306,6 +306,8 @@ class MicrosoftEmailService {
 
       // Si es una respuesta, usar reply endpoint
       if (emailData.inReplyTo) {
+        logger.info(`📧 Respondiendo al email: ${emailData.inReplyTo}`);
+        
         // Para reply con HTML, crear un draft y enviarlo
         const replyDraft = await graphClient
           .api(`/me/messages/${emailData.inReplyTo}/createReply`)
