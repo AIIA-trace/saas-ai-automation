@@ -1497,7 +1497,7 @@ function createCallConfigTabContent() {
                                                     </div>
                                                     
                                                     <!-- Consentimiento de acceso a correo -->
-                                                    <div class="mt-3 p-3 bg-light rounded">
+                                                    <div id="email-consent-container" class="mt-3 p-3 bg-light rounded">
                                                         <div class="mb-3 form-check">
                                                             <input type="checkbox" class="form-check-input" id="email_consent" name="email_consent">
                                                             <label class="form-check-label fw-bold" for="email_consent">
@@ -3580,9 +3580,55 @@ function loadCallConfiguration() {
         }
         
         const emailConsentCheckbox = document.getElementById('email_consent');
+        const emailConsentContainer = document.getElementById('email-consent-container');
+        
         if (emailConsentCheckbox) {
             emailConsentCheckbox.checked = emailConfig.consentGiven || false;
             console.log('✅ Consentimiento de email:', emailConfig.consentGiven);
+            
+            // Si ya se dio el consentimiento, ocultar el contenedor
+            if (emailConfig.consentGiven && emailConsentContainer) {
+                emailConsentContainer.style.display = 'none';
+                console.log('🚫 Contenedor de consentimiento oculto (ya aceptado)');
+            }
+            
+            // Guardar consentimiento cuando se marca
+            emailConsentCheckbox.addEventListener('change', async function() {
+                if (this.checked) {
+                    console.log('💾 Guardando consentimiento de email...');
+                    
+                    const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+                    const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+                    
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/api/client`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                emailConfig: {
+                                    ...emailConfig,
+                                    consentGiven: true
+                                }
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            console.log('✅ Consentimiento guardado exitosamente');
+                            // Ocultar el contenedor después de guardar
+                            if (emailConsentContainer) {
+                                emailConsentContainer.style.display = 'none';
+                            }
+                        } else {
+                            console.error('❌ Error guardando consentimiento');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error:', error);
+                    }
+                }
+            });
         }
         
         // Cargar selectores de configuración de emails (patrón idéntico a callConfig)
