@@ -350,6 +350,15 @@ class MicrosoftEmailService {
       
       logger.info(`📧 Destinatarios construidos: ${JSON.stringify(toRecipients)}`);
 
+      // Obtener el email configurado del cliente
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { emailConfig: true }
+      });
+      
+      const fromEmail = client?.emailConfig?.outgoingEmail || null;
+      logger.info(`📧 Email de envío configurado: ${fromEmail || 'No configurado, usar por defecto'}`);
+
       const message = {
         subject: emailData.subject,
         body: {
@@ -358,6 +367,16 @@ class MicrosoftEmailService {
         },
         toRecipients: toRecipients
       };
+      
+      // Si hay un email configurado diferente, especificarlo como remitente
+      if (fromEmail) {
+        message.from = {
+          emailAddress: {
+            address: fromEmail
+          }
+        };
+        logger.info(`📧 Usando email personalizado como remitente: ${fromEmail}`);
+      }
 
       // Agregar CC si existe
       if (emailData.cc) {
