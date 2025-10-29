@@ -2221,3 +2221,143 @@ ${body}`;
     };
 
 })();
+
+/**
+ * Auto-refresh de la bandeja de entrada
+ * Actualiza automáticamente cada 30 segundos
+ */
+(function initAutoRefresh() {
+    let autoRefreshInterval = null;
+    let refreshIntervalMs = 30000; // 30 segundos por defecto
+    
+    // Función para iniciar auto-refresh
+    function startAutoRefresh() {
+        // Limpiar intervalo anterior si existe
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+        
+        console.log(`🔄 Auto-refresh activado (cada ${refreshIntervalMs / 1000}s)`);
+        
+        autoRefreshInterval = setInterval(() => {
+            // Solo actualizar si estamos en la vista de emails
+            const emailSection = document.getElementById('inbox-email-section');
+            if (!emailSection || emailSection.style.display === 'none') {
+                return;
+            }
+            
+            // Solo actualizar si no hay un modal abierto
+            const modals = document.querySelectorAll('.modal.show');
+            if (modals.length > 0) {
+                console.log('⏸️ Auto-refresh pausado (modal abierto)');
+                return;
+            }
+            
+            console.log('🔄 Auto-refresh: Actualizando bandeja de entrada...');
+            
+            // Determinar qué mailbox actualizar
+            const currentMailbox = window.InboxView?.currentMailbox || 'inbox';
+            
+            if (currentMailbox === 'sent') {
+                // Actualizar enviados
+                const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+                if (!token) return;
+                
+                const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+                
+                fetch(`${API_BASE_URL}/api/email/sent?limit=50`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.emails) {
+                        console.log(`✅ Auto-refresh: ${data.emails.length} emails enviados actualizados`);
+                        // Actualizar la vista sin perder el scroll
+                        if (window.InboxView && typeof window.InboxView.loadSentEmails === 'function') {
+                            window.InboxView.loadSentEmails();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error en auto-refresh (sent):', error);
+                });
+            } else {
+                // Actualizar inbox
+                const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+                if (!token) return;
+                
+                const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+                
+                fetch(`${API_BASE_URL}/api/email/inbox?limit=50`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.emails) {
+                        console.log(`✅ Auto-refresh: ${data.emails.length} emails recibidos actualizados`);
+                        // Actualizar la vista sin perder el scroll
+                        if (window.InboxView && typeof window.InboxView.loadInboxEmails === 'function') {
+                            window.InboxView.loadInboxEmails();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error en auto-refresh (inbox):', error);
+                });
+            }
+        }, refreshIntervalMs);
+    }
+    
+    // Función para detener auto-refresh
+    function stopAutoRefresh() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+            console.log('⏹️ Auto-refresh detenido');
+        }
+    }
+    
+    // Función para cambiar intervalo
+    function setRefreshInterval(seconds) {
+        refreshIntervalMs = seconds * 1000;
+        if (autoRefreshInterval) {
+            startAutoRefresh(); // Reiniciar con nuevo intervalo
+        }
+    }
+    
+    // Iniciar auto-refresh cuando se carga la página
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startAutoRefresh);
+    } else {
+        startAutoRefresh();
+    }
+    
+    // Pausar cuando la pestaña no está visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            console.log('👁️ Pestaña oculta, pausando auto-refresh');
+            stopAutoRefresh();
+        } else {
+            console.log('👁️ Pestaña visible, reanudando auto-refresh');
+            startAutoRefresh();
+        }
+    });
+    
+    // Exponer funciones globalmente
+    window.EmailAutoRefresh = {
+        start: startAutoRefresh,
+        stop: stopAutoRefresh,
+        setInterval: setRefreshInterval,
+        getInterval: () => refreshIntervalMs / 1000
+    };
+    
+    console.log('✅ Auto-refresh de emails inicializado');
+})();
