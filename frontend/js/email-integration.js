@@ -685,10 +685,10 @@ function disconnectEmailAccount() {
             inboxSection.classList.add('d-none');
         }
         
-        // Recargar página para refrescar todo
+        // Recargar página SIN parámetros de URL para evitar cache
         setTimeout(() => {
-            window.location.reload();
-        }, 1500);
+            window.location.href = window.location.pathname;
+        }, 1000);
     })
     .catch(error => {
         console.error('❌ Error desconectando cuenta:', error);
