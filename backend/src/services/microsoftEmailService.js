@@ -306,12 +306,25 @@ class MicrosoftEmailService {
 
       // Si es una respuesta, usar reply endpoint
       if (emailData.inReplyTo) {
+        // Para reply con HTML, crear un draft y enviarlo
+        const replyDraft = await graphClient
+          .api(`/me/messages/${emailData.inReplyTo}/createReply`)
+          .post();
+
+        // Actualizar el draft con el contenido HTML
         await graphClient
-          .api(`/me/messages/${emailData.inReplyTo}/reply`)
-          .post({
-            message: message,
-            comment: emailData.body
+          .api(`/me/messages/${replyDraft.id}`)
+          .patch({
+            body: {
+              contentType: 'HTML',
+              content: emailData.body
+            }
           });
+
+        // Enviar el draft
+        await graphClient
+          .api(`/me/messages/${replyDraft.id}/send`)
+          .post();
 
         logger.info(`✅ Respuesta enviada exitosamente a ${emailData.to}`);
       } else {
