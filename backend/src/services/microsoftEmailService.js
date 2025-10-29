@@ -15,6 +15,28 @@ class MicrosoftEmailService {
   }
 
   /**
+   * Obtener email de la cuenta conectada
+   * @param {number} clientId - ID del cliente
+   * @returns {Promise<string>} Email de la cuenta
+   */
+  async getAccountEmail(clientId) {
+    try {
+      const emailAccount = await prisma.emailAccount.findFirst({
+        where: {
+          clientId: clientId,
+          provider: 'microsoft',
+          isActive: true
+        }
+      });
+      
+      return emailAccount?.email || null;
+    } catch (error) {
+      logger.error(`❌ Error obteniendo email de cuenta: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
    * Generar URL de autorización de Microsoft
    * @param {number} clientId - ID del cliente
    * @returns {string} URL de autorización
@@ -226,15 +248,25 @@ class MicrosoftEmailService {
       const graphClient = await this.getAuthenticatedClient(clientId);
 
       // Obtener TODOS los mensajes recibidos (no solo inbox, incluye "Otros", etc.)
+      // Excluir enviados y borradores
       const response = await graphClient
         .api('/me/messages')
         .top(maxResults)
-        .select('id,subject,from,toRecipients,receivedDateTime,bodyPreview,body,isRead,flag')
-        .filter('isDraft eq false')
+        .select('id,subject,from,toRecipients,receivedDateTime,sentDateTime,bodyPreview,body,isRead,flag,parentFolderId')
+        .filter("isDraft eq false and receivedDateTime ne null")
         .orderby('receivedDateTime DESC')
         .get();
 
-      const emails = response.value.map(message => this.parseOutlookMessage(message));
+      // Obtener email de la cuenta para filtrar
+      const accountEmail = await this.getAccountEmail(clientId);
+
+      // Filtrar manualmente los emails enviados (excluir los que YO envié)
+      const emails = response.value
+        .filter(message => {
+          // Excluir si el remitente es la cuenta actual
+          return message.from?.emailAddress?.address?.toLowerCase() !== accountEmail?.toLowerCase();
+        })
+        .map(message => this.parseOutlookMessage(message));
 
       logger.info(`📧 Obtenidos ${emails.length} emails de Outlook para cliente ${clientId}`);
       
