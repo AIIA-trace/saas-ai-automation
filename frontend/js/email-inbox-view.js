@@ -374,19 +374,18 @@
 
         let html = '';
         filteredEmails.forEach(email => {
-            // Estilos más destacados para emails no leídos
-            const unreadClass = email.unread ? 'bg-light fw-bold border-start border-primary border-3' : '';
-            const unreadBgColor = email.unread ? '#e7f3ff' : 'white';
+            // Solo barra azul lateral para emails no leídos
+            const unreadClass = email.unread ? 'border-start border-primary border-3' : '';
             const checkboxClass = email.important ? 'custom-checkbox checked' : 'custom-checkbox';
             
             html += `
                 <div class="email-list-item border-bottom p-3 ${unreadClass}" 
-                     style="cursor: pointer; transition: background-color 0.2s; background-color: ${unreadBgColor};"
+                     style="cursor: pointer; transition: background-color 0.2s; background-color: white;"
                      data-email-id="${email.id}"
                      data-unread="${email.unread}"
                      data-important="${email.important}"
-                     onmouseover="this.style.backgroundColor='#d4e9ff'"
-                     onmouseout="this.style.backgroundColor='${unreadBgColor}'">
+                     onmouseover="this.style.backgroundColor='#f8f9fa'"
+                     onmouseout="this.style.backgroundColor='white'">
                     <div class="d-flex align-items-start mb-2">
                         <div class="${checkboxClass}" 
                              style="min-width: 20px; margin-right: 10px; margin-top: 2px;"
@@ -421,7 +420,7 @@
                     
                     // Marcar como leído en UI
                     email.unread = false;
-                    this.classList.remove('bg-light', 'fw-bold', 'border-start', 'border-primary', 'border-3');
+                    this.classList.remove('border-start', 'border-primary', 'border-3');
                     this.style.backgroundColor = 'white';
                     this.dataset.unread = 'false';
                     
