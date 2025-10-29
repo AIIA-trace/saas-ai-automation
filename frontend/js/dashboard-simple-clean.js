@@ -3632,13 +3632,31 @@ function loadCallConfiguration() {
         }
         
         // Cargar selectores de configuración de emails (patrón idéntico a callConfig)
-        if (emailConfig.provider) {
-            const emailProviderSelect = document.getElementById('email_provider');
-            if (emailProviderSelect) {
-                emailProviderSelect.value = emailConfig.provider;
-                console.log('🔗 Proveedor de email cargado:', emailConfig.provider);
+        const emailProviderSelect = document.getElementById('email_provider');
+        
+        if (emailConfig.provider && emailProviderSelect) {
+            emailProviderSelect.value = emailConfig.provider;
+            console.log('🔗 Proveedor de email cargado:', emailConfig.provider);
+            
+            // Disparar evento change para habilitar el botón de conexión
+            const event = new Event('change', { bubbles: true });
+            emailProviderSelect.dispatchEvent(event);
+        } else if (emailConfig.outgoingEmail && emailProviderSelect) {
+            // Si no hay provider pero hay email, intentar detectar el proveedor por el dominio
+            const email = emailConfig.outgoingEmail.toLowerCase();
+            let detectedProvider = '';
+            
+            if (email.includes('@gmail.com') || email.includes('@googlemail.com')) {
+                detectedProvider = 'google';
+            } else if (email.includes('@outlook.com') || email.includes('@hotmail.com') || email.includes('@live.com')) {
+                detectedProvider = 'microsoft';
+            }
+            
+            if (detectedProvider) {
+                console.log('🔍 Proveedor detectado por dominio:', detectedProvider);
+                emailProviderSelect.value = detectedProvider;
                 
-                // Disparar evento change para habilitar el botón de conexión
+                // Disparar evento change para habilitar el botón
                 const event = new Event('change', { bubbles: true });
                 emailProviderSelect.dispatchEvent(event);
             }
