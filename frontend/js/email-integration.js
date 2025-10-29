@@ -673,6 +673,13 @@ function disconnectEmailAccount() {
             emailProviderSelect.value = '';
         }
         
+        // Limpiar campo de email
+        const outgoingEmailInput = document.getElementById('outgoing_email');
+        if (outgoingEmailInput) {
+            outgoingEmailInput.value = '';
+            console.log('🗑️ Campo de email limpiado');
+        }
+        
         // Limpiar bandeja de entrada si existe
         if (window.InboxView && window.InboxView.clearInbox) {
             console.log('🗑️ Limpiando bandeja de entrada...');
