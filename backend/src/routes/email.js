@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 const googleEmailService = require('../services/googleEmailService');
 const microsoftEmailService = require('../services/microsoftEmailService');
 const openaiEmailService = require('../services/openaiEmailService');
+const emailSpamPrevention = require('../services/emailSpamPrevention');
 const EmailServiceFactory = require('../services/email/emailServiceFactory');
 const outlookAuthRouter = require('./email/outlookAuth');
 const { authenticate } = require('./auth');
@@ -709,10 +710,34 @@ router.post('/send', authenticate, async (req, res) => {
     // Agregar firma automáticamente al cuerpo del email
     const bodyWithSignature = await addSignatureToBody(clientId, body);
 
+    // Validar email para prevenir spam
+    const validation = emailSpamPrevention.validateEmail({
+      to,
+      subject,
+      body: bodyWithSignature
+    });
+
+    // Log de validación
+    logger.info(`📊 Validación anti-spam:`, {
+      spamScore: validation.spamScore,
+      riskLevel: validation.riskLevel,
+      warningsCount: validation.warnings.length
+    });
+
+    if (validation.warnings.length > 0) {
+      logger.warn(`⚠️ Advertencias de spam:`, validation.warnings);
+    }
+
+    // Si el riesgo es muy alto, advertir pero permitir envío
+    if (validation.riskLevel === 'high') {
+      logger.warn(`🚨 ALTO RIESGO DE SPAM (score: ${validation.spamScore})`);
+      logger.warn(`💡 Sugerencias:`, validation.suggestions);
+    }
+
     const emailData = {
       to,
       subject,
-      body: bodyWithSignature,
+      body: validation.emailData.body, // Usar body mejorado
       threadId,
       inReplyTo,
       references,
