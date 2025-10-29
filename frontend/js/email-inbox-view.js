@@ -374,17 +374,19 @@
 
         let html = '';
         filteredEmails.forEach(email => {
-            const unreadClass = email.unread ? 'bg-light fw-bold' : '';
+            // Estilos más destacados para emails no leídos
+            const unreadClass = email.unread ? 'bg-light fw-bold border-start border-primary border-3' : '';
+            const unreadBgColor = email.unread ? '#e7f3ff' : 'white';
             const checkboxClass = email.important ? 'custom-checkbox checked' : 'custom-checkbox';
             
             html += `
                 <div class="email-list-item border-bottom p-3 ${unreadClass}" 
-                     style="cursor: pointer; transition: background-color 0.2s;"
+                     style="cursor: pointer; transition: background-color 0.2s; background-color: ${unreadBgColor};"
                      data-email-id="${email.id}"
                      data-unread="${email.unread}"
                      data-important="${email.important}"
-                     onmouseover="this.style.backgroundColor='#f8f9fa'"
-                     onmouseout="this.style.backgroundColor='${email.unread ? '#f8f9fa' : 'white'}'">
+                     onmouseover="this.style.backgroundColor='#d4e9ff'"
+                     onmouseout="this.style.backgroundColor='${unreadBgColor}'">
                     <div class="d-flex align-items-start mb-2">
                         <div class="${checkboxClass}" 
                              style="min-width: 20px; margin-right: 10px; margin-top: 2px;"
@@ -419,7 +421,8 @@
                     
                     // Marcar como leído en UI
                     email.unread = false;
-                    this.classList.remove('bg-light', 'fw-bold');
+                    this.classList.remove('bg-light', 'fw-bold', 'border-start', 'border-primary', 'border-3');
+                    this.style.backgroundColor = 'white';
                     this.dataset.unread = 'false';
                     
                     // Marcar como leído en el backend
@@ -2302,10 +2305,19 @@ ${body}`;
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.emails) {
-                        console.log(`✅ Auto-refresh: ${data.emails.length} emails recibidos actualizados`);
-                        // Actualizar la vista sin perder el scroll
-                        if (window.InboxView && typeof window.InboxView.loadInboxEmails === 'function') {
-                            window.InboxView.loadInboxEmails();
+                        const newEmailCount = data.emails.length;
+                        const currentCount = allEmails.length;
+                        
+                        console.log(`✅ Auto-refresh: ${newEmailCount} emails en servidor, ${currentCount} en cache`);
+                        
+                        // Solo actualizar si hay cambios
+                        if (newEmailCount !== currentCount) {
+                            console.log(`🔄 Detectados cambios, actualizando vista...`);
+                            if (window.InboxView && typeof window.InboxView.loadInboxEmails === 'function') {
+                                window.InboxView.loadInboxEmails();
+                            }
+                        } else {
+                            console.log(`✓ Sin cambios en bandeja de entrada`);
                         }
                     }
                 })
