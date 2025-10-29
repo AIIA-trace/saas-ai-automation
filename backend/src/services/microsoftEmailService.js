@@ -338,10 +338,17 @@ class MicrosoftEmailService {
     try {
       const graphClient = await this.getAuthenticatedClient(clientId);
 
+      logger.info(`📧 DEBUG - Datos de email a enviar:`);
+      logger.info(`   To: ${emailData.to}`);
+      logger.info(`   Subject: ${emailData.subject}`);
+      logger.info(`   InReplyTo: ${emailData.inReplyTo || 'N/A'}`);
+
       // Construir destinatarios TO
       const toRecipients = emailData.to.split(',').map(email => ({
         emailAddress: { address: email.trim() }
       }));
+      
+      logger.info(`📧 Destinatarios construidos: ${JSON.stringify(toRecipients)}`);
 
       const message = {
         subject: emailData.subject,
