@@ -3591,6 +3591,10 @@ function loadCallConfiguration() {
             if (emailProviderSelect) {
                 emailProviderSelect.value = emailConfig.provider;
                 console.log('🔗 Proveedor de email cargado:', emailConfig.provider);
+                
+                // Disparar evento change para habilitar el botón de conexión
+                const event = new Event('change', { bubbles: true });
+                emailProviderSelect.dispatchEvent(event);
             }
         }
         
