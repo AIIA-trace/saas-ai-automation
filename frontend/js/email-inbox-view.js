@@ -395,7 +395,7 @@
                         <div class="flex-grow-1" style="min-width: 0;">
                             <div class="d-flex justify-content-between align-items-start mb-1">
                                 <span class="text-dark fw-medium text-truncate" style="flex: 1; min-width: 0;">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
-                                <small class="text-muted ms-2" style="flex-shrink: 0;">${email.date}</small>
+                                <small class="text-muted ms-2" style="flex-shrink: 0;">${formatEmailDate(email.date)}</small>
                             </div>
                             <div class="text-dark mb-1 text-truncate">${email.subject || '(Sin asunto)'}</div>
                             <div class="text-muted small text-truncate">${email.preview || email.snippet || ''}</div>
@@ -1026,7 +1026,7 @@
                         <div class="flex-grow-1" style="min-width: 0;">
                             <div class="d-flex justify-content-between align-items-start mb-1">
                                 <span class="text-dark fw-medium text-truncate" style="flex: 1; min-width: 0;">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
-                                <small class="text-muted ms-2" style="flex-shrink: 0;">${email.date}</small>
+                                <small class="text-muted ms-2" style="flex-shrink: 0;">${formatEmailDate(email.date)}</small>
                             </div>
                             <div class="text-dark mb-1 text-truncate">${email.subject || '(Sin asunto)'}</div>
                             <div class="text-muted small text-truncate">${email.preview || email.snippet || ''}</div>
