@@ -125,6 +125,23 @@ class GoogleEmailService {
 
       logger.info(`✅ Cuenta de Gmail conectada: ${email} para cliente ${clientId}`);
 
+      // Actualizar emailConfig en Client para que esté disponible inmediatamente
+      await prisma.client.update({
+        where: { id: clientId },
+        data: {
+          emailConfig: {
+            enabled: true,
+            provider: 'google',
+            outgoingEmail: email,
+            consentGiven: true,
+            emailSignature: '',
+            forwardingRules: ''
+          }
+        }
+      });
+
+      logger.info(`✅ emailConfig actualizado en Client para ${email}`);
+
       return {
         success: true,
         email: email,
@@ -622,6 +639,24 @@ class GoogleEmailService {
       });
 
       logger.info(`✅ Cuenta de Gmail desconectada para cliente ${clientId}`);
+
+      // Limpiar emailConfig en Client
+      await prisma.client.update({
+        where: { id: clientId },
+        data: {
+          emailConfig: {
+            enabled: false,
+            provider: '',
+            outgoingEmail: '',
+            consentGiven: false,
+            emailSignature: '',
+            forwardingRules: ''
+          }
+        }
+      });
+
+      logger.info(`✅ emailConfig limpiado en Client`);
+
       return true;
 
     } catch (error) {

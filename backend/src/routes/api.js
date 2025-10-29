@@ -400,26 +400,14 @@ router.get('/api/client', authenticate, async (req, res) => {
       },
       
       // Configuración de email (estructura unificada frontend-backend)
-      emailConfig: await (async () => {
-        // Obtener cuenta de email activa de OAuth
-        const emailAccount = await prisma.emailAccount.findFirst({
-          where: {
-            clientId: client.id,
-            isActive: true
-          }
-        });
-        
-        const baseConfig = client.emailConfig || {};
-        
-        return {
-          enabled: baseConfig.enabled || false,
-          provider: emailAccount?.provider || '',
-          outgoingEmail: emailAccount?.email || '',
-          consentGiven: baseConfig.consentGiven || false,
-          emailSignature: baseConfig.emailSignature || '',
-          forwardingRules: baseConfig.forwardingRules || ''
-        };
-      })(),
+      emailConfig: client.emailConfig || {
+        enabled: false,
+        provider: '',
+        outgoingEmail: '',
+        consentGiven: false,
+        emailSignature: '',
+        forwardingRules: ''
+      },
       
       // FAQs y archivos de contexto
       faqs: client.faqs || [],
@@ -889,26 +877,14 @@ router.get('/client', authenticate, async (req, res) => {
       },
       
       // Configuración de email (estructura unificada frontend-backend)
-      emailConfig: await (async () => {
-        // Obtener cuenta de email activa de OAuth
-        const emailAccount = await prisma.emailAccount.findFirst({
-          where: {
-            clientId: client.id,
-            isActive: true
-          }
-        });
-        
-        const baseConfig = client.emailConfig || {};
-        
-        return {
-          enabled: baseConfig.enabled || false,
-          provider: emailAccount?.provider || '',
-          outgoingEmail: emailAccount?.email || '',
-          consentGiven: baseConfig.consentGiven || false,
-          emailSignature: baseConfig.emailSignature || '',
-          forwardingRules: baseConfig.forwardingRules || ''
-        };
-      })(),
+      emailConfig: client.emailConfig || {
+        enabled: false,
+        provider: '',
+        outgoingEmail: '',
+        consentGiven: false,
+        emailSignature: '',
+        forwardingRules: ''
+      },
       
       // FAQs y archivos de contexto
       faqs: client.faqs || [],

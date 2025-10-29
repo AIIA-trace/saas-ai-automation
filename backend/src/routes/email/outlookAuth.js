@@ -166,6 +166,23 @@ router.get('/callback', async (req, res) => {
 
         logger.info(`✅ Cuenta de Outlook guardada: ${emailAccount.email}`);
 
+        // Actualizar emailConfig en Client para que esté disponible inmediatamente
+        await prisma.client.update({
+            where: { id: parseInt(clientId) },
+            data: {
+                emailConfig: {
+                    enabled: true,
+                    provider: 'microsoft',
+                    outgoingEmail: userEmail,
+                    consentGiven: true,
+                    emailSignature: '',
+                    forwardingRules: ''
+                }
+            }
+        });
+
+        logger.info(`✅ emailConfig actualizado en Client para ${userEmail}`);
+
         // Redirigir al dashboard con éxito
         res.redirect('/dashboard.html?success=outlook_connected&email=' + encodeURIComponent(userEmail));
     } catch (error) {
@@ -254,6 +271,23 @@ router.delete('/disconnect', authenticate, async (req, res) => {
         });
 
         logger.info(`✅ Cuenta de Microsoft/Outlook desconectada para cliente ${clientId}`);
+
+        // Limpiar emailConfig en Client
+        await prisma.client.update({
+            where: { id: clientId },
+            data: {
+                emailConfig: {
+                    enabled: false,
+                    provider: '',
+                    outgoingEmail: '',
+                    consentGiven: false,
+                    emailSignature: '',
+                    forwardingRules: ''
+                }
+            }
+        });
+
+        logger.info(`✅ emailConfig limpiado en Client`);
 
         res.json({
             success: true,
