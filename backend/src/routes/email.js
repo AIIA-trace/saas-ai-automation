@@ -1067,4 +1067,109 @@ router.post('/thread-summary', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * Obtener contactos frecuentes para autocompletado
+ * GET /api/email/contacts/suggestions?q=search
+ */
+router.get('/contacts/suggestions', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const query = req.query.q?.toLowerCase() || '';
+
+    // Obtener cuenta activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.json({
+        success: true,
+        contacts: []
+      });
+    }
+
+    let allEmails = [];
+
+    // Obtener emails recientes para extraer contactos
+    if (emailAccount.provider === 'google') {
+      const inbox = await googleEmailService.getInbox(clientId, 100);
+      const sent = await googleEmailService.getSent(clientId, 100);
+      allEmails = [...inbox.emails, ...sent.emails];
+    } else if (emailAccount.provider === 'microsoft') {
+      const inbox = await microsoftEmailService.getInbox(clientId, 100);
+      const sent = await microsoftEmailService.getSent(clientId, 100);
+      allEmails = [...inbox, ...sent];
+    }
+
+    // Extraer contactos únicos
+    const contactsMap = new Map();
+    
+    allEmails.forEach(email => {
+      // Agregar remitente
+      if (email.from && email.from !== emailAccount.email) {
+        const key = email.from.toLowerCase();
+        if (!contactsMap.has(key)) {
+          contactsMap.set(key, {
+            email: email.from,
+            name: email.fromName || email.from,
+            count: 0
+          });
+        }
+        contactsMap.get(key).count++;
+      }
+
+      // Agregar destinatarios
+      if (email.to) {
+        const recipients = email.to.split(',').map(e => e.trim());
+        recipients.forEach(recipient => {
+          if (recipient && recipient !== emailAccount.email) {
+            const key = recipient.toLowerCase();
+            if (!contactsMap.has(key)) {
+              contactsMap.set(key, {
+                email: recipient,
+                name: recipient,
+                count: 0
+              });
+            }
+            contactsMap.get(key).count++;
+          }
+        });
+      }
+    });
+
+    // Convertir a array y filtrar por query
+    let contacts = Array.from(contactsMap.values());
+    
+    if (query) {
+      contacts = contacts.filter(contact => 
+        contact.email.toLowerCase().includes(query) ||
+        contact.name.toLowerCase().includes(query)
+      );
+    }
+
+    // Ordenar por frecuencia y limitar a 10
+    contacts = contacts
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map(({ email, name }) => ({ email, name }));
+
+    logger.info(`✅ ${contacts.length} contactos sugeridos para query: "${query}"`);
+
+    res.json({
+      success: true,
+      contacts: contacts
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error obteniendo sugerencias de contactos: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
