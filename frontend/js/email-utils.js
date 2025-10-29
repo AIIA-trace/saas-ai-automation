@@ -17,6 +17,13 @@
         
         try {
             const date = new Date(dateString);
+            
+            // Verificar si la fecha es válida
+            if (isNaN(date.getTime())) {
+                console.warn('⚠️ Fecha inválida:', dateString);
+                return dateString; // Devolver el string original si no se puede parsear
+            }
+            
             const now = new Date();
             
             // Comparar solo la fecha (ignorar hora)
@@ -39,6 +46,7 @@
                 return `${dateStr}, ${timeStr}`;
             }
         } catch (error) {
+            console.error('❌ Error formateando fecha:', error, dateString);
             return dateString;
         }
     };
