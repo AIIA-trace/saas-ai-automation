@@ -225,11 +225,12 @@ class MicrosoftEmailService {
     try {
       const graphClient = await this.getAuthenticatedClient(clientId);
 
-      // Obtener mensajes de la bandeja de entrada
+      // Obtener TODOS los mensajes recibidos (no solo inbox, incluye "Otros", etc.)
       const response = await graphClient
-        .api('/me/mailFolders/inbox/messages')
+        .api('/me/messages')
         .top(maxResults)
         .select('id,subject,from,toRecipients,receivedDateTime,bodyPreview,body,isRead,flag')
+        .filter('isDraft eq false')
         .orderby('receivedDateTime DESC')
         .get();
 
