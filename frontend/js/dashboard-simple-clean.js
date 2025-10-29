@@ -9998,3 +9998,89 @@ function setupAzureTTSEventListeners() {
         }
     }, 1000);
 }
+
+/**
+ * Auto-refresh de llamadas
+ * Actualiza automáticamente cada 30 segundos
+ */
+(function initCallsAutoRefresh() {
+    let autoRefreshInterval = null;
+    let refreshIntervalMs = 30000; // 30 segundos por defecto
+    
+    // Función para iniciar auto-refresh
+    function startAutoRefresh() {
+        // Limpiar intervalo anterior si existe
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+        
+        console.log(`🔄 Auto-refresh de llamadas activado (cada ${refreshIntervalMs / 1000}s)`);
+        
+        autoRefreshInterval = setInterval(() => {
+            // Solo actualizar si estamos en la vista de llamadas
+            const callsSection = document.getElementById('calls');
+            if (!callsSection || !callsSection.classList.contains('active')) {
+                return;
+            }
+            
+            // Solo actualizar si no hay un modal abierto
+            const modals = document.querySelectorAll('.modal.show');
+            if (modals.length > 0) {
+                console.log('⏸️ Auto-refresh de llamadas pausado (modal abierto)');
+                return;
+            }
+            
+            console.log('🔄 Auto-refresh: Actualizando llamadas...');
+            
+            // Llamar a la función de carga de llamadas
+            if (typeof loadCallsData === 'function') {
+                loadCallsData();
+            }
+        }, refreshIntervalMs);
+    }
+    
+    // Función para detener auto-refresh
+    function stopAutoRefresh() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+            console.log('⏹️ Auto-refresh de llamadas detenido');
+        }
+    }
+    
+    // Función para cambiar intervalo
+    function setRefreshInterval(seconds) {
+        refreshIntervalMs = seconds * 1000;
+        if (autoRefreshInterval) {
+            startAutoRefresh(); // Reiniciar con nuevo intervalo
+        }
+    }
+    
+    // Iniciar auto-refresh cuando se carga la página
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startAutoRefresh);
+    } else {
+        startAutoRefresh();
+    }
+    
+    // Pausar cuando la pestaña no está visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            console.log('👁️ Pestaña oculta, pausando auto-refresh de llamadas');
+            stopAutoRefresh();
+        } else {
+            console.log('👁️ Pestaña visible, reanudando auto-refresh de llamadas');
+            startAutoRefresh();
+        }
+    });
+    
+    // Exponer funciones globalmente
+    window.CallsAutoRefresh = {
+        start: startAutoRefresh,
+        stop: stopAutoRefresh,
+        setInterval: setRefreshInterval,
+        getInterval: () => refreshIntervalMs / 1000
+    };
+    
+    console.log('✅ Auto-refresh de llamadas inicializado');
+})();
