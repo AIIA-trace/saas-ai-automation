@@ -413,8 +413,8 @@ router.get('/api/client', authenticate, async (req, res) => {
         
         return {
           enabled: baseConfig.enabled || false,
-          provider: emailAccount?.provider || baseConfig.provider || '',
-          outgoingEmail: emailAccount?.email || baseConfig.outgoingEmail || '',
+          provider: emailAccount?.provider || '',
+          outgoingEmail: emailAccount?.email || '',
           consentGiven: baseConfig.consentGiven || false,
           emailSignature: baseConfig.emailSignature || '',
           forwardingRules: baseConfig.forwardingRules || ''
@@ -902,8 +902,8 @@ router.get('/client', authenticate, async (req, res) => {
         
         return {
           enabled: baseConfig.enabled || false,
-          provider: emailAccount?.provider || baseConfig.provider || '',
-          outgoingEmail: emailAccount?.email || baseConfig.outgoingEmail || '',
+          provider: emailAccount?.provider || '',
+          outgoingEmail: emailAccount?.email || '',
           consentGiven: baseConfig.consentGiven || false,
           emailSignature: baseConfig.emailSignature || '',
           forwardingRules: baseConfig.forwardingRules || ''
