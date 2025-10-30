@@ -1723,6 +1723,16 @@ ${body}`;
             });
         }
 
+        // Configurar botón pop-out
+        const popoutBtn = document.getElementById(`popout-reply-btn-${msgId}`);
+        if (popoutBtn) {
+            popoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openReplyInPopout(msgId, from, subject);
+            });
+        }
+
         // Configurar botón enviar
         const sendBtn = document.getElementById(`send-reply-btn-${msgId}`);
         if (sendBtn) {
@@ -1731,6 +1741,116 @@ ${body}`;
             });
         }
     }
+
+    /**
+     * Abrir formulario de respuesta en ventana emergente
+     */
+    function openReplyInPopout(msgId, from, subject) {
+        const textareaId = `reply-textarea-${msgId}`;
+        
+        // Obtener contenido actual del editor
+        const currentContent = window.getRichTextContent ? window.getRichTextContent(textareaId) : '';
+        
+        // Crear ventana emergente
+        const popupWidth = 800;
+        const popupHeight = 600;
+        const left = (screen.width - popupWidth) / 2;
+        const top = (screen.height - popupHeight) / 2;
+        
+        const popup = window.open(
+            '',
+            'reply-popup',
+            `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=yes,scrollbars=yes`
+        );
+        
+        if (!popup) {
+            alert('Por favor permite ventanas emergentes para esta función');
+            return;
+        }
+        
+        // Construir HTML de la ventana emergente
+        popup.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Responder: ${subject}</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+                <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+                <style>
+                    body { padding: 20px; background: #f5f5f5; }
+                    .editor-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+                </style>
+            </head>
+            <body>
+                <div class="editor-container">
+                    <h5 class="mb-3">
+                        <i class="fas fa-reply me-2"></i>Responder a: ${from}
+                    </h5>
+                    <div class="mb-3">
+                        <strong>Asunto:</strong> ${subject}
+                    </div>
+                    <div id="popup-editor" style="height: 350px; background: white;"></div>
+                    <div class="mt-3 d-flex justify-content-between">
+                        <button class="btn btn-secondary" onclick="window.close()">
+                            <i class="fas fa-times me-2"></i>Cerrar
+                        </button>
+                        <button class="btn btn-primary" id="save-and-close">
+                            <i class="fas fa-check me-2"></i>Guardar y cerrar
+                        </button>
+                    </div>
+                </div>
+                
+                <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+                <script>
+                    // Inicializar editor
+                    const quill = new Quill('#popup-editor', {
+                        theme: 'snow',
+                        modules: {
+                            toolbar: [
+                                [{ 'header': [1, 2, 3, false] }],
+                                ['bold', 'italic', 'underline', 'strike'],
+                                [{ 'color': [] }, { 'background': [] }],
+                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                [{ 'align': [] }],
+                                ['link', 'image'],
+                                ['clean']
+                            ]
+                        }
+                    });
+                    
+                    // Cargar contenido inicial
+                    quill.root.innerHTML = ${JSON.stringify(currentContent)};
+                    
+                    // Guardar y cerrar
+                    document.getElementById('save-and-close').addEventListener('click', function() {
+                        const content = quill.root.innerHTML;
+                        window.opener.postMessage({
+                            type: 'reply-content-update',
+                            msgId: '${msgId}',
+                            content: content
+                        }, '*');
+                        window.close();
+                    });
+                </script>
+            </body>
+            </html>
+        `);
+        
+        popup.document.close();
+    }
+
+    // Escuchar mensajes de ventanas emergentes
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'reply-content-update') {
+            const { msgId, content } = event.data;
+            const textareaId = `reply-textarea-${msgId}`;
+            
+            if (window.setRichTextContent) {
+                window.setRichTextContent(textareaId, content);
+            }
+        }
+    });
 
     /**
      * Reescribir respuesta con IA
