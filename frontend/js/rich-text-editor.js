@@ -7,6 +7,11 @@
 (function() {
     'use strict';
 
+    // Registrar módulo de redimensionamiento de imágenes
+    if (window.Quill && window.ImageResize) {
+        Quill.register('modules/imageResize', ImageResize.default);
+    }
+
     // Instancias de editores activos
     const editors = {};
 
@@ -41,7 +46,11 @@
                     [{ 'align': [] }],
                     ['link', 'image'],
                     ['clean']
-                ]
+                ],
+                imageResize: {
+                    displaySize: true,
+                    modules: ['Resize', 'DisplaySize']
+                }
             }
         };
 
