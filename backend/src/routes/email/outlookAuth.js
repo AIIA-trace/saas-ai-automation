@@ -27,6 +27,7 @@ router.get('/authorize', authenticate, (req, res) => {
         authUrl.searchParams.append('response_mode', 'query');
         authUrl.searchParams.append('scope', 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access');
         authUrl.searchParams.append('state', clientId.toString());
+        authUrl.searchParams.append('prompt', 'select_account'); // Forzar selección de cuenta siempre
 
         logger.info(`🔐 Iniciando OAuth de Outlook para cliente ${clientId}`);
         logger.info(`📍 Redirect URI: ${process.env.MICROSOFT_REDIRECT_URI}`);
