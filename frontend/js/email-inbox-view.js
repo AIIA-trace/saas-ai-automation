@@ -1456,6 +1456,29 @@
     }
 
     /**
+     * Descargar adjunto
+     */
+    function downloadAttachment(emailId, attachmentId, filename) {
+        const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
+        console.log('📥 Descargando adjunto:', { emailId, attachmentId, filename });
+
+        // Crear un enlace temporal para descargar
+        const downloadUrl = `${API_BASE_URL}/api/email/${emailId}/attachments/${attachmentId}?token=${token}`;
+        
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        console.log('✅ Descarga iniciada');
+    }
+
+    /**
      * Renderizar mensajes anteriores del hilo
      */
     function renderThreadMessages(messages, threadId) {
@@ -2005,12 +2028,12 @@ ${body}`;
     /**
      * Remover adjunto de un mensaje específico
      */
-    window.InboxView.removeAttachmentForMessage = function(msgId, index) {
+    function removeAttachmentForMessage(msgId, index) {
         if (window.messageAttachments[msgId]) {
             window.messageAttachments[msgId].splice(index, 1);
             updateAttachmentsDisplayForMessage(msgId);
         }
-    };
+    }
 
     /**
      * Formatear tamaño de archivo
@@ -2505,14 +2528,15 @@ ${body}`;
         setFilter: setFilter,
         toggleImportant: toggleImportant,
         loadEmailDetails: loadEmailDetails,
-        downloadAttachment: window.downloadAttachment,
+        downloadAttachment: downloadAttachment,
         toggleThreadMessage: toggleThreadMessage,
         replyToSpecificMessage: replyToSpecificMessage,
         showReplyForm: showReplyForm,
         showForwardForm: showForwardForm,
         previewAttachment: previewAttachment,
         deleteEmail: deleteEmail,
-        cancelReply: cancelReply
+        cancelReply: cancelReply,
+        removeAttachmentForMessage: removeAttachmentForMessage
     };
 
 })();
