@@ -285,7 +285,21 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
             return;
         }
 
+        // Usar adjuntos pasados como parámetro o los locales
+        const attachmentsToCheck = attachmentsOverride !== null ? attachmentsOverride : selectedAttachments;
+
+        // Validar peso total de adjuntos (20MB máximo)
+        const maxTotalSize = 20 * 1024 * 1024; // 20MB
+        const totalSize = attachmentsToCheck.reduce((sum, att) => sum + att.size, 0);
+        
+        if (totalSize > maxTotalSize) {
+            const totalMB = (totalSize / (1024 * 1024)).toFixed(2);
+            alert(`El tamaño total de los adjuntos (${totalMB} MB) excede el límite de 20 MB.\n\nPor favor, elimina algunos archivos antes de enviar.`);
+            return;
+        }
+
         console.log('📝 Texto de respuesta:', replyText.substring(0, 100));
+        console.log('📎 Adjuntos:', attachmentsToCheck.length, 'Total:', (totalSize / (1024 * 1024)).toFixed(2), 'MB');
 
         // Deshabilitar botón
         sendBtn.disabled = true;
@@ -310,9 +324,6 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
             const cc = ccInput ? ccInput.value.trim() : null;
             const bcc = bccInput ? bccInput.value.trim() : null;
 
-            // Usar adjuntos pasados como parámetro o los locales
-            const attachmentsToSend = attachmentsOverride !== null ? attachmentsOverride : selectedAttachments;
-
             const payload = {
                 to: email.from,
                 cc: cc,
@@ -322,7 +333,7 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
                 threadId: threadId,
                 inReplyTo: email.messageId,
                 references: email.references || email.messageId,
-                attachments: attachmentsToSend
+                attachments: attachmentsToCheck
             };
 
             console.log('📦 Payload construido:', payload);

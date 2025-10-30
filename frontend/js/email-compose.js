@@ -478,10 +478,22 @@
             return;
         }
 
+        // Validar peso total de adjuntos (20MB máximo)
+        const maxTotalSize = 20 * 1024 * 1024; // 20MB
+        const totalSize = selectedAttachments.reduce((sum, att) => sum + att.size, 0);
+        
+        if (totalSize > maxTotalSize) {
+            const totalMB = (totalSize / (1024 * 1024)).toFixed(2);
+            alert(`El tamaño total de los adjuntos (${totalMB} MB) excede el límite de 20 MB.\n\nPor favor, elimina algunos archivos antes de enviar.`);
+            return;
+        }
+
         console.log('📧 Enviando email compuesto:', {
             subject: subject,
             bodyLength: body.length,
-            bodyPreview: body.substring(0, 200)
+            bodyPreview: body.substring(0, 200),
+            attachmentsCount: selectedAttachments.length,
+            totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2)
         });
 
         sendBtn.disabled = true;
