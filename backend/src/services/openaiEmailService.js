@@ -105,20 +105,80 @@ class OpenAIEmailService {
       return 'No hay mensajes anteriores en el hilo.';
     }
 
+    // Limitar a los últimos 15 mensajes para mantener contexto suficiente
+    const recentMessages = threadMessages.slice(-15);
+    
+    logger.info(`📊 Construyendo contexto: ${threadMessages.length} mensajes → usando últimos ${recentMessages.length}`);
+
     let context = 'HISTORIAL DEL HILO DE EMAILS:\n\n';
     
-    threadMessages.forEach((msg, index) => {
+    recentMessages.forEach((msg, index) => {
       const date = new Date(msg.date).toLocaleString('es-ES');
       context += `--- Mensaje ${index + 1} (${date}) ---\n`;
       context += `De: ${msg.from}\n`;
       context += `Para: ${msg.to}\n`;
       if (msg.cc) context += `CC: ${msg.cc}\n`;
-      context += `Asunto: ${msg.subject}\n\n`;
-      context += `${msg.body || msg.snippet}\n\n`;
+      context += `Asunto: ${msg.subject}\n`;
+      
+      // Incluir adjuntos si existen
+      if (msg.attachments && msg.attachments.length > 0) {
+        context += `Adjuntos: ${msg.attachments.map(a => a.filename || a.name).join(', ')}\n`;
+      }
+      
+      context += `\n`;
+      
+      // Limpiar el body: eliminar SOLO imágenes Base64, mantener todo el texto
+      let cleanBody = this.cleanEmailBody(msg.body || msg.snippet || '');
+      
+      context += `${cleanBody}\n\n`;
       context += '---\n\n';
     });
 
+    logger.info(`✅ Contexto construido: ${context.length} caracteres`);
     return context;
+  }
+
+  /**
+   * Limpiar body del email: eliminar SOLO imágenes Base64 (que son enormes)
+   * Mantener TODO el texto para no perder información crítica
+   */
+  cleanEmailBody(body) {
+    if (!body) return '';
+
+    let cleaned = body;
+
+    // 1. Eliminar imágenes Base64 (estas son ENORMES y causan el problema de tokens)
+    // Reemplazar con marcador para que la IA sepa que había una imagen
+    cleaned = cleaned.replace(/<img[^>]*src="data:image\/[^"]*"[^>]*>/gi, '[Imagen adjunta]');
+    cleaned = cleaned.replace(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]{100,}/g, '[Imagen Base64]');
+
+    // 2. Eliminar estilos y scripts (no aportan contexto)
+    cleaned = cleaned.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    cleaned = cleaned.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+
+    // 3. Convertir HTML a texto manteniendo estructura
+    // Mantener saltos de línea importantes
+    cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
+    cleaned = cleaned.replace(/<\/p>/gi, '\n\n');
+    cleaned = cleaned.replace(/<\/div>/gi, '\n');
+    cleaned = cleaned.replace(/<li>/gi, '\n- ');
+    
+    // Eliminar el resto de tags HTML
+    cleaned = cleaned.replace(/<[^>]+>/g, '');
+
+    // 4. Decodificar entidades HTML
+    cleaned = cleaned.replace(/&nbsp;/g, ' ');
+    cleaned = cleaned.replace(/&amp;/g, '&');
+    cleaned = cleaned.replace(/&lt;/g, '<');
+    cleaned = cleaned.replace(/&gt;/g, '>');
+    cleaned = cleaned.replace(/&quot;/g, '"');
+    cleaned = cleaned.replace(/&#39;/g, "'");
+
+    // 5. Limpiar espacios excesivos PERO mantener estructura
+    cleaned = cleaned.replace(/ {2,}/g, ' '); // Múltiples espacios → 1 espacio
+    cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n'); // Máximo 3 saltos de línea
+
+    return cleaned.trim();
   }
 
   /**
@@ -201,14 +261,24 @@ FORMATO DE RESPUESTA:
    * Construir prompt del usuario
    */
   buildUserPrompt(threadContext, currentEmail) {
-    return `${threadContext}
+    // Limpiar el body del email actual (eliminar solo imágenes Base64)
+    const cleanCurrentBody = this.cleanEmailBody(currentEmail.body || currentEmail.snippet || '');
 
-EMAIL ACTUAL AL QUE DEBES RESPONDER:
+    let emailInfo = `EMAIL ACTUAL AL QUE DEBES RESPONDER:
 De: ${currentEmail.from}
 Para: ${currentEmail.to || 'mí'}
-Asunto: ${currentEmail.subject}
+Asunto: ${currentEmail.subject}`;
 
-${currentEmail.body || currentEmail.snippet}
+    // Incluir adjuntos si existen
+    if (currentEmail.attachments && currentEmail.attachments.length > 0) {
+      emailInfo += `\nAdjuntos: ${currentEmail.attachments.map(a => a.filename || a.name).join(', ')}`;
+    }
+
+    emailInfo += `\n\n${cleanCurrentBody}`;
+
+    return `${threadContext}
+
+${emailInfo}
 
 ---
 
@@ -222,6 +292,7 @@ La respuesta debe:
 4. Ser clara, profesional y útil
 5. IMPORTANTE: Responde como una PERSONA REAL. Si necesitas más información, pídela de manera natural y específica
 6. NO uses frases robóticas como "no tengo información suficiente" - en su lugar, pregunta específicamente qué necesitas saber
+7. Si se mencionan archivos adjuntos (facturas, documentos, etc.), reconócelos en tu respuesta
 
 GENERA LA RESPUESTA (escribe como un humano profesional):`;
   }
