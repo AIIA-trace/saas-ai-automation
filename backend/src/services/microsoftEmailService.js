@@ -312,6 +312,21 @@ class MicrosoftEmailService {
    * @returns {Object} Email parseado
    */
   parseOutlookMessage(message) {
+    // Procesar adjuntos si existen
+    const attachments = [];
+    if (message.attachments && message.attachments.length > 0) {
+      message.attachments.forEach(att => {
+        if (att['@odata.type'] === '#microsoft.graph.fileAttachment') {
+          attachments.push({
+            attachmentId: att.id,
+            filename: att.name,
+            mimeType: att.contentType,
+            size: att.size
+          });
+        }
+      });
+    }
+
     return {
       id: message.id,
       messageId: message.id,  // Agregar messageId para compatibilidad con frontend
@@ -324,7 +339,8 @@ class MicrosoftEmailService {
       bodyType: message.body?.contentType || 'text',
       snippet: message.bodyPreview || '',
       isRead: message.isRead,
-      isStarred: message.flag?.flagStatus === 'flagged'
+      isStarred: message.flag?.flagStatus === 'flagged',
+      attachments: attachments
     };
   }
 
@@ -671,7 +687,8 @@ class MicrosoftEmailService {
       const response = await graphClient
         .api('/me/messages')
         .top(50)
-        .select('id,subject,from,toRecipients,receivedDateTime,bodyPreview,body,isRead,conversationId')
+        .select('id,subject,from,toRecipients,receivedDateTime,bodyPreview,body,isRead,conversationId,hasAttachments')
+        .expand('attachments')
         .orderby('receivedDateTime DESC')
         .get();
 

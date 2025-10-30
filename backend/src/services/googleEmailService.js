@@ -691,8 +691,28 @@ class GoogleEmailService {
           return header ? header.value : '';
         };
 
-        // Extraer cuerpo del mensaje
+        // Extraer cuerpo del mensaje y adjuntos
         let body = '';
+        const attachments = [];
+
+        // Función para extraer adjuntos de las partes
+        const extractAttachments = (parts) => {
+          if (!parts) return;
+          parts.forEach(part => {
+            if (part.filename && part.body.attachmentId) {
+              attachments.push({
+                filename: part.filename,
+                mimeType: part.mimeType,
+                size: part.body.size,
+                attachmentId: part.body.attachmentId
+              });
+            }
+            if (part.parts) {
+              extractAttachments(part.parts);
+            }
+          });
+        };
+
         if (msg.payload.body && msg.payload.body.data) {
           body = Buffer.from(msg.payload.body.data, 'base64').toString('utf-8');
         } else if (msg.payload.parts) {
@@ -700,6 +720,8 @@ class GoogleEmailService {
           if (textPart && textPart.body && textPart.body.data) {
             body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
           }
+          // Extraer adjuntos
+          extractAttachments(msg.payload.parts);
         }
 
         return {
@@ -711,7 +733,8 @@ class GoogleEmailService {
           subject: getHeader('Subject'),
           date: getHeader('Date'),
           body: body,
-          snippet: msg.snippet
+          snippet: msg.snippet,
+          attachments: attachments
         };
       });
 
