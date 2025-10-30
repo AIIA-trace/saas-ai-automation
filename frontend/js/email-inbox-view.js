@@ -1877,7 +1877,7 @@ ${body}`;
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
             const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
 
-            const response = await fetch(`${API_BASE_URL}/api/ai/rewrite-content`, {
+            const response = await fetch(`${API_BASE_URL}/api/email/ai/rewrite-content`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
