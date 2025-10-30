@@ -89,12 +89,6 @@
                                 <input type="text" class="form-control" id="compose-subject" placeholder="Asunto del email">
                             </div>
 
-                            <!-- Cuerpo del mensaje -->
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Mensaje:</label>
-                                <div id="compose-body" style="background: white;"></div>
-                            </div>
-
                             <!-- Botones de IA -->
                             <div class="mb-3">
                                 <button class="btn btn-sm btn-outline-primary me-2" id="compose-ai-btn">
@@ -103,6 +97,12 @@
                                 <button class="btn btn-sm btn-outline-secondary" id="rewrite-ai-btn">
                                     <i class="fas fa-magic me-1"></i>Reescribir con IA
                                 </button>
+                            </div>
+
+                            <!-- Cuerpo del mensaje -->
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Mensaje:</label>
+                                <div id="compose-body" style="background: white;"></div>
                             </div>
 
                             <!-- Adjuntos seleccionados -->

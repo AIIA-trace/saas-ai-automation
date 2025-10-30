@@ -2146,9 +2146,6 @@ ${body}`;
                 <i class="fas fa-plus me-1"></i>Agregar CC/CCO
             </button>
             
-            <!-- Editor de texto enriquecido -->
-            <div id="reply-textarea-${msgId}" class="mb-3" style="background: white;"></div>
-
             <!-- Botones de IA -->
             <div class="mb-3">
                 <button class="btn btn-sm btn-outline-primary me-2" id="generate-ai-response-btn-${msgId}">
@@ -2161,6 +2158,9 @@ ${body}`;
                     <i class="fas fa-external-link-alt"></i>
                 </button>
             </div>
+
+            <!-- Editor de texto enriquecido -->
+            <div id="reply-textarea-${msgId}" class="mb-3" style="background: white;"></div>
             
             <!-- Adjuntos seleccionados -->
             <div id="selected-attachments-${msgId}" class="mb-3"></div>
