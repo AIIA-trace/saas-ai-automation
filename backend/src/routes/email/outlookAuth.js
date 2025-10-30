@@ -166,31 +166,28 @@ router.get('/callback', async (req, res) => {
 
         logger.info(`✅ Cuenta de Outlook guardada: ${emailAccount.email}`);
 
-        // Obtener emailConfig actual para no sobrescribir outgoingEmail si ya existe
+        // IMPORTANTE: Al conectar OAuth, NO tocar emailConfig
+        // El usuario ya configuró su email manualmente en el dashboard
+        // Solo actualizar provider y consentGiven, mantener TODO lo demás
         const currentClient = await prisma.client.findUnique({
             where: { id: parseInt(clientId) },
             select: { emailConfig: true }
         });
         
         const currentEmailConfig = currentClient?.emailConfig || {};
-        const existingOutgoingEmail = currentEmailConfig.outgoingEmail;
         
-        logger.info(`📧 Email actual configurado: ${existingOutgoingEmail || 'Ninguno'}`);
-        logger.info(`📧 Email de OAuth: ${userEmail}`);
+        logger.info(`📧 Email configurado en dashboard: ${currentEmailConfig.outgoingEmail || 'Ninguno'}`);
+        logger.info(`📧 Email de OAuth (NO se usará): ${userEmail}`);
 
-        // Actualizar emailConfig en Client para que esté disponible inmediatamente
+        // Solo actualizar provider y consent, RESPETAR el email configurado manualmente
         await prisma.client.update({
             where: { id: parseInt(clientId) },
             data: {
                 emailConfig: {
+                    ...currentEmailConfig,
                     enabled: true,
                     provider: 'microsoft',
-                    // Solo actualizar outgoingEmail si no existe uno configurado
-                    outgoingEmail: existingOutgoingEmail || userEmail,
-                    consentGiven: true,
-                    emailSignature: currentEmailConfig.emailSignature || '',
-                    emailSignatureEnabled: currentEmailConfig.emailSignatureEnabled || false,
-                    forwardingRules: currentEmailConfig.forwardingRules || ''
+                    consentGiven: true
                 }
             }
         });
