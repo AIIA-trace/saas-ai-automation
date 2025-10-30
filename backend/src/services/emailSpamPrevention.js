@@ -147,21 +147,24 @@ class EmailSpamPrevention {
   improveEmail(emailData, warnings) {
     let improved = { ...emailData };
 
-    // Agregar saludo si falta
-    if (!this.hasGreeting(improved.body)) {
-      const greeting = this.detectLanguage(improved.body) === 'es' 
-        ? '<p>Hola,</p>' 
-        : '<p>Hello,</p>';
-      improved.body = greeting + improved.body;
-    }
+    // DESHABILITADO: No agregar saludos/despedidas automáticamente
+    // El usuario debe escribir su propio saludo y despedida
+    
+    // // Agregar saludo si falta
+    // if (!this.hasGreeting(improved.body)) {
+    //   const greeting = this.detectLanguage(improved.body) === 'es' 
+    //     ? '<p>Hola,</p>' 
+    //     : '<p>Hello,</p>';
+    //   improved.body = greeting + improved.body;
+    // }
 
-    // Agregar despedida si falta
-    if (!this.hasFarewell(improved.body)) {
-      const farewell = this.detectLanguage(improved.body) === 'es'
-        ? '<p>Saludos cordiales,</p>'
-        : '<p>Best regards,</p>';
-      improved.body = improved.body + farewell;
-    }
+    // // Agregar despedida si falta
+    // if (!this.hasFarewell(improved.body)) {
+    //   const farewell = this.detectLanguage(improved.body) === 'es'
+    //     ? '<p>Saludos cordiales,</p>'
+    //     : '<p>Best regards,</p>';
+    //   improved.body = improved.body + farewell;
+    // }
 
     return improved;
   }
