@@ -1186,7 +1186,7 @@
                 </div>
 
                 <!-- Contenido del email -->
-                <div class="email-body mb-4" style="max-height: 500px; overflow-y: auto;">
+                <div class="email-body mb-4" style="max-height: 500px; overflow-y: auto; background: white; padding: 1rem; border-radius: 4px;">
                     ${currentMessage.body || currentMessage.snippet || ''}
                 </div>
 
@@ -1493,7 +1493,7 @@
                         </div>
                         
                         <!-- Contenido completo -->
-                        <div class="email-body mb-3" style="max-height: 400px; overflow-y: auto;">
+                        <div class="email-body mb-3" style="max-height: 400px; overflow-y: auto; background: white; padding: 1rem; border-radius: 4px;">
                             ${processEmailBody(msg.body || msg.snippet || '')}
                         </div>
                         
