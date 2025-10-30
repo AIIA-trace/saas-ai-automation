@@ -1637,6 +1637,16 @@ ${body}`;
         const formContainer = document.getElementById(`reply-form-${msgId}`);
         if (!formContainer) return;
 
+        // Inicializar editor de texto enriquecido
+        setTimeout(() => {
+            if (window.initRichTextEditor) {
+                window.initRichTextEditor(`reply-textarea-${msgId}`, {
+                    placeholder: 'Escribe tu respuesta...',
+                    minHeight: '200px'
+                });
+            }
+        }, 100);
+
         // Configurar botón CC/BCC
         const showCcBtn = document.getElementById(`show-reply-cc-btn-${msgId}`);
         if (showCcBtn) {
@@ -1890,11 +1900,13 @@ ${body}`;
                 <button class="btn btn-sm btn-outline-primary" id="generate-ai-response-btn-${msgId}">
                     <i class="fas fa-robot me-2"></i>Generar respuesta con IA
                 </button>
+                <button class="btn btn-sm btn-outline-secondary ms-2" id="popout-reply-btn-${msgId}" title="Abrir en ventana emergente">
+                    <i class="fas fa-external-link-alt"></i>
+                </button>
             </div>
 
-            <!-- Textarea de respuesta -->
-            <textarea class="form-control mb-3" id="reply-textarea-${msgId}" rows="6" 
-                      placeholder="Escribe tu respuesta..."></textarea>
+            <!-- Editor de texto enriquecido -->
+            <div id="reply-textarea-${msgId}" class="mb-3" style="background: white;"></div>
             
             <!-- Adjuntos seleccionados -->
             <div id="selected-attachments-${msgId}" class="mb-3"></div>

@@ -199,8 +199,17 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
             console.log('📊 Data parseada:', data);
             
             if (data.success && data.reply) {
-                console.log('✅ Respuesta exitosa, escribiendo en textarea...');
-                textarea.value = data.reply;
+                console.log('✅ Respuesta exitosa, escribiendo en editor...');
+                
+                // Escribir en editor rico o textarea
+                if (window.setRichTextContent) {
+                    // Convertir saltos de línea a HTML
+                    const htmlReply = data.reply.replace(/\n/g, '<br>');
+                    window.setRichTextContent(textareaId, htmlReply);
+                } else {
+                    textarea.value = data.reply;
+                }
+                
                 console.log(`✅ Respuesta generada con contexto de ${data.threadMessagesCount || 0} mensajes`);
                 
                 // Mostrar toast informativo
@@ -222,7 +231,13 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
                 
                 // Fallback: generar respuesta simple
                 console.log('📝 Usando respuesta fallback');
-                textarea.value = `Estimado/a,\n\nGracias por su mensaje. Hemos recibido su correo y le responderemos a la brevedad.\n\nSaludos cordiales`;
+                const fallbackText = `Estimado/a,\n\nGracias por su mensaje. Hemos recibido su correo y le responderemos a la brevedad.\n\nSaludos cordiales`;
+                
+                if (window.setRichTextContent) {
+                    window.setRichTextContent(textareaId, fallbackText.replace(/\n/g, '<br>'));
+                } else {
+                    textarea.value = fallbackText;
+                }
             } finally {
                 console.log('🔄 Restaurando botón...');
                 generateBtn.disabled = false;
@@ -254,8 +269,15 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
             return;
         }
 
-        const replyText = textarea.value.trim();
-        if (!replyText) {
+        // Obtener contenido del editor rico o del textarea
+        let replyText;
+        if (window.getRichTextContent) {
+            replyText = window.getRichTextContent('reply-textarea').trim();
+        } else {
+            replyText = textarea.value ? textarea.value.trim() : '';
+        }
+
+        if (!replyText || replyText === '<p><br></p>') {
             alert('Por favor escribe una respuesta');
             return;
         }
@@ -273,9 +295,9 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
             // Obtener firma del usuario (si existe)
             const signature = await getUserSignature();
 
-            // Construir body con firma
+            // Construir body con firma (el contenido ya viene en HTML del editor rico)
             const bodyWithSignature = `
-                <div>${replyText.replace(/\n/g, '<br>')}</div>
+                <div>${replyText}</div>
                 ${signature ? `<br><br><div>--<br>${signature}</div>` : ''}
             `;
 
@@ -317,7 +339,11 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
                 showSuccessToast('✅ Respuesta enviada correctamente');
                 
                 // Limpiar formulario
-                textarea.value = '';
+                if (window.clearRichTextEditor) {
+                    window.clearRichTextEditor('reply-textarea');
+                } else {
+                    textarea.value = '';
+                }
                 selectedAttachments = [];
                 updateAttachmentsDisplay();
                 
