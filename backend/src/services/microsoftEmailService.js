@@ -392,6 +392,17 @@ class MicrosoftEmailService {
         }));
       }
 
+      // Agregar adjuntos si existen
+      if (emailData.attachments && emailData.attachments.length > 0) {
+        message.attachments = emailData.attachments.map(att => ({
+          '@odata.type': '#microsoft.graph.fileAttachment',
+          name: att.filename,
+          contentType: att.mimeType,
+          contentBytes: att.data
+        }));
+        logger.info(`📎 Agregando ${emailData.attachments.length} adjuntos`);
+      }
+
       // Si es una respuesta, usar reply endpoint
       if (emailData.inReplyTo) {
         logger.info(`📧 Respondiendo al email: ${emailData.inReplyTo}`);
@@ -402,14 +413,27 @@ class MicrosoftEmailService {
           .post();
 
         // Actualizar el draft con el contenido HTML
+        const patchData = {
+          body: {
+            contentType: 'HTML',
+            content: emailData.body
+          }
+        };
+
+        // Agregar adjuntos al draft si existen
+        if (emailData.attachments && emailData.attachments.length > 0) {
+          patchData.attachments = emailData.attachments.map(att => ({
+            '@odata.type': '#microsoft.graph.fileAttachment',
+            name: att.filename,
+            contentType: att.mimeType,
+            contentBytes: att.data
+          }));
+          logger.info(`📎 Agregando ${emailData.attachments.length} adjuntos a la respuesta`);
+        }
+
         await graphClient
           .api(`/me/messages/${replyDraft.id}`)
-          .patch({
-            body: {
-              contentType: 'HTML',
-              content: emailData.body
-            }
-          });
+          .patch(patchData);
 
         // Enviar el draft
         await graphClient
