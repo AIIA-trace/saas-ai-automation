@@ -3219,6 +3219,17 @@ function setupEventListeners() {
         }
     });
     
+    // Prevenir submit del formulario
+    const unifiedBotConfigForm = document.getElementById('unified-bot-config-form');
+    if (unifiedBotConfigForm) {
+        unifiedBotConfigForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('🚫 Submit del formulario prevenido');
+            return false;
+        });
+    }
+    
     // Configurar botones de guardar configuración del bot (arriba y abajo del formulario)
     // Verificar si ya se configuraron los event listeners para evitar duplicados
     const saveCallConfigBtn = document.getElementById('save-bot-config-btn');
