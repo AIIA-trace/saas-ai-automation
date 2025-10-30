@@ -166,20 +166,24 @@ router.get('/callback', async (req, res) => {
 
         logger.info(`✅ Cuenta de Outlook guardada: ${emailAccount.email}`);
 
-        // IMPORTANTE: Al conectar OAuth, NO tocar emailConfig
-        // El usuario ya configuró su email manualmente en el dashboard
-        // Solo actualizar provider y consentGiven, mantener TODO lo demás
+        // Obtener emailConfig actual
         const currentClient = await prisma.client.findUnique({
             where: { id: parseInt(clientId) },
             select: { emailConfig: true }
         });
         
         const currentEmailConfig = currentClient?.emailConfig || {};
+        const existingEmail = currentEmailConfig.outgoingEmail;
         
-        logger.info(`📧 Email configurado en dashboard: ${currentEmailConfig.outgoingEmail || 'Ninguno'}`);
-        logger.info(`📧 Email de OAuth (NO se usará): ${userEmail}`);
+        // Si NO hay email configurado, usar el de OAuth
+        // Si YA hay email configurado, respetarlo
+        const emailToUse = existingEmail || userEmail;
+        
+        logger.info(`📧 Email configurado previamente: ${existingEmail || 'Ninguno'}`);
+        logger.info(`📧 Email de OAuth: ${userEmail}`);
+        logger.info(`📧 Email que se usará: ${emailToUse}`);
 
-        // Solo actualizar provider y consent, RESPETAR el email configurado manualmente
+        // Actualizar emailConfig preservando lo que ya existe
         await prisma.client.update({
             where: { id: parseInt(clientId) },
             data: {
@@ -187,6 +191,7 @@ router.get('/callback', async (req, res) => {
                     ...currentEmailConfig,
                     enabled: true,
                     provider: 'microsoft',
+                    outgoingEmail: emailToUse,
                     consentGiven: true
                 }
             }
