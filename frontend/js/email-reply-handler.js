@@ -276,14 +276,27 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
         let replyText;
         if (window.getRichTextContent) {
             replyText = window.getRichTextContent('reply-textarea').trim();
+            console.log('📝 Contenido obtenido del editor:', replyText.substring(0, 100));
         } else {
             replyText = textarea.value ? textarea.value.trim() : '';
+            console.log('📝 Contenido obtenido del textarea:', replyText.substring(0, 100));
         }
 
-        if (!replyText || replyText === '<p><br></p>') {
+        // Validar que hay contenido real (no solo HTML vacío)
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = replyText;
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+        
+        console.log('📝 Texto extraído (sin HTML):', textContent.substring(0, 100));
+        console.log('📝 Longitud del texto:', textContent.trim().length);
+        
+        if (!replyText || replyText === '<p><br></p>' || textContent.trim() === '') {
+            console.warn('⚠️ Validación falló - contenido vacío');
             alert('Por favor escribe una respuesta');
             return;
         }
+        
+        console.log('✅ Validación de contenido pasada');
 
         // Usar adjuntos pasados como parámetro o los locales
         const attachmentsToCheck = attachmentsOverride !== null ? attachmentsOverride : selectedAttachments;
