@@ -11,7 +11,10 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
     
     console.log('🎬 email-reply-handler.js IIFE EJECUTÁNDOSE...');
 
-    // Variable para almacenar adjuntos seleccionados
+    // Variable global para almacenar adjuntos por mensaje
+    window.messageAttachments = window.messageAttachments || {};
+    
+    // Variable para almacenar adjuntos del formulario principal (legacy)
     let selectedAttachments = [];
 
     /**
@@ -258,8 +261,8 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
     /**
      * Enviar respuesta
      */
-    async function sendReply(email, threadId) {
-        console.log('📧 sendReply llamado con:', { email, threadId });
+    async function sendReply(email, threadId, attachmentsOverride = null) {
+        console.log('📧 sendReply llamado con:', { email, threadId, attachmentsOverride });
         
         const textarea = document.getElementById('reply-textarea');
         const sendBtn = document.getElementById('send-reply-btn');
@@ -307,6 +310,9 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
             const cc = ccInput ? ccInput.value.trim() : null;
             const bcc = bccInput ? bccInput.value.trim() : null;
 
+            // Usar adjuntos pasados como parámetro o los locales
+            const attachmentsToSend = attachmentsOverride !== null ? attachmentsOverride : selectedAttachments;
+
             const payload = {
                 to: email.from,
                 cc: cc,
@@ -316,7 +322,7 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
                 threadId: threadId,
                 inReplyTo: email.messageId,
                 references: email.references || email.messageId,
-                attachments: selectedAttachments
+                attachments: attachmentsToSend
             };
 
             console.log('📦 Payload construido:', payload);

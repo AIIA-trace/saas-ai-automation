@@ -1914,29 +1914,86 @@ ${body}`;
      * Manejar selección de archivos para un mensaje específico
      */
     function handleFileSelectionForMessage(event, msgId) {
-        // Reutilizar la lógica existente pero con IDs únicos
-        if (window.handleFileSelection) {
-            // Temporalmente cambiar los IDs para que la función existente funcione
-            const originalAttachInput = document.getElementById('attachment-input');
-            const originalSelectedAttachments = document.getElementById('selected-attachments');
-            const originalAttachInfo = document.getElementById('attachment-info');
-            
-            // Crear referencias temporales
-            const tempAttachInput = document.getElementById(`attachment-input-${msgId}`);
-            const tempSelectedAttachments = document.getElementById(`selected-attachments-${msgId}`);
-            const tempAttachInfo = document.getElementById(`attachment-info-${msgId}`);
-            
-            if (tempAttachInput) tempAttachInput.id = 'attachment-input';
-            if (tempSelectedAttachments) tempSelectedAttachments.id = 'selected-attachments';
-            if (tempAttachInfo) tempAttachInfo.id = 'attachment-info';
-            
-            window.handleFileSelection(event);
-            
-            // Restaurar IDs
-            if (tempAttachInput) tempAttachInput.id = `attachment-input-${msgId}`;
-            if (tempSelectedAttachments) tempSelectedAttachments.id = `selected-attachments-${msgId}`;
-            if (tempAttachInfo) tempAttachInfo.id = `attachment-info-${msgId}`;
+        const files = Array.from(event.target.files);
+        const maxSize = 20 * 1024 * 1024; // 20MB
+
+        // Inicializar array de adjuntos para este mensaje si no existe
+        if (!window.messageAttachments[msgId]) {
+            window.messageAttachments[msgId] = [];
         }
+
+        files.forEach(file => {
+            if (file.size > maxSize) {
+                alert(`El archivo ${file.name} excede el tamaño máximo de 20MB`);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                window.messageAttachments[msgId].push({
+                    filename: file.name,
+                    mimeType: file.type,
+                    size: file.size,
+                    data: e.target.result.split(',')[1] // Base64 sin el prefijo
+                });
+                
+                updateAttachmentsDisplayForMessage(msgId);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    /**
+     * Actualizar visualización de adjuntos para un mensaje específico
+     */
+    function updateAttachmentsDisplayForMessage(msgId) {
+        const container = document.getElementById(`selected-attachments-${msgId}`);
+        if (!container) return;
+
+        const attachments = window.messageAttachments[msgId] || [];
+
+        if (attachments.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = '<div class="alert alert-info py-2"><strong>Adjuntos:</strong><div class="mt-2">';
+        
+        attachments.forEach((att, index) => {
+            html += `
+                <div class="d-inline-flex align-items-center bg-white rounded px-2 py-1 me-2 mb-2">
+                    <i class="fas fa-file me-2"></i>
+                    <span class="small">${att.filename} (${formatFileSize(att.size)})</span>
+                    <button class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="window.InboxView.removeAttachmentForMessage('${msgId}', ${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        });
+        
+        html += '</div></div>';
+        container.innerHTML = html;
+    }
+
+    /**
+     * Remover adjunto de un mensaje específico
+     */
+    window.InboxView.removeAttachmentForMessage = function(msgId, index) {
+        if (window.messageAttachments[msgId]) {
+            window.messageAttachments[msgId].splice(index, 1);
+            updateAttachmentsDisplayForMessage(msgId);
+        }
+    };
+
+    /**
+     * Formatear tamaño de archivo
+     */
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
     }
 
     /**
@@ -2038,8 +2095,11 @@ ${body}`;
         
         console.log('📤 Llamando a window.sendReply con:', { email, threadId });
         
-        // Llamar a sendReply
-        window.sendReply(email, threadId);
+        // Pasar adjuntos del mensaje específico
+        const attachments = window.messageAttachments[msgId] || [];
+        
+        // Llamar a sendReply con adjuntos
+        window.sendReply(email, threadId, attachments);
         
         // Restaurar IDs después de un momento
         setTimeout(() => {
