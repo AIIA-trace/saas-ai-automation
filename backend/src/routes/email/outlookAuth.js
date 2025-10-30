@@ -166,6 +166,18 @@ router.get('/callback', async (req, res) => {
 
         logger.info(`✅ Cuenta de Outlook guardada: ${emailAccount.email}`);
 
+        // Obtener emailConfig actual para no sobrescribir outgoingEmail si ya existe
+        const currentClient = await prisma.client.findUnique({
+            where: { id: parseInt(clientId) },
+            select: { emailConfig: true }
+        });
+        
+        const currentEmailConfig = currentClient?.emailConfig || {};
+        const existingOutgoingEmail = currentEmailConfig.outgoingEmail;
+        
+        logger.info(`📧 Email actual configurado: ${existingOutgoingEmail || 'Ninguno'}`);
+        logger.info(`📧 Email de OAuth: ${userEmail}`);
+
         // Actualizar emailConfig en Client para que esté disponible inmediatamente
         await prisma.client.update({
             where: { id: parseInt(clientId) },
@@ -173,10 +185,12 @@ router.get('/callback', async (req, res) => {
                 emailConfig: {
                     enabled: true,
                     provider: 'microsoft',
-                    outgoingEmail: userEmail,
+                    // Solo actualizar outgoingEmail si no existe uno configurado
+                    outgoingEmail: existingOutgoingEmail || userEmail,
                     consentGiven: true,
-                    emailSignature: '',
-                    forwardingRules: ''
+                    emailSignature: currentEmailConfig.emailSignature || '',
+                    emailSignatureEnabled: currentEmailConfig.emailSignatureEnabled || false,
+                    forwardingRules: currentEmailConfig.forwardingRules || ''
                 }
             }
         });
