@@ -334,15 +334,25 @@
 
             const data = await response.json();
             
+            const fallbackText = `Estimado/a,\n\nEn relación a: ${subject}\n\n[Escribe aquí tu mensaje]\n\nSaludos cordiales`;
+            
             if (data.success && data.content) {
-                bodyTextarea.value = data.content;
+                // Escribir en editor rico
+                if (window.setRichTextContent) {
+                    window.setRichTextContent('compose-body', data.content.replace(/\n/g, '<br>'));
+                }
             } else {
                 // Fallback
-                bodyTextarea.value = `Estimado/a,\n\nEn relación a: ${subject}\n\n[Escribe aquí tu mensaje]\n\nSaludos cordiales`;
+                if (window.setRichTextContent) {
+                    window.setRichTextContent('compose-body', fallbackText.replace(/\n/g, '<br>'));
+                }
             }
         } catch (error) {
             console.error('Error generando contenido:', error);
-            bodyTextarea.value = `Estimado/a,\n\nEn relación a: ${subject}\n\n[Escribe aquí tu mensaje]\n\nSaludos cordiales`;
+            const fallbackText = `Estimado/a,\n\nEn relación a: ${subject}\n\n[Escribe aquí tu mensaje]\n\nSaludos cordiales`;
+            if (window.setRichTextContent) {
+                window.setRichTextContent('compose-body', fallbackText.replace(/\n/g, '<br>'));
+            }
         } finally {
             aiBtn.disabled = false;
             aiBtn.innerHTML = '<i class="fas fa-robot me-1"></i>Generar contenido con IA';
