@@ -99,7 +99,7 @@
                             <!-- Cuerpo del mensaje -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Mensaje:</label>
-                                <textarea class="form-control" id="compose-body" rows="10" placeholder="Escribe tu mensaje aquí..."></textarea>
+                                <div id="compose-body" style="background: white;"></div>
                             </div>
 
                             <!-- Adjuntos seleccionados -->
@@ -306,10 +306,9 @@
      */
     async function generateComposeWithAI() {
         const subjectInput = document.getElementById('compose-subject');
-        const bodyTextarea = document.getElementById('compose-body');
         const aiBtn = document.getElementById('compose-ai-btn');
 
-        if (!subjectInput || !bodyTextarea || !aiBtn) return;
+        if (!subjectInput || !aiBtn) return;
 
         const subject = subjectInput.value.trim();
         if (!subject) {
@@ -355,10 +354,9 @@
      */
     async function sendComposedEmail() {
         const subjectInput = document.getElementById('compose-subject');
-        const bodyTextarea = document.getElementById('compose-body');
         const sendBtn = document.getElementById('send-compose-btn');
 
-        if (!subjectInput || !bodyTextarea || !sendBtn) return;
+        if (!subjectInput || !sendBtn) return;
 
         // Validaciones
         if (recipients.to.length === 0) {
@@ -372,7 +370,8 @@
             return;
         }
 
-        const body = bodyTextarea.value.trim();
+        // Obtener contenido del editor rico
+        const body = window.getRichTextContent ? window.getRichTextContent('compose-body').trim() : '';
         if (!body) {
             alert('El mensaje no puede estar vacío');
             return;
@@ -394,7 +393,7 @@
             // Obtener firma
             const signature = await getUserSignature();
             const bodyWithSignature = `
-                <div>${body.replace(/\n/g, '<br>')}</div>
+                <div>${body}</div>
                 ${signature ? `<br><br><div>--<br>${signature}</div>` : ''}
             `;
             
@@ -487,7 +486,9 @@
         selectedAttachments = [];
         
         document.getElementById('compose-subject').value = '';
-        document.getElementById('compose-body').value = '';
+        if (window.clearRichTextEditor) {
+            window.clearRichTextEditor('compose-body');
+        }
         document.getElementById('to-input').value = '';
         document.getElementById('cc-input').value = '';
         document.getElementById('bcc-input').value = '';
@@ -505,6 +506,16 @@
         // Mostrar modal
         const modal = new bootstrap.Modal(document.getElementById('compose-email-modal'));
         modal.show();
+
+        // Inicializar editor de texto enriquecido después de mostrar el modal
+        setTimeout(() => {
+            if (window.initRichTextEditor) {
+                window.initRichTextEditor('compose-body', {
+                    placeholder: 'Escribe tu mensaje aquí...',
+                    minHeight: '250px'
+                });
+            }
+        }, 100);
     }
 
     /**
