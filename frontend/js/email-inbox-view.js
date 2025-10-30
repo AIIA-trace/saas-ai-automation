@@ -1710,12 +1710,83 @@ ${body}`;
             console.warn(`⚠️ No se encontró botón IA para ${msgId}`);
         }
 
+        // Configurar botón reescribir con IA
+        const rewriteBtn = document.getElementById(`rewrite-reply-btn-${msgId}`);
+        if (rewriteBtn) {
+            const newRewriteBtn = rewriteBtn.cloneNode(true);
+            rewriteBtn.parentNode.replaceChild(newRewriteBtn, rewriteBtn);
+            
+            newRewriteBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                rewriteReplyWithAI(msgId);
+            });
+        }
+
         // Configurar botón enviar
         const sendBtn = document.getElementById(`send-reply-btn-${msgId}`);
         if (sendBtn) {
             sendBtn.addEventListener('click', () => {
                 sendReplyForMessage(from, subject, messageId, threadId, msgId, emailId);
             });
+        }
+    }
+
+    /**
+     * Reescribir respuesta con IA
+     */
+    async function rewriteReplyWithAI(msgId) {
+        const textareaId = `reply-textarea-${msgId}`;
+        const rewriteBtnId = `rewrite-reply-btn-${msgId}`;
+        
+        const rewriteBtn = document.getElementById(rewriteBtnId);
+        if (!rewriteBtn) return;
+
+        // Obtener contenido actual
+        const currentContent = window.getRichTextContent ? window.getRichTextContent(textareaId).trim() : '';
+        
+        if (!currentContent || currentContent === '<p><br></p>') {
+            alert('Por favor escribe algo primero para que la IA pueda reescribirlo');
+            return;
+        }
+
+        rewriteBtn.disabled = true;
+        rewriteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Reescribiendo...';
+
+        try {
+            const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
+            const response = await fetch(`${API_BASE_URL}/api/ai/rewrite-content`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: currentContent })
+            });
+
+            const data = await response.json();
+            
+            if (data.success && data.rewritten) {
+                if (window.setRichTextContent) {
+                    window.setRichTextContent(textareaId, data.rewritten);
+                }
+                
+                if (window.showSuccessToast) {
+                    window.showSuccessToast('✅ Contenido reescrito con IA');
+                }
+            } else {
+                throw new Error(data.error || 'Error reescribiendo contenido');
+            }
+        } catch (error) {
+            console.error('Error reescribiendo contenido:', error);
+            if (window.showErrorToast) {
+                window.showErrorToast('Error al reescribir con IA');
+            }
+        } finally {
+            rewriteBtn.disabled = false;
+            rewriteBtn.innerHTML = '<i class="fas fa-magic me-1"></i>Reescribir con IA';
         }
     }
 
@@ -1895,18 +1966,21 @@ ${body}`;
                 <i class="fas fa-plus me-1"></i>Agregar CC/CCO
             </button>
             
-            <!-- Botón generar respuesta con IA -->
+            <!-- Editor de texto enriquecido -->
+            <div id="reply-textarea-${msgId}" class="mb-3" style="background: white;"></div>
+
+            <!-- Botones de IA -->
             <div class="mb-3">
-                <button class="btn btn-sm btn-outline-primary" id="generate-ai-response-btn-${msgId}">
-                    <i class="fas fa-robot me-2"></i>Generar respuesta con IA
+                <button class="btn btn-sm btn-outline-primary me-2" id="generate-ai-response-btn-${msgId}">
+                    <i class="fas fa-robot me-1"></i>Generar con IA
                 </button>
-                <button class="btn btn-sm btn-outline-secondary ms-2" id="popout-reply-btn-${msgId}" title="Abrir en ventana emergente">
+                <button class="btn btn-sm btn-outline-secondary me-2" id="rewrite-reply-btn-${msgId}">
+                    <i class="fas fa-magic me-1"></i>Reescribir con IA
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="popout-reply-btn-${msgId}" title="Abrir en ventana emergente">
                     <i class="fas fa-external-link-alt"></i>
                 </button>
             </div>
-
-            <!-- Editor de texto enriquecido -->
-            <div id="reply-textarea-${msgId}" class="mb-3" style="background: white;"></div>
             
             <!-- Adjuntos seleccionados -->
             <div id="selected-attachments-${msgId}" class="mb-3"></div>
