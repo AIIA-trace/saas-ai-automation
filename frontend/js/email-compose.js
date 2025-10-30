@@ -375,11 +375,29 @@
         const rewriteBtn = document.getElementById('rewrite-ai-btn');
         if (!rewriteBtn) return;
 
-        // Obtener contenido actual del editor
-        const currentContent = window.getRichTextContent ? window.getRichTextContent('compose-body').trim() : '';
+        // Obtener editor Quill
+        const editor = window.getRichTextEditor ? window.getRichTextEditor('compose-body') : null;
         
-        if (!currentContent || currentContent === '<p><br></p>') {
-            alert('Por favor escribe algo primero para que la IA pueda reescribirlo');
+        let contentToRewrite = '';
+        let isSelection = false;
+        
+        if (editor) {
+            // Verificar si hay texto seleccionado
+            const selection = editor.getSelection();
+            if (selection && selection.length > 0) {
+                // Hay texto seleccionado
+                contentToRewrite = editor.getText(selection.index, selection.length).trim();
+                isSelection = true;
+            } else {
+                // No hay selección, usar todo el contenido
+                contentToRewrite = window.getRichTextContent('compose-body').trim();
+            }
+        } else {
+            contentToRewrite = window.getRichTextContent ? window.getRichTextContent('compose-body').trim() : '';
+        }
+        
+        if (!contentToRewrite || contentToRewrite === '<p><br></p>') {
+            alert(isSelection ? 'Por favor selecciona el texto que quieres reescribir' : 'Por favor escribe algo primero para que la IA pueda reescribirlo');
             return;
         }
 
@@ -396,19 +414,27 @@
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ content: currentContent })
+                body: JSON.stringify({ content: contentToRewrite })
             });
 
             const data = await response.json();
             
             if (data.success && data.rewritten) {
-                // Reemplazar con contenido reescrito
-                if (window.setRichTextContent) {
-                    window.setRichTextContent('compose-body', data.rewritten);
+                if (editor && isSelection) {
+                    // Reemplazar solo la selección
+                    const selection = editor.getSelection();
+                    editor.deleteText(selection.index, selection.length);
+                    editor.clipboard.dangerouslyPasteHTML(selection.index, data.rewritten);
+                    editor.setSelection(selection.index + data.rewritten.length);
+                } else {
+                    // Reemplazar todo el contenido
+                    if (window.setRichTextContent) {
+                        window.setRichTextContent('compose-body', data.rewritten);
+                    }
                 }
                 
                 if (window.showSuccessToast) {
-                    window.showSuccessToast('✅ Contenido reescrito con IA');
+                    window.showSuccessToast(isSelection ? '✅ Selección reescrita con IA' : '✅ Contenido reescrito con IA');
                 }
             } else {
                 throw new Error(data.error || 'Error reescribiendo contenido');
