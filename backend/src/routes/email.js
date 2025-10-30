@@ -1210,4 +1210,41 @@ router.get('/contacts/suggestions', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * Reescribir contenido con IA
+ * POST /api/ai/rewrite-content
+ */
+router.post('/ai/rewrite-content', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        error: 'content es requerido'
+      });
+    }
+
+    logger.info(`✍️ Reescribiendo contenido con IA para cliente ${clientId}`);
+
+    // Usar OpenAI para reescribir el contenido
+    const rewritten = await openaiEmailService.rewriteContent(content, clientId);
+
+    logger.info('✅ Contenido reescrito exitosamente');
+
+    res.json({
+      success: true,
+      rewritten: rewritten
+    });
+
+  } catch (error) {
+    logger.error(`❌ Error reescribiendo contenido: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

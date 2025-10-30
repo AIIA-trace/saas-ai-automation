@@ -89,17 +89,20 @@
                                 <input type="text" class="form-control" id="compose-subject" placeholder="Asunto del email">
                             </div>
 
-                            <!-- Botón generar con IA -->
-                            <div class="mb-3">
-                                <button class="btn btn-sm btn-outline-primary" id="compose-ai-btn">
-                                    <i class="fas fa-robot me-1"></i>Generar contenido con IA
-                                </button>
-                            </div>
-
                             <!-- Cuerpo del mensaje -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Mensaje:</label>
                                 <div id="compose-body" style="background: white;"></div>
+                            </div>
+
+                            <!-- Botones de IA -->
+                            <div class="mb-3">
+                                <button class="btn btn-sm btn-outline-primary me-2" id="compose-ai-btn">
+                                    <i class="fas fa-robot me-1"></i>Generar con IA
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" id="rewrite-ai-btn">
+                                    <i class="fas fa-magic me-1"></i>Reescribir con IA
+                                </button>
                             </div>
 
                             <!-- Adjuntos seleccionados -->
@@ -162,6 +165,12 @@
         const aiBtn = document.getElementById('compose-ai-btn');
         if (aiBtn) {
             aiBtn.addEventListener('click', generateComposeWithAI);
+        }
+
+        // Reescribir con IA
+        const rewriteBtn = document.getElementById('rewrite-ai-btn');
+        if (rewriteBtn) {
+            rewriteBtn.addEventListener('click', rewriteComposeWithAI);
         }
 
         // Enviar email
@@ -355,7 +364,63 @@
             }
         } finally {
             aiBtn.disabled = false;
-            aiBtn.innerHTML = '<i class="fas fa-robot me-1"></i>Generar contenido con IA';
+            aiBtn.innerHTML = '<i class="fas fa-robot me-1"></i>Generar con IA';
+        }
+    }
+
+    /**
+     * Reescribir contenido con IA
+     */
+    async function rewriteComposeWithAI() {
+        const rewriteBtn = document.getElementById('rewrite-ai-btn');
+        if (!rewriteBtn) return;
+
+        // Obtener contenido actual del editor
+        const currentContent = window.getRichTextContent ? window.getRichTextContent('compose-body').trim() : '';
+        
+        if (!currentContent || currentContent === '<p><br></p>') {
+            alert('Por favor escribe algo primero para que la IA pueda reescribirlo');
+            return;
+        }
+
+        rewriteBtn.disabled = true;
+        rewriteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Reescribiendo...';
+
+        try {
+            const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+
+            const response = await fetch(`${API_BASE_URL}/api/ai/rewrite-content`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: currentContent })
+            });
+
+            const data = await response.json();
+            
+            if (data.success && data.rewritten) {
+                // Reemplazar con contenido reescrito
+                if (window.setRichTextContent) {
+                    window.setRichTextContent('compose-body', data.rewritten);
+                }
+                
+                if (window.showSuccessToast) {
+                    window.showSuccessToast('✅ Contenido reescrito con IA');
+                }
+            } else {
+                throw new Error(data.error || 'Error reescribiendo contenido');
+            }
+        } catch (error) {
+            console.error('Error reescribiendo contenido:', error);
+            if (window.showErrorToast) {
+                window.showErrorToast('Error al reescribir con IA');
+            }
+        } finally {
+            rewriteBtn.disabled = false;
+            rewriteBtn.innerHTML = '<i class="fas fa-magic me-1"></i>Reescribir con IA';
         }
     }
 

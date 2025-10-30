@@ -386,6 +386,63 @@ FORMATO DE RESPUESTA (JSON):
       throw error;
     }
   }
+
+  /**
+   * Reescribir contenido con IA para mejorar redacción
+   */
+  async rewriteContent(content, clientId) {
+    try {
+      logger.info('✍️ Reescribiendo contenido con IA...');
+
+      // Obtener contexto del cliente
+      const clientContext = await getClientContext(clientId);
+
+      // Limpiar HTML del contenido
+      const cleanContent = this.cleanEmailBody(content);
+
+      const systemPrompt = `Eres un asistente experto en redacción profesional de emails para ${clientContext.companyName}.
+
+Tu tarea es MEJORAR y REESCRIBIR el contenido que te proporcionen, manteniendo:
+- El mensaje principal y la intención
+- Un tono profesional pero cercano
+- Claridad y concisión
+- Corrección gramatical y ortográfica
+
+IMPORTANTE:
+- NO agregues saludos ni despedidas (se agregarán automáticamente)
+- Mantén la estructura si tiene bullets o listas
+- Mejora la redacción pero mantén el sentido original
+- Escribe en el mismo idioma del texto original`;
+
+      const userPrompt = `Reescribe y mejora el siguiente contenido de email:
+
+${cleanContent}
+
+Devuelve SOLO el contenido mejorado, sin saludos ni despedidas.`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 800
+      });
+
+      const rewritten = completion.choices[0].message.content.trim();
+      
+      logger.info('✅ Contenido reescrito exitosamente');
+      logger.info(`📝 Longitud original: ${cleanContent.length} → Reescrito: ${rewritten.length}`);
+
+      // Convertir saltos de línea a HTML
+      return rewritten.replace(/\n/g, '<br>');
+
+    } catch (error) {
+      logger.error('❌ Error reescribiendo contenido:', error);
+      throw new Error(`Error al reescribir contenido: ${error.message}`);
+    }
+  }
 }
 
 module.exports = new OpenAIEmailService();
