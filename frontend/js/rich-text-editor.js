@@ -60,6 +60,9 @@
             editorContainer.style.minHeight = options.minHeight || '200px';
         }
 
+        // Habilitar pegar imágenes desde el portapapeles
+        setupImagePaste(quill, editorContainer);
+
         return quill;
     };
 
@@ -126,5 +129,84 @@
     window.getRichTextEditor = function(elementId) {
         return editors[elementId] || null;
     };
+
+    /**
+     * Configurar pegado de imágenes desde el portapapeles
+     * @param {Object} quill - Instancia de Quill
+     * @param {HTMLElement} editorContainer - Contenedor del editor
+     */
+    function setupImagePaste(quill, editorContainer) {
+        if (!editorContainer) return;
+
+        editorContainer.addEventListener('paste', function(e) {
+            // Verificar si hay archivos en el portapapeles
+            const clipboardData = e.clipboardData || window.clipboardData;
+            const items = clipboardData.items;
+
+            if (!items) return;
+
+            // Buscar imágenes en el portapapeles
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+
+                // Si es una imagen
+                if (item.type.indexOf('image') !== -1) {
+                    e.preventDefault(); // Prevenir el pegado por defecto
+
+                    const blob = item.getAsFile();
+                    if (!blob) continue;
+
+                    // Convertir imagen a Base64
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const base64Image = event.target.result;
+
+                        // Insertar imagen en el editor
+                        const range = quill.getSelection(true);
+                        quill.insertEmbed(range.index, 'image', base64Image);
+                        quill.setSelection(range.index + 1);
+                    };
+                    reader.readAsDataURL(blob);
+
+                    break; // Solo procesar la primera imagen
+                }
+            }
+        });
+
+        // También permitir arrastrar y soltar imágenes
+        editorContainer.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const files = e.dataTransfer.files;
+            if (!files || files.length === 0) return;
+
+            // Procesar solo la primera imagen
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+
+                if (file.type.indexOf('image') !== -1) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const base64Image = event.target.result;
+
+                        // Insertar imagen en el editor
+                        const range = quill.getSelection(true) || { index: quill.getLength() };
+                        quill.insertEmbed(range.index, 'image', base64Image);
+                        quill.setSelection(range.index + 1);
+                    };
+                    reader.readAsDataURL(file);
+
+                    break; // Solo procesar la primera imagen
+                }
+            }
+        });
+
+        // Prevenir comportamiento por defecto de dragover
+        editorContainer.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    }
 
 })();
