@@ -118,9 +118,16 @@ router.get('/callback', async (req, res) => {
         });
 
         const userData = userResponse.data;
+        
+        // Log completo de lo que Microsoft devuelve
+        logger.info(`📧 DEBUG - Datos completos de Microsoft Graph:`);
+        logger.info(`   mail: ${userData.mail}`);
+        logger.info(`   userPrincipalName: ${userData.userPrincipalName}`);
+        logger.info(`   proxyAddresses: ${JSON.stringify(userData.proxyAddresses || [])}`);
+        logger.info(`   otherMails: ${JSON.stringify(userData.otherMails || [])}`);
+        
         const userEmail = userData.mail || userData.userPrincipalName;
-
-        logger.info(`📧 Email de Outlook: ${userEmail}`);
+        logger.info(`📧 Email de Outlook seleccionado: ${userEmail}`);
 
         // Desactivar todas las cuentas Microsoft anteriores del cliente
         await prisma.emailAccount.updateMany({
