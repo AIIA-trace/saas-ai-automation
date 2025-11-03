@@ -340,6 +340,26 @@
 
         container.innerHTML = newHTML;
         console.log('✅ Layout de bandeja de entrada creado');
+        
+        // CRÍTICO: Reactivar el tab y botón porque innerHTML borró las clases active
+        const emailsTab = document.getElementById('emails-content');
+        const emailsButton = document.getElementById('emails-tab');
+        if (emailsTab && emailsButton) {
+            // Desactivar todos los tabs y botones
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active', 'show');
+            });
+            document.querySelectorAll('.nav-link').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            
+            // Activar el tab de emails
+            emailsTab.classList.add('active', 'show');
+            emailsButton.classList.add('active');
+            emailsButton.setAttribute('aria-selected', 'true');
+            console.log('🔄 Tab de emails reactivado después de innerHTML');
+        }
     }
 
     /**
