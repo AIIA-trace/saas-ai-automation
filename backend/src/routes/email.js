@@ -335,6 +335,8 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
     const clientId = req.client.id;
     const { emailId, attachmentId } = req.params;
 
+    logger.info(`📥 Descargando adjunto: emailId=${emailId}, attachmentId=${attachmentId}`);
+
     // Obtener cuenta activa
     const emailAccount = await prisma.emailAccount.findFirst({
       where: {
@@ -350,6 +352,8 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
       });
     }
 
+    logger.info(`   - Proveedor: ${emailAccount.provider}`);
+
     let attachmentData;
 
     // Obtener adjunto según el proveedor
@@ -364,12 +368,20 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
       });
     }
 
+    logger.info(`   - Datos recibidos: ${attachmentData.length} bytes`);
+    logger.info(`   - Tipo de datos: ${attachmentData.constructor.name}`);
+    logger.info(`   - Primeros 50 bytes (hex): ${attachmentData.slice(0, 50).toString('hex')}`);
+    logger.info(`   - Primeros 20 bytes (string): ${attachmentData.slice(0, 20).toString('utf8')}`);
+
     // Enviar archivo
     res.setHeader('Content-Type', 'application/octet-stream');
     res.send(attachmentData);
 
+    logger.info(`✅ Adjunto enviado correctamente`);
+
   } catch (error) {
     logger.error(`❌ Error descargando adjunto: ${error.message}`);
+    logger.error(`   Stack: ${error.stack}`);
     res.status(500).json({
       success: false,
       error: error.message

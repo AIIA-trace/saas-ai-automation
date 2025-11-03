@@ -531,6 +531,10 @@ class GoogleEmailService {
         
         // Adjuntos
         for (const attachment of emailData.attachments) {
+          logger.info(`📎 Procesando adjunto: ${attachment.filename}`);
+          logger.info(`   - Tipo MIME: ${attachment.mimeType}`);
+          logger.info(`   - Tamaño base64 original: ${attachment.data.length} caracteres`);
+          
           messageParts.push(`--${boundary}`);
           messageParts.push(`Content-Type: ${attachment.mimeType}`);
           messageParts.push('Content-Transfer-Encoding: base64');
@@ -540,6 +544,10 @@ class GoogleEmailService {
           // Dividir base64 en líneas de 76 caracteres (estándar RFC 2045)
           const base64Data = attachment.data;
           const lines = base64Data.match(/.{1,76}/g) || [];
+          logger.info(`   - Líneas base64 generadas: ${lines.length}`);
+          logger.info(`   - Primera línea (primeros 76 chars): ${lines[0]?.substring(0, 76)}`);
+          logger.info(`   - Última línea (length): ${lines[lines.length - 1]?.length}`);
+          
           messageParts.push(lines.join('\n'));
         }
         
@@ -594,6 +602,10 @@ class GoogleEmailService {
    */
   async getAttachment(clientId, emailId, attachmentId) {
     try {
+      logger.info(`🔍 getAttachment - Obteniendo adjunto de Gmail`);
+      logger.info(`   - emailId: ${emailId}`);
+      logger.info(`   - attachmentId: ${attachmentId}`);
+
       const auth = await this.getAuthenticatedClient(clientId);
       const gmail = google.gmail({ version: 'v1', auth });
 
@@ -603,14 +615,29 @@ class GoogleEmailService {
         id: attachmentId
       });
 
-      // Decodificar base64
+      logger.info(`   - Datos recibidos de Gmail API:`);
+      logger.info(`     * Size: ${attachment.data.size || 'N/A'}`);
+      logger.info(`     * Base64 length: ${attachment.data.data?.length || 0} caracteres`);
+      logger.info(`     * Primeros 100 chars base64: ${attachment.data.data?.substring(0, 100)}`);
+
+      // Decodificar base64 usando el estándar de Node.js
       const data = Buffer.from(attachment.data.data, 'base64');
       
-      logger.info(`✅ Adjunto obtenido: ${attachmentId}`);
+      logger.info(`   - Después de decodificar:`);
+      logger.info(`     * Buffer length: ${data.length} bytes`);
+      logger.info(`     * Primeros 50 bytes (hex): ${data.slice(0, 50).toString('hex')}`);
+      logger.info(`     * Magic number (primeros 4 bytes): ${data.slice(0, 4).toString('hex')}`);
+      
+      // Verificar si es un PDF válido (debe empezar con %PDF)
+      const isPDF = data.slice(0, 4).toString('utf8') === '%PDF';
+      logger.info(`     * Es PDF válido: ${isPDF}`);
+      
+      logger.info(`✅ Adjunto obtenido y decodificado correctamente: ${attachmentId}`);
       return data;
 
     } catch (error) {
       logger.error(`❌ Error obteniendo adjunto: ${error.message}`);
+      logger.error(`   Stack: ${error.stack}`);
       throw error;
     }
   }
