@@ -107,21 +107,34 @@
                     tabContent.classList.add('active', 'show');
                 }
             } else {
-                console.warn('⚠️ No se encontró el tab:', tabId);
+                console.warn(' No se encontró el tab:', tabId);
             }
         }
     }
 
     /**
-     * Configurar listeners para todos los tabs
+     * Configurar listeners para guardar el estado
      */
     function setupTabListeners() {
-        // Escuchar eventos de cambio de tab de Bootstrap
+        // Guardar cuando cambia el tab activo
         document.addEventListener('shown.bs.tab', function(event) {
             const target = event.target.getAttribute('data-bs-target') || event.target.getAttribute('href');
             if (target) {
                 const tabId = target.replace('#', '');
                 saveActiveTab(tabId);
+                
+                // Asegurar que el botón tenga la clase active
+                const button = event.target;
+                if (button && !button.classList.contains('active')) {
+                    // Desactivar todos los botones
+                    document.querySelectorAll('.nav-link').forEach(btn => {
+                        btn.classList.remove('active');
+                        btn.setAttribute('aria-selected', 'false');
+                    });
+                    // Activar el botón correcto
+                    button.classList.add('active');
+                    button.setAttribute('aria-selected', 'true');
+                }
             }
         });
 
