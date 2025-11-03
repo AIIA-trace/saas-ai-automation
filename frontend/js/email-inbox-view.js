@@ -1037,17 +1037,20 @@
 
         let html = '';
         emails.forEach(email => {
-            const unreadClass = email.unread ? 'bg-light fw-bold' : '';
+            // Solo negrita para no leídos, sin fondo
+            const unreadClass = email.unread ? 'fw-bold' : '';
             const checkboxClass = email.important ? 'custom-checkbox checked' : 'custom-checkbox';
+            // Barra azul a la izquierda solo para no leídos
+            const unreadBorder = email.unread ? 'border-start border-primary border-4' : '';
             
             html += `
-                <div class="email-list-item border-bottom p-3 ${unreadClass}" 
+                <div class="email-list-item border-bottom p-3 ${unreadClass} ${unreadBorder}" 
                      style="cursor: pointer; transition: background-color 0.2s;"
                      data-email-id="${email.id}"
                      data-unread="${email.unread}"
                      data-important="${email.important}"
                      onmouseover="this.style.backgroundColor='#f8f9fa'"
-                     onmouseout="this.style.backgroundColor='${email.unread ? '#f8f9fa' : 'white'}'">
+                     onmouseout="this.style.backgroundColor='white'">
                     <div class="d-flex align-items-start mb-2">
                         <div class="${checkboxClass}" 
                              style="min-width: 20px; margin-right: 10px; margin-top: 2px;"
@@ -1079,7 +1082,7 @@
                 if (email) {
                     showEmailContent(email);
                     email.unread = false;
-                    this.classList.remove('bg-light', 'fw-bold');
+                    this.classList.remove('fw-bold', 'border-start', 'border-primary', 'border-4');
                     this.dataset.unread = 'false';
                     markEmailAsReadInBackend(emailId);
                 }
@@ -2588,11 +2591,10 @@ ${body}`;
         console.log(`🔄 Auto-refresh activado (cada ${refreshIntervalMs / 1000}s)`);
         
         autoRefreshInterval = setInterval(() => {
-            // Solo actualizar si estamos en la vista de emails
-            const emailSection = document.getElementById('inbox-email-section');
-            if (!emailSection || emailSection.style.display === 'none') {
-                return;
-            }
+            // Verificar si estamos en la vista de emails (más flexible)
+            const emailSection = document.getElementById('inbox-email-section') || 
+                                document.getElementById('emails-content') ||
+                                document.querySelector('[id*="email"]');
             
             // Solo actualizar si no hay un modal abierto
             const modals = document.querySelectorAll('.modal.show');
