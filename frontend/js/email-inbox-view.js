@@ -101,6 +101,23 @@
             return;
         }
 
+        // CRÍTICO: Solo inicializar si el tab de emails está activo
+        if (!emailsContent.classList.contains('active') && !emailsContent.classList.contains('show')) {
+            console.log('⏸️ Tab de emails no está activo, esperando activación...');
+            // Escuchar cuando el tab se active
+            const emailsTab = document.getElementById('emails-tab');
+            if (emailsTab) {
+                emailsTab.addEventListener('shown.bs.tab', function initOnce() {
+                    console.log('✅ Tab de emails activado, inicializando vista...');
+                    emailsTab.removeEventListener('shown.bs.tab', initOnce);
+                    initInboxView();
+                }, { once: true });
+            }
+            return;
+        }
+
+        console.log('✅ Tab de emails está activo, continuando inicialización...');
+
         // IMPORTANTE: Extraer emails ANTES de reemplazar el contenido
         const emails = extractEmailsBeforeReplacing();
         console.log(`📧 ${emails.length} emails capturados antes de reemplazar layout`);
