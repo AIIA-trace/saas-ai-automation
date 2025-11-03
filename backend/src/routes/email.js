@@ -373,8 +373,28 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
     logger.info(`   - Primeros 50 bytes (hex): ${attachmentData.slice(0, 50).toString('hex')}`);
     logger.info(`   - Primeros 20 bytes (string): ${attachmentData.slice(0, 20).toString('utf8')}`);
 
-    // Enviar archivo
-    res.setHeader('Content-Type', 'application/octet-stream');
+    // Detectar tipo de archivo por magic number
+    let contentType = 'application/octet-stream';
+    const magicNumber = attachmentData.slice(0, 4).toString('hex');
+    
+    if (magicNumber === '25504446') {
+      contentType = 'application/pdf';
+    } else if (magicNumber.startsWith('ffd8ff')) {
+      contentType = 'image/jpeg';
+    } else if (magicNumber === '89504e47') {
+      contentType = 'image/png';
+    } else if (magicNumber === '47494638') {
+      contentType = 'image/gif';
+    } else if (magicNumber.startsWith('504b0304')) {
+      // ZIP-based formats (docx, xlsx, pptx)
+      contentType = 'application/zip';
+    }
+    
+    logger.info(`   - Content-Type detectado: ${contentType}`);
+
+    // Enviar archivo con Content-Type correcto
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', 'inline'); // Mostrar en navegador en lugar de descargar
     res.send(attachmentData);
 
     logger.info(`✅ Adjunto enviado correctamente`);
@@ -458,8 +478,28 @@ router.get('/:emailId/attachments/:attachmentId', async (req, res) => {
     logger.info(`   - Primeros 50 bytes (hex): ${attachmentData.slice(0, 50).toString('hex')}`);
     logger.info(`   - Primeros 20 bytes (string): ${attachmentData.slice(0, 20).toString('utf8')}`);
 
-    // Enviar archivo
-    res.setHeader('Content-Type', 'application/octet-stream');
+    // Detectar tipo de archivo por magic number
+    let contentType = 'application/octet-stream';
+    const magicNumber = attachmentData.slice(0, 4).toString('hex');
+    
+    if (magicNumber === '25504446') {
+      contentType = 'application/pdf';
+    } else if (magicNumber.startsWith('ffd8ff')) {
+      contentType = 'image/jpeg';
+    } else if (magicNumber === '89504e47') {
+      contentType = 'image/png';
+    } else if (magicNumber === '47494638') {
+      contentType = 'image/gif';
+    } else if (magicNumber.startsWith('504b0304')) {
+      // ZIP-based formats (docx, xlsx, pptx)
+      contentType = 'application/zip';
+    }
+    
+    logger.info(`   - Content-Type detectado: ${contentType}`);
+
+    // Enviar archivo con Content-Type correcto
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', 'inline'); // Mostrar en navegador en lugar de descargar
     res.send(attachmentData);
 
     logger.info(`✅ Adjunto enviado correctamente`);
