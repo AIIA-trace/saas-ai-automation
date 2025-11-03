@@ -6586,11 +6586,17 @@ function setupTabEventListeners() {
             new bootstrap.Tab(tabEl);
         });
         
-        // Activar la primera pestaña explícitamente
-        const firstTab = document.querySelector('#calls-tab');
-        if (firstTab) {
-            const bsTab = new bootstrap.Tab(firstTab);
-            bsTab.show();
+        // Solo activar la primera pestaña si NO hay hash en la URL
+        // (navigation-persistence.js se encarga de restaurar el tab correcto)
+        if (!window.location.hash) {
+            console.log('📍 No hay hash en URL, activando tab por defecto (llamadas)');
+            const firstTab = document.querySelector('#calls-tab');
+            if (firstTab) {
+                const bsTab = new bootstrap.Tab(firstTab);
+                bsTab.show();
+            }
+        } else {
+            console.log('🔗 Hash detectado en URL, dejando que navigation-persistence.js restaure el tab');
         }
         
         console.log('✅ Pestañas Bootstrap inicializadas correctamente');
