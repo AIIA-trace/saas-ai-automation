@@ -1388,10 +1388,16 @@
             'application/pdf',
             'text/',
             'application/json',
-            'application/xml'
+            'application/xml',
+            'word',           // Word documents
+            'document',       // Generic documents
+            'excel',          // Excel
+            'spreadsheet',    // Spreadsheets
+            'powerpoint',     // PowerPoint
+            'presentation'    // Presentations
         ];
         
-        return previewableTypes.some(type => mimeType.startsWith(type));
+        return previewableTypes.some(type => mimeType.includes(type));
     }
 
     /**
@@ -1444,14 +1450,16 @@
         const modal = new bootstrap.Modal(document.getElementById('attachment-preview-modal'));
         modal.show();
 
-        // Cargar contenido
-        fetch(`${API_BASE_URL}/api/email/${emailId}/attachment/${attachmentId}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        // Cargar contenido - usar el endpoint correcto
+        fetch(`${API_BASE_URL}/api/email/${emailId}/attachments/${attachmentId}?token=${token}`, {
+            method: 'GET'
         })
-        .then(response => response.blob())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.blob();
+        })
         .then(blob => {
             const modalBody = document.querySelector('#attachment-preview-modal .modal-body');
             const url = URL.createObjectURL(blob);
@@ -1459,19 +1467,56 @@
             let previewHTML = '';
 
             if (mimeType.startsWith('image/')) {
-                previewHTML = `<img src="${url}" class="img-fluid" alt="${filename}">`;
+                // Imágenes
+                previewHTML = `<img src="${url}" class="img-fluid" alt="${filename}" style="max-width: 100%; height: auto;">`;
             } else if (mimeType === 'application/pdf') {
-                previewHTML = `<iframe src="${url}" style="width: 100%; height: 600px; border: none;"></iframe>`;
+                // PDFs - usar embed con fallback a iframe
+                previewHTML = `
+                    <embed src="${url}#toolbar=1&navpanes=1&scrollbar=1" type="application/pdf" width="100%" height="600px" />
+                    <p class="text-center mt-3">
+                        <small class="text-muted">Si no se muestra el PDF, 
+                        <a href="${url}" target="_blank" class="btn btn-sm btn-primary">ábrelo en una nueva pestaña</a>
+                        </small>
+                    </p>
+                `;
             } else if (mimeType.startsWith('text/') || mimeType === 'application/json' || mimeType === 'application/xml') {
+                // Archivos de texto
                 blob.text().then(text => {
                     modalBody.innerHTML = `<pre class="bg-light p-3 rounded" style="max-height: 600px; overflow: auto;"><code>${escapeHtml(text)}</code></pre>`;
                 });
                 return;
+            } else if (mimeType.includes('word') || mimeType.includes('document')) {
+                // Word documents - usar Google Docs Viewer
+                previewHTML = `
+                    <iframe src="https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true" 
+                            style="width: 100%; height: 600px; border: none;"></iframe>
+                    <p class="text-center mt-3">
+                        <small class="text-muted">Vista previa de documento Word</small>
+                    </p>
+                `;
+            } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
+                // Excel - usar Google Docs Viewer
+                previewHTML = `
+                    <iframe src="https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true" 
+                            style="width: 100%; height: 600px; border: none;"></iframe>
+                    <p class="text-center mt-3">
+                        <small class="text-muted">Vista previa de hoja de cálculo</small>
+                    </p>
+                `;
+            } else if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) {
+                // PowerPoint - usar Google Docs Viewer
+                previewHTML = `
+                    <iframe src="https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true" 
+                            style="width: 100%; height: 600px; border: none;"></iframe>
+                    <p class="text-center mt-3">
+                        <small class="text-muted">Vista previa de presentación</small>
+                    </p>
+                `;
             } else {
                 previewHTML = `
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        No se puede mostrar preview para este tipo de archivo. 
+                        No se puede mostrar preview para este tipo de archivo (${mimeType}). 
                         <button class="btn btn-sm btn-primary ms-3" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
                             <i class="fas fa-download me-1"></i>Descargar
                         </button>
