@@ -53,6 +53,11 @@
             tabId = localStorage.getItem('lastActiveTab');
         }
         
+        // Prioridad 3: Tab por defecto (llamadas)
+        if (!tabId) {
+            tabId = 'calls-content';
+        }
+        
         if (tabId) {
             console.log('🔄 Restaurando tab desde:', window.location.hash ? 'URL hash' : 'localStorage', '→', tabId);
             
