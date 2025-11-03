@@ -388,7 +388,14 @@ class GoogleEmailService {
             h.name.toLowerCase() === 'content-id'
           )?.value;
 
-          if (isInline || contentId) {
+          // CRÍTICO: Excluir el cuerpo HTML del mensaje (no es un attachment real)
+          // El cuerpo HTML puede tener attachmentId pero NO debe listarse como adjunto
+          const isHtmlBody = part.mimeType === 'text/html' && !part.filename;
+          
+          if (isHtmlBody) {
+            // Es el cuerpo HTML del mensaje, no un attachment - ignorar
+            logger.info(`🚫 Ignorando cuerpo HTML como attachment (attachmentId: ${part.body.attachmentId})`);
+          } else if (isInline || contentId) {
             // Es una imagen embebida
             inlineImages.push({
               contentId: contentId ? contentId.replace(/[<>]/g, '') : null,
