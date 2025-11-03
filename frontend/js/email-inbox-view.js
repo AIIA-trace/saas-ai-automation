@@ -1476,12 +1476,17 @@
                 // Imágenes - usar blob URL
                 previewHTML = `<img src="${blobUrl}" class="img-fluid" alt="${filename}" style="max-width: 100%; height: auto;">`;
             } else if (mimeType === 'application/pdf') {
-                // PDFs - usar embed directo con blob URL
+                // PDFs - usar iframe con blob URL (más compatible que embed)
                 previewHTML = `
-                    <embed src="${blobUrl}#toolbar=1&navpanes=1&scrollbar=1" type="application/pdf" width="100%" height="600px" />
+                    <iframe src="${blobUrl}" type="application/pdf" width="100%" height="600px" style="border: none;"></iframe>
                     <p class="text-center mt-3">
-                        <small class="text-muted">Si no se muestra el PDF, 
-                        <a href="${blobUrl}" target="_blank" class="btn btn-sm btn-primary">ábrelo en una nueva pestaña</a>
+                        <small class="text-muted">
+                        <a href="${blobUrl}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>Abrir en nueva pestaña
+                        </a>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
+                            <i class="fas fa-download me-1"></i>Descargar
+                        </button>
                         </small>
                     </p>
                 `;
@@ -1492,43 +1497,40 @@
                 });
                 return;
             } else if (mimeType.includes('word') || mimeType.includes('document')) {
-                // Word documents - usar URL pública del servidor
+                // Word documents - descargar directamente, no hay preview confiable
                 previewHTML = `
-                    <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}" 
-                            style="width: 100%; height: 600px; border: none;"></iframe>
-                    <p class="text-center mt-3">
-                        <small class="text-muted">Vista previa de documento Word. Si no se muestra, 
-                        <button class="btn btn-sm btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
-                            <i class="fas fa-download me-1"></i>Descárgalo
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-file-word fa-3x mb-3 text-primary"></i>
+                        <h5>Documento Word</h5>
+                        <p class="mb-3">${filename}</p>
+                        <button class="btn btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
+                            <i class="fas fa-download me-2"></i>Descargar para ver
                         </button>
-                        </small>
-                    </p>
+                    </div>
                 `;
             } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
-                // Excel - usar Office Web Viewer
+                // Excel - descargar directamente
                 previewHTML = `
-                    <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}" 
-                            style="width: 100%; height: 600px; border: none;"></iframe>
-                    <p class="text-center mt-3">
-                        <small class="text-muted">Vista previa de hoja de cálculo. Si no se muestra, 
-                        <button class="btn btn-sm btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
-                            <i class="fas fa-download me-1"></i>Descárgalo
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-file-excel fa-3x mb-3 text-success"></i>
+                        <h5>Hoja de cálculo</h5>
+                        <p class="mb-3">${filename}</p>
+                        <button class="btn btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
+                            <i class="fas fa-download me-2"></i>Descargar para ver
                         </button>
-                        </small>
-                    </p>
+                    </div>
                 `;
             } else if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) {
-                // PowerPoint - usar Office Web Viewer
+                // PowerPoint - descargar directamente
                 previewHTML = `
-                    <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}" 
-                            style="width: 100%; height: 600px; border: none;"></iframe>
-                    <p class="text-center mt-3">
-                        <small class="text-muted">Vista previa de presentación. Si no se muestra, 
-                        <button class="btn btn-sm btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
-                            <i class="fas fa-download me-1"></i>Descárgalo
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-file-powerpoint fa-3x mb-3 text-danger"></i>
+                        <h5>Presentación</h5>
+                        <p class="mb-3">${filename}</p>
+                        <button class="btn btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
+                            <i class="fas fa-download me-2"></i>Descargar para ver
                         </button>
-                        </small>
-                    </p>
+                    </div>
                 `;
             } else {
                 previewHTML = `
