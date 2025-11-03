@@ -248,7 +248,7 @@ class GoogleEmailService {
           format: 'full'
         });
 
-        return this.parseGmailMessage(msg.data);
+        return await this.parseGmailMessage(msg.data, gmail);
       });
 
       const emails = await Promise.all(emailPromises);
@@ -303,7 +303,7 @@ class GoogleEmailService {
           format: 'full'
         });
 
-        return this.parseGmailMessage(msg.data);
+        return await this.parseGmailMessage(msg.data, gmail);
       });
 
       const emails = await Promise.all(emailPromises);
@@ -326,7 +326,7 @@ class GoogleEmailService {
    * @param {Object} message - Mensaje de Gmail
    * @returns {Object} Email parseado
    */
-  parseGmailMessage(message) {
+  async parseGmailMessage(message, gmail = null) {
     const headers = message.payload.headers;
     
     const getHeader = (name) => {
@@ -337,6 +337,7 @@ class GoogleEmailService {
     let body = '';
     let htmlBody = '';
     const attachments = [];
+    const inlineImages = []; // Para imágenes embebidas
 
     // Función recursiva para extraer partes del mensaje
     const extractParts = (parts) => {
@@ -347,14 +348,33 @@ class GoogleEmailService {
           body = Buffer.from(part.body.data, 'base64').toString('utf-8');
         } else if (part.mimeType === 'text/html' && part.body.data) {
           htmlBody = Buffer.from(part.body.data, 'base64').toString('utf-8');
-        } else if (part.filename && part.body.attachmentId) {
-          // Es un adjunto
-          attachments.push({
-            filename: part.filename,
-            mimeType: part.mimeType,
-            size: part.body.size,
-            attachmentId: part.body.attachmentId
-          });
+        } else if (part.body.attachmentId) {
+          // Verificar si es una imagen inline
+          const isInline = part.headers?.some(h => 
+            h.name.toLowerCase() === 'content-disposition' && 
+            h.value.toLowerCase().includes('inline')
+          );
+          const contentId = part.headers?.find(h => 
+            h.name.toLowerCase() === 'content-id'
+          )?.value;
+
+          if (isInline || contentId) {
+            // Es una imagen embebida
+            inlineImages.push({
+              contentId: contentId ? contentId.replace(/[<>]/g, '') : null,
+              attachmentId: part.body.attachmentId,
+              mimeType: part.mimeType,
+              filename: part.filename
+            });
+          } else if (part.filename) {
+            // Es un adjunto normal
+            attachments.push({
+              filename: part.filename,
+              mimeType: part.mimeType,
+              size: part.body.size,
+              attachmentId: part.body.attachmentId
+            });
+          }
         }
 
         // Recursión para partes anidadas
@@ -369,6 +389,36 @@ class GoogleEmailService {
       body = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
     } else if (message.payload.parts) {
       extractParts(message.payload.parts);
+    }
+
+    // Procesar imágenes inline si hay HTML body y cliente gmail disponible
+    if (htmlBody && inlineImages.length > 0 && gmail) {
+      logger.info(`🖼️ Procesando ${inlineImages.length} imágenes inline`);
+      
+      for (const img of inlineImages) {
+        try {
+          // Descargar la imagen inline
+          const attachment = await gmail.users.messages.attachments.get({
+            userId: 'me',
+            messageId: message.id,
+            id: img.attachmentId
+          });
+
+          // Convertir a base64 data URL
+          const dataUrl = `data:${img.mimeType};base64,${attachment.data.data}`;
+          
+          // Reemplazar referencias cid: en el HTML
+          if (img.contentId) {
+            const cidPattern = new RegExp(`cid:${img.contentId}`, 'gi');
+            htmlBody = htmlBody.replace(cidPattern, dataUrl);
+            logger.info(`✅ Imagen inline reemplazada: cid:${img.contentId}`);
+          }
+        } catch (error) {
+          logger.warn(`⚠️ Error procesando imagen inline: ${error.message}`);
+        }
+      }
+    } else if (inlineImages.length > 0 && !gmail) {
+      logger.warn(`⚠️ ${inlineImages.length} imágenes inline detectadas pero no se puede procesar sin cliente gmail`);
     }
 
     return {
@@ -409,7 +459,7 @@ class GoogleEmailService {
         format: 'full'
       });
 
-      const emailData = this.parseGmailMessage(message.data);
+      const emailData = await this.parseGmailMessage(message.data, gmail);
 
       // Obtener el hilo completo
       const thread = await gmail.users.threads.get({
@@ -419,7 +469,9 @@ class GoogleEmailService {
       });
 
       // Parsear todos los mensajes del hilo
-      const threadMessages = thread.data.messages.map(msg => this.parseGmailMessage(msg));
+      const threadMessages = await Promise.all(
+        thread.data.messages.map(msg => this.parseGmailMessage(msg, gmail))
+      );
 
       return {
         email: emailData,
