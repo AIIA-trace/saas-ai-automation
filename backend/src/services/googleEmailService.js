@@ -536,7 +536,11 @@ class GoogleEmailService {
           messageParts.push('Content-Transfer-Encoding: base64');
           messageParts.push(`Content-Disposition: attachment; filename="${attachment.filename}"`);
           messageParts.push('');
-          messageParts.push(attachment.data);
+          
+          // Dividir base64 en líneas de 76 caracteres (estándar RFC 2045)
+          const base64Data = attachment.data;
+          const lines = base64Data.match(/.{1,76}/g) || [];
+          messageParts.push(lines.join('\n'));
         }
         
         messageParts.push(`--${boundary}--`);
