@@ -410,13 +410,23 @@ class MicrosoftEmailService {
 
       // Agregar adjuntos si existen
       if (emailData.attachments && emailData.attachments.length > 0) {
-        message.attachments = emailData.attachments.map(att => ({
-          '@odata.type': '#microsoft.graph.fileAttachment',
-          name: att.filename,
-          contentType: att.mimeType,
-          contentBytes: att.data
-        }));
-        logger.info(`📎 Agregando ${emailData.attachments.length} adjuntos`);
+        logger.info(`📎 Procesando ${emailData.attachments.length} adjuntos para Microsoft`);
+        
+        message.attachments = emailData.attachments.map(att => {
+          logger.info(`   - Adjunto: ${att.filename}`);
+          logger.info(`     * Tipo MIME: ${att.mimeType}`);
+          logger.info(`     * Tamaño base64: ${att.data.length} caracteres`);
+          logger.info(`     * Primeros 100 chars: ${att.data.substring(0, 100)}`);
+          
+          return {
+            '@odata.type': '#microsoft.graph.fileAttachment',
+            name: att.filename,
+            contentType: att.mimeType,
+            contentBytes: att.data  // Microsoft Graph acepta base64 directamente
+          };
+        });
+        
+        logger.info(`✅ ${emailData.attachments.length} adjuntos agregados al mensaje`);
       }
 
       // Si es una respuesta, usar reply endpoint
@@ -438,13 +448,22 @@ class MicrosoftEmailService {
 
         // Agregar adjuntos al draft si existen
         if (emailData.attachments && emailData.attachments.length > 0) {
-          patchData.attachments = emailData.attachments.map(att => ({
-            '@odata.type': '#microsoft.graph.fileAttachment',
-            name: att.filename,
-            contentType: att.mimeType,
-            contentBytes: att.data
-          }));
-          logger.info(`📎 Agregando ${emailData.attachments.length} adjuntos a la respuesta`);
+          logger.info(`📎 Procesando ${emailData.attachments.length} adjuntos para respuesta Microsoft`);
+          
+          patchData.attachments = emailData.attachments.map(att => {
+            logger.info(`   - Adjunto: ${att.filename}`);
+            logger.info(`     * Tipo MIME: ${att.mimeType}`);
+            logger.info(`     * Tamaño base64: ${att.data.length} caracteres`);
+            
+            return {
+              '@odata.type': '#microsoft.graph.fileAttachment',
+              name: att.filename,
+              contentType: att.mimeType,
+              contentBytes: att.data  // Microsoft Graph acepta base64 directamente
+            };
+          });
+          
+          logger.info(`✅ ${emailData.attachments.length} adjuntos agregados a la respuesta`);
         }
 
         await graphClient
@@ -654,20 +673,41 @@ class MicrosoftEmailService {
    */
   async getAttachment(clientId, emailId, attachmentId) {
     try {
+      logger.info(`🔍 getAttachment - Obteniendo adjunto de Microsoft Graph`);
+      logger.info(`   - emailId: ${emailId}`);
+      logger.info(`   - attachmentId: ${attachmentId}`);
+
       const graphClient = await this.getAuthenticatedClient(clientId);
 
       const attachment = await graphClient
         .api(`/me/messages/${emailId}/attachments/${attachmentId}`)
         .get();
 
-      // El contenido viene en base64
+      logger.info(`   - Datos recibidos de Microsoft Graph API:`);
+      logger.info(`     * Name: ${attachment.name || 'N/A'}`);
+      logger.info(`     * ContentType: ${attachment.contentType || 'N/A'}`);
+      logger.info(`     * Size: ${attachment.size || 'N/A'}`);
+      logger.info(`     * Base64 length: ${attachment.contentBytes?.length || 0} caracteres`);
+      logger.info(`     * Primeros 100 chars base64: ${attachment.contentBytes?.substring(0, 100)}`);
+
+      // El contenido viene en base64 - decodificar usando estándar Node.js
       const data = Buffer.from(attachment.contentBytes, 'base64');
 
-      logger.info(`✅ Adjunto ${attachmentId} obtenido`);
+      logger.info(`   - Después de decodificar:`);
+      logger.info(`     * Buffer length: ${data.length} bytes`);
+      logger.info(`     * Primeros 50 bytes (hex): ${data.slice(0, 50).toString('hex')}`);
+      logger.info(`     * Magic number (primeros 4 bytes): ${data.slice(0, 4).toString('hex')}`);
+      
+      // Verificar si es un PDF válido (debe empezar con %PDF)
+      const isPDF = data.slice(0, 4).toString('utf8') === '%PDF';
+      logger.info(`     * Es PDF válido: ${isPDF}`);
+
+      logger.info(`✅ Adjunto obtenido y decodificado correctamente: ${attachmentId}`);
       return data;
 
     } catch (error) {
       logger.error(`❌ Error obteniendo adjunto: ${error.message}`);
+      logger.error(`   Stack: ${error.stack}`);
       throw error;
     }
   }
