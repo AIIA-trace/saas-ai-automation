@@ -82,9 +82,10 @@ function createSimpleTabs() {
     }
     
     // Crear pestañas dinámicamente con nueva estructura
+    // NO establecer active aquí - navigation-persistence.js lo manejará
     tabsContainer.innerHTML = `
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls-content" type="button" role="tab" aria-controls="calls-content" aria-selected="true">
+            <button class="nav-link" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls-content" type="button" role="tab" aria-controls="calls-content" aria-selected="false">
                 <i class="fas fa-phone me-2"></i>Registro de Llamadas
             </button>
         </li>
