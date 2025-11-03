@@ -2119,7 +2119,8 @@ ${body}`;
         }
         
         // Obtener elementos
-        const textarea = document.getElementById(`reply-textarea-${msgId}`);
+        const textareaId = `reply-textarea-${msgId}`;
+        const textarea = document.getElementById(textareaId);
         const ccInput = document.getElementById(`reply-cc-${msgId}`);
         const bccInput = document.getElementById(`reply-bcc-${msgId}`);
         const sendBtn = document.getElementById(`send-reply-btn-${msgId}`);
@@ -2129,35 +2130,24 @@ ${body}`;
             return;
         }
         
-        // Guardar IDs originales
-        const originalIds = {
-            textarea: textarea.id,
-            cc: ccInput ? ccInput.id : null,
-            bcc: bccInput ? bccInput.id : null,
-            send: sendBtn ? sendBtn.id : null
-        };
+        // Obtener contenido ANTES de cambiar IDs
+        let replyContent = '';
+        if (window.getRichTextContent) {
+            replyContent = window.getRichTextContent(textareaId);
+            console.log('📝 Contenido obtenido del editor específico:', replyContent.substring(0, 100));
+        }
         
-        // Cambiar IDs temporalmente
-        textarea.id = 'reply-textarea';
-        if (ccInput) ccInput.id = 'reply-cc';
-        if (bccInput) bccInput.id = 'reply-bcc';
-        if (sendBtn) sendBtn.id = 'send-reply-btn';
-        
-        console.log('📤 Llamando a window.sendReply con:', { email, threadId });
+        // Obtener CC y BCC
+        const cc = ccInput ? ccInput.value.trim() : null;
+        const bcc = bccInput ? bccInput.value.trim() : null;
         
         // Pasar adjuntos del mensaje específico
         const attachments = window.messageAttachments[msgId] || [];
         
-        // Llamar a sendReply con adjuntos
-        window.sendReply(email, threadId, attachments);
+        console.log('📤 Llamando a window.sendReply con:', { email, threadId, contentLength: replyContent.length });
         
-        // Restaurar IDs después de un momento
-        setTimeout(() => {
-            textarea.id = originalIds.textarea;
-            if (ccInput && originalIds.cc) ccInput.id = originalIds.cc;
-            if (bccInput && originalIds.bcc) bccInput.id = originalIds.bcc;
-            if (sendBtn && originalIds.send) sendBtn.id = originalIds.send;
-        }, 100);
+        // Llamar a sendReply con todos los datos
+        window.sendReply(email, threadId, attachments, replyContent, cc, bcc);
     }
 
     /**

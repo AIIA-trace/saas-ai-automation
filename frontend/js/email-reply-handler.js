@@ -261,8 +261,8 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
     /**
      * Enviar respuesta
      */
-    async function sendReply(email, threadId, attachmentsOverride = null) {
-        console.log('📧 sendReply llamado con:', { email, threadId, attachmentsOverride });
+    async function sendReply(email, threadId, attachmentsOverride = null, contentOverride = null, ccOverride = null, bccOverride = null) {
+        console.log('📧 sendReply llamado con:', { email, threadId, attachmentsOverride, hasContentOverride: !!contentOverride });
         
         const textarea = document.getElementById('reply-textarea');
         const sendBtn = document.getElementById('send-reply-btn');
@@ -274,7 +274,11 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
 
         // Obtener contenido del editor rico o del textarea
         let replyText;
-        if (window.getRichTextContent) {
+        if (contentOverride) {
+            // Si se pasó contenido como parámetro, usarlo directamente
+            replyText = contentOverride.trim();
+            console.log('📝 Usando contenido pasado como parámetro:', replyText.substring(0, 100));
+        } else if (window.getRichTextContent) {
             replyText = window.getRichTextContent('reply-textarea').trim();
             console.log('📝 Contenido obtenido del editor:', replyText.substring(0, 100));
         } else {
@@ -331,11 +335,19 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
                 ${signature ? `<br><br><div>--<br>${signature}</div>` : ''}
             `;
 
-            // Obtener CC y BCC si existen
-            const ccInput = document.getElementById('reply-cc');
-            const bccInput = document.getElementById('reply-bcc');
-            const cc = ccInput ? ccInput.value.trim() : null;
-            const bcc = bccInput ? bccInput.value.trim() : null;
+            // Obtener CC y BCC (usar overrides si existen, sino leer de inputs)
+            let cc, bcc;
+            if (ccOverride !== null || bccOverride !== null) {
+                cc = ccOverride;
+                bcc = bccOverride;
+                console.log('📧 Usando CC/BCC pasados como parámetros:', { cc, bcc });
+            } else {
+                const ccInput = document.getElementById('reply-cc');
+                const bccInput = document.getElementById('reply-bcc');
+                cc = ccInput ? ccInput.value.trim() : null;
+                bcc = bccInput ? bccInput.value.trim() : null;
+                console.log('📧 CC/BCC obtenidos de inputs:', { cc, bcc });
+            }
 
             const payload = {
                 to: email.from,
