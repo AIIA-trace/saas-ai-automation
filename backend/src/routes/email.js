@@ -395,7 +395,8 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
     // Enviar archivo con Content-Type correcto
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', 'inline'); // Mostrar en navegador en lugar de descargar
-    res.send(attachmentData);
+    res.setHeader('Content-Length', attachmentData.length);
+    res.end(attachmentData, 'binary'); // Usar end() para datos binarios
 
     logger.info(`✅ Adjunto enviado correctamente`);
 
@@ -500,7 +501,8 @@ router.get('/:emailId/attachments/:attachmentId', async (req, res) => {
     // Enviar archivo con Content-Type correcto
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', 'inline'); // Mostrar en navegador en lugar de descargar
-    res.send(attachmentData);
+    res.setHeader('Content-Length', attachmentData.length);
+    res.end(attachmentData, 'binary'); // Usar end() para datos binarios
 
     logger.info(`✅ Adjunto enviado correctamente`);
 
