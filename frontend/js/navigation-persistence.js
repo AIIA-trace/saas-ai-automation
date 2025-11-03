@@ -19,6 +19,27 @@
     }
 
     /**
+     * Guardar posición de scroll
+     */
+    function saveScrollPosition() {
+        const scrollY = window.scrollY || window.pageYOffset;
+        localStorage.setItem('lastScrollPosition', scrollY);
+    }
+
+    /**
+     * Restaurar posición de scroll
+     */
+    function restoreScrollPosition() {
+        const scrollY = localStorage.getItem('lastScrollPosition');
+        if (scrollY) {
+            setTimeout(() => {
+                window.scrollTo(0, parseInt(scrollY));
+                console.log('📜 Scroll restaurado a:', scrollY);
+            }, 500);
+        }
+    }
+
+    /**
      * Restaurar el último tab activo
      */
     function restoreActiveTab() {
@@ -54,7 +75,17 @@
             }
         });
 
-        console.log('✅ Listeners de tabs configurados');
+        // Guardar scroll position periódicamente
+        let scrollTimeout;
+        window.addEventListener('scroll', function() {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(saveScrollPosition, 100);
+        });
+
+        // Guardar antes de salir de la página
+        window.addEventListener('beforeunload', saveScrollPosition);
+
+        console.log('✅ Listeners de tabs y scroll configurados');
     }
 
     /**
@@ -67,10 +98,12 @@
                 setupTabListeners();
                 // Pequeño delay para asegurar que Bootstrap esté inicializado
                 setTimeout(restoreActiveTab, 300);
+                setTimeout(restoreScrollPosition, 600);
             });
         } else {
             setupTabListeners();
             setTimeout(restoreActiveTab, 300);
+            setTimeout(restoreScrollPosition, 600);
         }
     }
 

@@ -1045,7 +1045,7 @@
             
             html += `
                 <div class="email-list-item border-bottom p-3 ${unreadClass} ${unreadBorder}" 
-                     style="cursor: pointer; transition: background-color 0.2s;"
+                     style="cursor: pointer; transition: background-color 0.2s; background-color: white !important;"
                      data-email-id="${email.id}"
                      data-unread="${email.unread}"
                      data-important="${email.important}"
