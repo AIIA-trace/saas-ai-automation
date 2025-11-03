@@ -405,13 +405,14 @@
 
         let html = '';
         filteredEmails.forEach(email => {
-            // Solo barra azul lateral para emails no leídos
-            const unreadClass = email.unread ? 'border-start border-primary border-3' : '';
+            // Solo barra azul lateral para emails no leídos - usar inline style
+            const unreadClass = email.unread ? 'fw-bold' : '';
+            const unreadBorderStyle = email.unread ? 'border-left: 4px solid #0d6efd;' : '';
             const checkboxClass = email.important ? 'custom-checkbox checked' : 'custom-checkbox';
             
             html += `
                 <div class="email-list-item border-bottom p-3 ${unreadClass}" 
-                     style="cursor: pointer; transition: background-color 0.2s; background-color: white;"
+                     style="cursor: pointer; transition: background-color 0.2s; background-color: white !important; ${unreadBorderStyle}"
                      data-email-id="${email.id}"
                      data-unread="${email.unread}"
                      data-important="${email.important}"
@@ -451,7 +452,8 @@
                     
                     // Marcar como leído en UI
                     email.unread = false;
-                    this.classList.remove('border-start', 'border-primary', 'border-3');
+                    this.classList.remove('fw-bold');
+                    this.style.borderLeft = 'none';
                     this.style.backgroundColor = 'white';
                     this.dataset.unread = 'false';
                     
@@ -2621,6 +2623,8 @@ ${body}`;
         setFilter: setFilter,
         toggleImportant: toggleImportant,
         loadEmailDetails: loadEmailDetails,
+        loadInboxEmails: loadInboxEmails,
+        loadSentEmails: loadSentEmails,
         downloadAttachment: downloadAttachment,
         toggleThreadMessage: toggleThreadMessage,
         replyToSpecificMessage: replyToSpecificMessage,
@@ -2629,7 +2633,8 @@ ${body}`;
         previewAttachment: previewAttachment,
         deleteEmail: deleteEmail,
         cancelReply: cancelReply,
-        removeAttachmentForMessage: removeAttachmentForMessage
+        removeAttachmentForMessage: removeAttachmentForMessage,
+        currentMailbox: currentMailbox
     };
 
 })();
