@@ -1512,12 +1512,17 @@
             const blobUrl = URL.createObjectURL(blob);
             console.log('🔗 Blob URL creada:', blobUrl);
 
+            // IMPORTANTE: Usar blob.type (del servidor) en lugar de mimeType (del email)
+            // El servidor detecta el tipo real por magic number
+            const actualMimeType = blob.type || mimeType;
+            console.log('🎯 MimeType a usar:', {original: mimeType, fromBlob: blob.type, actual: actualMimeType});
+
             let previewHTML = '';
 
-            if (mimeType.startsWith('image/')) {
+            if (actualMimeType.startsWith('image/')) {
                 // Imágenes - usar blob URL
                 previewHTML = `<img src="${blobUrl}" class="img-fluid" alt="${filename}" style="max-width: 100%; height: auto;">`;
-            } else if (mimeType === 'application/pdf') {
+            } else if (actualMimeType === 'application/pdf') {
                 // PDFs - usar iframe con blob URL (más compatible que embed)
                 previewHTML = `
                     <iframe src="${blobUrl}" type="application/pdf" width="100%" height="600px" style="border: none;"></iframe>
@@ -1532,13 +1537,13 @@
                         </small>
                     </p>
                 `;
-            } else if (mimeType.startsWith('text/') || mimeType === 'application/json' || mimeType === 'application/xml') {
+            } else if (actualMimeType.startsWith('text/') || actualMimeType === 'application/json' || actualMimeType === 'application/xml') {
                 // Archivos de texto
                 blob.text().then(text => {
                     modalBody.innerHTML = `<pre class="bg-light p-3 rounded" style="max-height: 600px; overflow: auto;"><code>${escapeHtml(text)}</code></pre>`;
                 });
                 return;
-            } else if (mimeType.includes('word') || mimeType.includes('document')) {
+            } else if (actualMimeType.includes('word') || actualMimeType.includes('document')) {
                 // Word documents - descargar directamente, no hay preview confiable
                 previewHTML = `
                     <div class="alert alert-info text-center">
@@ -1550,7 +1555,7 @@
                         </button>
                     </div>
                 `;
-            } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
+            } else if (actualMimeType.includes('excel') || actualMimeType.includes('spreadsheet')) {
                 // Excel - descargar directamente
                 previewHTML = `
                     <div class="alert alert-info text-center">
@@ -1562,7 +1567,7 @@
                         </button>
                     </div>
                 `;
-            } else if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) {
+            } else if (actualMimeType.includes('powerpoint') || actualMimeType.includes('presentation')) {
                 // PowerPoint - descargar directamente
                 previewHTML = `
                     <div class="alert alert-info text-center">
@@ -1578,7 +1583,7 @@
                 previewHTML = `
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        No se puede mostrar preview para este tipo de archivo (${mimeType}). 
+                        No se puede mostrar preview para este tipo de archivo (${actualMimeType}). 
                         <button class="btn btn-sm btn-primary ms-3" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
                             <i class="fas fa-download me-1"></i>Descargar
                         </button>
