@@ -390,6 +390,69 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
 });
 
 /**
+ * Descargar adjunto (ruta alternativa con 's')
+ * GET /api/email/:emailId/attachments/:attachmentId
+ */
+router.get('/:emailId/attachments/:attachmentId', authenticate, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { emailId, attachmentId} = req.params;
+
+    logger.info(`📥 [ATTACHMENTS] Descargando adjunto: emailId=${emailId}, attachmentId=${attachmentId}`);
+
+    // Obtener cuenta activa
+    const emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        clientId: clientId,
+        isActive: true
+      }
+    });
+
+    if (!emailAccount) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay cuenta de email conectada'
+      });
+    }
+
+    logger.info(`   - Proveedor: ${emailAccount.provider}`);
+
+    let attachmentData;
+
+    // Obtener adjunto según el proveedor
+    if (emailAccount.provider === 'google') {
+      attachmentData = await googleEmailService.getAttachment(clientId, emailId, attachmentId);
+    } else if (emailAccount.provider === 'microsoft') {
+      attachmentData = await microsoftEmailService.getAttachment(clientId, emailId, attachmentId);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Proveedor no soportado'
+      });
+    }
+
+    logger.info(`   - Datos recibidos: ${attachmentData.length} bytes`);
+    logger.info(`   - Tipo de datos: ${attachmentData.constructor.name}`);
+    logger.info(`   - Primeros 50 bytes (hex): ${attachmentData.slice(0, 50).toString('hex')}`);
+    logger.info(`   - Primeros 20 bytes (string): ${attachmentData.slice(0, 20).toString('utf8')}`);
+
+    // Enviar archivo
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.send(attachmentData);
+
+    logger.info(`✅ Adjunto enviado correctamente`);
+
+  } catch (error) {
+    logger.error(`❌ Error descargando adjunto: ${error.message}`);
+    logger.error(`   Stack: ${error.stack}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Marcar email como leído
  * POST /api/email/mark-read
  */
