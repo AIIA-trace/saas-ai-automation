@@ -415,14 +415,22 @@ class MicrosoftEmailService {
         message.attachments = emailData.attachments.map(att => {
           logger.info(`   - Adjunto: ${att.filename}`);
           logger.info(`     * Tipo MIME: ${att.mimeType}`);
-          logger.info(`     * Tamaño base64: ${att.data.length} caracteres`);
+          logger.info(`     * Tamaño base64 original: ${att.data.length} caracteres`);
           logger.info(`     * Primeros 100 chars: ${att.data.substring(0, 100)}`);
+          
+          // Limpiar base64: eliminar saltos de línea, espacios y caracteres no válidos
+          const cleanBase64 = att.data.replace(/[\r\n\s]/g, '');
+          logger.info(`     * Tamaño base64 limpio: ${cleanBase64.length} caracteres`);
+          
+          // Verificar que sea base64 válido
+          const isValidBase64 = /^[A-Za-z0-9+/]*={0,2}$/.test(cleanBase64);
+          logger.info(`     * Base64 válido: ${isValidBase64}`);
           
           return {
             '@odata.type': '#microsoft.graph.fileAttachment',
             name: att.filename,
             contentType: att.mimeType,
-            contentBytes: att.data  // Microsoft Graph acepta base64 directamente
+            contentBytes: cleanBase64  // Microsoft Graph requiere base64 limpio
           };
         });
         
@@ -453,13 +461,21 @@ class MicrosoftEmailService {
           patchData.attachments = emailData.attachments.map(att => {
             logger.info(`   - Adjunto: ${att.filename}`);
             logger.info(`     * Tipo MIME: ${att.mimeType}`);
-            logger.info(`     * Tamaño base64: ${att.data.length} caracteres`);
+            logger.info(`     * Tamaño base64 original: ${att.data.length} caracteres`);
+            
+            // Limpiar base64: eliminar saltos de línea, espacios y caracteres no válidos
+            const cleanBase64 = att.data.replace(/[\r\n\s]/g, '');
+            logger.info(`     * Tamaño base64 limpio: ${cleanBase64.length} caracteres`);
+            
+            // Verificar que sea base64 válido
+            const isValidBase64 = /^[A-Za-z0-9+/]*={0,2}$/.test(cleanBase64);
+            logger.info(`     * Base64 válido: ${isValidBase64}`);
             
             return {
               '@odata.type': '#microsoft.graph.fileAttachment',
               name: att.filename,
               contentType: att.mimeType,
-              contentBytes: att.data  // Microsoft Graph acepta base64 directamente
+              contentBytes: cleanBase64  // Microsoft Graph requiere base64 limpio
             };
           });
           
