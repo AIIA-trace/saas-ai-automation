@@ -141,6 +141,37 @@
         if (window.initComposeModal) {
             window.initComposeModal();
         }
+
+        // Restaurar el último email visto si existe
+        restoreLastViewedEmail();
+    }
+
+    /**
+     * Restaurar el último email visto después de recargar la página
+     */
+    function restoreLastViewedEmail() {
+        const lastEmailId = localStorage.getItem('lastViewedEmailId');
+        const lastFilter = localStorage.getItem('lastViewedFilter');
+
+        if (lastEmailId) {
+            console.log('🔄 Restaurando último email visto:', lastEmailId);
+
+            // Restaurar filtro si existe
+            if (lastFilter && lastFilter !== currentFilter) {
+                setFilter(lastFilter);
+            }
+
+            // Buscar el email en la lista
+            setTimeout(() => {
+                const email = allEmails.find(e => e.id === lastEmailId);
+                if (email) {
+                    showEmailContent(email);
+                    console.log('✅ Email restaurado exitosamente');
+                } else {
+                    console.warn('⚠️ No se encontró el email con ID:', lastEmailId);
+                }
+            }, 500); // Pequeño delay para asegurar que los emails estén cargados
+        }
     }
 
     /**
@@ -1080,6 +1111,10 @@
     function showEmailContent(email) {
         const contentContainer = document.getElementById('inbox-email-content');
         if (!contentContainer) return;
+
+        // Guardar el email actual en localStorage para restaurar después de recargar
+        localStorage.setItem('lastViewedEmailId', email.id);
+        localStorage.setItem('lastViewedFilter', currentFilter);
 
         // Mostrar spinner mientras carga
         contentContainer.innerHTML = `
@@ -2452,6 +2487,10 @@ ${body}`;
                 if (window.showSuccessToast) {
                     window.showSuccessToast('✅ Email eliminado correctamente');
                 }
+
+                // Limpiar el estado guardado
+                localStorage.removeItem('lastViewedEmailId');
+                localStorage.removeItem('lastViewedFilter');
 
                 // Limpiar el panel de contenido primero
                 const contentContainer = document.getElementById('inbox-email-content');
