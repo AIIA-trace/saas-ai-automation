@@ -706,8 +706,12 @@ class MicrosoftEmailService {
       logger.info(`     * Base64 length: ${attachment.contentBytes?.length || 0} caracteres`);
       logger.info(`     * Primeros 100 chars base64: ${attachment.contentBytes?.substring(0, 100)}`);
 
+      // Limpiar base64 - Microsoft puede enviar con saltos de línea o espacios
+      const cleanBase64 = attachment.contentBytes.replace(/[\r\n\s]/g, '');
+      logger.info(`     * Base64 limpio length: ${cleanBase64.length} caracteres`);
+
       // El contenido viene en base64 - decodificar usando estándar Node.js
-      const data = Buffer.from(attachment.contentBytes, 'base64');
+      const data = Buffer.from(cleanBase64, 'base64');
 
       logger.info(`   - Después de decodificar:`);
       logger.info(`     * Buffer length: ${data.length} bytes`);
