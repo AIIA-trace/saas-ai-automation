@@ -2653,9 +2653,12 @@ ${body}`;
                 .then(data => {
                     if (data.success && data.emails) {
                         const newEmailCount = data.emails.length;
-                        const currentCount = allEmails.length;
                         
-                        console.log(`✅ Auto-refresh: ${newEmailCount} emails en servidor, ${currentCount} en cache`);
+                        // Obtener count actual de forma segura
+                        const emailListItems = document.querySelectorAll('.email-list-item');
+                        const currentCount = emailListItems.length;
+                        
+                        console.log(`✅ Auto-refresh: ${newEmailCount} emails en servidor, ${currentCount} en vista actual`);
                         
                         // Solo actualizar si hay cambios
                         if (newEmailCount !== currentCount) {
