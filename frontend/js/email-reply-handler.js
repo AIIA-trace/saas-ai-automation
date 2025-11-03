@@ -264,12 +264,18 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
     async function sendReply(email, threadId, attachmentsOverride = null, contentOverride = null, ccOverride = null, bccOverride = null) {
         console.log('📧 sendReply llamado con:', { email, threadId, attachmentsOverride, hasContentOverride: !!contentOverride });
         
-        const textarea = document.getElementById('reply-textarea');
-        const sendBtn = document.getElementById('send-reply-btn');
+        // Si se pasa contenido como override, no necesitamos los elementos del DOM
+        let textarea, sendBtn;
         
-        if (!textarea || !sendBtn) {
-            console.error('❌ No se encontraron elementos:', { textarea: !!textarea, sendBtn: !!sendBtn });
-            return;
+        if (!contentOverride) {
+            // Solo buscar elementos si no hay content override
+            textarea = document.getElementById('reply-textarea');
+            sendBtn = document.getElementById('send-reply-btn');
+            
+            if (!textarea || !sendBtn) {
+                console.error('❌ No se encontraron elementos:', { textarea: !!textarea, sendBtn: !!sendBtn });
+                return;
+            }
         }
 
         // Obtener contenido del editor rico o del textarea
@@ -318,9 +324,11 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
         console.log('📝 Texto de respuesta:', replyText.substring(0, 100));
         console.log('📎 Adjuntos:', attachmentsToCheck.length, 'Total:', (totalSize / (1024 * 1024)).toFixed(2), 'MB');
 
-        // Deshabilitar botón
-        sendBtn.disabled = true;
-        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
+        // Deshabilitar botón si existe
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
+        }
 
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
@@ -400,8 +408,11 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
             console.error('Error enviando respuesta:', error);
             alert('Error al enviar respuesta');
         } finally {
-            sendBtn.disabled = false;
-            sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Enviar respuesta';
+            // Restaurar botón solo si existe
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Enviar respuesta';
+            }
         }
     }
 
