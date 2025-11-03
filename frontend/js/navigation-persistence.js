@@ -9,12 +9,14 @@
     console.log('🔄 Inicializando sistema de persistencia de navegación...');
 
     /**
-     * Guardar el tab activo actual
+     * Guardar el tab activo actual y actualizar URL
      */
     function saveActiveTab(tabId) {
         if (tabId) {
             localStorage.setItem('lastActiveTab', tabId);
-            console.log('💾 Tab guardado:', tabId);
+            // Actualizar hash en la URL sin recargar
+            window.history.replaceState(null, '', `#${tabId}`);
+            console.log('💾 Tab guardado:', tabId, '- URL actualizada');
         }
     }
 
@@ -40,36 +42,47 @@
     }
 
     /**
-     * Restaurar el último tab activo
+     * Restaurar el último tab activo desde URL hash o localStorage
      */
     function restoreActiveTab() {
-        const lastTab = localStorage.getItem('lastActiveTab');
+        // Prioridad 1: Hash en la URL
+        let tabId = window.location.hash.replace('#', '');
         
-        if (lastTab) {
-            console.log('🔄 Intentando restaurar tab:', lastTab);
+        // Prioridad 2: localStorage
+        if (!tabId) {
+            tabId = localStorage.getItem('lastActiveTab');
+        }
+        
+        if (tabId) {
+            console.log('🔄 Restaurando tab desde:', window.location.hash ? 'URL hash' : 'localStorage', '→', tabId);
             
             // Buscar el botón del tab por múltiples métodos
-            let tabButton = document.querySelector(`[data-bs-target="#${lastTab}"]`);
+            let tabButton = document.querySelector(`[data-bs-target="#${tabId}"]`);
             
             // Si no se encuentra, buscar por ID del botón
             if (!tabButton) {
-                const tabId = lastTab.replace('-content', '-tab');
-                tabButton = document.getElementById(tabId);
+                const buttonId = tabId.replace('-content', '-tab');
+                tabButton = document.getElementById(buttonId);
             }
             
             // Si aún no se encuentra, buscar por href
             if (!tabButton) {
-                tabButton = document.querySelector(`[href="#${lastTab}"]`);
+                tabButton = document.querySelector(`[href="#${tabId}"]`);
             }
             
             if (tabButton) {
                 // Activar el tab usando Bootstrap
                 const tab = new bootstrap.Tab(tabButton);
                 tab.show();
-                console.log('✅ Tab restaurado exitosamente:', lastTab);
+                console.log('✅ Tab restaurado exitosamente:', tabId);
+                
+                // Actualizar URL si no estaba
+                if (!window.location.hash) {
+                    window.history.replaceState(null, '', `#${tabId}`);
+                }
                 
                 // También activar visualmente el contenido
-                const tabContent = document.getElementById(lastTab);
+                const tabContent = document.getElementById(tabId);
                 if (tabContent) {
                     // Remover active de todos los tab-panes
                     document.querySelectorAll('.tab-pane').forEach(pane => {
@@ -79,7 +92,7 @@
                     tabContent.classList.add('active', 'show');
                 }
             } else {
-                console.warn('⚠️ No se encontró el tab:', lastTab);
+                console.warn('⚠️ No se encontró el tab:', tabId);
             }
         }
     }
