@@ -48,14 +48,36 @@
         if (lastTab) {
             console.log('🔄 Intentando restaurar tab:', lastTab);
             
-            // Buscar el tab por ID
-            const tabElement = document.querySelector(`[data-bs-toggle="tab"][data-bs-target="#${lastTab}"], [data-bs-toggle="tab"][href="#${lastTab}"]`);
+            // Buscar el botón del tab por múltiples métodos
+            let tabButton = document.querySelector(`[data-bs-target="#${lastTab}"]`);
             
-            if (tabElement) {
+            // Si no se encuentra, buscar por ID del botón
+            if (!tabButton) {
+                const tabId = lastTab.replace('-content', '-tab');
+                tabButton = document.getElementById(tabId);
+            }
+            
+            // Si aún no se encuentra, buscar por href
+            if (!tabButton) {
+                tabButton = document.querySelector(`[href="#${lastTab}"]`);
+            }
+            
+            if (tabButton) {
                 // Activar el tab usando Bootstrap
-                const tab = new bootstrap.Tab(tabElement);
+                const tab = new bootstrap.Tab(tabButton);
                 tab.show();
                 console.log('✅ Tab restaurado exitosamente:', lastTab);
+                
+                // También activar visualmente el contenido
+                const tabContent = document.getElementById(lastTab);
+                if (tabContent) {
+                    // Remover active de todos los tab-panes
+                    document.querySelectorAll('.tab-pane').forEach(pane => {
+                        pane.classList.remove('active', 'show');
+                    });
+                    // Activar el tab-pane correcto
+                    tabContent.classList.add('active', 'show');
+                }
             } else {
                 console.warn('⚠️ No se encontró el tab:', lastTab);
             }
@@ -96,14 +118,14 @@
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
                 setupTabListeners();
-                // Pequeño delay para asegurar que Bootstrap esté inicializado
-                setTimeout(restoreActiveTab, 300);
-                setTimeout(restoreScrollPosition, 600);
+                // Delay más largo para asegurar que el dashboard esté completamente cargado
+                setTimeout(restoreActiveTab, 1000);
+                setTimeout(restoreScrollPosition, 1200);
             });
         } else {
             setupTabListeners();
-            setTimeout(restoreActiveTab, 300);
-            setTimeout(restoreScrollPosition, 600);
+            setTimeout(restoreActiveTab, 1000);
+            setTimeout(restoreScrollPosition, 1200);
         }
     }
 

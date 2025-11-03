@@ -1040,12 +1040,12 @@
             // Solo negrita para no leídos, sin fondo
             const unreadClass = email.unread ? 'fw-bold' : '';
             const checkboxClass = email.important ? 'custom-checkbox checked' : 'custom-checkbox';
-            // Barra azul a la izquierda solo para no leídos
-            const unreadBorder = email.unread ? 'border-start border-primary border-4' : '';
+            // Barra azul a la izquierda solo para no leídos - usar estilo inline para control preciso
+            const unreadBorderStyle = email.unread ? 'border-left: 4px solid #0d6efd;' : '';
             
             html += `
-                <div class="email-list-item border-bottom p-3 ${unreadClass} ${unreadBorder}" 
-                     style="cursor: pointer; transition: background-color 0.2s; background-color: white !important;"
+                <div class="email-list-item border-bottom p-3 ${unreadClass}" 
+                     style="cursor: pointer; transition: background-color 0.2s; background-color: white !important; ${unreadBorderStyle}"
                      data-email-id="${email.id}"
                      data-unread="${email.unread}"
                      data-important="${email.important}"
@@ -1082,7 +1082,8 @@
                 if (email) {
                     showEmailContent(email);
                     email.unread = false;
-                    this.classList.remove('fw-bold', 'border-start', 'border-primary', 'border-4');
+                    this.classList.remove('fw-bold');
+                    this.style.borderLeft = 'none';
                     this.dataset.unread = 'false';
                     markEmailAsReadInBackend(emailId);
                 }
