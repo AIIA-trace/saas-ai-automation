@@ -76,6 +76,16 @@
             }
             
             if (tabButton) {
+                // Primero desactivar TODOS los botones de tabs
+                document.querySelectorAll('.nav-link').forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.setAttribute('aria-selected', 'false');
+                });
+                
+                // Activar el botón correcto
+                tabButton.classList.add('active');
+                tabButton.setAttribute('aria-selected', 'true');
+                
                 // Activar el tab usando Bootstrap
                 const tab = new bootstrap.Tab(tabButton);
                 tab.show();
