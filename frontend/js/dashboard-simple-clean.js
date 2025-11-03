@@ -1015,9 +1015,13 @@ function addDashboardStyles() {
  * @returns {string} HTML de la pestaña
  */
 function createCallsTabContent() {
+    // Solo activar por defecto si NO hay hash en la URL
+    const isActive = !window.location.hash || window.location.hash === '#calls-content';
+    const activeClass = isActive ? 'active' : '';
+    
     return `
         <!-- 1. Registro de Llamadas -->
-        <div class="tab-pane active animate-fadeIn" id="calls-content" role="tabpanel" aria-labelledby="calls-tab" tabindex="0">
+        <div class="tab-pane ${activeClass} animate-fadeIn" id="calls-content" role="tabpanel" aria-labelledby="calls-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <!-- Registro de Llamadas -->
                 <div class="row">
@@ -1113,9 +1117,13 @@ function createCallsTabContent() {
  * @returns {string} HTML de la pestaña
  */
 function createEmailsTabContent() {
+    // Activar si el hash es #emails-content
+    const isActive = window.location.hash === '#emails-content';
+    const activeClass = isActive ? 'active' : '';
+    
     return `
         <!-- 2. Gestión de Emails -->
-        <div class="tab-pane animate-fadeIn" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
+        <div class="tab-pane ${activeClass} animate-fadeIn" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
             <!-- Mensaje de carga -->
             <div id="email-loading-message" class="container-fluid pt-4" style="display: none;">
                 <div class="card border-0 shadow-sm">
@@ -1162,9 +1170,13 @@ function createEmailsTabContent() {
  * @returns {string} HTML de la pestaña
  */
 function createCallConfigTabContent() {
+    // Activar si el hash es #call-bot-content
+    const isActive = window.location.hash === '#call-bot-content';
+    const activeClass = isActive ? 'active' : '';
+    
     return `
         <!-- 3. Configuración del Bot -->
-        <div class="tab-pane" id="call-bot-content" role="tabpanel" aria-labelledby="call-bot-tab" tabindex="0">
+        <div class="tab-pane ${activeClass}" id="call-bot-content" role="tabpanel" aria-labelledby="call-bot-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom-0 py-3">
@@ -1648,9 +1660,13 @@ Web"></textarea>
  * @returns {string} HTML de la pestaña
  */
 function createAccountTabContent() {
+    // Activar si el hash es #account-content
+    const isActive = window.location.hash === '#account-content';
+    const activeClass = isActive ? 'active' : '';
+    
     return `
         <!-- 4. Mi Cuenta -->
-        <div class="tab-pane" id="account-content" role="tabpanel" aria-labelledby="account-tab" tabindex="0">
+        <div class="tab-pane ${activeClass}" id="account-content" role="tabpanel" aria-labelledby="account-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom-0 py-3">
@@ -1756,9 +1772,13 @@ function createAccountTabContent() {
  * @returns {string} HTML de la pestaña
  */
 function createBillingTabContent() {
+    // Activar si el hash es #billing-content
+    const isActive = window.location.hash === '#billing-content';
+    const activeClass = isActive ? 'active' : '';
+    
     return `
         <!-- 5. Facturación -->
-        <div class="tab-pane" id="billing-content" role="tabpanel" aria-labelledby="billing-tab" tabindex="0">
+        <div class="tab-pane ${activeClass}" id="billing-content" role="tabpanel" aria-labelledby="billing-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom-0 py-3">
