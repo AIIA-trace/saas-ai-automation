@@ -1444,6 +1444,7 @@
      * Mostrar preview de adjunto
      */
     function previewAttachment(emailId, attachmentId, filename, mimeType) {
+        console.log('📎 Preview Attachment llamado:', {emailId, attachmentId, filename, mimeType});
         const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
         const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
 
@@ -1492,20 +1493,24 @@
 
         // URL del archivo para preview
         const fileUrl = `${API_BASE_URL}/api/email/${emailId}/attachments/${attachmentId}?token=${token}`;
+        console.log('🌐 URL de preview:', fileUrl);
         
         // Cargar contenido
         fetch(fileUrl, {
             method: 'GET'
         })
         .then(response => {
+            console.log('📥 Respuesta recibida:', {status: response.status, ok: response.ok, contentType: response.headers.get('content-type')});
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.blob();
         })
         .then(blob => {
+            console.log('📦 Blob recibido:', {size: blob.size, type: blob.type});
             const modalBody = document.querySelector('#attachment-preview-modal .modal-body');
             const blobUrl = URL.createObjectURL(blob);
+            console.log('🔗 Blob URL creada:', blobUrl);
 
             let previewHTML = '';
 
