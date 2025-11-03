@@ -620,8 +620,12 @@ class GoogleEmailService {
       logger.info(`     * Base64 length: ${attachment.data.data?.length || 0} caracteres`);
       logger.info(`     * Primeros 100 chars base64: ${attachment.data.data?.substring(0, 100)}`);
 
+      // Limpiar base64 por seguridad (aunque Gmail suele enviarlo limpio)
+      const cleanBase64 = attachment.data.data.replace(/[\r\n\s]/g, '');
+      logger.info(`     * Base64 limpio length: ${cleanBase64.length} caracteres`);
+
       // Decodificar base64 usando el estándar de Node.js
-      const data = Buffer.from(attachment.data.data, 'base64');
+      const data = Buffer.from(cleanBase64, 'base64');
       
       logger.info(`   - Después de decodificar:`);
       logger.info(`     * Buffer length: ${data.length} bytes`);
