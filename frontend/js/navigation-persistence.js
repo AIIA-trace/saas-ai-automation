@@ -183,6 +183,30 @@
     }
 
     /**
+     * Sincronizar marcador azul con el hash de la URL
+     */
+    function syncActiveButtonWithHash() {
+        const hash = window.location.hash.replace('#', '');
+        if (!hash) return;
+        
+        const tabButton = document.querySelector(`[data-bs-target="#${hash}"]`) || 
+                         document.getElementById(hash.replace('-content', '-tab'));
+        
+        if (tabButton) {
+            // Desactivar todos los botones
+            document.querySelectorAll('.nav-link').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            
+            // Activar el botón correcto
+            tabButton.classList.add('active');
+            tabButton.setAttribute('aria-selected', 'true');
+            console.log(' Marcador azul sincronizado con hash:', hash);
+        }
+    }
+
+    /**
      * Inicializar el sistema
      */
     function init() {
@@ -192,6 +216,12 @@
         } else {
             waitForTabsAndRestore();
         }
+        
+        // Listener para cambios en el hash
+        window.addEventListener('hashchange', syncActiveButtonWithHash);
+        
+        // Sincronizar periódicamente (fallback para casos edge)
+        setInterval(syncActiveButtonWithHash, 1000);
     }
 
     // Inicializar
@@ -202,5 +232,4 @@
         saveActiveTab: saveActiveTab,
         restoreActiveTab: restoreActiveTab
     };
-
 })();
