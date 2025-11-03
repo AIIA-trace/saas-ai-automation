@@ -10,6 +10,29 @@ class GoogleEmailService {
   }
 
   /**
+   * Convertir base64url (URL-safe base64) a base64 estándar
+   * Gmail usa base64url que reemplaza + con - y / con _
+   * @param {string} base64url - String en formato base64url
+   * @returns {string} String en formato base64 estándar
+   */
+  base64urlToBase64(base64url) {
+    if (!base64url) return '';
+    
+    // Limpiar espacios y saltos de línea
+    let clean = base64url.replace(/[\r\n\s]/g, '');
+    
+    // Convertir de base64url a base64 estándar
+    clean = clean.replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Añadir padding si es necesario (base64url puede omitir el padding =)
+    while (clean.length % 4 !== 0) {
+      clean += '=';
+    }
+    
+    return clean;
+  }
+
+  /**
    * Inicializar cliente OAuth2 de Google
    */
   initOAuth2Client() {
@@ -21,12 +44,6 @@ class GoogleEmailService {
     const redirectUri = `${process.env.BACKEND_URL || 'http://localhost:10000'}/api/email/oauth/google/callback`;
     
     logger.info(`🔗 Google OAuth redirect URI: ${redirectUri}`);
-
-    this.oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri
-    );
 
     return this.oauth2Client;
   }
@@ -345,9 +362,13 @@ class GoogleEmailService {
 
       for (const part of parts) {
         if (part.mimeType === 'text/plain' && part.body.data && !body) {
-          body = Buffer.from(part.body.data, 'base64').toString('utf-8');
+          // Convertir de base64url a base64 estándar antes de decodificar
+          const cleanBase64 = this.base64urlToBase64(part.body.data);
+          body = Buffer.from(cleanBase64, 'base64').toString('utf-8');
         } else if (part.mimeType === 'text/html' && part.body.data) {
-          htmlBody = Buffer.from(part.body.data, 'base64').toString('utf-8');
+          // Convertir de base64url a base64 estándar antes de decodificar
+          const cleanBase64 = this.base64urlToBase64(part.body.data);
+          htmlBody = Buffer.from(cleanBase64, 'base64').toString('utf-8');
         } else if (part.body.attachmentId) {
           // Verificar si es una imagen inline
           const isInline = part.headers?.some(h => 
@@ -385,8 +406,10 @@ class GoogleEmailService {
     };
 
     // Extraer body y adjuntos
-    if (message.payload.body.data) {
-      body = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
+    if (message.payload.body && message.payload.body.data) {
+      // Convertir de base64url a base64 estándar antes de decodificar
+      const cleanBase64 = this.base64urlToBase64(message.payload.body.data);
+      body = Buffer.from(cleanBase64, 'base64').toString('utf-8');
     } else if (message.payload.parts) {
       extractParts(message.payload.parts);
     }
@@ -404,8 +427,11 @@ class GoogleEmailService {
             id: img.attachmentId
           });
 
-          // Convertir a base64 data URL
-          const dataUrl = `data:${img.mimeType};base64,${attachment.data.data}`;
+          // IMPORTANTE: Gmail devuelve base64url, pero para data URLs necesitamos base64 estándar
+          // Sin embargo, los navegadores aceptan ambos formatos en data URLs, así que podemos usar directamente
+          // O convertir a base64 estándar para mayor compatibilidad
+          const cleanBase64 = this.base64urlToBase64(attachment.data.data);
+          const dataUrl = `data:${img.mimeType};base64,${cleanBase64}`;
           
           // Reemplazar referencias cid: en el HTML
           if (img.contentId) {
@@ -617,12 +643,15 @@ class GoogleEmailService {
 
       logger.info(`   - Datos recibidos de Gmail API:`);
       logger.info(`     * Size: ${attachment.data.size || 'N/A'}`);
-      logger.info(`     * Base64 length: ${attachment.data.data?.length || 0} caracteres`);
-      logger.info(`     * Primeros 100 chars base64: ${attachment.data.data?.substring(0, 100)}`);
+      logger.info(`     * Base64url length: ${attachment.data.data?.length || 0} caracteres`);
+      logger.info(`     * Primeros 100 chars base64url: ${attachment.data.data?.substring(0, 100)}`);
 
-      // Limpiar base64 por seguridad (aunque Gmail suele enviarlo limpio)
-      const cleanBase64 = attachment.data.data.replace(/[\r\n\s]/g, '');
-      logger.info(`     * Base64 limpio length: ${cleanBase64.length} caracteres`);
+      // CRÍTICO: Gmail usa base64url (URL-safe base64) que usa - y _ en lugar de + y /
+      // Convertir a base64 estándar antes de decodificar
+      const cleanBase64 = this.base64urlToBase64(attachment.data.data);
+      
+      logger.info(`     * Base64 estándar length: ${cleanBase64.length} caracteres`);
+      logger.info(`     * Primeros 100 chars base64: ${cleanBase64.substring(0, 100)}`);
 
       // Decodificar base64 usando el estándar de Node.js
       const data = Buffer.from(cleanBase64, 'base64');
