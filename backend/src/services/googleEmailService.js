@@ -45,6 +45,15 @@ class GoogleEmailService {
     
     logger.info(`🔗 Google OAuth redirect URI: ${redirectUri}`);
 
+    // CRÍTICO: Crear el cliente OAuth2 si no existe
+    if (!this.oauth2Client) {
+      this.oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri
+      );
+    }
+
     return this.oauth2Client;
   }
 
