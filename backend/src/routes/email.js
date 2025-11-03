@@ -392,10 +392,32 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
 /**
  * Descargar adjunto (ruta alternativa con 's')
  * GET /api/email/:emailId/attachments/:attachmentId
+ * Acepta token como query parameter para compatibilidad con iframes
  */
-router.get('/:emailId/attachments/:attachmentId', authenticate, async (req, res) => {
+router.get('/:emailId/attachments/:attachmentId', async (req, res) => {
   try {
-    const clientId = req.client.id;
+    // Autenticación: Aceptar token desde query parameter o header
+    let clientId;
+    const tokenFromQuery = req.query.token;
+    
+    if (tokenFromQuery) {
+      // Validar token desde query parameter
+      const jwt = require('jsonwebtoken');
+      try {
+        const decoded = jwt.verify(tokenFromQuery, process.env.JWT_SECRET);
+        clientId = decoded.id;
+        logger.info(`✅ Token validado desde query parameter para cliente: ${clientId}`);
+      } catch (error) {
+        logger.error(`❌ Token inválido en query parameter: ${error.message}`);
+        return res.status(401).json({ success: false, error: 'Token inválido' });
+      }
+    } else if (req.client && req.client.id) {
+      // Token desde header (middleware authenticate)
+      clientId = req.client.id;
+    } else {
+      return res.status(401).json({ success: false, error: 'No autorizado' });
+    }
+    
     const { emailId, attachmentId} = req.params;
 
     logger.info(`📥 [ATTACHMENTS] Descargando adjunto: emailId=${emailId}, attachmentId=${attachmentId}`);
