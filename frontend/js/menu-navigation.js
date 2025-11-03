@@ -73,15 +73,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Verificar si hay un hash en la URL para activar el tab correspondiente
-    if (window.location.hash) {
-        const hash = window.location.hash;
-        const tabLink = document.querySelector(`a[href="${hash}"]`);
-        if (tabLink) {
-            tabLink.click();
-            console.log('Activado tab desde URL hash:', hash);
-        }
-    }
+    // NOTA: La restauración del tab desde URL hash la maneja navigation-persistence.js
+    // No duplicamos esa funcionalidad aquí para evitar conflictos
     
     console.log('Navegación del menú inicializada correctamente según estándares Bootstrap 5');
 });
