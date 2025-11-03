@@ -192,14 +192,13 @@
         const tabButton = document.querySelector(`[data-bs-target="#${hash}"]`) || 
                          document.getElementById(hash.replace('-content', '-tab'));
         
-        if (tabButton) {
-            // Desactivar todos los botones
+        if (tabButton && !tabButton.classList.contains('active')) {
+            // Solo sincronizar si el botón NO está activo
             document.querySelectorAll('.nav-link').forEach(btn => {
                 btn.classList.remove('active');
                 btn.setAttribute('aria-selected', 'false');
             });
             
-            // Activar el botón correcto
             tabButton.classList.add('active');
             tabButton.setAttribute('aria-selected', 'true');
             console.log(' Marcador azul sincronizado con hash:', hash);
