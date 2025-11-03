@@ -1451,8 +1451,11 @@
         const modal = new bootstrap.Modal(document.getElementById('attachment-preview-modal'));
         modal.show();
 
-        // Cargar contenido - usar el endpoint correcto
-        fetch(`${API_BASE_URL}/api/email/${emailId}/attachments/${attachmentId}?token=${token}`, {
+        // URL del archivo para preview
+        const fileUrl = `${API_BASE_URL}/api/email/${emailId}/attachments/${attachmentId}?token=${token}`;
+        
+        // Cargar contenido
+        fetch(fileUrl, {
             method: 'GET'
         })
         .then(response => {
@@ -1463,20 +1466,20 @@
         })
         .then(blob => {
             const modalBody = document.querySelector('#attachment-preview-modal .modal-body');
-            const url = URL.createObjectURL(blob);
+            const blobUrl = URL.createObjectURL(blob);
 
             let previewHTML = '';
 
             if (mimeType.startsWith('image/')) {
-                // Imágenes
-                previewHTML = `<img src="${url}" class="img-fluid" alt="${filename}" style="max-width: 100%; height: auto;">`;
+                // Imágenes - usar blob URL
+                previewHTML = `<img src="${blobUrl}" class="img-fluid" alt="${filename}" style="max-width: 100%; height: auto;">`;
             } else if (mimeType === 'application/pdf') {
-                // PDFs - usar embed con fallback a iframe
+                // PDFs - usar embed directo con blob URL
                 previewHTML = `
-                    <embed src="${url}#toolbar=1&navpanes=1&scrollbar=1" type="application/pdf" width="100%" height="600px" />
+                    <embed src="${blobUrl}#toolbar=1&navpanes=1&scrollbar=1" type="application/pdf" width="100%" height="600px" />
                     <p class="text-center mt-3">
                         <small class="text-muted">Si no se muestra el PDF, 
-                        <a href="${url}" target="_blank" class="btn btn-sm btn-primary">ábrelo en una nueva pestaña</a>
+                        <a href="${blobUrl}" target="_blank" class="btn btn-sm btn-primary">ábrelo en una nueva pestaña</a>
                         </small>
                     </p>
                 `;
@@ -1487,30 +1490,42 @@
                 });
                 return;
             } else if (mimeType.includes('word') || mimeType.includes('document')) {
-                // Word documents - usar Google Docs Viewer
+                // Word documents - usar URL pública del servidor
                 previewHTML = `
-                    <iframe src="https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true" 
+                    <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}" 
                             style="width: 100%; height: 600px; border: none;"></iframe>
                     <p class="text-center mt-3">
-                        <small class="text-muted">Vista previa de documento Word</small>
+                        <small class="text-muted">Vista previa de documento Word. Si no se muestra, 
+                        <button class="btn btn-sm btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
+                            <i class="fas fa-download me-1"></i>Descárgalo
+                        </button>
+                        </small>
                     </p>
                 `;
             } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
-                // Excel - usar Google Docs Viewer
+                // Excel - usar Office Web Viewer
                 previewHTML = `
-                    <iframe src="https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true" 
+                    <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}" 
                             style="width: 100%; height: 600px; border: none;"></iframe>
                     <p class="text-center mt-3">
-                        <small class="text-muted">Vista previa de hoja de cálculo</small>
+                        <small class="text-muted">Vista previa de hoja de cálculo. Si no se muestra, 
+                        <button class="btn btn-sm btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
+                            <i class="fas fa-download me-1"></i>Descárgalo
+                        </button>
+                        </small>
                     </p>
                 `;
             } else if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) {
-                // PowerPoint - usar Google Docs Viewer
+                // PowerPoint - usar Office Web Viewer
                 previewHTML = `
-                    <iframe src="https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true" 
+                    <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}" 
                             style="width: 100%; height: 600px; border: none;"></iframe>
                     <p class="text-center mt-3">
-                        <small class="text-muted">Vista previa de presentación</small>
+                        <small class="text-muted">Vista previa de presentación. Si no se muestra, 
+                        <button class="btn btn-sm btn-primary" onclick="window.InboxView.downloadAttachment('${emailId}', '${attachmentId}', '${filename}')">
+                            <i class="fas fa-download me-1"></i>Descárgalo
+                        </button>
+                        </small>
                     </p>
                 `;
             } else {
