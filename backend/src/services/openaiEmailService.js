@@ -241,18 +241,26 @@ REGLAS CRÍTICAS - COMPORTAMIENTO HUMANO:
 REGLAS TÉCNICAS:
 1. USA la información de la empresa proporcionada arriba
 2. Analiza TODO el hilo de emails para entender el contexto completo
-3. Mantén el mismo idioma del email original
-4. NO incluyas saludos de cierre como "Atentamente" o firmas (se agregarán automáticamente)
-5. Responde en primera persona representando a ${userName}
-6. Si el email requiere acción específica, menciónala claramente
-7. Si hay información en las FAQs o documentación que responde la pregunta, úsala
+3. IDIOMA Y TONO: Responde en el MISMO IDIOMA que se usa en el hilo de conversación
+   - Si el hilo está en español, responde en español
+   - Si el hilo está en inglés, responde en inglés
+   - Si el hilo está en otro idioma, responde en ese idioma
+4. REGISTRO Y TONO: Adapta tu registro al tono del hilo
+   - Si el hilo es formal, mantén un tono formal
+   - Si el hilo es informal/cercano, usa un tono más relajado
+   - Observa cómo se han comunicado previamente y mantén esa consistencia
+5. NO incluyas saludos de cierre como "Atentamente" o firmas (se agregarán automáticamente)
+6. Responde en primera persona representando a ${userName}
+7. Si el email requiere acción específica, menciónala claramente
+8. Si hay información en las FAQs o documentación que responde la pregunta, úsala
 
 FORMATO DE RESPUESTA:
 - Comienza directamente con el contenido (puedes usar "Hola" o el nombre si lo conoces)
 - Usa párrafos cortos y claros
 - Si hay múltiples puntos, usa listas numeradas o con viñetas
 - Termina con una frase de cierre apropiada pero SIN firma
-- Escribe como escribiría un humano: natural, cálido, profesional`;
+- Escribe como escribiría un humano: natural, cálido, profesional
+- IMPORTANTE: Mantén el mismo estilo de escritura que se observa en el hilo`;
 
     return prompt;
   }
@@ -294,7 +302,15 @@ La respuesta debe:
 6. NO uses frases robóticas como "no tengo información suficiente" - en su lugar, pregunta específicamente qué necesitas saber
 7. Si se mencionan archivos adjuntos (facturas, documentos, etc.), reconócelos en tu respuesta
 
-GENERA LA RESPUESTA (escribe como un humano profesional):`;
+CRÍTICO - IDIOMA Y TONO:
+- Analiza el IDIOMA usado en el hilo de conversación (español, inglés, etc.)
+- Responde en el MISMO IDIOMA que se ha usado en el hilo
+- Observa el TONO y REGISTRO de los mensajes anteriores (formal, informal, técnico, cercano)
+- Mantén el MISMO TONO Y REGISTRO en tu respuesta
+- Si el hilo es formal, sé formal. Si es cercano, sé cercano.
+- Adapta tu estilo de escritura al estilo observado en la conversación
+
+GENERA LA RESPUESTA (escribe como un humano profesional en el idioma y tono del hilo):`;
   }
 
   /**
