@@ -376,6 +376,7 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
     // Detectar tipo de archivo por magic number
     let contentType = 'application/octet-stream';
     const magicNumber = attachmentData.slice(0, 4).toString('hex');
+    const firstBytes = attachmentData.slice(0, 20).toString('utf8');
     
     if (magicNumber === '25504446') {
       contentType = 'application/pdf';
@@ -388,6 +389,10 @@ router.get('/:emailId/attachment/:attachmentId', authenticate, async (req, res) 
     } else if (magicNumber.startsWith('504b0304')) {
       // ZIP-based formats (docx, xlsx, pptx)
       contentType = 'application/zip';
+    } else if (firstBytes.includes('<!DOCTYPE') || firstBytes.includes('<html')) {
+      // Es un archivo HTML (a veces Gmail guarda PDFs como HTML)
+      contentType = 'text/html';
+      logger.warn(`⚠️ Archivo detectado como HTML pero mimeType original podría ser PDF`);
     }
     
     logger.info(`   - Content-Type detectado: ${contentType}`);
@@ -482,6 +487,7 @@ router.get('/:emailId/attachments/:attachmentId', async (req, res) => {
     // Detectar tipo de archivo por magic number
     let contentType = 'application/octet-stream';
     const magicNumber = attachmentData.slice(0, 4).toString('hex');
+    const firstBytes = attachmentData.slice(0, 20).toString('utf8');
     
     if (magicNumber === '25504446') {
       contentType = 'application/pdf';
@@ -494,6 +500,10 @@ router.get('/:emailId/attachments/:attachmentId', async (req, res) => {
     } else if (magicNumber.startsWith('504b0304')) {
       // ZIP-based formats (docx, xlsx, pptx)
       contentType = 'application/zip';
+    } else if (firstBytes.includes('<!DOCTYPE') || firstBytes.includes('<html')) {
+      // Es un archivo HTML (a veces Gmail guarda PDFs como HTML)
+      contentType = 'text/html';
+      logger.warn(`⚠️ Archivo detectado como HTML pero mimeType original podría ser PDF`);
     }
     
     logger.info(`   - Content-Type detectado: ${contentType}`);
