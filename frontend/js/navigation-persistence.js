@@ -124,21 +124,45 @@
     }
 
     /**
+     * Esperar a que los tabs estén renderizados
+     */
+    function waitForTabsAndRestore() {
+        const checkTabs = () => {
+            const tabsContainer = document.querySelector('.nav-tabs');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            
+            if (tabsContainer && tabPanes.length > 0) {
+                console.log('✅ Tabs detectados, restaurando navegación...');
+                setupTabListeners();
+                
+                // Restaurar inmediatamente si hay hash en URL
+                if (window.location.hash) {
+                    console.log('🔗 Hash detectado en URL:', window.location.hash);
+                    restoreActiveTab();
+                    setTimeout(restoreScrollPosition, 300);
+                } else {
+                    // Si no hay hash, usar delays normales
+                    setTimeout(restoreActiveTab, 500);
+                    setTimeout(restoreScrollPosition, 700);
+                }
+            } else {
+                console.log('⏳ Esperando a que se rendericen los tabs...');
+                setTimeout(checkTabs, 100);
+            }
+        };
+        
+        checkTabs();
+    }
+
+    /**
      * Inicializar el sistema
      */
     function init() {
         // Esperar a que el DOM esté listo
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                setupTabListeners();
-                // Delay más largo para asegurar que el dashboard esté completamente cargado
-                setTimeout(restoreActiveTab, 1000);
-                setTimeout(restoreScrollPosition, 1200);
-            });
+            document.addEventListener('DOMContentLoaded', waitForTabsAndRestore);
         } else {
-            setupTabListeners();
-            setTimeout(restoreActiveTab, 1000);
-            setTimeout(restoreScrollPosition, 1200);
+            waitForTabsAndRestore();
         }
     }
 
