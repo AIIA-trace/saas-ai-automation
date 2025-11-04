@@ -405,15 +405,30 @@ class GoogleEmailService {
             });
           } else if (part.filename) {
             // Es un adjunto normal
+            // LOG DETALLADO para debugging
+            logger.info(`📎 Attachment detectado:`);
+            logger.info(`   - Filename: ${part.filename}`);
+            logger.info(`   - MimeType (Gmail): ${part.mimeType}`);
+            logger.info(`   - Size: ${part.body.size} bytes`);
+            logger.info(`   - AttachmentId: ${part.body.attachmentId.substring(0, 50)}...`);
+            
             // ADVERTENCIA: Gmail a veces convierte PDFs a HTML pero mantiene el filename .pdf
             // Detectar este caso y loguear
             const isPdfFilename = part.filename.toLowerCase().endsWith('.pdf');
             const isHtmlMimeType = part.mimeType === 'text/html';
+            const isPdfMimeType = part.mimeType === 'application/pdf';
             
             if (isPdfFilename && isHtmlMimeType) {
-              logger.warn(`⚠️ ADVERTENCIA: Archivo "${part.filename}" tiene extensión .pdf pero Gmail lo guardó como HTML`);
-              logger.warn(`   Esto puede pasar cuando se guarda una página web como PDF o Gmail convierte el archivo`);
-              logger.warn(`   El archivo se mostrará como HTML en el preview`);
+              logger.warn(`⚠️ CRÍTICO: Archivo "${part.filename}" tiene extensión .pdf pero Gmail lo guardó como text/html`);
+              logger.warn(`   Gmail API está devolviendo HTML en lugar del PDF original`);
+              logger.warn(`   Posibles causas:`);
+              logger.warn(`   1. Gmail convirtió el PDF a HTML para preview seguro`);
+              logger.warn(`   2. El archivo se guardó en Google Drive y se convirtió`);
+              logger.warn(`   3. El PDF original contenía HTML embebido`);
+            }
+            
+            if (isPdfFilename && isPdfMimeType) {
+              logger.info(`✅ PDF detectado correctamente: ${part.filename}`);
             }
             
             attachments.push({
