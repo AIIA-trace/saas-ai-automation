@@ -544,8 +544,18 @@
                 // Mostrar toast de éxito
                 showSuccessToast('✅ Email enviado correctamente');
                 
-                // Cerrar modal
-                closeComposeModal();
+                // Mantener botón deshabilitado mientras se actualiza
+                sendBtn.innerHTML = '<i class="fas fa-check me-2"></i>Enviado - Cerrando...';
+                
+                // Cerrar modal después de un delay
+                setTimeout(() => {
+                    closeComposeModal();
+                    // Restaurar botón después de cerrar
+                    setTimeout(() => {
+                        sendBtn.disabled = false;
+                        sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Enviar';
+                    }, 500);
+                }, 1000);
                 
                 // Recargar bandeja sin recargar página
                 if (window.InboxView && window.InboxView.loadEmailDetails) {
@@ -556,16 +566,19 @@
                             if (typeof loadInboxEmails === 'function') {
                                 loadInboxEmails();
                             }
-                        }, 500);
+                        }, 1500);
                     }
                 }
             } else {
                 showErrorToast('Error al enviar email: ' + (data.error || 'Error desconocido'));
+                // Restaurar botón en caso de error
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Enviar';
             }
         } catch (error) {
             console.error('Error enviando email:', error);
             alert('Error al enviar email');
-        } finally {
+            // Restaurar botón en caso de error
             sendBtn.disabled = false;
             sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Enviar';
         }

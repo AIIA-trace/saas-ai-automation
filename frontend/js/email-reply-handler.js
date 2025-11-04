@@ -397,18 +397,44 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
                 selectedAttachments = [];
                 updateAttachmentsDisplay();
                 
+                // Mantener botón deshabilitado mientras se recarga
+                if (sendBtn) {
+                    sendBtn.innerHTML = '<i class="fas fa-check me-2"></i>Enviado - Actualizando...';
+                }
+                
                 // Recargar detalles del email para mostrar la respuesta
                 if (window.InboxView && window.InboxView.loadEmailDetails) {
-                    setTimeout(() => window.InboxView.loadEmailDetails(email.id), 1000);
+                    setTimeout(() => {
+                        window.InboxView.loadEmailDetails(email.id);
+                        // Restaurar botón después de recargar
+                        if (sendBtn) {
+                            setTimeout(() => {
+                                sendBtn.disabled = false;
+                                sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Enviar respuesta';
+                            }, 1500);
+                        }
+                    }, 1000);
+                } else {
+                    // Si no hay función de recarga, restaurar botón después de 2s
+                    if (sendBtn) {
+                        setTimeout(() => {
+                            sendBtn.disabled = false;
+                            sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Enviar respuesta';
+                        }, 2000);
+                    }
                 }
             } else {
                 showErrorToast('Error al enviar respuesta: ' + (data.error || 'Error desconocido'));
+                // Restaurar botón en caso de error
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Enviar respuesta';
+                }
             }
         } catch (error) {
             console.error('Error enviando respuesta:', error);
             alert('Error al enviar respuesta');
-        } finally {
-            // Restaurar botón solo si existe
+            // Restaurar botón en caso de error
             if (sendBtn) {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Enviar respuesta';
