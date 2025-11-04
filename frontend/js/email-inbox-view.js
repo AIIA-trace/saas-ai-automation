@@ -16,22 +16,23 @@
     let checkAttempts = 0;
     const maxAttempts = 10; // Max 10 attempts (10 seconds)
 
-    // Esperar a que el DOM esté listo
+    // DESACTIVADO TEMPORALMENTE - Dejar que el sistema legacy cargue los emails
+    // El sistema nuevo interfiere con la carga normal
+    /*
     document.addEventListener('DOMContentLoaded', function() {
-        // Esperar a que el tab de emails esté visible antes de inicializar
         setTimeout(() => {
             const emailsTab = document.getElementById('emails-content');
             if (emailsTab) {
                 console.log('🚀 Iniciando carga directa de bandeja de entrada...');
-                // Primero cargar emails, luego inicializar vista
                 loadInboxEmails().then(() => {
                     initInboxView();
                 });
             } else {
                 console.warn('⚠️ Tab de emails no encontrado, esperando...');
             }
-        }, 1000); // Dar tiempo a que el dashboard se renderice
+        }, 1000);
     });
+    */
 
     /**
      * Verificar el estado de carga de emails
