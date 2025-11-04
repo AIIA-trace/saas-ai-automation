@@ -494,6 +494,13 @@
                 if (e.target.closest('.star-icon')) return;
                 
                 const emailId = this.dataset.emailId;
+                
+                // Ignorar emails de prueba (IDs cortos)
+                if (emailId && emailId.length < 10) {
+                    console.warn(`⚠️ Email de prueba detectado (ID: ${emailId}), ignorando click`);
+                    return;
+                }
+                
                 const email = allEmails.find(e => e.id == emailId);
                 if (email) {
                     showEmailContent(email);
