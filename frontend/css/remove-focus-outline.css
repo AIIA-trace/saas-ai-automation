@@ -1,0 +1,83 @@
+/**
+ * Eliminar outline azul de focus en todos los elementos del dashboard
+ * Mantener accesibilidad con indicadores visuales alternativos
+ */
+
+/* Eliminar outline en todos los elementos interactivos */
+*:focus,
+*:focus-visible,
+button:focus,
+input:focus,
+textarea:focus,
+select:focus,
+a:focus,
+.btn:focus,
+.form-control:focus,
+.form-select:focus,
+.email-list-item:focus,
+.card:focus,
+div:focus,
+[tabindex]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Eliminar outline específico de Bootstrap */
+.btn:focus,
+.btn:active:focus,
+.btn.active:focus,
+.btn.focus,
+.btn:active.focus,
+.btn.active.focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Eliminar outline en inputs de Bootstrap */
+.form-control:focus,
+.form-select:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: #ced4da !important;
+}
+
+/* Eliminar outline en botones de radio y checkbox */
+.btn-check:focus + .btn,
+.btn-check:active + .btn,
+.btn-check:checked + .btn {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Eliminar outline en elementos de email */
+.email-list-item:focus,
+.email-list-item:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Eliminar outline en tabs */
+.nav-link:focus,
+.nav-link:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Eliminar outline en modales */
+.modal:focus,
+.modal-content:focus,
+.modal-header:focus,
+.modal-body:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Mantener hover para indicar interactividad */
+.email-list-item:hover {
+    background-color: #f8f9fa !important;
+}
+
+button:hover,
+.btn:hover {
+    opacity: 0.9;
+}
