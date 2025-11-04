@@ -18,10 +18,19 @@
 
     // Esperar a que el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
-        // NUEVO: Cargar emails directamente sin esperar al sistema legacy
-        console.log('🚀 Iniciando carga directa de bandeja de entrada...');
-        initInboxView();
-        loadInboxEmails(); // Cargar inmediatamente
+        // Esperar a que el tab de emails esté visible antes de inicializar
+        setTimeout(() => {
+            const emailsTab = document.getElementById('emails-content');
+            if (emailsTab) {
+                console.log('🚀 Iniciando carga directa de bandeja de entrada...');
+                // Primero cargar emails, luego inicializar vista
+                loadInboxEmails().then(() => {
+                    initInboxView();
+                });
+            } else {
+                console.warn('⚠️ Tab de emails no encontrado, esperando...');
+            }
+        }, 1000); // Dar tiempo a que el dashboard se renderice
     });
 
     /**
@@ -733,7 +742,7 @@
         const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
         if (!token) {
             console.warn('⚠️ No hay token de autenticación');
-            return;
+            return Promise.reject('No token');
         }
 
         const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
@@ -747,7 +756,7 @@
             listContainer.style.opacity = '0.7';
         }
         
-        fetch(`${API_BASE_URL}/api/email/inbox?limit=50`, {
+        return fetch(`${API_BASE_URL}/api/email/inbox?limit=50`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
