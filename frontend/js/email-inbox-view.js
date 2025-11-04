@@ -20,6 +20,14 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Verificar periódicamente si los emails están cargando o ya se cargaron
         checkEmailsStatus();
+        
+        // Auto-refresh cada 30 segundos para actualizar la vista
+        setInterval(() => {
+            if (hasInitialized && currentMailbox === 'inbox') {
+                console.log('🔄 Auto-refresh: Actualizando bandeja de entrada...');
+                loadInboxEmails();
+            }
+        }, 30000); // 30 segundos
     });
 
     /**
