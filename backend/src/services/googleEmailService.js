@@ -412,6 +412,19 @@ class GoogleEmailService {
             logger.info(`   - Size: ${part.body.size} bytes`);
             logger.info(`   - AttachmentId: ${part.body.attachmentId.substring(0, 50)}...`);
             
+            // FILTRAR archivos sin mimeType o con nombres sospechosos (UUIDs sin extensión)
+            if (!part.mimeType || part.mimeType === '') {
+              logger.warn(`⚠️ Ignorando attachment sin mimeType: ${part.filename}`);
+              return; // No agregar a attachments
+            }
+            
+            // Detectar archivos temporales de Gmail (UUID sin extensión)
+            const isUuidWithoutExtension = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(part.filename);
+            if (isUuidWithoutExtension) {
+              logger.warn(`⚠️ Ignorando archivo temporal de Gmail: ${part.filename}`);
+              return; // No agregar a attachments
+            }
+            
             // ADVERTENCIA: Gmail a veces convierte PDFs a HTML pero mantiene el filename .pdf
             // Detectar este caso y loguear
             const isPdfFilename = part.filename.toLowerCase().endsWith('.pdf');
