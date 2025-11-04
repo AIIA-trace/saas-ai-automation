@@ -10,7 +10,7 @@
     /**
      * Formatear fecha de email
      * - Mismo día: solo hora (ej: "14:30")
-     * - Días anteriores: fecha + hora (ej: "28 oct, 14:30")
+     * - Días anteriores: día, mes y año (ej: "4 nov 2025")
      */
     window.formatEmailDate = function(dateString) {
         if (!dateString) return '';
@@ -32,18 +32,18 @@
             const diffMs = nowOnly - dateOnly;
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-            const timeStr = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-
             if (diffDays === 0) {
                 // Hoy: solo hora
+                const timeStr = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
                 return timeStr;
             } else {
-                // Días anteriores: fecha + hora
+                // Días anteriores: día, mes y año (sin hora)
                 const dateStr = date.toLocaleDateString('es-ES', { 
-                    day: '2-digit', 
-                    month: 'short'
+                    day: 'numeric', 
+                    month: 'short',
+                    year: 'numeric'
                 });
-                return `${dateStr}, ${timeStr}`;
+                return dateStr;
             }
         } catch (error) {
             console.error('❌ Error formateando fecha:', error, dateString);
