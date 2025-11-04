@@ -16,23 +16,11 @@
     let checkAttempts = 0;
     const maxAttempts = 10; // Max 10 attempts (10 seconds)
 
-    // DESACTIVADO TEMPORALMENTE - Dejar que el sistema legacy cargue los emails
-    // El sistema nuevo interfiere con la carga normal
-    /*
+    // Esperar a que el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(() => {
-            const emailsTab = document.getElementById('emails-content');
-            if (emailsTab) {
-                console.log('🚀 Iniciando carga directa de bandeja de entrada...');
-                loadInboxEmails().then(() => {
-                    initInboxView();
-                });
-            } else {
-                console.warn('⚠️ Tab de emails no encontrado, esperando...');
-            }
-        }, 1000);
+        // Verificar periódicamente si los emails están cargando o ya se cargaron
+        checkEmailsStatus();
     });
-    */
 
     /**
      * Verificar el estado de carga de emails
