@@ -256,88 +256,93 @@
      */
     function createInboxLayout(container) {
         const newHTML = `
-            <div class="container-fluid pt-2 pb-0 h-100">
-                <div class="row g-0 h-100">
+            <div class="container-fluid p-0 h-100 d-flex flex-column">
+                <div class="row g-0 flex-grow-1" style="height: calc(100vh - 150px);">
                     <!-- Panel lateral: Lista de emails -->
-                    <div class="col-md-4 border-end" style="height: calc(100vh - 150px); overflow-y: auto;">
-                        <div class="p-3 border-bottom bg-light">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0"><i class="fas fa-inbox me-2"></i>Bandeja de Entrada</h5>
-                                <button class="btn btn-primary btn-sm" id="compose-email-btn">
-                                    <i class="fas fa-pen me-1"></i>Redactar
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Buscador -->
-                        <div class="p-3 border-bottom">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white">
-                                    <i class="fas fa-search text-muted"></i>
-                                </span>
-                                <input type="text" class="form-control" id="email-search-input" placeholder="Buscar emails...">
-                            </div>
-                        </div>
-
-                        <!-- Filtros de bandeja -->
-                        <div class="p-3 border-bottom">
-                            <div class="btn-group btn-group-sm w-100 mb-2" role="group">
-                                <input type="radio" class="btn-check" name="mailbox-type" id="mailbox-inbox" checked>
-                                <label class="btn btn-outline-success" for="mailbox-inbox">
-                                    <i class="fas fa-inbox me-1"></i>Recibidos
-                                </label>
-                                
-                                <input type="radio" class="btn-check" name="mailbox-type" id="mailbox-sent">
-                                <label class="btn btn-outline-success" for="mailbox-sent">
-                                    <i class="fas fa-paper-plane me-1"></i>Enviados
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Filtros de estado -->
-                        <div class="p-3 border-bottom">
-                            <div class="btn-group btn-group-sm w-100" role="group">
-                                <input type="radio" class="btn-check" name="inbox-filter" id="filter-all" checked>
-                                <label class="btn btn-outline-primary" for="filter-all">
-                                    <i class="fas fa-list me-1"></i>Todos
-                                </label>
-                                
-                                <input type="radio" class="btn-check" name="inbox-filter" id="filter-unread">
-                                <label class="btn btn-outline-primary" for="filter-unread">
-                                    <i class="fas fa-envelope me-1"></i>No leídos
-                                </label>
-                                
-                                <input type="radio" class="btn-check" name="inbox-filter" id="filter-important">
-                                <label class="btn btn-outline-primary" for="filter-important">
-                                    <i class="fas fa-star me-1"></i>Importantes
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Contador de resultados -->
-                        <div class="px-3 py-2 bg-light border-bottom">
-                            <small class="text-muted" id="emails-search-results">Mostrando todos los emails</small>
-                        </div>
-
-                        <!-- Lista de emails -->
-                        <div id="inbox-email-list">
-                            <div class="text-center py-5">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Cargando...</span>
+                    <div class="col-md-4 border-end d-flex flex-column">
+                        <!-- Header fijo -->
+                        <div class="flex-shrink-0">
+                            <div class="p-2 border-bottom bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 fw-semibold"><i class="fas fa-inbox me-2"></i>Bandeja de Entrada</h6>
+                                    <button class="btn btn-primary btn-sm py-1 px-2" id="compose-email-btn" style="font-size: 0.8rem;">
+                                        <i class="fas fa-pen me-1"></i>Redactar
+                                    </button>
                                 </div>
-                                <p class="mt-3 text-muted">Cargando emails...</p>
+                            </div>
+                            
+                            <!-- Buscador -->
+                            <div class="p-2 border-bottom">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white border-end-0" style="padding: 0.25rem 0.5rem;">
+                                        <i class="fas fa-search text-muted" style="font-size: 0.75rem;"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0" id="email-search-input" placeholder="Buscar..." style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">
+                                </div>
+                            </div>
+
+                            <!-- Filtros de bandeja -->
+                            <div class="p-2 border-bottom">
+                                <div class="btn-group btn-group-sm w-100" role="group" style="font-size: 0.75rem;">
+                                    <input type="radio" class="btn-check" name="mailbox-type" id="mailbox-inbox" checked>
+                                    <label class="btn btn-outline-success py-1" for="mailbox-inbox">
+                                        <i class="fas fa-inbox me-1"></i>Recibidos
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="mailbox-type" id="mailbox-sent">
+                                    <label class="btn btn-outline-success py-1" for="mailbox-sent">
+                                        <i class="fas fa-paper-plane me-1"></i>Enviados
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Filtros de estado -->
+                            <div class="p-2 border-bottom">
+                                <div class="btn-group btn-group-sm w-100" role="group" style="font-size: 0.75rem;">
+                                    <input type="radio" class="btn-check" name="inbox-filter" id="filter-all" checked>
+                                    <label class="btn btn-outline-primary py-1" for="filter-all">
+                                        <i class="fas fa-list me-1"></i>Todos
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="inbox-filter" id="filter-unread">
+                                    <label class="btn btn-outline-primary py-1" for="filter-unread">
+                                        <i class="fas fa-envelope me-1"></i>No leídos
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="inbox-filter" id="filter-important">
+                                    <label class="btn btn-outline-primary py-1" for="filter-important">
+                                        <i class="fas fa-star me-1"></i>Importantes
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Contador de resultados -->
+                            <div class="px-2 py-1 bg-light border-bottom">
+                                <small class="text-muted" id="emails-search-results" style="font-size: 0.7rem;">Mostrando todos los emails</small>
+                            </div>
+                        </div>
+
+                        <!-- Lista de emails con scroll -->
+                        <div class="flex-grow-1" style="overflow-y: auto;">
+                            <div id="inbox-email-list">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted mb-0" style="font-size: 0.8rem;">Cargando emails...</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Panel principal: Contenido del email -->
-                    <div class="col-md-8" style="height: calc(100vh - 150px); overflow-y: auto;">
-                        <div id="inbox-email-content">
+                    <!-- Panel principal: Contenido del email con scroll -->
+                    <div class="col-md-8 d-flex flex-column">
+                        <div id="inbox-email-content" class="flex-grow-1" style="overflow-y: auto;">
                             <div class="d-flex align-items-center justify-content-center h-100">
                                 <div class="text-center text-muted">
-                                    <i class="fas fa-envelope-open-text fa-4x mb-3 opacity-25"></i>
-                                    <h5>Selecciona un email para verlo</h5>
-                                    <p>Haz clic en un email de la lista para ver su contenido completo</p>
+                                    <i class="fas fa-envelope-open-text fa-3x mb-2 opacity-25"></i>
+                                    <h6 class="mb-1">Selecciona un email para verlo</h6>
+                                    <p class="mb-0" style="font-size: 0.85rem;">Haz clic en un email de la lista</p>
                                 </div>
                             </div>
                         </div>
@@ -456,25 +461,25 @@
             const checkboxClass = email.important ? 'custom-checkbox checked' : 'custom-checkbox';
             
             html += `
-                <div class="email-list-item border-bottom p-3 ${unreadClass}" 
-                     style="cursor: pointer; transition: background-color 0.2s; background-color: white !important; ${unreadBorderStyle}"
+                <div class="email-list-item border-bottom py-2 px-2 ${unreadClass}" 
+                     style="cursor: pointer; transition: background-color 0.15s; background-color: white !important; ${unreadBorderStyle}"
                      data-email-id="${email.id}"
                      data-unread="${email.unread}"
                      data-important="${email.important}"
                      onmouseover="this.style.backgroundColor='#f8f9fa'"
                      onmouseout="this.style.backgroundColor='white'">
-                    <div class="d-flex align-items-start mb-2">
+                    <div class="d-flex align-items-start">
                         <div class="${checkboxClass}" 
-                             style="min-width: 20px; margin-right: 10px; margin-top: 2px;"
+                             style="min-width: 16px; margin-right: 8px; margin-top: 1px; font-size: 0.9rem;"
                              onclick="window.InboxView.toggleImportant('${email.id}', event)">
                         </div>
                         <div class="flex-grow-1" style="min-width: 0;">
                             <div class="d-flex justify-content-between align-items-start mb-1">
-                                <span class="text-dark fw-medium text-truncate" style="flex: 1; min-width: 0;">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
-                                <small class="text-muted ms-2" style="flex-shrink: 0;">${formatEmailDate(email.date)}</small>
+                                <span class="text-dark fw-medium text-truncate" style="flex: 1; min-width: 0; font-size: 0.85rem;">${email.sender || email.from || email.fromName || 'Desconocido'}</span>
+                                <small class="text-muted ms-2" style="flex-shrink: 0; font-size: 0.7rem;">${formatEmailDate(email.date)}</small>
                             </div>
-                            <div class="text-dark mb-1 text-truncate">${email.subject || '(Sin asunto)'}</div>
-                            <div class="text-muted small text-truncate">${email.preview || email.snippet || ''}</div>
+                            <div class="text-dark text-truncate" style="font-size: 0.8rem; margin-bottom: 0.15rem;">${email.subject || '(Sin asunto)'}</div>
+                            <div class="text-muted text-truncate" style="font-size: 0.75rem;">${email.preview || email.snippet || ''}</div>
                         </div>
                     </div>
                 </div>
@@ -1403,7 +1408,7 @@
     function renderAttachments(attachments, emailId) {
         if (!attachments || attachments.length === 0) return '';
 
-        let html = '<div class="border-top pt-3 mb-4"><h6 class="mb-3"><i class="fas fa-paperclip me-2"></i>Adjuntos</h6><div class="row g-2">';
+        let html = '<div class="border-top pt-2 mb-3"><div class="d-flex align-items-center mb-2"><i class="fas fa-paperclip me-2 text-muted" style="font-size: 0.85rem;"></i><small class="text-muted fw-semibold">Adjuntos</small></div><div class="d-flex flex-wrap gap-2">';
         
         attachments.forEach(attachment => {
             const icon = getFileIcon(attachment.mimeType);
@@ -1411,32 +1416,26 @@
             const canPreview = canPreviewFile(attachment.mimeType);
             
             html += `
-                <div class="col-md-6">
-                    <div class="card" style="cursor: ${canPreview ? 'pointer' : 'default'};" 
-                         ${canPreview ? `onclick="window.InboxView.previewAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}', '${attachment.mimeType}')"` : ''}>
-                        <div class="card-body p-3">
-                            <div class="d-flex align-items-center">
-                                <i class="${icon} fa-2x text-primary me-3 flex-shrink-0"></i>
-                                <div class="flex-grow-1 min-width-0 me-2">
-                                    <div class="fw-medium small text-truncate" title="${attachment.filename}">${attachment.filename}</div>
-                                    <div class="text-muted" style="font-size: 0.75rem;">${sizeFormatted}</div>
-                                </div>
-                                <div class="btn-group btn-group-sm flex-shrink-0">
-                                    ${canPreview ? `
-                                        <button class="btn btn-outline-primary" 
-                                                onclick="event.stopPropagation(); window.InboxView.previewAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}', '${attachment.mimeType}')"
-                                                title="Vista previa">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    ` : ''}
-                                    <button class="btn btn-outline-primary" 
-                                            onclick="event.stopPropagation(); window.InboxView.downloadAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}')"
-                                            title="Descargar">
-                                        <i class="fas fa-download"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                <div class="border rounded p-2 d-flex align-items-center" style="cursor: ${canPreview ? 'pointer' : 'default'}; min-width: 200px; max-width: 300px; background: #f8f9fa;" 
+                     ${canPreview ? `onclick="window.InboxView.previewAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}', '${attachment.mimeType}')"` : ''}>
+                    <i class="${icon} text-primary me-2 flex-shrink-0" style="font-size: 1.2rem;"></i>
+                    <div class="flex-grow-1 min-width-0 me-2">
+                        <div class="text-truncate" title="${attachment.filename}" style="font-size: 0.8rem; font-weight: 500;">${attachment.filename}</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">${sizeFormatted}</div>
+                    </div>
+                    <div class="btn-group btn-group-sm flex-shrink-0">
+                        ${canPreview ? `
+                            <button class="btn btn-sm btn-outline-primary py-0 px-1" 
+                                    onclick="event.stopPropagation(); window.InboxView.previewAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}', '${attachment.mimeType}')"
+                                    title="Vista previa" style="font-size: 0.7rem;">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-sm btn-outline-primary py-0 px-1" 
+                                onclick="event.stopPropagation(); window.InboxView.downloadAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}')"
+                                title="Descargar" style="font-size: 0.7rem;">
+                            <i class="fas fa-download"></i>
+                        </button>
                     </div>
                 </div>
             `;
