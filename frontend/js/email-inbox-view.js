@@ -18,8 +18,10 @@
 
     // Esperar a que el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
-        // Verificar periódicamente si los emails están cargando o ya se cargaron
-        checkEmailsStatus();
+        // NUEVO: Cargar emails directamente sin esperar al sistema legacy
+        console.log('🚀 Iniciando carga directa de bandeja de entrada...');
+        initInboxView();
+        loadInboxEmails(); // Cargar inmediatamente
     });
 
     /**
@@ -740,6 +742,11 @@
         const listContainer = document.getElementById('inbox-email-list');
         const existingEmails = listContainer ? listContainer.innerHTML : '';
         
+        // Añadir clase de carga al contenedor
+        if (listContainer) {
+            listContainer.style.opacity = '0.7';
+        }
+        
         fetch(`${API_BASE_URL}/api/email/inbox?limit=50`, {
             method: 'GET',
             headers: {
@@ -775,6 +782,11 @@
 
                 allEmails = mappedEmails;
                 renderEmailList(mappedEmails);
+                
+                // Restaurar opacidad
+                if (listContainer) {
+                    listContainer.style.opacity = '1';
+                }
             }
         })
         .catch(error => {
@@ -782,6 +794,10 @@
             // Restaurar contenido anterior si hay error
             if (listContainer && existingEmails) {
                 listContainer.innerHTML = existingEmails;
+            }
+            // Restaurar opacidad
+            if (listContainer) {
+                listContainer.style.opacity = '1';
             }
         });
     }
@@ -2775,14 +2791,10 @@ ${body}`;
                         
                         console.log(`✅ Auto-refresh: ${newEmailCount} emails en servidor, ${currentCount} en vista actual`);
                         
-                        // Solo actualizar si hay cambios
-                        if (newEmailCount !== currentCount) {
-                            console.log(`🔄 Detectados cambios, actualizando vista...`);
-                            if (window.InboxView && typeof window.InboxView.loadInboxEmails === 'function') {
-                                window.InboxView.loadInboxEmails();
-                            }
-                        } else {
-                            console.log(`✓ Sin cambios en bandeja de entrada`);
+                        // SIEMPRE actualizar para reflejar cambios de estado (leído/no leído, etc.)
+                        console.log(`🔄 Actualizando vista...`);
+                        if (window.InboxView && typeof window.InboxView.loadInboxEmails === 'function') {
+                            window.InboxView.loadInboxEmails();
                         }
                     }
                 })

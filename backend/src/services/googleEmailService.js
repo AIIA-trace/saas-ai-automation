@@ -405,6 +405,17 @@ class GoogleEmailService {
             });
           } else if (part.filename) {
             // Es un adjunto normal
+            // ADVERTENCIA: Gmail a veces convierte PDFs a HTML pero mantiene el filename .pdf
+            // Detectar este caso y loguear
+            const isPdfFilename = part.filename.toLowerCase().endsWith('.pdf');
+            const isHtmlMimeType = part.mimeType === 'text/html';
+            
+            if (isPdfFilename && isHtmlMimeType) {
+              logger.warn(`⚠️ ADVERTENCIA: Archivo "${part.filename}" tiene extensión .pdf pero Gmail lo guardó como HTML`);
+              logger.warn(`   Esto puede pasar cuando se guarda una página web como PDF o Gmail convierte el archivo`);
+              logger.warn(`   El archivo se mostrará como HTML en el preview`);
+            }
+            
             attachments.push({
               filename: part.filename,
               mimeType: part.mimeType,
