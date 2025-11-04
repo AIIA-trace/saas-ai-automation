@@ -4384,11 +4384,12 @@ function loadEmailsData() {
         console.log(`✅ ${emailsData.length} emails cargados correctamente`);
     })
     .catch(error => {
-        console.log('🔄 API no disponible, cargando datos de prueba...');
-        // Cargar datos de prueba como fallback
-        const mockData = getMockEmailsData();
-        loadEmailsIntoTable(mockData);
-        console.log(`✅ ${mockData.length} emails de prueba cargados`);
+        console.error('❌ Error cargando emails:', error);
+        // NO cargar datos de prueba - dejar la tabla vacía
+        const emailsTableBody = document.getElementById('emails-table-body');
+        if (emailsTableBody) {
+            emailsTableBody.innerHTML = '';
+        }
     });
 }
 
