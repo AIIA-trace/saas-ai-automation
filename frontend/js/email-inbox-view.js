@@ -1411,17 +1411,17 @@
             const canPreview = canPreviewFile(attachment.mimeType);
             
             html += `
-                <div class="col-md-6">
+                <div class="col-12">
                     <div class="card" style="cursor: ${canPreview ? 'pointer' : 'default'};" 
                          ${canPreview ? `onclick="window.InboxView.previewAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}', '${attachment.mimeType}')"` : ''}>
                         <div class="card-body p-3">
-                            <div class="d-flex align-items-center">
-                                <i class="${icon} fa-2x text-primary me-3 flex-shrink-0"></i>
-                                <div class="flex-grow-1 min-width-0 me-2">
-                                    <div class="fw-medium small text-truncate" title="${attachment.filename}">${attachment.filename}</div>
+                            <div class="d-flex align-items-center flex-wrap gap-2">
+                                <i class="${icon} fa-2x text-primary flex-shrink-0"></i>
+                                <div class="flex-grow-1" style="min-width: 200px;">
+                                    <div class="fw-medium small text-break">${attachment.filename}</div>
                                     <div class="text-muted" style="font-size: 0.75rem;">${sizeFormatted}</div>
                                 </div>
-                                <div class="btn-group btn-group-sm flex-shrink-0">
+                                <div class="btn-group btn-group-sm flex-shrink-0 ms-auto">
                                     ${canPreview ? `
                                         <button class="btn btn-outline-primary" 
                                                 onclick="event.stopPropagation(); window.InboxView.previewAttachment('${emailId}', '${attachment.attachmentId}', '${attachment.filename}', '${attachment.mimeType}')"
