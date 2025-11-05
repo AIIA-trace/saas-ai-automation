@@ -82,10 +82,10 @@ function createSimpleTabs() {
     }
     
     // Crear pestañas dinámicamente con nueva estructura
-    // NO establecer active aquí - navigation-persistence.js lo manejará
+    // Establecer el primer tab como activo por defecto
     tabsContainer.innerHTML = `
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls-content" type="button" role="tab" aria-controls="calls-content" aria-selected="false">
+            <button class="nav-link active" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls-content" type="button" role="tab" aria-controls="calls-content" aria-selected="true">
                 <i class="fas fa-phone me-2"></i>Registro de Llamadas
             </button>
         </li>
@@ -1016,10 +1016,10 @@ function addDashboardStyles() {
  * @returns {string} HTML de la pestaña
  */
 function createCallsTabContent() {
-    // NO establecer active aquí - navigation-persistence.js lo manejará
+    // Establecer el primer tab-pane como activo por defecto
     return `
         <!-- 1. Registro de Llamadas -->
-        <div class="tab-pane animate-fadeIn" id="calls-content" role="tabpanel" aria-labelledby="calls-tab" tabindex="0">
+        <div class="tab-pane fade show active animate-fadeIn" id="calls-content" role="tabpanel" aria-labelledby="calls-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <!-- Registro de Llamadas -->
                 <div class="row">
@@ -1115,10 +1115,9 @@ function createCallsTabContent() {
  * @returns {string} HTML de la pestaña
  */
 function createEmailsTabContent() {
-    // NO establecer active aquí - navigation-persistence.js lo manejará
     return `
         <!-- 2. Gestión de Emails -->
-        <div class="tab-pane animate-fadeIn" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
+        <div class="tab-pane fade" id="emails-content" role="tabpanel" aria-labelledby="emails-tab" tabindex="0">
             <!-- Mensaje de carga -->
             <div id="email-loading-message" class="container-fluid pt-4" style="display: none;">
                 <div class="card border-0 shadow-sm">
@@ -1165,10 +1164,9 @@ function createEmailsTabContent() {
  * @returns {string} HTML de la pestaña
  */
 function createCallConfigTabContent() {
-    // NO establecer active aquí - navigation-persistence.js lo manejará
     return `
         <!-- 3. Configuración del Bot -->
-        <div class="tab-pane" id="call-bot-content" role="tabpanel" aria-labelledby="call-bot-tab" tabindex="0">
+        <div class="tab-pane fade" id="call-bot-content" role="tabpanel" aria-labelledby="call-bot-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom-0 py-3">
@@ -1652,10 +1650,9 @@ Web"></textarea>
  * @returns {string} HTML de la pestaña
  */
 function createAccountTabContent() {
-    // NO establecer active aquí - navigation-persistence.js lo manejará
     return `
         <!-- 4. Mi Cuenta -->
-        <div class="tab-pane" id="account-content" role="tabpanel" aria-labelledby="account-tab" tabindex="0">
+        <div class="tab-pane fade" id="account-content" role="tabpanel" aria-labelledby="account-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom-0 py-3">
@@ -1761,10 +1758,9 @@ function createAccountTabContent() {
  * @returns {string} HTML de la pestaña
  */
 function createBillingTabContent() {
-    // NO establecer active aquí - navigation-persistence.js lo manejará
     return `
         <!-- 5. Facturación -->
-        <div class="tab-pane" id="billing-content" role="tabpanel" aria-labelledby="billing-tab" tabindex="0">
+        <div class="tab-pane fade" id="billing-content" role="tabpanel" aria-labelledby="billing-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom-0 py-3">
@@ -6582,16 +6578,9 @@ function setupTabEventListeners() {
             new bootstrap.Tab(tabEl);
         });
         
-        // Solo activar la primera pestaña si NO hay hash en la URL
-        // (navigation-persistence.js se encarga de restaurar el tab correcto)
-        if (!window.location.hash) {
-            console.log('📍 No hay hash en URL, activando tab por defecto (llamadas)');
-            const firstTab = document.querySelector('#calls-tab');
-            if (firstTab) {
-                const bsTab = new bootstrap.Tab(firstTab);
-                bsTab.show();
-            }
-        } else {
+        // El tab por defecto ya está activo en el HTML
+        console.log('✅ Tab por defecto (llamadas) ya está activo');
+        if (window.location.hash) {
             console.log('🔗 Hash detectado en URL, dejando que navigation-persistence.js restaure el tab');
         }
         
