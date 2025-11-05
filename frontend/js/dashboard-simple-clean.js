@@ -3372,17 +3372,6 @@ function initDashboard() {
     // Configurar event listeners
     setupEventListeners();
     
-    // Cargar datos de demostración directamente
-    if (typeof loadDemoCallsData === 'function') {
-        console.log('📞 Cargando datos de demostración para llamadas...');
-        loadDemoCallsData();
-    }
-    
-    if (typeof loadDemoEmailsData === 'function') {
-        console.log('📧 Cargando datos de demostración para emails...');
-        loadDemoEmailsData();
-    }
-    
     // Cargar datos existentes del perfil y configuración desde el backend
     loadExistingData();
     
