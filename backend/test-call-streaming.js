@@ -23,7 +23,7 @@ async function testStreamingCall() {
     const call = await client.calls.create({
       to: '+34123456789', // Número de prueba (cambiar por uno real para test)
       from: twilioNumber,
-      url: `https://saas-ai-automation.onrender.com/api/twilio/webhook`,
+      url: `https://api.aiiatrace.com/api/twilio/webhook`,
       method: 'POST',
       record: false,
       timeout: 30
@@ -66,7 +66,7 @@ async function testWebhook() {
   try {
     console.log('🧪 Verificando webhook...');
     
-    const webhookUrl = `https://saas-ai-automation.onrender.com/api/twilio/webhook`;
+    const webhookUrl = `https://api.aiiatrace.com/api/twilio/webhook`;
     console.log(`🔗 URL: ${webhookUrl}`);
     
     const response = await fetch(webhookUrl, {
@@ -102,7 +102,7 @@ async function testWebSocket() {
     console.log('🧪 Verificando servidor WebSocket...');
     
     const WebSocket = require('ws');
-    const wsUrl = `wss://saas-ai-automation.onrender.com/websocket`;
+    const wsUrl = `wss://api.aiiatrace.com/websocket`;
     
     console.log(`🔗 URL WebSocket: ${wsUrl}`);
     

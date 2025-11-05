@@ -5,7 +5,7 @@
 
 (function() {
     // URL del endpoint de health check
-    const HEALTH_CHECK_URL = 'https://saas-ai-automation.onrender.com/api/health';
+    const HEALTH_CHECK_URL = 'https://api.aiiatrace.com/api/health';
     
     // Intervalo en milisegundos (10 minutos)
     const PING_INTERVAL = 10 * 60 * 1000;

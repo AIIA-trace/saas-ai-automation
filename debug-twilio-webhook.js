@@ -34,9 +34,9 @@ async function debugTwilioWebhook() {
     
     // 2. URLs que debe configurar Twilio
     console.log('2. URLS QUE DEBE CONFIGURAR TWILIO:');
-    console.log('📡 Webhook URL (Voice): https://saas-ai-automation.onrender.com/api/twilio/webhook');
-    console.log('🎙️ Audio Webhook URL: https://saas-ai-automation.onrender.com/api/twilio/webhook/audio');
-    console.log('🔌 WebSocket URL: wss://saas-ai-automation.onrender.com/websocket/twilio-stream');
+    console.log('📡 Webhook URL (Voice): https://api.aiiatrace.com/api/twilio/webhook');
+    console.log('🎙️ Audio Webhook URL: https://api.aiiatrace.com/api/twilio/webhook/audio');
+    console.log('🔌 WebSocket URL: wss://api.aiiatrace.com/websocket/twilio-stream');
     console.log('');
     
     // 3. Verificar variables de entorno críticas
@@ -78,7 +78,7 @@ async function debugTwilioWebhook() {
     console.log('1. Verificar que el número Twilio tenga configurado el Voice Webhook URL');
     console.log('2. En Twilio Console > Phone Numbers > Manage > Active numbers');
     console.log('3. Seleccionar el número y configurar:');
-    console.log('   - Voice & Fax > Webhook: https://saas-ai-automation.onrender.com/api/twilio/webhook');
+    console.log('   - Voice & Fax > Webhook: https://api.aiiatrace.com/api/twilio/webhook');
     console.log('   - HTTP Method: POST');
     console.log('4. Guardar configuración y probar llamada');
     

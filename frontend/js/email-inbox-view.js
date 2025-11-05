@@ -580,7 +580,7 @@
             return;
         }
 
-        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
         fetch(`${API_BASE_URL}/api/email/toggle-starred`, {
             method: 'POST',
@@ -619,7 +619,7 @@
             return;
         }
 
-        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
         fetch(`${API_BASE_URL}/api/email/mark-read`, {
             method: 'POST',
@@ -749,7 +749,7 @@
             return Promise.reject('No token');
         }
 
-        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
         // Mostrar indicador sutil de carga (sin reemplazar toda la lista)
         const listContainer = document.getElementById('inbox-email-list');
@@ -825,7 +825,7 @@
             return;
         }
 
-        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
         fetch(`${API_BASE_URL}/api/email/sent?limit=50`, {
             method: 'GET',
@@ -944,7 +944,7 @@
 
         // Cargar más emails desde el backend
         const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
         const endpoint = currentMailbox === 'sent' 
             ? `/api/email/sent?limit=30&pageToken=${window.emailNextPageToken}`
@@ -1214,7 +1214,7 @@
             return;
         }
 
-        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
         fetch(`${API_BASE_URL}/api/email/${emailId}/details`, {
             method: 'GET',
@@ -1475,7 +1475,7 @@
     function previewAttachment(emailId, attachmentId, filename, mimeType) {
         console.log('📎 Preview Attachment llamado:', {emailId, attachmentId, filename, mimeType});
         const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
         // Crear modal de preview
         const modalHTML = `
@@ -1639,7 +1639,7 @@
      */
     function downloadAttachment(emailId, attachmentId, filename) {
         const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
         console.log('📥 Descargando adjunto:', { emailId, attachmentId, filename });
 
@@ -2095,7 +2095,7 @@ ${body}`;
 
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
             const response = await fetch(`${API_BASE_URL}/api/email/ai/rewrite-content`, {
                 method: 'POST',
@@ -2610,7 +2610,7 @@ ${body}`;
             return;
         }
 
-        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
         fetch(`${API_BASE_URL}/api/email/${emailId}`, {
             method: 'DELETE',
@@ -2757,7 +2757,7 @@ ${body}`;
                 const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
                 if (!token) return;
                 
-                const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+                const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
                 
                 fetch(`${API_BASE_URL}/api/email/sent?limit=50`, {
                     method: 'GET',
@@ -2784,7 +2784,7 @@ ${body}`;
                 const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
                 if (!token) return;
                 
-                const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+                const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
                 
                 fetch(`${API_BASE_URL}/api/email/inbox?limit=50`, {
                     method: 'GET',

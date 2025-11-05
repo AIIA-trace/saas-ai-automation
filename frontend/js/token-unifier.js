@@ -58,7 +58,7 @@
                 throw new Error('No hay JWT token disponible');
             }
             
-            const baseUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
+            const baseUrl = window.API_CONFIG?.apiBaseUrl || 'https://api.aiiatrace.com';
             const url = `${baseUrl}/api/auth/me`;
             
             console.log('🔑 Intentando obtener API key desde:', url);
@@ -97,7 +97,7 @@
                 throw new Error('No hay JWT token disponible');
             }
             
-            const baseUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
+            const baseUrl = window.API_CONFIG?.apiBaseUrl || 'https://api.aiiatrace.com';
             const url = `${baseUrl}/api/auth/api-key`;
             
             console.log('🔑 Intentando generar nueva API key...');
@@ -203,7 +203,7 @@ async function refreshApiKey() {
             throw new Error('No hay JWT token disponible');
         }
         
-        const baseUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
+        const baseUrl = window.API_CONFIG?.apiBaseUrl || 'https://api.aiiatrace.com';
         const url = `${baseUrl}/api/auth/api-key`;
         
         console.log('🔑 Intentando generar nueva API key...');
@@ -249,7 +249,7 @@ window.TokenManager = {
                 throw new Error('No hay JWT token disponible');
             }
             
-            const baseUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
+            const baseUrl = window.API_CONFIG?.apiBaseUrl || 'https://api.aiiatrace.com';
             const url = `${baseUrl}/api/auth/me`;
             
             const response = await fetch(url, {

@@ -4,7 +4,7 @@
  */
 
 // Definir API_BASE_URL si no existe
-const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
 /**
  * Inicializar la integración de email

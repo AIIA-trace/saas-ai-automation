@@ -87,7 +87,7 @@ class OpenAITTSService {
       }
       
       // Calcular la URL pública
-      const baseUrl = process.env.BASE_URL || 'https://saas-ai-automation.onrender.com';
+      const baseUrl = process.env.BASE_URL || 'https://api.aiiatrace.com';
       const publicUrl = `${baseUrl}/audio/${fileName}`;
       
       return {

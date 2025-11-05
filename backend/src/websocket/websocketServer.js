@@ -95,8 +95,13 @@ class WebSocketServer {
     }
 
     // Permitir conexiones desde nuestro dominio
-    if (origin && origin.includes('saas-ai-automation.onrender.com')) {
-      logger.info(`✅ Conexión WebSocket autorizada desde nuestro dominio`);
+    const allowedOrigins = [
+      'aiiatrace.com',
+      'app.aiiatrace.com',
+      'api.aiiatrace.com'
+    ];
+    if (origin && allowedOrigins.some(allowed => origin.includes(allowed))) {
+      logger.info(`✅ Conexión WebSocket autorizada desde nuestro dominio: ${origin}`);
       return true;
     }
 

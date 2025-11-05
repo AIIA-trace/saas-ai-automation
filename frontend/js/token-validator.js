@@ -124,7 +124,7 @@ window.TokenValidator = {
             // Obtener la URL de renovación
             const refreshUrl = window.API_CONFIG?.getFullUrl ? 
                               window.API_CONFIG.getFullUrl('/api/auth/refresh') : 
-                              'https://saas-ai-automation.onrender.com/api/auth/refresh';
+                              'https://api.aiiatrace.com/api/auth/refresh';
             
             // Enviar el token actual para renovarlo
             const response = await fetch(refreshUrl, {

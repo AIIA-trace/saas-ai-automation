@@ -2,7 +2,7 @@
 # Script para verificar el perfil de un usuario en la API
 
 # Configuración
-API_URL="https://saas-ai-automation.onrender.com"
+API_URL="https://api.aiiatrace.com"
 EMAIL="carlos@almiscle.com"
 
 # Colores para mejor visualización

@@ -29,7 +29,7 @@ async function checkTwilioNumbers() {
     });
     
     // Verificar URL base actual
-    const expectedBaseUrl = process.env.TWILIO_WEBHOOK_BASE_URL || 'https://saas-ai-automation.onrender.com';
+    const expectedBaseUrl = process.env.TWILIO_WEBHOOK_BASE_URL || 'https://api.aiiatrace.com';
     console.log(`🎯 URL base esperada: ${expectedBaseUrl}`);
     
     // Verificar si algún número tiene la URL correcta

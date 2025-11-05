@@ -26,7 +26,7 @@ async function getQiromediaCredentials() {
     console.log('🆔 ID:', client.id);
     console.log('');
     console.log('💡 Para acceder al dashboard:');
-    console.log('   URL: https://saas-ai-automation.onrender.com');
+    console.log('   URL: https://api.aiiatrace.com');
     console.log('   Email:', client.email);
     console.log('   Contraseña: La que se configuró al crear la cuenta');
     

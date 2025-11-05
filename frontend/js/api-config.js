@@ -8,8 +8,8 @@ if (typeof window.API_CONFIG === 'undefined') {
   
   // Crear objeto de configuración global
   window.API_CONFIG = {
-    // URL base de la API - Usar Render para producción
-    apiBaseUrl: 'https://saas-ai-automation.onrender.com',
+    // URL base de la API - Dominio personalizado
+    apiBaseUrl: 'https://api.aiiatrace.com',
   
     // Endpoints de autenticación
     AUTH: {

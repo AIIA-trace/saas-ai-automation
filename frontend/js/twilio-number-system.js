@@ -65,7 +65,7 @@ async function checkUserTwilioNumber() {
         console.log('🔍 Verificando número Twilio existente...');
         
         const token = localStorage.getItem('authToken');
-        const baseUrl = window.API_CONFIG?.baseUrl || 'https://saas-ai-automation.onrender.com';
+        const baseUrl = window.API_CONFIG?.baseUrl || 'https://api.aiiatrace.com';
         
         const response = await fetch(`${baseUrl}/api/twilio/my-numbers`, {
             method: 'GET',
@@ -109,7 +109,7 @@ async function purchaseNewTwilioNumber() {
         copyBtn.disabled = true;
         
         const token = localStorage.getItem('authToken');
-        const baseUrl = window.API_CONFIG?.baseUrl || 'https://saas-ai-automation.onrender.com';
+        const baseUrl = window.API_CONFIG?.baseUrl || 'https://api.aiiatrace.com';
         
         const response = await fetch(`${baseUrl}/api/twilio/purchase-number`, {
             method: 'POST',

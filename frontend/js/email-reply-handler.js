@@ -173,7 +173,7 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
 
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
             console.log('🤖 Preparando llamada al backend...');
             console.log('📍 URL:', `${API_BASE_URL}/api/email/generate-reply`);
@@ -332,7 +332,7 @@ console.log('🚀 email-reply-handler.js CARGANDO...');
 
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
             // Obtener firma del usuario (si existe)
             const signature = await getUserSignature();

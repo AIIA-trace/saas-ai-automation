@@ -19,7 +19,7 @@ async function fixTwilioWebhook() {
     console.log(`📞 Configurando número: ${phoneNumber.phoneNumber}`);
     
     // URL correcta para el webhook
-    const correctWebhookUrl = 'https://saas-ai-automation.onrender.com/api/twilio/webhook';
+    const correctWebhookUrl = 'https://api.aiiatrace.com/api/twilio/webhook';
     
     console.log(`🎯 URL webhook: ${correctWebhookUrl}`);
     

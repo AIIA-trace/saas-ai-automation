@@ -468,7 +468,7 @@ ${emailData.text}`
       });
 
       // URL de reset (ajustar según tu dominio)
-      const resetUrl = `${process.env.FRONTEND_URL || 'https://saas-ai-automation.onrender.com'}/reset-password?token=${resetToken}`;
+      const resetUrl = `${process.env.FRONTEND_URL || 'https://app.aiiatrace.com'}/reset-password?token=${resetToken}`;
 
       // Plantilla HTML del email
       const htmlContent = `

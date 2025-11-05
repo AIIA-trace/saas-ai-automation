@@ -18,7 +18,7 @@
 window.ApiHelper = {
     baseUrl: window.location.hostname === 'localhost' 
       ? 'http://localhost:10000' 
-      : 'https://saas-ai-automation.onrender.com',
+      : 'https://api.aiiatrace.com',
 
     /**
      * Función principal para todas las peticiones API

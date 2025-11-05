@@ -3618,7 +3618,7 @@ function loadCallConfiguration() {
                     console.log('💾 Guardando consentimiento de email...');
                     
                     const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-                    const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+                    const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
                     
                     try {
                         const response = await fetch(`${API_BASE_URL}/api/client`, {
@@ -7352,7 +7352,7 @@ function saveUnifiedConfig() {
     }
     
     // Enviar la configuración del bot al backend usando la URL completa
-    const apiUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
+    const apiUrl = window.API_CONFIG?.apiBaseUrl || 'https://api.aiiatrace.com';
     console.log(' Usando URL base de API:', apiUrl);
     
     // Primero procesamos los archivos de contexto y luego guardamos la configuración completa
@@ -10019,7 +10019,7 @@ async function testAzureVoice() {
         const token = localStorage.getItem('authToken');
         
         // Usar la URL base del API_CONFIG
-        const baseUrl = window.API_CONFIG?.baseUrl || 'https://saas-ai-automation.onrender.com';
+        const baseUrl = window.API_CONFIG?.baseUrl || 'https://api.aiiatrace.com';
         
         const response = await fetch(`${baseUrl}/api/tts/test`, {
             method: 'POST',

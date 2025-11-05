@@ -185,7 +185,7 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
     cleanupMemoriesJob.start();
     logger.info('✅ Job de limpieza de memorias iniciado');
     
-    const host = process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL || 'https://saas-ai-automation.onrender.com' : `http://localhost:${PORT}`;
+    const host = process.env.NODE_ENV === 'production' ? process.env.BACKEND_URL || 'https://api.aiiatrace.com' : `http://localhost:${PORT}`;
     logger.info(`Servidor corriendo en ${host}`);
     
     // Mensaje específico para que Render detecte que el servidor está listo

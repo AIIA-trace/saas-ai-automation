@@ -5,7 +5,7 @@ async function testWebhookEndpoint() {
   try {
     console.log('🧪 Probando endpoint webhook...\n');
     
-    const webhookUrl = 'https://saas-ai-automation.onrender.com/api/twilio/webhook';
+    const webhookUrl = 'https://api.aiiatrace.com/api/twilio/webhook';
     
     // Simular una llamada de Twilio
     const testData = {

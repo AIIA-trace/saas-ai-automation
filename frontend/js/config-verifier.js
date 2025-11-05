@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Obtener la URL base de la API
-            const apiBaseUrl = window.API_CONFIG?.apiBaseUrl || 'https://saas-ai-automation.onrender.com';
+            const apiBaseUrl = window.API_CONFIG?.apiBaseUrl || 'https://api.aiiatrace.com';
             
             // Usar el endpoint unificado /api/client
             const response = await fetch(`${apiBaseUrl}/api/client`, {

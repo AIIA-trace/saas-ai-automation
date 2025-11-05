@@ -46,7 +46,7 @@ async function testHttpTransmission() {
     console.log('- businessHoursConfig contenido:', JSON.stringify(testData.businessHoursConfig, null, 2));
     
     // Hacer petición HTTP real al endpoint
-    const response = await fetch('https://saas-ai-automation.onrender.com/api/client', {
+    const response = await fetch('https://api.aiiatrace.com/api/client', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

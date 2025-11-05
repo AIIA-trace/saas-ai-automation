@@ -159,7 +159,7 @@ class StreamingTwiMLService {
   getWebSocketUrl() {
     if (process.env.NODE_ENV === 'production') {
       // FORMATO CORRECTO PARA RENDER: WSS sin puerto
-      const wsUrl = 'wss://saas-ai-automation.onrender.com/websocket/twilio-stream';
+      const wsUrl = 'wss://api.aiiatrace.com/websocket/twilio-stream';
       logger.info(`🔧 WEBSOCKET URL CORREGIDA: ${wsUrl}`);
       return wsUrl;
     }

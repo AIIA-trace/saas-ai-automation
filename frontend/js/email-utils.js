@@ -87,7 +87,7 @@
     window.downloadAttachment = async function(emailId, attachmentId, filename) {
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
             console.log(`📎 Descargando adjunto: ${filename}`);
 

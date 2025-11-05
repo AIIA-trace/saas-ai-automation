@@ -330,7 +330,7 @@
 
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
             const response = await fetch(`${API_BASE_URL}/api/ai/generate-email-content`, {
                 method: 'POST',
@@ -406,7 +406,7 @@
 
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
             const response = await fetch(`${API_BASE_URL}/api/email/ai/rewrite-content`, {
                 method: 'POST',
@@ -501,7 +501,7 @@
 
         try {
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://saas-ai-automation.onrender.com';
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://api.aiiatrace.com';
 
             // Obtener firma
             const signature = await getUserSignature();
