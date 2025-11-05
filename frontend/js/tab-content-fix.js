@@ -34,50 +34,16 @@
     function cleanupTabContent(targetTabId) {
         console.log(`🧹 Limpiando contenido al cambiar a: ${targetTabId}`);
         
-        // Si estamos saliendo del tab de llamadas, ocultar su contenido
-        if (targetTabId !== 'calls-content') {
-            const callsContent = document.getElementById('calls-content');
-            if (callsContent) {
-                callsContent.style.display = 'none';
-                callsContent.classList.remove('active', 'show');
-            }
-        }
+        // Obtener todos los tab panes
+        const allTabPanes = document.querySelectorAll('.tab-pane');
         
-        // Si estamos saliendo del tab de emails, ocultar su contenido
-        if (targetTabId !== 'emails-content') {
-            const emailsContent = document.getElementById('emails-content');
-            if (emailsContent) {
-                emailsContent.style.display = 'none';
-                emailsContent.classList.remove('active', 'show');
+        // Ocultar todos EXCEPTO el target
+        allTabPanes.forEach(pane => {
+            if (pane.id !== targetTabId) {
+                pane.classList.remove('active', 'show');
+                // NO forzar display:none aquí, dejar que Bootstrap lo maneje
             }
-        }
-        
-        // Si estamos saliendo del tab de configuración del bot, ocultar su contenido
-        if (targetTabId !== 'call-bot-content') {
-            const botContent = document.getElementById('call-bot-content');
-            if (botContent) {
-                botContent.style.display = 'none';
-                botContent.classList.remove('active', 'show');
-            }
-        }
-        
-        // Si estamos saliendo del tab de cuenta, ocultar su contenido
-        if (targetTabId !== 'account-content') {
-            const accountContent = document.getElementById('account-content');
-            if (accountContent) {
-                accountContent.style.display = 'none';
-                accountContent.classList.remove('active', 'show');
-            }
-        }
-        
-        // Si estamos saliendo del tab de facturación, ocultar su contenido
-        if (targetTabId !== 'billing-content') {
-            const billingContent = document.getElementById('billing-content');
-            if (billingContent) {
-                billingContent.style.display = 'none';
-                billingContent.classList.remove('active', 'show');
-            }
-        }
+        });
     }
 
     /**
@@ -88,38 +54,26 @@
         const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
         
         tabButtons.forEach(button => {
-            // Evento ANTES de cambiar de tab
-            button.addEventListener('hide.bs.tab', function(event) {
-                const targetId = event.target.getAttribute('data-bs-target');
-                if (targetId) {
-                    const targetPane = document.querySelector(targetId);
-                    if (targetPane) {
-                        targetPane.style.display = 'none';
-                    }
-                }
-            });
-            
             // Evento AL cambiar de tab
             button.addEventListener('show.bs.tab', function(event) {
                 const targetId = event.target.getAttribute('data-bs-target');
                 if (targetId) {
                     // Limpiar otros tabs
                     cleanupTabContent(targetId.replace('#', ''));
-                    
-                    // Mostrar el tab objetivo
-                    const targetPane = document.querySelector(targetId);
-                    if (targetPane) {
-                        targetPane.style.display = 'block';
-                    }
                 }
             });
             
             // Evento DESPUÉS de cambiar de tab
             button.addEventListener('shown.bs.tab', function(event) {
-                // Forzar visibilidad correcta
-                enforceTabVisibility();
+                const targetId = event.target.getAttribute('data-bs-target');
+                console.log(`✅ Tab cambiado a: ${targetId}`);
                 
-                console.log(`✅ Tab cambiado a: ${event.target.getAttribute('data-bs-target')}`);
+                // Asegurar que el tab activo está visible
+                const targetPane = document.querySelector(targetId);
+                if (targetPane) {
+                    targetPane.style.display = 'block';
+                    targetPane.classList.add('active', 'show');
+                }
             });
         });
         
@@ -149,10 +103,9 @@
         setupTabListeners();
         
         // Forzar visibilidad correcta inicial
-        enforceTabVisibility();
-        
-        // Verificar cada 2 segundos por si acaso
-        setInterval(enforceTabVisibility, 2000);
+        setTimeout(() => {
+            enforceTabVisibility();
+        }, 500);
         
         console.log('✅ Fix de tabs inicializado correctamente');
     }
