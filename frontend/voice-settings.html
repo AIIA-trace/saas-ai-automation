@@ -272,7 +272,7 @@
     
     <script>
         // URL base para las llamadas a la API
-        const API_BASE_URL = 'http://localhost:3000/api';
+        const API_BASE_URL = window.API_CONFIG?.apiBaseUrl || 'https://api.aiiatrace.com';
     </script>
     
     <!-- Voice Settings Module -->
