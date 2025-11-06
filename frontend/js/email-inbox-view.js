@@ -21,13 +21,7 @@
         // Verificar periódicamente si los emails están cargando o ya se cargaron
         checkEmailsStatus();
         
-        // Auto-refresh cada 30 segundos para actualizar la vista
-        setInterval(() => {
-            if (hasInitialized && currentMailbox === 'inbox') {
-                console.log('🔄 Auto-refresh: Actualizando bandeja de entrada...');
-                loadInboxEmails();
-            }
-        }, 30000); // 30 segundos
+        // NO iniciar auto-refresh aquí - se maneja más abajo con eventos de tabs
     });
 
     /**
@@ -2835,21 +2829,33 @@ ${body}`;
         }
     }
     
-    // Iniciar auto-refresh cuando se carga la página
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', startAutoRefresh);
-    } else {
-        startAutoRefresh();
-    }
+    // NO iniciar auto-refresh automáticamente
+    // Solo se iniciará cuando el usuario esté en el tab de emails
     
-    // Pausar cuando la pestaña no está visible
+    // Detectar cuando se activa el tab de emails
+    document.addEventListener('shown.bs.tab', (event) => {
+        const targetId = event.target.getAttribute('data-bs-target');
+        if (targetId === '#emails-content') {
+            console.log('📧 Tab de emails activado, iniciando auto-refresh');
+            startAutoRefresh();
+        } else {
+            console.log('📧 Tab de emails desactivado, deteniendo auto-refresh');
+            stopAutoRefresh();
+        }
+    });
+    
+    // Pausar cuando la pestaña del navegador no está visible
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             console.log('👁️ Pestaña oculta, pausando auto-refresh');
             stopAutoRefresh();
         } else {
-            console.log('👁️ Pestaña visible, reanudando auto-refresh');
-            startAutoRefresh();
+            // Solo reanudar si estamos en el tab de emails
+            const emailsTab = document.getElementById('emails-content');
+            if (emailsTab && emailsTab.classList.contains('active')) {
+                console.log('👁️ Pestaña visible y en emails, reanudando auto-refresh');
+                startAutoRefresh();
+            }
         }
     });
     
