@@ -233,14 +233,14 @@ function updateUsageUI() {
         emailsProgress.setAttribute('aria-valuenow', emailsPercentage);
     }
     
-    // Obtener contador real de llamadas desde el backend
-    fetchRealCallCount();
+    // Obtener contador real de llamadas y emails desde el backend
+    fetchMonthlyUsage();
 }
 
 /**
  * Obtiene el uso mensual real desde el backend (llamadas y emails)
  */
-async function fetchRealCallCount() {
+async function fetchMonthlyUsage() {
     try {
         const response = await window.ApiHelper.fetchApi({ url: '/api/usage/monthly', auth: 'jwt' }, { method: 'GET' });
         
@@ -290,5 +290,6 @@ window.UsageTracker = {
     changePlan,
     getCurrentPlanLimits,
     updateUI: updateUsageUI,
-    getCurrentUserId
+    getCurrentUserId,
+    fetchMonthlyUsage
 };

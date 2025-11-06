@@ -5888,10 +5888,10 @@ function updatePlanUsageUI() {
         console.warn('Error al obtener datos del usuario:', e);
     }
     
-    // Actualizar título de la sección con el nombre del usuario
+    // Actualizar título de la sección
     const usageSectionTitle = document.querySelector('#plan-usage-section .card-title');
     if (usageSectionTitle) {
-        usageSectionTitle.textContent = `Uso del Plan - ${userName} (ID: ${userId})`;
+        usageSectionTitle.textContent = `Uso del Plan`;
     }
     
     // Actualizar información del plan actual
