@@ -1770,6 +1770,27 @@ function createBillingTabContent() {
                                 <i class="fas fa-file-invoice-dollar me-2"></i>Ver Facturas
                             </button>
                         </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Navegación de sub-tabs de Facturación -->
+                        <ul class="nav nav-tabs" id="billingTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="plan-tab" data-bs-toggle="tab" data-bs-target="#billing-plan-content" type="button" role="tab" aria-controls="billing-plan-content" aria-selected="true">
+                                    <i class="fas fa-clipboard-list me-2"></i>Plan Actual
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#billing-payment-content" type="button" role="tab" aria-controls="billing-payment-content" aria-selected="false">
+                                    <i class="fas fa-credit-card me-2"></i>Métodos de Pago
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#billing-history-content" type="button" role="tab" aria-controls="billing-history-content" aria-selected="false">
+                                    <i class="fas fa-history me-2"></i>Historial
+                                </button>
+                            </li>
+                        </ul>
+                        
                         <div class="tab-content pt-3" id="billingTabsContent">
                             <!-- Plan Actual -->
                             <div class="tab-pane fade show active" id="billing-plan-content" role="tabpanel" aria-labelledby="plan-tab">
