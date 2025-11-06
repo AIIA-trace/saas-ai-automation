@@ -18,6 +18,13 @@
         try {
             const date = new Date(dateString);
             
+            // DEBUG: Ver qué fecha llega y cómo se parsea
+            console.log('📅 DEBUG formatEmailDate:', {
+                input: dateString,
+                parsed: date.toISOString(),
+                year: date.getFullYear()
+            });
+            
             // Verificar si la fecha es válida
             if (isNaN(date.getTime())) {
                 console.warn('⚠️ Fecha inválida:', dateString);
