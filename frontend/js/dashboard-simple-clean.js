@@ -1667,12 +1667,12 @@ function createAccountTabContent() {
                         <!-- Contenido de Mi Cuenta -->
                         <ul class="nav nav-tabs" id="accountTabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-content" type="button" role="tab" aria-controls="profile-content" aria-selected="true">
+                                <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#account-profile-content" type="button" role="tab" aria-controls="account-profile-content" aria-selected="true">
                                     <i class="fas fa-user me-2"></i>Perfil
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-content" type="button" role="tab" aria-controls="security-content" aria-selected="false">
+                                <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#account-security-content" type="button" role="tab" aria-controls="account-security-content" aria-selected="false">
                                     <i class="fas fa-shield-alt me-2"></i>Seguridad
                                 </button>
                             </li>
@@ -1680,7 +1680,7 @@ function createAccountTabContent() {
                         
                         <div class="tab-content pt-3" id="accountTabsContent">
                             <!-- Perfil -->
-                            <div class="tab-pane fade show active" id="profile-content" role="tabpanel" aria-labelledby="profile-tab">
+                            <div class="tab-pane fade show active" id="account-profile-content" role="tabpanel" aria-labelledby="profile-tab">
                                 <div class="row">
                                     <div class="col-12">
                                         <div class="row g-3 px-3 py-3">
@@ -1715,7 +1715,7 @@ function createAccountTabContent() {
                             </div>
                             
                             <!-- Seguridad -->
-                            <div class="tab-pane fade" id="security-content" role="tabpanel" aria-labelledby="security-tab">
+                            <div class="tab-pane fade" id="account-security-content" role="tabpanel" aria-labelledby="security-tab">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="card h-100">
@@ -1770,30 +1770,9 @@ function createBillingTabContent() {
                                 <i class="fas fa-file-invoice-dollar me-2"></i>Ver Facturas
                             </button>
                         </div>
-                    </div>
-                    <div class="card-body p-3">
-                        <!-- Contenido de Facturación -->
-                        <ul class="nav nav-tabs" id="billingTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="plan-tab" data-bs-toggle="tab" data-bs-target="#plan-content" type="button" role="tab" aria-controls="plan-content" aria-selected="true">
-                                    <i class="fas fa-cubes me-2"></i>Plan Actual
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment-content" type="button" role="tab" aria-controls="payment-content" aria-selected="false">
-                                    <i class="fas fa-credit-card me-2"></i>Métodos de Pago
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-content" type="button" role="tab" aria-controls="history-content" aria-selected="false">
-                                    <i class="fas fa-history me-2"></i>Historial
-                                </button>
-                            </li>
-                        </ul>
-                        
                         <div class="tab-content pt-3" id="billingTabsContent">
                             <!-- Plan Actual -->
-                            <div class="tab-pane fade show active" id="plan-content" role="tabpanel" aria-labelledby="plan-tab">
+                            <div class="tab-pane fade show active" id="billing-plan-content" role="tabpanel" aria-labelledby="plan-tab">
                                 <div class="text-end mb-2">
                                     <small class="text-muted">Tu plan actual vence el 15/08/2025. Renovación automática activada.</small>
                                 </div>
@@ -1952,7 +1931,7 @@ function createBillingTabContent() {
                             </div>
                             
                             <!-- Métodos de Pago -->
-                            <div class="tab-pane fade" id="payment-content" role="tabpanel" aria-labelledby="payment-tab">
+                            <div class="tab-pane fade" id="billing-payment-content" role="tabpanel" aria-labelledby="payment-tab">
                                 <div class="card mb-4">
                                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">Método de pago</h6>
@@ -2037,7 +2016,7 @@ function createBillingTabContent() {
                             </div>
                             
                             <!-- Historial -->
-                            <div class="tab-pane fade" id="history-content" role="tabpanel" aria-labelledby="history-tab">
+                            <div class="tab-pane fade" id="billing-history-content" role="tabpanel" aria-labelledby="history-tab">
                                 <div class="card">
                                     <div class="card-header bg-light">
                                         <div class="d-flex justify-content-between align-items-center">
