@@ -3334,6 +3334,9 @@ router.get('/usage/monthly', authenticate, async (req, res) => {
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     
+    logger.info(`📊 Obteniendo uso mensual para cliente ${clientId}`);
+    logger.info(`📅 Rango de fechas: ${firstDayOfMonth.toISOString()} - ${lastDayOfMonth.toISOString()}`);
+    
     // Contar llamadas del mes actual (desde CallLog)
     const callsCount = await prisma.callLog.count({
       where: {
@@ -3345,6 +3348,8 @@ router.get('/usage/monthly', authenticate, async (req, res) => {
       }
     });
     
+    logger.info(`📞 Llamadas encontradas: ${callsCount}`);
+    
     // Contar emails del mes actual (desde EmailLog)
     const emailsCount = await prisma.emailLog.count({
       where: {
@@ -3355,6 +3360,8 @@ router.get('/usage/monthly', authenticate, async (req, res) => {
         }
       }
     });
+    
+    logger.info(`📧 Emails encontrados: ${emailsCount}`);
     
     // Obtener límites del plan actual
     const client = await prisma.client.findUnique({
@@ -3370,6 +3377,12 @@ router.get('/usage/monthly', authenticate, async (req, res) => {
     
     const limits = planLimits[client.subscriptionPlan] || planLimits.basic;
     
+    // DEBUG: Contar TODAS las llamadas y emails del cliente (sin filtro de fecha)
+    const totalCalls = await prisma.callLog.count({ where: { clientId } });
+    const totalEmails = await prisma.emailLog.count({ where: { clientId } });
+    
+    logger.info(`📊 TOTAL histórico - Llamadas: ${totalCalls}, Emails: ${totalEmails}`);
+    
     return res.json({
       success: true,
       usage: {
@@ -3380,6 +3393,11 @@ router.get('/usage/monthly', authenticate, async (req, res) => {
       period: {
         start: firstDayOfMonth.toISOString(),
         end: lastDayOfMonth.toISOString()
+      },
+      debug: {
+        totalCalls,
+        totalEmails,
+        clientId
       }
     });
     
