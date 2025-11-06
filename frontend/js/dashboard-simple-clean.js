@@ -1953,40 +1953,16 @@ function createBillingTabContent() {
                             
                             <!-- Métodos de Pago -->
                             <div class="tab-pane fade" id="billing-payment-content" role="tabpanel" aria-labelledby="payment-tab">
-                                <div class="card mb-4">
-                                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">Método de pago</h6>
-                                        <small class="text-muted">Solo se permite un método de pago activo</small>
-                                    </div>
-                                    <div class="card-body" id="payment-method-container">
-                                        <!-- Si hay método de pago -->
-                                        <div id="payment-method-exists" class="d-flex align-items-center">
-                                            <div class="me-3">
-                                                <i class="fab fa-cc-visa fa-2x text-primary"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <div class="fw-bold">Visa terminada en 4242</div>
-                                                <div class="small text-muted">Expira: 05/2026</div>
-                                            </div>
-                                            <div>
-                                                <button class="btn btn-sm btn-outline-danger" id="remove-payment-method-btn">
-                                                    <i class="fas fa-trash me-1"></i>Eliminar
-                                                </button>
-                                            </div>
+                                <!-- Botón para gestionar suscripción con Stripe -->
+                                <div class="alert alert-info mb-4">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>Gestiona tu suscripción y métodos de pago de forma segura</strong>
+                                            <p class="mb-0 small mt-1">Accede al portal de Stripe para actualizar tu tarjeta, ver facturas y gestionar tu suscripción.</p>
                                         </div>
-                                        
-                                        <!-- Si no hay método de pago -->
-                                        <div id="no-payment-method" class="text-center py-4 d-none">
-                                            <div class="mb-3">
-                                                <i class="fas fa-credit-card fa-3x text-muted"></i>
-                                            </div>
-                                            <p class="text-muted mb-0">No hay ningún método de pago configurado</p>
-                                            <p class="small text-danger mb-0">Las funcionalidades del plan están desactivadas</p>
-                                        </div>
-                                    </div>
-                                    <div class="card-footer bg-white">
-                                        <button class="btn btn-primary" id="add-payment-method-btn">
-                                            <i class="fas fa-plus-circle me-2"></i>Añadir método de pago
+                                        <button class="btn btn-primary" id="open-stripe-portal-btn">
+                                            <i class="fas fa-external-link-alt me-2"></i>Abrir Portal de Stripe
                                         </button>
                                     </div>
                                 </div>
@@ -2044,13 +2020,21 @@ function createBillingTabContent() {
                                             <h6 class="mb-0">Historial de facturas</h6>
                                             <div>
                                                 <div class="badge bg-light text-dark border" id="invoice-year-filter" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
-                                                    2025
+                                                    <span id="current-invoice-year">2025</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive">
+                                    <div class="card-body p-0" id="invoices-container">
+                                        <!-- Las facturas se cargarán dinámicamente desde Stripe -->
+                                        <div class="text-center py-5" id="no-invoices-message">
+                                            <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted mb-0">No se han generado facturas todavía</p>
+                                            <small class="text-muted">Las facturas aparecerán aquí cuando se procesen los pagos</small>
+                                        </div>
+                                        
+                                        <!-- Tabla de facturas (oculta por defecto) -->
+                                        <div class="table-responsive d-none" id="invoices-table-container">
                                             <table class="table mb-0">
                                                 <thead>
                                                     <tr>
@@ -2062,43 +2046,8 @@ function createBillingTabContent() {
                                                         <th>Acciones</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody>
-                                                    <tr>
-                                                        <td>FAC-2025-007</td>
-                                                        <td>15/07/2025</td>
-                                                        <td>Jul 2025</td>
-                                                        <td>49,99€</td>
-                                                        <td><span class="badge bg-success">Pagada</span></td>
-                                                        <td>
-                                                            <button class="btn btn-sm btn-outline-primary" title="Descargar PDF">
-                                                                <i class="fas fa-download"></i>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>FAC-2025-006</td>
-                                                        <td>15/06/2025</td>
-                                                        <td>Jun 2025</td>
-                                                        <td>49,99€</td>
-                                                        <td><span class="badge bg-success">Pagada</span></td>
-                                                        <td>
-                                                            <button class="btn btn-sm btn-outline-primary" title="Descargar PDF">
-                                                                <i class="fas fa-download"></i>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>FAC-2025-005</td>
-                                                        <td>15/05/2025</td>
-                                                        <td>May 2025</td>
-                                                        <td>49,99€</td>
-                                                        <td><span class="badge bg-success">Pagada</span></td>
-                                                        <td>
-                                                            <button class="btn btn-sm btn-outline-primary" title="Descargar PDF">
-                                                                <i class="fas fa-download"></i>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
+                                                <tbody id="invoices-table-body">
+                                                    <!-- Las facturas se insertarán aquí dinámicamente -->
                                                 </tbody>
                                             </table>
                                         </div>
