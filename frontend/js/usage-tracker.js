@@ -242,14 +242,19 @@ function updateUsageUI() {
  */
 async function fetchMonthlyUsage() {
     try {
+        console.log('🔄 Obteniendo uso mensual desde backend...');
         const response = await window.ApiHelper.fetchApi({ url: '/api/usage/monthly', auth: 'jwt' }, { method: 'GET' });
         
+        console.log('📥 Respuesta de uso mensual:', response);
+        
         if (!response.success) {
-            console.error('❌ Error en respuesta de uso mensual');
+            console.error('❌ Error en respuesta de uso mensual:', response);
             return;
         }
         
         const { usage, limits } = response;
+        console.log('📊 Uso:', usage);
+        console.log('📏 Límites:', limits);
         
         // Actualizar contador de llamadas
         const callsCount = document.querySelector('#plan-usage-calls-count');
