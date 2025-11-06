@@ -1,12 +1,13 @@
 /**
  * Sistema de persistencia de navegación global
  * Guarda y restaura el estado de navegación en todas las páginas
+ * SIMPLIFICADO - Deja que Bootstrap maneje el DOM
  */
 
 (function() {
     'use strict';
 
-    console.log('🔄 Inicializando sistema de persistencia de navegación...');
+    console.log('🔄 Inicializando sistema de persistencia de navegación (simplificado)...');
 
     /**
      * Guardar el tab activo actual y actualizar URL
@@ -16,7 +17,7 @@
             localStorage.setItem('lastActiveTab', tabId);
             // Actualizar hash en la URL sin recargar
             window.history.replaceState(null, '', `#${tabId}`);
-            console.log('💾 Tab guardado:', tabId, '- URL actualizada');
+            console.log('💾 Tab guardado:', tabId);
         }
     }
 
@@ -43,6 +44,7 @@
 
     /**
      * Restaurar el último tab activo desde URL hash o localStorage
+     * SIMPLIFICADO - Solo activa el tab, Bootstrap maneja el resto
      */
     function restoreActiveTab() {
         // Prioridad 1: Hash en la URL
@@ -59,61 +61,30 @@
         }
         
         if (tabId) {
-            console.log('🔄 Restaurando tab desde:', window.location.hash ? 'URL hash' : 'localStorage', '→', tabId);
+            console.log('🔄 Restaurando tab:', tabId);
             
-            // Buscar el botón del tab por múltiples métodos
+            // Buscar el botón del tab
             let tabButton = document.querySelector(`[data-bs-target="#${tabId}"]`);
             
-            // Si no se encuentra, buscar por ID del botón
             if (!tabButton) {
                 const buttonId = tabId.replace('-content', '-tab');
                 tabButton = document.getElementById(buttonId);
             }
             
-            // Si aún no se encuentra, buscar por href
-            if (!tabButton) {
-                tabButton = document.querySelector(`[href="#${tabId}"]`);
-            }
-            
             if (tabButton) {
-                // Primero desactivar TODOS los botones de tabs
-                document.querySelectorAll('.nav-link').forEach(btn => {
-                    btn.classList.remove('active');
-                    btn.setAttribute('aria-selected', 'false');
-                });
-                
-                // Activar el botón correcto
-                tabButton.classList.add('active');
-                tabButton.setAttribute('aria-selected', 'true');
-                
-                // Activar el tab usando Bootstrap
-                const tab = new bootstrap.Tab(tabButton);
+                // Dejar que Bootstrap maneje TODO
+                const tab = bootstrap.Tab.getOrCreateInstance(tabButton);
                 tab.show();
-                console.log('✅ Tab restaurado exitosamente:', tabId);
-                
-                // Actualizar URL si no estaba
-                if (!window.location.hash) {
-                    window.history.replaceState(null, '', `#${tabId}`);
-                }
-                
-                // También activar visualmente el contenido
-                const tabContent = document.getElementById(tabId);
-                if (tabContent) {
-                    // Remover active de todos los tab-panes
-                    document.querySelectorAll('.tab-pane').forEach(pane => {
-                        pane.classList.remove('active', 'show');
-                    });
-                    // Activar el tab-pane correcto
-                    tabContent.classList.add('active', 'show');
-                }
+                console.log('✅ Tab restaurado:', tabId);
             } else {
-                console.warn(' No se encontró el tab:', tabId);
+                console.warn('⚠️ No se encontró el tab:', tabId);
             }
         }
     }
 
     /**
      * Configurar listeners para guardar el estado
+     * SIMPLIFICADO - Solo guardar, no manipular DOM
      */
     function setupTabListeners() {
         // Guardar cuando cambia el tab activo
@@ -122,19 +93,6 @@
             if (target) {
                 const tabId = target.replace('#', '');
                 saveActiveTab(tabId);
-                
-                // Asegurar que el botón tenga la clase active
-                const button = event.target;
-                if (button && !button.classList.contains('active')) {
-                    // Desactivar todos los botones
-                    document.querySelectorAll('.nav-link').forEach(btn => {
-                        btn.classList.remove('active');
-                        btn.setAttribute('aria-selected', 'false');
-                    });
-                    // Activar el botón correcto
-                    button.classList.add('active');
-                    button.setAttribute('aria-selected', 'true');
-                }
             }
         });
 
@@ -148,7 +106,7 @@
         // Guardar antes de salir de la página
         window.addEventListener('beforeunload', saveScrollPosition);
 
-        console.log('✅ Listeners de tabs y scroll configurados');
+        console.log('✅ Listeners configurados');
     }
 
     /**
@@ -183,25 +141,18 @@
     }
 
     /**
-     * Sincronizar marcador azul con el hash de la URL
+     * Manejar cambios en el hash de la URL
      */
-    function syncActiveButtonWithHash() {
+    function handleHashChange() {
         const hash = window.location.hash.replace('#', '');
         if (!hash) return;
         
         const tabButton = document.querySelector(`[data-bs-target="#${hash}"]`) || 
                          document.getElementById(hash.replace('-content', '-tab'));
         
-        if (tabButton && !tabButton.classList.contains('active')) {
-            // Solo sincronizar si el botón NO está activo
-            document.querySelectorAll('.nav-link').forEach(btn => {
-                btn.classList.remove('active');
-                btn.setAttribute('aria-selected', 'false');
-            });
-            
-            tabButton.classList.add('active');
-            tabButton.setAttribute('aria-selected', 'true');
-            console.log(' Marcador azul sincronizado con hash:', hash);
+        if (tabButton) {
+            const tab = bootstrap.Tab.getOrCreateInstance(tabButton);
+            tab.show();
         }
     }
 
@@ -217,10 +168,7 @@
         }
         
         // Listener para cambios en el hash
-        window.addEventListener('hashchange', syncActiveButtonWithHash);
-        
-        // Sincronizar periódicamente (fallback para casos edge)
-        setInterval(syncActiveButtonWithHash, 1000);
+        window.addEventListener('hashchange', handleHashChange);
     }
 
     // Inicializar
