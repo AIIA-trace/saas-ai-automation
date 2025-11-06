@@ -16,14 +16,15 @@
         if (!dateString) return '';
         
         try {
-            const date = new Date(dateString);
+            let date;
             
-            // DEBUG: Ver qué fecha llega y cómo se parsea
-            console.log('📅 DEBUG formatEmailDate:', {
-                input: dateString,
-                parsed: date.toISOString(),
-                year: date.getFullYear()
-            });
+            // Si la fecha está en formato corto "d/m" o "dd/mm", añadir el año actual
+            if (/^\d{1,2}\/\d{1,2}$/.test(dateString)) {
+                const currentYear = new Date().getFullYear();
+                dateString = `${dateString}/${currentYear}`;
+            }
+            
+            date = new Date(dateString);
             
             // Verificar si la fecha es válida
             if (isNaN(date.getTime())) {
