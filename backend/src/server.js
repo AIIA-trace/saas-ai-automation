@@ -60,6 +60,10 @@ const audioDir = path.join(publicDir, 'audio');
 });
 
 // Middleware
+// IMPORTANTE: Stripe webhooks necesitan raw body ANTES de JSON parsing
+app.use('/webhooks/stripe', express.raw({ type: 'application/json' }));
+
+// Resto de rutas usan JSON parsing normal
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cors({
