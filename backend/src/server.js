@@ -95,6 +95,7 @@ app.use('/api/twilio', twilioRouter);
 app.use('/api/azure-tts', azureTTSRouter);
 app.use('/api/test-audio', testAudioRouter);
 app.use('/api/email', emailRouter);  // 📧 Rutas de email con OAuth
+app.use('/webhooks', webhooksRouter);  // 💳 Webhooks de Stripe (sin /api prefix)
 app.use('/api', apiRouter);  // 🔧 CRÍTICO: Router principal con /api/client, /api/profile, etc.
 
 // 📊 RUTA DE MÉTRICAS PARA MONITOREO
