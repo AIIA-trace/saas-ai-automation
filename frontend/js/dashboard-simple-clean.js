@@ -106,7 +106,7 @@ function createSimpleTabs() {
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing-content" type="button" role="tab" aria-controls="billing-content" aria-selected="false">
-                <i class="fas fa-credit-card me-2"></i>Facturación
+                <i class="fas fa-credit-card me-2"></i>Planes y Facturación
             </button>
         </li>
     `;
@@ -1765,7 +1765,7 @@ function createBillingTabContent() {
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom-0 py-3">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Facturación</h5>
+                            <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Planes y Facturación</h5>
                             <button class="btn btn-outline-primary btn-sm" id="view-invoices-btn">
                                 <i class="fas fa-file-invoice-dollar me-2"></i>Ver Facturas
                             </button>

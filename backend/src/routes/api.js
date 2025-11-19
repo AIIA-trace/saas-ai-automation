@@ -3392,7 +3392,7 @@ router.get('/usage/monthly', authenticate, async (req, res) => {
     
     // Límites correctos según los planes de Stripe
     const planLimits = {
-      trial: { calls: 50, emails: 100 },
+      trial: { calls: 25, emails: 50 },
       starter: { calls: 300, emails: 1000 },
       basic: { calls: 300, emails: 1000 },  // Alias de starter
       professional: { calls: 1000, emails: 3000 },

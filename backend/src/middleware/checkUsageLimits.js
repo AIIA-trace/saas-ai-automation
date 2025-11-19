@@ -11,11 +11,11 @@ const prisma = new PrismaClient();
 // Definición de límites por plan
 const PLAN_LIMITS = {
   trial: {
-    calls: 50,
-    emails: 100,
+    calls: 25,
+    emails: 50,
     hardLimit: {
-      calls: 50,  // Trial: límite estricto sin excedente
-      emails: 100
+      calls: 25,  // Trial: límite estricto sin excedente
+      emails: 50
     }
   },
   starter: {
@@ -60,21 +60,9 @@ async function checkCallLimit(req, res, next) {
     const clientId = req.client.id;
     const plan = req.client.subscriptionPlan || 'starter';
     
-    // VERIFICAR SI EL TRIAL HA EXPIRADO
-    if (req.client.subscriptionStatus === 'trial' && req.client.subscriptionExpiresAt) {
-      const now = new Date();
-      const expiresAt = new Date(req.client.subscriptionExpiresAt);
-      
-      if (now > expiresAt) {
-        logger.warn(`🚫 Cliente ${clientId} - Trial expirado (${expiresAt.toLocaleDateString()})`);
-        return res.status(403).json({
-          error: 'Trial expirado',
-          message: 'Tu período de prueba ha finalizado. Por favor, suscríbete a un plan para continuar usando el servicio.',
-          trialEndedAt: expiresAt,
-          upgradeUrl: '/dashboard#billing-content'
-        });
-      }
-    }
+    // TRIAL INDEFINIDO: No verificar expiración, solo límites de uso
+    // Los usuarios en trial pueden usar el servicio indefinidamente
+    // pero con límites estrictos de 25 llamadas y 50 emails
     
     // VERIFICAR SI LA SUSCRIPCIÓN HA EXPIRADO
     if (req.client.subscriptionStatus === 'active' && req.client.subscriptionExpiresAt) {
@@ -158,21 +146,9 @@ async function checkEmailLimit(req, res, next) {
     const clientId = req.client.id;
     const plan = req.client.subscriptionPlan || 'starter';
     
-    // VERIFICAR SI EL TRIAL HA EXPIRADO
-    if (req.client.subscriptionStatus === 'trial' && req.client.subscriptionExpiresAt) {
-      const now = new Date();
-      const expiresAt = new Date(req.client.subscriptionExpiresAt);
-      
-      if (now > expiresAt) {
-        logger.warn(`🚫 Cliente ${clientId} - Trial expirado (${expiresAt.toLocaleDateString()})`);
-        return res.status(403).json({
-          error: 'Trial expirado',
-          message: 'Tu período de prueba ha finalizado. Por favor, suscríbete a un plan para continuar usando el servicio.',
-          trialEndedAt: expiresAt,
-          upgradeUrl: '/dashboard#billing-content'
-        });
-      }
-    }
+    // TRIAL INDEFINIDO: No verificar expiración, solo límites de uso
+    // Los usuarios en trial pueden usar el servicio indefinidamente
+    // pero con límites estrictos de 25 llamadas y 50 emails
     
     // VERIFICAR SI LA SUSCRIPCIÓN HA EXPIRADO
     if (req.client.subscriptionStatus === 'active' && req.client.subscriptionExpiresAt) {
