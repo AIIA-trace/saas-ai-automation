@@ -2351,13 +2351,23 @@ router.post('/billing/create-checkout', authenticate, async (req, res) => {
   try {
     const { priceId, successUrl, cancelUrl } = req.body;
     
+    logger.info(`🛒 Iniciando checkout - Cliente: ${req.client.id}, Plan: ${priceId}`);
+    
     if (!priceId || !successUrl || !cancelUrl) {
+      logger.error('❌ Faltan parámetros requeridos');
       return res.status(400).json({ error: 'Se requieren priceId, successUrl y cancelUrl' });
+    }
+    
+    // Verificar que Stripe esté configurado
+    if (!process.env.STRIPE_SECRET_KEY) {
+      logger.error('❌ STRIPE_SECRET_KEY no configurada');
+      return res.status(500).json({ error: 'Stripe no configurado' });
     }
     
     // Crear o actualizar cliente en Stripe
     let stripeCustomer;
     if (!req.client.stripeCustomerId) {
+      logger.info(`📝 Creando nuevo customer en Stripe para ${req.client.email}`);
       stripeCustomer = await stripe.customers.create({
         email: req.client.email,
         name: req.client.companyName,
@@ -2366,16 +2376,20 @@ router.post('/billing/create-checkout', authenticate, async (req, res) => {
         }
       });
       
+      logger.info(`✅ Customer creado: ${stripeCustomer.id}`);
+      
       // Actualizar el cliente con el ID de Stripe
       await prisma.client.update({
         where: { id: req.client.id },
         data: { stripeCustomerId: stripeCustomer.id }
       });
     } else {
+      logger.info(`✅ Usando customer existente: ${req.client.stripeCustomerId}`);
       stripeCustomer = { id: req.client.stripeCustomerId };
     }
     
     // Crear sesión de checkout
+    logger.info(`💳 Creando sesión de checkout...`);
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: stripeCustomer.id,
@@ -2392,10 +2406,17 @@ router.post('/billing/create-checkout', authenticate, async (req, res) => {
       }
     });
     
+    logger.info(`✅ Sesión creada: ${session.id}`);
+    logger.info(`🔗 URL de checkout: ${session.url}`);
+    
     return res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
-    logger.error(`Error creando sesión de checkout: ${error.message}`);
-    return res.status(500).json({ error: 'Error creando sesión de checkout' });
+    logger.error(`❌ Error creando sesión de checkout: ${error.message}`);
+    logger.error(`Stack: ${error.stack}`);
+    return res.status(500).json({ 
+      error: 'Error creando sesión de checkout',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
