@@ -57,12 +57,9 @@ class SubscriptionService {
         callSummary: true,
         callTranscription: true,
         outOfHoursEmail: true,
-        analytics: true,
         apiAccess: false,
         prioritySupport: true,
-        supportResponseTime: '24h',
-        monthlyReports: true,
-        premiumVoices: true
+        supportResponseTime: '24h'
       },
       stripePriceId: 'price_1SVGOa30HCn0xeAPgKYXOlLe' // Stripe Price ID
     },
@@ -116,12 +113,9 @@ class SubscriptionService {
         callSummary: true,
         callTranscription: true,
         outOfHoursEmail: true,
-        analytics: true,
         apiAccess: false,
         prioritySupport: true,
-        supportResponseTime: '24h',
-        monthlyReports: true,
-        premiumVoices: true
+        supportResponseTime: '24h'
       },
       stripePriceId: 'price_1SVGOa30HCn0xeAPgKYXOlLe'
     }

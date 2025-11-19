@@ -1871,7 +1871,7 @@ function createBillingTabContent() {
                                                     </li>
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Análisis y reportes</span>
+                                                        <span>Límites más altos</span>
                                                     </li>
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
