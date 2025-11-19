@@ -1815,27 +1815,27 @@ function createBillingTabContent() {
                                             </div>
                                             <div class="pricing-card-body p-3">
                                                 <ul class="pricing-features">
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>300 llamadas/mes</span>
-                                                    </li>
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>1,000 emails/mes</span>
-                                                    </li>
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Transcripciones automáticas</span>
-                                                    </li>
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Grabaciones de llamadas</span>
-                                                    </li>
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Soporte email (48h)</span>
-                                                    </li>
-                                                </ul>
+                                    <li>
+                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                        <span>300 llamadas/mes</span>
+                                    </li>
+                                    <li>
+                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                        <span>1,000 emails/mes</span>
+                                    </li>
+                                    <li>
+                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                        <span>Resumen de llamadas con IA</span>
+                                    </li>
+                                    <li>
+                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                        <span>Transcripciones automáticas</span>
+                                    </li>
+                                    <li>
+                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                        <span>Soporte email (48h)</span>
+                                    </li>
+                                </ul>
                                                 <button class="btn btn-outline-primary w-100 rounded-pill py-2 mt-3" onclick="subscribeToPlan('starter')">Suscribirse</button>
                                             </div>
                                         </div>
