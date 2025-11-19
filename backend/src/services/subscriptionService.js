@@ -6,34 +6,50 @@ const logger = require('../utils/logger');
  */
 class SubscriptionService {
   
-  // Definición de planes y sus características
+  // Definición de planes y sus características (ACTUALIZADOS 2025)
   static PLANS = {
-    basic: {
-      name: 'Básico',
-      price: 39,
-      monthlyCallLimit: 100,
+    starter: {
+      name: 'Starter',
+      price: 99, // €99/mes
+      monthlyCallLimit: 300,
+      monthlyEmailLimit: 1000,
       maxContextFiles: 2,
       maxPhoneNumbers: 1,
-      overageRate: 0.10, // $0.10 por minuto extra
+      maxEmailAccounts: 1,
+      callOverageRate: 0.50, // €0.50 por llamada extra
+      emailOverageRate: 0.10, // €0.10 por email extra
+      hardLimits: {
+        calls: 450,  // Límite duro antes de bloqueo
+        emails: 1500
+      },
       features: {
         callBot: true,
         emailBot: true,
-        voiceCustomization: false,
-        callRecording: false,
-        callTranscription: false,
-        outOfHoursEmail: false,
+        voiceCustomization: true,
+        callRecording: true,
+        callTranscription: true,
+        outOfHoursEmail: true,
         analytics: false,
         apiAccess: false,
-        prioritySupport: false
-      }
+        prioritySupport: false,
+        supportResponseTime: '48h'
+      },
+      stripePriceId: null // Se configurará desde Stripe
     },
-    pro: {
-      name: 'Pro',
-      price: 89,
-      monthlyCallLimit: 300,
+    professional: {
+      name: 'Professional',
+      price: 249, // €249/mes
+      monthlyCallLimit: 1000,
+      monthlyEmailLimit: 3000,
       maxContextFiles: 5,
       maxPhoneNumbers: 1,
-      overageRate: 0.08, // $0.08 por minuto extra
+      maxEmailAccounts: 1,
+      callOverageRate: 0.35, // €0.35 por llamada extra
+      emailOverageRate: 0.07, // €0.07 por email extra
+      hardLimits: {
+        calls: 1500,
+        emails: 4500
+      },
       features: {
         callBot: true,
         emailBot: true,
@@ -43,16 +59,56 @@ class SubscriptionService {
         outOfHoursEmail: true,
         analytics: true,
         apiAccess: false,
-        prioritySupport: false
-      }
+        prioritySupport: true,
+        supportResponseTime: '24h',
+        monthlyReports: true,
+        premiumVoices: true
+      },
+      stripePriceId: null // Se configurará desde Stripe
     },
-    enterprise: {
-      name: 'Enterprise',
-      price: 199,
-      monthlyCallLimit: -1, // Ilimitado
-      maxContextFiles: 10,
-      maxPhoneNumbers: 3,
-      overageRate: 0, // Sin overages
+    // Aliases para compatibilidad
+    basic: {
+      name: 'Starter',
+      price: 99,
+      monthlyCallLimit: 300,
+      monthlyEmailLimit: 1000,
+      maxContextFiles: 2,
+      maxPhoneNumbers: 1,
+      maxEmailAccounts: 1,
+      callOverageRate: 0.50,
+      emailOverageRate: 0.10,
+      hardLimits: {
+        calls: 450,
+        emails: 1500
+      },
+      features: {
+        callBot: true,
+        emailBot: true,
+        voiceCustomization: true,
+        callRecording: true,
+        callTranscription: true,
+        outOfHoursEmail: true,
+        analytics: false,
+        apiAccess: false,
+        prioritySupport: false,
+        supportResponseTime: '48h'
+      },
+      stripePriceId: null
+    },
+    pro: {
+      name: 'Professional',
+      price: 249,
+      monthlyCallLimit: 1000,
+      monthlyEmailLimit: 3000,
+      maxContextFiles: 5,
+      maxPhoneNumbers: 1,
+      maxEmailAccounts: 1,
+      callOverageRate: 0.35,
+      emailOverageRate: 0.07,
+      hardLimits: {
+        calls: 1500,
+        emails: 4500
+      },
       features: {
         callBot: true,
         emailBot: true,
@@ -61,9 +117,13 @@ class SubscriptionService {
         callTranscription: true,
         outOfHoursEmail: true,
         analytics: true,
-        apiAccess: true,
-        prioritySupport: true
-      }
+        apiAccess: false,
+        prioritySupport: true,
+        supportResponseTime: '24h',
+        monthlyReports: true,
+        premiumVoices: true
+      },
+      stripePriceId: null
     }
   };
 
