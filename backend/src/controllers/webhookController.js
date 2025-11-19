@@ -5,6 +5,7 @@ const StreamingTwiMLService = require('../services/streamingTwiMLService');
 const streamingTwiMLService = new StreamingTwiMLService();
 // REMOVIDO: openaiService obsoleto - ahora usa OpenAI Realtime en TwilioStreamHandler
 const emailService = require('../services/emailService');
+const { PLAN_LIMITS } = require('../middleware/checkUsageLimits');
 
 const prisma = new PrismaClient();
 
@@ -63,6 +64,39 @@ class WebhookController {
       // Agregar callConfig procesado al cliente
       const targetClient = { ...twilioNumber.client, callConfig };
       logger.info(`✅ Cliente identificado: ${targetClient.companyName} (ID: ${targetClient.id})`);
+      
+      // ============================================
+      // VERIFICAR LÍMITES DEL PLAN
+      // ============================================
+      const plan = targetClient.subscriptionPlan || 'starter';
+      const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.starter;
+      
+      // Obtener uso del mes actual
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      
+      const callsThisMonth = await prisma.callLog.count({
+        where: {
+          clientId: targetClient.id,
+          createdAt: {
+            gte: firstDayOfMonth,
+            lte: lastDayOfMonth
+          }
+        }
+      });
+      
+      logger.info(`📊 Cliente ${targetClient.id} - Llamadas este mes: ${callsThisMonth}/${limits.calls} (límite duro: ${limits.hardLimit.calls})`);
+      
+      // Verificar límite duro
+      if (callsThisMonth >= limits.hardLimit.calls) {
+        logger.warn(`🚫 Cliente ${targetClient.id} ha excedido el límite duro de llamadas (${callsThisMonth}/${limits.hardLimit.calls})`);
+        const limitTwiml = twilioService.generateErrorTwiML(
+          `Lo sentimos, has alcanzado el límite máximo de ${limits.hardLimit.calls} llamadas este mes. Por favor, actualiza tu plan para continuar usando el servicio.`
+        );
+        res.type('text/xml');
+        return res.send(limitTwiml.toString());
+      }
       
       // Registrar llamada
       const callLog = await prisma.callLog.create({
@@ -220,6 +254,35 @@ class WebhookController {
       if (!client) {
         logger.error(`Cliente no encontrado para dominio de email: ${toDomain}`);
         return res.status(404).send("Client not found");
+      }
+      
+      // ============================================
+      // VERIFICAR LÍMITES DEL PLAN
+      // ============================================
+      const plan = client.subscriptionPlan || 'starter';
+      const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.starter;
+      
+      // Obtener uso del mes actual
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      
+      const emailsThisMonth = await prisma.emailLog.count({
+        where: {
+          clientId: client.id,
+          createdAt: {
+            gte: firstDayOfMonth,
+            lte: lastDayOfMonth
+          }
+        }
+      });
+      
+      logger.info(`📊 Cliente ${client.id} - Emails este mes: ${emailsThisMonth}/${limits.emails} (límite duro: ${limits.hardLimit.emails})`);
+      
+      // Verificar límite duro
+      if (emailsThisMonth >= limits.hardLimit.emails) {
+        logger.warn(`🚫 Cliente ${client.id} ha excedido el límite duro de emails (${emailsThisMonth}/${limits.hardLimit.emails})`);
+        return res.status(429).send("Email limit exceeded. Please upgrade your plan.");
       }
       
       // Registrar el email
