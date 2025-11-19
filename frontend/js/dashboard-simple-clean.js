@@ -2058,9 +2058,29 @@ function createTabsContent() {
 function loadSimpleData(config) {
     console.log('📊 Cargando datos iniciales para el dashboard...');
     
-    // Cargar datos de llamadas (simulación de API)
-    loadCallsData();
-    loadEmailsData();
+    // Detectar qué tab debe estar activo según el hash de la URL
+    const hash = window.location.hash.replace('#', '');
+    const activeTab = hash || 'calls-content';
+    
+    console.log(`🔗 Hash detectado: ${hash || '(ninguno)'}`);
+    console.log(`📌 Tab activo inicial: ${activeTab}`);
+    
+    // Solo cargar datos del tab activo para evitar cargas innecesarias
+    if (activeTab === 'calls-content' || !hash) {
+        console.log('📞 Cargando datos de llamadas (tab activo)');
+        loadCallsData();
+    } else {
+        console.log('⏭️ Saltando carga de llamadas (no es el tab activo)');
+    }
+    
+    if (activeTab === 'emails-content') {
+        console.log('📧 Cargando datos de emails (tab activo)');
+        loadEmailsData();
+    } else if (!hash) {
+        // Si no hay hash, cargar emails en segundo plano
+        setTimeout(() => loadEmailsData(), 1000);
+    }
+    
     // Actualizar la hora de última actualización
     updateLastUpdateTime();
     
@@ -6509,19 +6529,31 @@ function setupTabEventListeners() {
             const targetId = this.getAttribute('data-bs-target');
             const tabName = this.textContent.trim();
             
-            console.log(`📌 Pestaña activada: ${tabName}`);
+            console.log(`📌 Pestaña activada: ${tabName} (${targetId})`);
             
-            // Si es la pestaña de llamadas, actualizar contador
+            // Cargar datos dinámicamente según el tab activado
             if (targetId === '#calls-content') {
+                console.log('📞 Tab de llamadas activado - Cargando datos...');
                 updateCallsCount();
+                // Cargar llamadas si aún no se han cargado
+                const callsTableBody = document.getElementById('calls-table-body');
+                if (callsTableBody && callsTableBody.children.length === 0) {
+                    loadCallsData();
+                }
             }
             
-            // Si es la pestaña de emails, actualizar contador
+            // Si es la pestaña de emails, cargar y actualizar contador
             if (targetId === '#emails-content') {
+                console.log('📧 Tab de emails activado - Cargando datos...');
                 const emailCount = document.getElementById('email-count');
                 if (emailCount) {
                     const visibleRows = document.querySelectorAll('.email-row:not(.d-none)');
                     emailCount.textContent = visibleRows.length;
+                }
+                // Cargar emails si aún no se han cargado
+                const emailTableBody = document.getElementById('email-table-body');
+                if (emailTableBody && emailTableBody.children.length === 0) {
+                    loadEmailsData();
                 }
             }
         });
@@ -9619,8 +9651,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Configurar Azure TTS
         setupAzureTTSEventListeners();
         
-        // Cargar datos existentes del perfil y configuración desde el backend
-        loadExistingData();
+        // NOTA: loadExistingData() ya se llama dentro de adaptOtherContextSimple()
+        // No llamar aquí para evitar duplicación
         
         // Inicializar el sistema de seguimiento de uso
         if (window.UsageTracker) {
