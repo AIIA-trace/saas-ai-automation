@@ -1798,17 +1798,17 @@ function createBillingTabContent() {
                                     <small class="text-muted">Tu plan actual vence el 15/08/2025. Renovación automática activada.</small>
                                 </div>
                                 
-                                <div class="row mb-4">
-                                    <div class="col-md-4">
+                                <div class="row mb-4 justify-content-center">
+                                    <div class="col-md-6">
                                         <div class="pricing-card h-100">
                                             <div class="pricing-card-header p-3">
                                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <h3 class="pricing-title mb-0">Básico</h3>
+                                                    <h3 class="pricing-title mb-0">Starter</h3>
                                                 </div>
                                                 <div class="pricing-price">
                                                     <div class="d-flex align-items-end">
                                                         <span class="currency">€</span>
-                                                        <span class="amount">19,99</span>
+                                                        <span class="amount">99</span>
                                                         <span class="period">/mes</span>
                                                     </div>
                                                 </div>
@@ -1817,36 +1817,40 @@ function createBillingTabContent() {
                                                 <ul class="pricing-features">
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>100 llamadas/mes</span>
+                                                        <span>300 llamadas/mes</span>
                                                     </li>
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>500 emails/mes</span>
+                                                        <span>1,000 emails/mes</span>
                                                     </li>
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>1 usuario</span>
+                                                        <span>Transcripciones automáticas</span>
                                                     </li>
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Soporte básico</span>
+                                                        <span>Grabaciones de llamadas</span>
+                                                    </li>
+                                                    <li>
+                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
+                                                        <span>Soporte email (48h)</span>
                                                     </li>
                                                 </ul>
-                                                <button class="btn btn-outline-primary w-100 rounded-pill py-2 mt-3">Cambiar plan</button>
+                                                <button class="btn btn-outline-primary w-100 rounded-pill py-2 mt-3" onclick="subscribeToPlan('starter')">Suscribirse</button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="pricing-card pricing-popular h-100">
-                                            <div class="popular-badge">Plan Actual</div>
+                                            <div class="popular-badge">Recomendado</div>
                                             <div class="pricing-card-header p-3">
                                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <h3 class="pricing-title mb-0">Profesional</h3>
+                                                    <h3 class="pricing-title mb-0">Professional</h3>
                                                 </div>
                                                 <div class="pricing-price">
                                                     <div class="d-flex align-items-end">
                                                         <span class="currency">€</span>
-                                                        <span class="amount">49,99</span>
+                                                        <span class="amount">249</span>
                                                         <span class="period">/mes</span>
                                                     </div>
                                                 </div>
@@ -1855,68 +1859,26 @@ function createBillingTabContent() {
                                                 <ul class="pricing-features">
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>1.000 llamadas/mes</span>
+                                                        <span>1,000 llamadas/mes</span>
                                                     </li>
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>5.000 emails/mes</span>
+                                                        <span>3,000 emails/mes</span>
                                                     </li>
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>5 usuarios</span>
+                                                        <span>Todo lo de Starter +</span>
                                                     </li>
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Soporte prioritario</span>
+                                                        <span>Análisis y reportes</span>
                                                     </li>
                                                     <li>
                                                         <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Respuestas IA ilimitadas</span>
+                                                        <span>Soporte prioritario (24h)</span>
                                                     </li>
                                                 </ul>
-                                                <button class="btn btn-primary w-100 rounded-pill py-2 mt-3" disabled>Plan Actual</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="pricing-card h-100">
-                                            <div class="pricing-card-header p-3">
-                                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <h3 class="pricing-title mb-0">Enterprise</h3>
-                                                    <span class="badge bg-warning">Premium</span>
-                                                </div>
-                                                <div class="pricing-price">
-                                                    <div class="d-flex align-items-end">
-                                                        <span class="currency">€</span>
-                                                        <span class="amount">99,99</span>
-                                                        <span class="period">/mes</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="pricing-card-body p-3">
-                                                <ul class="pricing-features">
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Llamadas ilimitadas</span>
-                                                    </li>
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Emails ilimitados</span>
-                                                    </li>
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>15 usuarios</span>
-                                                    </li>
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>Soporte 24/7</span>
-                                                    </li>
-                                                    <li>
-                                                        <span class="feature-icon"><i class="fas fa-check"></i></span>
-                                                        <span>API personalizada</span>
-                                                    </li>
-                                                </ul>
-                                                <button class="btn btn-outline-primary w-100 rounded-pill py-2 mt-3" id="upgrade-plan-btn">Actualizar Plan</button>
+                                                <button class="btn btn-primary w-100 rounded-pill py-2 mt-3" onclick="subscribeToPlan('professional')">Suscribirse</button>
                                             </div>
                                         </div>
                                     </div>
@@ -10113,3 +10075,65 @@ function setupAzureTTSEventListeners() {
     
     console.log('✅ Auto-refresh de llamadas inicializado');
 })();
+
+// ============================================
+// FUNCIÓN PARA SUSCRIBIRSE A UN PLAN
+// ============================================
+async function subscribeToPlan(planName) {
+    try {
+        console.log(`🚀 Iniciando suscripción al plan: ${planName}`);
+        
+        // Obtener token de autenticación
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            alert('Debes iniciar sesión para suscribirte');
+            window.location.href = '/login.html';
+            return;
+        }
+        
+        // Mapear nombre del plan a Price ID de Stripe
+        const priceIds = {
+            'starter': 'price_1SVGOZ30HCn0xeAPiB7SHe8g',
+            'professional': 'price_1SVGOa30HCn0xeAPgKYXOlLe'
+        };
+        
+        const priceId = priceIds[planName];
+        if (!priceId) {
+            console.error('Plan no válido:', planName);
+            alert('Plan no válido');
+            return;
+        }
+        
+        // Crear sesión de checkout en Stripe
+        const response = await fetch('https://api.aiiatrace.com/api/billing/create-checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                priceId: priceId,
+                successUrl: `${window.location.origin}/dashboard.html?checkout=success`,
+                cancelUrl: `${window.location.origin}/dashboard.html?checkout=cancel`
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.url) {
+            // Redirigir a Stripe Checkout
+            console.log('✅ Redirigiendo a Stripe Checkout...');
+            window.location.href = data.url;
+        } else {
+            console.error('Error creando sesión de checkout:', data);
+            alert('Error al crear la sesión de pago. Por favor, inténtalo de nuevo.');
+        }
+        
+    } catch (error) {
+        console.error('Error en suscripción:', error);
+        alert('Error al procesar la suscripción. Por favor, inténtalo de nuevo.');
+    }
+}
+
+// Exponer función globalmente
+window.subscribeToPlan = subscribeToPlan;

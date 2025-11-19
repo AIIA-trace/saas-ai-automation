@@ -34,7 +34,7 @@ class SubscriptionService {
         prioritySupport: false,
         supportResponseTime: '48h'
       },
-      stripePriceId: null // Se configurará desde Stripe
+      stripePriceId: 'price_1SVGOZ30HCn0xeAPiB7SHe8g' // Stripe Price ID
     },
     professional: {
       name: 'Professional',
@@ -64,7 +64,7 @@ class SubscriptionService {
         monthlyReports: true,
         premiumVoices: true
       },
-      stripePriceId: null // Se configurará desde Stripe
+      stripePriceId: 'price_1SVGOa30HCn0xeAPgKYXOlLe' // Stripe Price ID
     },
     // Aliases para compatibilidad
     basic: {
@@ -93,7 +93,7 @@ class SubscriptionService {
         prioritySupport: false,
         supportResponseTime: '48h'
       },
-      stripePriceId: null
+      stripePriceId: 'price_1SVGOZ30HCn0xeAPiB7SHe8g'
     },
     pro: {
       name: 'Professional',
@@ -123,7 +123,7 @@ class SubscriptionService {
         monthlyReports: true,
         premiumVoices: true
       },
-      stripePriceId: null
+      stripePriceId: 'price_1SVGOa30HCn0xeAPgKYXOlLe'
     }
   };
 

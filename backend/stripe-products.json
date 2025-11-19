@@ -1,0 +1,12 @@
+{
+  "starter": {
+    "productId": "prod_TSAkdCbdFwAi25",
+    "priceId": "price_1SVGOZ30HCn0xeAPiB7SHe8g",
+    "price": 99
+  },
+  "professional": {
+    "productId": "prod_TSAku1H9b83bTB",
+    "priceId": "price_1SVGOa30HCn0xeAPgKYXOlLe",
+    "price": 249
+  }
+}
