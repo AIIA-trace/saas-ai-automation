@@ -104,23 +104,48 @@ router.post('/stripe', validateStripeWebhook, async (req, res) => {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        const clientId = session.metadata?.clientId;
+        const customerId = session.customer;
+        const subscriptionId = session.subscription;
         
-        if (!clientId) {
-          logger.error('No se encontró clientId en los metadatos de la sesión');
-          return res.status(400).json({ error: 'Falta clientId en los metadatos' });
+        logger.info(`✅ Checkout completado - Customer: ${customerId}, Subscription: ${subscriptionId}`);
+        
+        // Obtener cliente por stripeCustomerId
+        const client = await prisma.client.findFirst({
+          where: { stripeCustomerId: customerId }
+        });
+        
+        if (!client) {
+          logger.error(`No se encontró cliente para Stripe Customer ID: ${customerId}`);
+          return res.status(400).json({ error: 'Cliente no encontrado' });
         }
+        
+        // Obtener detalles de la suscripción de Stripe
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const priceId = subscription.items.data[0].price.id;
+        
+        // Mapear Price ID a nombre de plan
+        const planMapping = {
+          'price_1SVGOZ30HCn0xeAPiB7SHe8g': 'starter',
+          'price_1SVGOa30HCn0xeAPgKYXOlLe': 'professional'
+        };
+        
+        const planName = planMapping[priceId] || 'starter';
+        
+        logger.info(`📋 Actualizando cliente ${client.id} al plan: ${planName}`);
         
         // Actualizar cliente con información de suscripción
         await prisma.client.update({
-          where: { id: clientId },
+          where: { id: client.id },
           data: {
-            stripeSubscriptionId: session.subscription,
+            subscriptionPlan: planName,
+            stripePriceId: priceId,
             subscriptionStatus: 'active',
-            subscriptionPlanId: session.metadata?.priceId || null,
-            subscriptionStartDate: new Date()
+            subscriptionExpiresAt: new Date(subscription.current_period_end * 1000)
           }
         });
+        
+        logger.info(`✅ Cliente ${client.id} actualizado correctamente`);
         
         break;
       }
