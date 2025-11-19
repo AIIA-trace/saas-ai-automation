@@ -2453,34 +2453,121 @@ router.get('/billing/invoices', authenticate, async (req, res) => {
   }
 });
 
-// Cancelar suscripción
+// Cancelar suscripción (al final del período)
 router.post('/billing/cancel-subscription', authenticate, async (req, res) => {
   try {
     if (!req.client.stripeSubscriptionId) {
-      return res.status(400).json({ error: 'No tiene una suscripción activa' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'No tiene una suscripción activa' 
+      });
     }
     
-    // Cancelar suscripción en Stripe
-    const subscription = await stripe.subscriptions.cancel(
-      req.client.stripeSubscriptionId
+    logger.info(`🚫 Cancelando suscripción para cliente ${req.client.id}`);
+    
+    // Cancelar suscripción en Stripe AL FINAL DEL PERÍODO (no inmediatamente)
+    const subscription = await stripe.subscriptions.update(
+      req.client.stripeSubscriptionId,
+      { cancel_at_period_end: true }
     );
+    
+    logger.info(`✅ Suscripción marcada para cancelación al final del período: ${new Date(subscription.current_period_end * 1000).toLocaleDateString()}`);
     
     // Actualizar estado en la base de datos
     await prisma.client.update({
       where: { id: req.client.id },
       data: { 
-        subscriptionStatus: 'cancelled',
-        subscriptionEndDate: new Date(subscription.current_period_end * 1000)
+        subscriptionStatus: 'active', // Sigue activa hasta el final del período
+        subscriptionExpiresAt: new Date(subscription.current_period_end * 1000)
       }
     });
     
     return res.json({ 
-      status: 'cancelled', 
-      endDate: new Date(subscription.current_period_end * 1000).toISOString() 
+      success: true,
+      status: 'active',
+      cancelAtPeriodEnd: true,
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+      message: 'Su suscripción se cancelará al final del período de facturación actual'
     });
   } catch (error) {
-    logger.error(`Error cancelando suscripción: ${error.message}`);
-    return res.status(500).json({ error: 'Error cancelando suscripción' });
+    logger.error(`❌ Error cancelando suscripción: ${error.message}`);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error cancelando suscripción',
+      details: error.message
+    });
+  }
+});
+
+// Cambiar plan de suscripción (upgrade/downgrade)
+router.post('/billing/change-plan', authenticate, async (req, res) => {
+  try {
+    const { newPriceId } = req.body;
+    
+    if (!newPriceId) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Se requiere el ID del nuevo plan' 
+      });
+    }
+    
+    if (!req.client.stripeSubscriptionId) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'No tiene una suscripción activa. Por favor, suscríbase primero.' 
+      });
+    }
+    
+    logger.info(`🔄 Cambiando plan para cliente ${req.client.id} a ${newPriceId}`);
+    
+    // Obtener suscripción actual
+    const currentSubscription = await stripe.subscriptions.retrieve(
+      req.client.stripeSubscriptionId
+    );
+    
+    // Cambiar el plan en Stripe
+    const updatedSubscription = await stripe.subscriptions.update(
+      req.client.stripeSubscriptionId,
+      {
+        items: [{
+          id: currentSubscription.items.data[0].id,
+          price: newPriceId
+        }],
+        proration_behavior: 'create_prorations', // Prorratear el cambio
+        billing_cycle_anchor: 'unchanged' // Mantener el ciclo de facturación
+      }
+    );
+    
+    // Determinar el nombre del plan según el priceId
+    const planName = newPriceId.includes('SVGOZ') ? 'starter' : 'professional';
+    
+    logger.info(`✅ Plan cambiado exitosamente a: ${planName}`);
+    
+    // Actualizar en la base de datos
+    await prisma.client.update({
+      where: { id: req.client.id },
+      data: { 
+        subscriptionPlan: planName,
+        stripePriceId: newPriceId,
+        subscriptionStatus: 'active',
+        subscriptionExpiresAt: new Date(updatedSubscription.current_period_end * 1000)
+      }
+    });
+    
+    return res.json({ 
+      success: true,
+      newPlan: planName,
+      priceId: newPriceId,
+      currentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
+      message: `Plan cambiado exitosamente a ${planName === 'starter' ? 'Starter' : 'Professional'}`
+    });
+  } catch (error) {
+    logger.error(`❌ Error cambiando plan: ${error.message}`);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error cambiando plan de suscripción',
+      details: error.message
+    });
   }
 });
 

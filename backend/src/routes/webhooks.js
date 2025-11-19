@@ -214,6 +214,53 @@ router.post('/stripe', validateStripeWebhook, async (req, res) => {
         break;
       }
       
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        
+        if (!customerId) {
+          return res.status(400).json({ error: 'Falta customer ID' });
+        }
+        
+        // Obtener cliente asociado con el customer ID de Stripe
+        const client = await prisma.client.findFirst({
+          where: { stripeCustomerId: customerId }
+        });
+        
+        if (!client) {
+          logger.error(`No se encontró cliente para Stripe Customer ID: ${customerId}`);
+          return res.status(400).json({ error: 'No se encontró cliente' });
+        }
+        
+        const priceId = subscription.items.data[0].price.id;
+        
+        // Mapear Price ID a nombre de plan
+        const planMapping = {
+          'price_1SVGOZ30HCn0xeAPiB7SHe8g': 'starter',
+          'price_1SVGOa30HCn0xeAPgKYXOlLe': 'professional'
+        };
+        
+        const planName = planMapping[priceId] || 'starter';
+        
+        logger.info(`🔄 Suscripción actualizada - Cliente ${client.id} cambió a plan: ${planName}`);
+        
+        // Actualizar cliente con nueva información
+        await prisma.client.update({
+          where: { id: client.id },
+          data: {
+            subscriptionPlan: planName,
+            stripePriceId: priceId,
+            subscriptionStatus: subscription.cancel_at_period_end ? 'active' : 'active',
+            subscriptionExpiresAt: new Date(subscription.current_period_end * 1000),
+            stripeSubscriptionId: subscription.id
+          }
+        });
+        
+        logger.info(`✅ Cliente ${client.id} actualizado a plan ${planName}`);
+        
+        break;
+      }
+      
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
         const customerId = subscription.customer;
@@ -232,14 +279,21 @@ router.post('/stripe', validateStripeWebhook, async (req, res) => {
           return res.status(400).json({ error: 'No se encontró cliente' });
         }
         
-        // Marcar suscripción como cancelada
+        logger.info(`🚫 Suscripción eliminada - Cliente ${client.id} vuelve a trial`);
+        
+        // Volver a trial cuando se cancela la suscripción
         await prisma.client.update({
           where: { id: client.id },
           data: {
-            subscriptionStatus: 'cancelled',
-            subscriptionEndDate: new Date(subscription.current_period_end * 1000)
+            subscriptionStatus: 'trial',
+            subscriptionPlan: null,
+            stripePriceId: null,
+            stripeSubscriptionId: null,
+            subscriptionExpiresAt: null
           }
         });
+        
+        logger.info(`✅ Cliente ${client.id} vuelto a trial`);
         
         break;
       }

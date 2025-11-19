@@ -3671,6 +3671,16 @@ function loadProfileData() {
         console.log('👤 Datos del perfil extraídos:', profileData);
         console.log('🔍 Campo companyDescription en datos:', profileData.companyDescription);
         
+        // Guardar plan y estado de suscripción globalmente
+        window.currentUserPlan = profileData.subscriptionPlan || 'trial';
+        window.currentSubscriptionStatus = profileData.subscriptionStatus || 'trial';
+        console.log(`💳 Plan actual: ${window.currentUserPlan}, Estado: ${window.currentSubscriptionStatus}`);
+        
+        // Renderizar botones dinámicos de planes
+        setTimeout(() => {
+            renderPlanButtons();
+        }, 500);
+        
         // Rellenar campos del formulario con los datos del perfil
         // Mapeo: BD → Formulario Bot Config
         const companyNameField = document.getElementById('companyName');
@@ -10169,3 +10179,199 @@ async function subscribeToPlan(planName) {
 
 // Exponer función globalmente
 window.subscribeToPlan = subscribeToPlan;
+
+// ============================================
+// FUNCIÓN PARA CANCELAR SUSCRIPCIÓN
+// ============================================
+async function cancelSubscription() {
+    try {
+        // Confirmar cancelación
+        const confirmed = confirm(
+            '¿Estás seguro de que deseas cancelar tu suscripción?\n\n' +
+            'Tu plan seguirá activo hasta el final del período de facturación actual, ' +
+            'después volverás al plan gratuito con límites de 25 llamadas y 50 emails.'
+        );
+        
+        if (!confirmed) {
+            return;
+        }
+        
+        console.log('🚫 Cancelando suscripción...');
+        
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            alert('Debes iniciar sesión');
+            window.location.href = '/login.html';
+            return;
+        }
+        
+        const response = await fetch('https://api.aiiatrace.com/api/billing/cancel-subscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`Suscripción cancelada exitosamente.\n\nTu plan seguirá activo hasta: ${new Date(data.currentPeriodEnd).toLocaleDateString()}`);
+            
+            // Recargar datos del perfil
+            location.reload();
+        } else {
+            alert(`Error al cancelar suscripción: ${data.error}`);
+        }
+        
+    } catch (error) {
+        console.error('Error cancelando suscripción:', error);
+        alert('Error al cancelar la suscripción. Por favor, inténtalo de nuevo.');
+    }
+}
+
+window.cancelSubscription = cancelSubscription;
+
+// ============================================
+// FUNCIÓN PARA CAMBIAR DE PLAN
+// ============================================
+async function changePlan(newPlanName) {
+    try {
+        // Mapear nombre del plan a Price ID
+        const priceIds = {
+            'starter': 'price_1SVGOZ30HCn0xeAPiB7SHe8g',
+            'professional': 'price_1SVGOa30HCn0xeAPgKYXOlLe'
+        };
+        
+        const newPriceId = priceIds[newPlanName];
+        if (!newPriceId) {
+            console.error('Plan no válido:', newPlanName);
+            return;
+        }
+        
+        // Obtener plan actual
+        const currentPlan = window.currentUserPlan || 'trial';
+        
+        // Determinar si es upgrade o downgrade
+        const isUpgrade = (currentPlan === 'starter' && newPlanName === 'professional');
+        const isDowngrade = (currentPlan === 'professional' && newPlanName === 'starter');
+        
+        let confirmMessage = '';
+        if (isUpgrade) {
+            confirmMessage = '¿Deseas mejorar tu plan a Professional?\n\n' +
+                'Se te cobrará la diferencia prorrateada y tendrás acceso inmediato a:\n' +
+                '• 1,000 llamadas/mes\n' +
+                '• 3,000 emails/mes\n' +
+                '• Soporte prioritario (24h)';
+        } else if (isDowngrade) {
+            confirmMessage = '¿Deseas cambiar a plan Starter?\n\n' +
+                'Los límites se ajustarán a:\n' +
+                '• 300 llamadas/mes\n' +
+                '• 1,000 emails/mes\n' +
+                '• Soporte email (48h)\n\n' +
+                'El cambio se aplicará inmediatamente y se ajustará tu facturación.';
+        }
+        
+        const confirmed = confirm(confirmMessage);
+        if (!confirmed) {
+            return;
+        }
+        
+        console.log(`🔄 Cambiando plan a: ${newPlanName}`);
+        
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            alert('Debes iniciar sesión');
+            window.location.href = '/login.html';
+            return;
+        }
+        
+        const response = await fetch('https://api.aiiatrace.com/api/billing/change-plan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                newPriceId: newPriceId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`¡Plan cambiado exitosamente a ${data.newPlan === 'starter' ? 'Starter' : 'Professional'}!`);
+            
+            // Recargar página para reflejar cambios
+            location.reload();
+        } else {
+            alert(`Error al cambiar plan: ${data.error}`);
+        }
+        
+    } catch (error) {
+        console.error('Error cambiando plan:', error);
+        alert('Error al cambiar el plan. Por favor, inténtalo de nuevo.');
+    }
+}
+
+window.changePlan = changePlan;
+
+// ============================================
+// FUNCIÓN PARA RENDERIZAR BOTONES DINÁMICOS
+// ============================================
+function renderPlanButtons() {
+    try {
+        // Obtener plan actual del usuario
+        const currentPlan = window.currentUserPlan || 'trial';
+        const subscriptionStatus = window.currentSubscriptionStatus || 'trial';
+        
+        console.log(`📋 Renderizando botones para plan actual: ${currentPlan}, estado: ${subscriptionStatus}`);
+        
+        // Botón del plan Starter
+        const starterButton = document.querySelector('button[onclick*="subscribeToPlan(\'starter\')"]');
+        if (starterButton) {
+            if (currentPlan === 'starter' && subscriptionStatus === 'active') {
+                // Usuario tiene Starter activo
+                starterButton.textContent = 'Cancelar suscripción';
+                starterButton.className = 'btn btn-outline-danger w-100 rounded-pill py-2 mt-3';
+                starterButton.setAttribute('onclick', 'cancelSubscription()');
+            } else if (currentPlan === 'professional' && subscriptionStatus === 'active') {
+                // Usuario tiene Professional, puede hacer downgrade
+                starterButton.textContent = 'Cambiar a Starter';
+                starterButton.className = 'btn btn-outline-secondary w-100 rounded-pill py-2 mt-3';
+                starterButton.setAttribute('onclick', 'changePlan(\'starter\')');
+            } else {
+                // Usuario en trial o sin plan
+                starterButton.textContent = 'Suscribirse';
+                starterButton.className = 'btn btn-outline-primary w-100 rounded-pill py-2 mt-3';
+                starterButton.setAttribute('onclick', 'subscribeToPlan(\'starter\')');
+            }
+        }
+        
+        // Botón del plan Professional
+        const professionalButton = document.querySelector('button[onclick*="subscribeToPlan(\'professional\')"]');
+        if (professionalButton) {
+            if (currentPlan === 'professional' && subscriptionStatus === 'active') {
+                // Usuario tiene Professional activo
+                professionalButton.textContent = 'Cancelar suscripción';
+                professionalButton.className = 'btn btn-outline-danger w-100 rounded-pill py-2 mt-3';
+                professionalButton.setAttribute('onclick', 'cancelSubscription()');
+            } else if (currentPlan === 'starter' && subscriptionStatus === 'active') {
+                // Usuario tiene Starter, puede hacer upgrade
+                professionalButton.textContent = 'Mejorar plan';
+                professionalButton.className = 'btn btn-primary w-100 rounded-pill py-2 mt-3';
+                professionalButton.setAttribute('onclick', 'changePlan(\'professional\')');
+            } else {
+                // Usuario en trial o sin plan
+                professionalButton.textContent = 'Suscribirse';
+                professionalButton.className = 'btn btn-primary w-100 rounded-pill py-2 mt-3';
+                professionalButton.setAttribute('onclick', 'subscribeToPlan(\'professional\')');
+            }
+        }
+        
+        console.log('✅ Botones de planes renderizados correctamente');
+        
+    } catch (error) {
+        console.error('Error renderizando botones de planes:', error);
+    }
+}
