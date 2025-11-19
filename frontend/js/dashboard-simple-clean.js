@@ -82,10 +82,10 @@ function createSimpleTabs() {
     }
     
     // Crear pestañas dinámicamente con nueva estructura
-    // Establecer el primer tab como activo por defecto
+    // NO establecer ningún tab como activo por defecto - dejar que navigation-persistence.js lo maneje
     tabsContainer.innerHTML = `
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls-content" type="button" role="tab" aria-controls="calls-content" aria-selected="true">
+            <button class="nav-link" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls-content" type="button" role="tab" aria-controls="calls-content" aria-selected="false">
                 <i class="fas fa-phone me-2"></i>Registro de Llamadas
             </button>
         </li>
@@ -1016,10 +1016,10 @@ function addDashboardStyles() {
  * @returns {string} HTML de la pestaña
  */
 function createCallsTabContent() {
-    // Establecer el primer tab-pane como activo por defecto
+    // NO establecer ningún tab-pane como activo por defecto - dejar que navigation-persistence.js lo maneje
     return `
         <!-- 1. Registro de Llamadas -->
-        <div class="tab-pane fade show active animate-fadeIn" id="calls-content" role="tabpanel" aria-labelledby="calls-tab" tabindex="0">
+        <div class="tab-pane fade animate-fadeIn" id="calls-content" role="tabpanel" aria-labelledby="calls-tab" tabindex="0">
             <div class="container-fluid pt-2 pb-0">
                 <!-- Registro de Llamadas -->
                 <div class="row">
