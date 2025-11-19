@@ -10,6 +10,14 @@ const prisma = new PrismaClient();
 
 // Definición de límites por plan
 const PLAN_LIMITS = {
+  trial: {
+    calls: 50,
+    emails: 100,
+    hardLimit: {
+      calls: 50,  // Trial: límite estricto sin excedente
+      emails: 100
+    }
+  },
   starter: {
     calls: 300,
     emails: 1000,

@@ -81,8 +81,8 @@ class AuthService {
       const finalSubscriptionStatus = subscriptionStatus || 'trial';
       logger.info(`Plan seleccionado: ${finalSubscriptionStatus}`);
       
-      // Fecha de fin de prueba (14 días desde ahora)
-      const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+      // Fecha de fin de prueba (7 días desde ahora)
+      const trialEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       
       // Crear el cliente en la base de datos con todos los campos posibles según el esquema
       logger.info('Creando cliente en la base de datos...');
