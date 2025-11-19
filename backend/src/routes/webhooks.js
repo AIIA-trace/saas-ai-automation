@@ -17,20 +17,24 @@ const validateStripeWebhook = async (req, res, next) => {
   const signature = req.headers['stripe-signature'];
   
   if (!signature) {
+    logger.warn('⚠️ Webhook de Stripe sin firma');
     return res.status(400).json({ error: 'Falta la firma de Stripe' });
   }
   
   try {
-    // En un entorno real, aquí validaríamos la firma con el secreto de webhook
-    // const event = stripe.webhooks.constructEvent(
-    //   req.body,
-    //   signature,
-    //   process.env.STRIPE_WEBHOOK_SECRET
-    // );
-    // req.stripeEvent = event;
+    // Validar firma con el secreto de webhook
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const event = stripe.webhooks.constructEvent(
+      req.body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+    
+    req.stripeEvent = event;
+    logger.info(`✅ Webhook de Stripe validado: ${event.type}`);
     next();
   } catch (error) {
-    logger.error(`Error validando webhook de Stripe: ${error.message}`);
+    logger.error(`❌ Error validando webhook de Stripe: ${error.message}`);
     return res.status(400).json({ error: 'Firma de Stripe inválida' });
   }
 };
