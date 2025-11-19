@@ -3387,16 +3387,21 @@ router.get('/usage/monthly', authenticate, async (req, res) => {
     // Obtener límites del plan actual
     const client = await prisma.client.findUnique({
       where: { id: clientId },
-      select: { subscriptionPlan: true }
+      select: { subscriptionPlan: true, subscriptionStatus: true }
     });
     
+    // Límites correctos según los planes de Stripe
     const planLimits = {
-      basic: { calls: 1000, emails: 5000 },
-      professional: { calls: 5000, emails: 20000 },
-      enterprise: { calls: Infinity, emails: Infinity }
+      trial: { calls: 300, emails: 1000 },
+      starter: { calls: 300, emails: 1000 },
+      basic: { calls: 300, emails: 1000 },  // Alias de starter
+      professional: { calls: 1000, emails: 3000 },
+      pro: { calls: 1000, emails: 3000 }  // Alias de professional
     };
     
-    const limits = planLimits[client.subscriptionPlan] || planLimits.basic;
+    // Usar el plan actual o trial por defecto
+    const currentPlan = client.subscriptionPlan || 'trial';
+    const limits = planLimits[currentPlan] || planLimits.trial;
     
     // DEBUG: Contar TODAS las llamadas y emails del cliente (sin filtro de fecha)
     const totalCalls = await prisma.callLog.count({ where: { clientId } });
