@@ -52,6 +52,38 @@ async function checkCallLimit(req, res, next) {
     const clientId = req.client.id;
     const plan = req.client.subscriptionPlan || 'starter';
     
+    // VERIFICAR SI EL TRIAL HA EXPIRADO
+    if (req.client.subscriptionStatus === 'trial' && req.client.subscriptionExpiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(req.client.subscriptionExpiresAt);
+      
+      if (now > expiresAt) {
+        logger.warn(`🚫 Cliente ${clientId} - Trial expirado (${expiresAt.toLocaleDateString()})`);
+        return res.status(403).json({
+          error: 'Trial expirado',
+          message: 'Tu período de prueba ha finalizado. Por favor, suscríbete a un plan para continuar usando el servicio.',
+          trialEndedAt: expiresAt,
+          upgradeUrl: '/dashboard#billing-content'
+        });
+      }
+    }
+    
+    // VERIFICAR SI LA SUSCRIPCIÓN HA EXPIRADO
+    if (req.client.subscriptionStatus === 'active' && req.client.subscriptionExpiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(req.client.subscriptionExpiresAt);
+      
+      if (now > expiresAt) {
+        logger.warn(`🚫 Cliente ${clientId} - Suscripción expirada (${expiresAt.toLocaleDateString()})`);
+        return res.status(403).json({
+          error: 'Suscripción expirada',
+          message: 'Tu suscripción ha expirado. Por favor, renueva tu plan para continuar usando el servicio.',
+          subscriptionEndedAt: expiresAt,
+          upgradeUrl: '/dashboard#billing-content'
+        });
+      }
+    }
+    
     // Obtener límites del plan
     const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.starter;
     
@@ -117,6 +149,38 @@ async function checkEmailLimit(req, res, next) {
   try {
     const clientId = req.client.id;
     const plan = req.client.subscriptionPlan || 'starter';
+    
+    // VERIFICAR SI EL TRIAL HA EXPIRADO
+    if (req.client.subscriptionStatus === 'trial' && req.client.subscriptionExpiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(req.client.subscriptionExpiresAt);
+      
+      if (now > expiresAt) {
+        logger.warn(`🚫 Cliente ${clientId} - Trial expirado (${expiresAt.toLocaleDateString()})`);
+        return res.status(403).json({
+          error: 'Trial expirado',
+          message: 'Tu período de prueba ha finalizado. Por favor, suscríbete a un plan para continuar usando el servicio.',
+          trialEndedAt: expiresAt,
+          upgradeUrl: '/dashboard#billing-content'
+        });
+      }
+    }
+    
+    // VERIFICAR SI LA SUSCRIPCIÓN HA EXPIRADO
+    if (req.client.subscriptionStatus === 'active' && req.client.subscriptionExpiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(req.client.subscriptionExpiresAt);
+      
+      if (now > expiresAt) {
+        logger.warn(`🚫 Cliente ${clientId} - Suscripción expirada (${expiresAt.toLocaleDateString()})`);
+        return res.status(403).json({
+          error: 'Suscripción expirada',
+          message: 'Tu suscripción ha expirado. Por favor, renueva tu plan para continuar usando el servicio.',
+          subscriptionEndedAt: expiresAt,
+          upgradeUrl: '/dashboard#billing-content'
+        });
+      }
+    }
     
     // Obtener límites del plan
     const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.starter;
